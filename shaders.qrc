@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+ <qresource>
+  <file>compute-transmittance.frag</file>
+  <file>texture-coordinates.frag</file>
+  <file>common-functions.frag</file>
+  <file>shader.vert</file>
+ </qresource>
+</RCC>

@@ -1,0 +1,7 @@
+Each scattering order can be calculated by considering each scattering mechanism separately. E.g. calculate Rayleigh scattering, store in a texture, then Mie scattering, store in another texture, then ice crystal scattering, store in a third texture. When we need to use these textures, we can just calculate incoming radiance separately and add it. So we'll get a nested loop:
+
+ * For each scattering mechanism S we want to generate texture for
+  * For each scattering mechanism M we have a previous scattering order texture
+    > calculate incoming radiance from texture of M, accumulate scattered radiance in texture of S
+
+This can even be generalized so that, e.g., we could have multiple textures for each scattering mechanism, to get high enough resolution in all relevant variables and still fit data in VRAM. E.g. we could split the texture by altitude.
