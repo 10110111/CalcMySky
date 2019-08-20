@@ -272,6 +272,60 @@ void handleCmdLine()
         handleFloatOption(atmosphereHeight,parser.value(atmoHeightOpt), 1e-2, 1000, atmoHeightOpt.names().front());
 }
 
+void computeTransmittance(QOpenGLShaderProgram& program)
+{
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
+    for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
+    {
+        const QVector4D wavelengths(allWavelengths[texIndex*4+0],
+                                    allWavelengths[texIndex*4+1],
+                                    allWavelengths[texIndex*4+2],
+                                    allWavelengths[texIndex*4+3]);
+        const QVector4D ozoneCS(fullOzoneAbsCrossSection[texIndex*4+0],
+                                fullOzoneAbsCrossSection[texIndex*4+1],
+                                fullOzoneAbsCrossSection[texIndex*4+2],
+                                fullOzoneAbsCrossSection[texIndex*4+3]);
+
+        assert(fbos[FBO_TRANSMITTANCE]);
+        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE0+texIndex]);
+        gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,transmittanceTexW,transmittanceTexH,
+                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        gl.glBindTexture(GL_TEXTURE_2D,0);
+        gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,
+                                  textures[TEX_TRANSMITTANCE0+texIndex],0);
+        checkFramebufferStatus("framebuffer for transmittance texture");
+
+        program.bind();
+        program.setUniformValue("visibleAtmosphereHeight",atmosphereHeight);
+        program.setUniformValue("wavelengths",wavelengths);
+        program.setUniformValue("rayleighScatteringCoefficient",rayleighCoefficient(wavelengths));
+        program.setUniformValue("mieScatteringCoefficient",mieCoefficient(wavelengths));
+        program.setUniformValue("mieSingleScatteringAlbedo",mieSingleScatteringAlbedo);
+        program.setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
+        program.setUniformValue("numTransmittanceIntegrationPoints",numTransmittanceIntegrationPoints);
+        program.setUniformValue("transmittanceTextureSize",transmittanceTexW,transmittanceTexH);
+        gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
+        renderUntexturedQuad();
+
+        std::vector<glm::vec4> pixels(transmittanceTexW*transmittanceTexH);
+        gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_FLOAT,pixels.data());
+        std::ofstream out(transmittanceTexDir+"/transmittance-"+std::to_string(texIndex)+".f32");
+        const std::uint32_t w=transmittanceTexW, h=transmittanceTexH;
+        out.write(reinterpret_cast<const char*>(&w), sizeof w);
+        out.write(reinterpret_cast<const char*>(&h), sizeof h);
+        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+
+        if(false) // for debugging
+        {
+            QImage image(transmittanceTexW, transmittanceTexH, QImage::Format_RGBA8888);
+            image.fill(Qt::magenta);
+            gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
+            image.save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
+        }
+    }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
@@ -354,56 +408,7 @@ int main(int argc, char** argv)
                 }
             }
 
-            gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
-            for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
-            {
-                const QVector4D wavelengths(allWavelengths[texIndex*4+0],
-                                            allWavelengths[texIndex*4+1],
-                                            allWavelengths[texIndex*4+2],
-                                            allWavelengths[texIndex*4+3]);
-                const QVector4D ozoneCS(fullOzoneAbsCrossSection[texIndex*4+0],
-                                        fullOzoneAbsCrossSection[texIndex*4+1],
-                                        fullOzoneAbsCrossSection[texIndex*4+2],
-                                        fullOzoneAbsCrossSection[texIndex*4+3]);
-
-                assert(fbos[FBO_TRANSMITTANCE]);
-                gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE0+texIndex]);
-                gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,transmittanceTexW,transmittanceTexH,
-                                0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-                gl.glBindTexture(GL_TEXTURE_2D,0);
-                gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,
-                                          textures[TEX_TRANSMITTANCE0+texIndex],0);
-                checkFramebufferStatus("framebuffer for transmittance texture");
-
-                computeTransmittanceProg.bind();
-                computeTransmittanceProg.setUniformValue("visibleAtmosphereHeight",atmosphereHeight);
-                computeTransmittanceProg.setUniformValue("wavelengths",wavelengths);
-                computeTransmittanceProg.setUniformValue("rayleighScatteringCoefficient",rayleighCoefficient(wavelengths));
-                computeTransmittanceProg.setUniformValue("mieScatteringCoefficient",mieCoefficient(wavelengths));
-                computeTransmittanceProg.setUniformValue("mieSingleScatteringAlbedo",mieSingleScatteringAlbedo);
-                computeTransmittanceProg.setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
-                computeTransmittanceProg.setUniformValue("numTransmittanceIntegrationPoints",numTransmittanceIntegrationPoints);
-                computeTransmittanceProg.setUniformValue("transmittanceTextureSize",transmittanceTexW,transmittanceTexH);
-                gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
-                renderUntexturedQuad();
-
-                std::vector<glm::vec4> pixels(transmittanceTexW*transmittanceTexH);
-                gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_FLOAT,pixels.data());
-                std::ofstream out(transmittanceTexDir+"/transmittance-"+std::to_string(texIndex)+".f32");
-                const std::uint32_t w=transmittanceTexW, h=transmittanceTexH;
-                out.write(reinterpret_cast<const char*>(&w), sizeof w);
-                out.write(reinterpret_cast<const char*>(&h), sizeof h);
-                out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
-
-                if(false) // for debugging
-                {
-                    QImage image(transmittanceTexW, transmittanceTexH, QImage::Format_RGBA8888);
-                    image.fill(Qt::magenta);
-                    gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-                    image.save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
-                }
-            }
-            gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+            computeTransmittance(computeTransmittanceProg);
         }
     }
     catch(MustQuit&)
