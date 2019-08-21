@@ -60,9 +60,8 @@ GLint transmittanceTexW=128, transmittanceTexH=64;
 GLint numTransmittanceIntegrationPoints=500;
 GLfloat earthRadius=6371e3; // m
 GLfloat atmosphereHeight=120e3; // m
-GLfloat rayleighCoefficientNumerator=1.24062e+6f; // cross-section * numberDensityAtSeaLevel * lambda^4 => nm^4/m;
-GLfloat mieCoefficientNumerator=4.44e-6f; // cross-section * numberDensityAtSeaLevel * (lambda/lambdaRef)^-mieAngstromExponent => m^-1;
-GLfloat mieAngstromExponentReferenceWavelength=1000; // nm
+GLfloat rayleighCoefficientAt1um=1.24062e-6; // cross-section * numberDensityAtSeaLevel => m^-1;
+GLfloat mieCoefficientAt1um=4.44e-6; // cross-section * numberDensityAtSeaLevel => m^-1;
 GLfloat mieAngstromExponent=0;
 GLfloat mieSingleScatteringAlbedo=1.0;
 QString rayleighScattererRelativeDensity=1+R"(
@@ -92,12 +91,14 @@ QVector4D QVec(glm::vec4 v) { return QVector4D(v.x, v.y, v.z, v.w); }
 
 QVector4D rayleighCoefficient(QVector4D wavelengths)
 {
-    return QVec(rayleighCoefficientNumerator*pow(Vec(wavelengths), glm::vec4(-4)));
+    constexpr float refWL=1000; // nm
+    return QVec(rayleighCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(-4)));
 }
 
 QVector4D mieCoefficient(QVector4D wavelengths)
 {
-    return QVec(mieCoefficientNumerator*pow(Vec(wavelengths)/mieAngstromExponentReferenceWavelength, glm::vec4(mieAngstromExponent)));
+    constexpr float refWL=1000; // nm
+    return QVec(mieCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(mieAngstromExponent)));
 }
 
 void checkFramebufferStatus(const char*const fboDescription)
