@@ -60,8 +60,8 @@ GLint transmittanceTexW=128, transmittanceTexH=64;
 GLint numTransmittanceIntegrationPoints=500;
 GLfloat earthRadius=6371e3; // m
 GLfloat atmosphereHeight=120e3; // m
-GLfloat rayleighCoefficientAt1um=1.24062e-6; // cross-section * numberDensityAtSeaLevel => m^-1;
-GLfloat mieCoefficientAt1um=4.44e-6; // cross-section * numberDensityAtSeaLevel => m^-1;
+GLfloat rayleighScatteringCoefficientAt1um=1.24062e-6; // cross-section * numberDensityAtSeaLevel => m^-1;
+GLfloat mieScatteringCoefficientAt1um=4.44e-6; // cross-section * numberDensityAtSeaLevel => m^-1;
 GLfloat mieAngstromExponent=0;
 GLfloat mieSingleScatteringAlbedo=1.0;
 QString rayleighScattererRelativeDensity=1+R"(
@@ -89,16 +89,16 @@ struct MustQuit{};
 glm::vec4 Vec(QVector4D v) { return glm::vec4(v.x(), v.y(), v.z(), v.w()); }
 QVector4D QVec(glm::vec4 v) { return QVector4D(v.x, v.y, v.z, v.w); }
 
-QVector4D rayleighCoefficient(QVector4D wavelengths)
+QVector4D rayleighScatteringCoefficient(QVector4D wavelengths)
 {
     constexpr float refWL=1000; // nm
-    return QVec(rayleighCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(-4)));
+    return QVec(rayleighScatteringCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(-4)));
 }
 
-QVector4D mieCoefficient(QVector4D wavelengths)
+QVector4D mieScatteringCoefficient(QVector4D wavelengths)
 {
     constexpr float refWL=1000; // nm
-    return QVec(mieCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(mieAngstromExponent)));
+    return QVec(mieScatteringCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(mieAngstromExponent)));
 }
 
 void checkFramebufferStatus(const char*const fboDescription)
@@ -299,8 +299,8 @@ void computeTransmittance(QOpenGLShaderProgram& program)
         program.bind();
         program.setUniformValue("visibleAtmosphereHeight",atmosphereHeight);
         program.setUniformValue("wavelengths",wavelengths);
-        program.setUniformValue("rayleighScatteringCoefficient",rayleighCoefficient(wavelengths));
-        program.setUniformValue("mieScatteringCoefficient",mieCoefficient(wavelengths));
+        program.setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
+        program.setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
         program.setUniformValue("mieSingleScatteringAlbedo",mieSingleScatteringAlbedo);
         program.setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
         program.setUniformValue("numTransmittanceIntegrationPoints",numTransmittanceIntegrationPoints);
