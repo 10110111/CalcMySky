@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <map>
 
 #include <QOpenGLFunctions_3_3_Core>
 #include <QCommandLineParser>
@@ -56,31 +57,17 @@ enum
 GLuint textures[TEX_COUNT];
 
 std::string transmittanceTexDir=".";
-GLint transmittanceTexW=128, transmittanceTexH=64;
-GLint numTransmittanceIntegrationPoints=500;
-GLfloat earthRadius=6371e3; // m
-GLfloat atmosphereHeight=120e3; // m
-GLfloat rayleighScatteringCoefficientAt1um=1.24062e-6; // cross-section * numberDensityAtSeaLevel => m^-1;
-GLfloat mieScatteringCoefficientAt1um=4.44e-6; // cross-section * numberDensityAtSeaLevel => m^-1;
-GLfloat mieAngstromExponent=0;
-GLfloat mieSingleScatteringAlbedo=1.0;
-QString rayleighScattererRelativeDensity=1+R"(
-const float rayleighScaleHeight=8000.;
-return exp(-1/rayleighScaleHeight * altitude);
-)";
-QString mieScattererRelativeDensity=1+R"(
-const float mieScaleHeight=1200;
-return exp(-1/mieScaleHeight*altitude);
-)";
-QString ozoneDensity=1+R"(
-const float km=1e3;
-const float totalOzoneAmount=300*dobsonUnit;
-
-if(altitude<10*km || altitude>40*km) return 0;
-if(altitude<25*km)
-    return (altitude-10*km)/sqr(25*km-10*km) * totalOzoneAmount;
-return (40*km-altitude)/sqr(40*km-25*km) * totalOzoneAmount;
-)";
+GLint transmittanceTexW, transmittanceTexH;
+GLint numTransmittanceIntegrationPoints;
+GLfloat earthRadius;
+GLfloat atmosphereHeight;
+GLfloat rayleighScatteringCoefficientAt1um;
+GLfloat mieScatteringCoefficientAt1um;
+GLfloat mieAngstromExponent;
+GLfloat mieSingleScatteringAlbedo;
+QString rayleighScattererRelativeDensity;
+QString mieScattererRelativeDensity;
+QString ozoneDensity;
 
 QOpenGLFunctions_3_3_Core gl;
 
@@ -206,6 +193,7 @@ const int DENSITY_REL_MIE=3;
 
 const float dobsonUnit = 2.687e20; // molecules/m^2
 const float PI=3.1415926535897932;
+const float km=1000;
 #define sqr(x) ((x)*(x))
 )";
     src.replace("\n#include \"const.h.glsl\"\n", constants);
@@ -246,31 +234,231 @@ QString getShaderSrc(QString const& fileName)
     return addConstDefinitions(file.readAll());
 }
 
-void handleFloatOption(float& dest, QString const& str, float min, float max, QString const& optionName)
+unsigned long long getUInt(QString value, unsigned long long min, unsigned long long max, QString filename, int lineNumber)
 {
     bool ok;
-    dest = str.toFloat(&ok);
-    if(!ok || dest<min || dest>max)
+    const auto x=value.toULongLong(&ok);
+    if(!ok)
     {
-        std::cerr << "Bad value for option " << optionName.toStdString() << "\n";
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": can't parse integer\n";
+    }
+    if(x<min || x>max)
+    {
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": integer out of range. Valid range is [" << min << ".." << max << "]\n";
         throw MustQuit{};
     }
+    return x;
+}
+
+struct Quantity
+{
+    virtual std::string name() const = 0;
+    virtual std::map<QString, double> units() const = 0;
+    virtual QString basicUnit() const = 0;
+};
+
+struct LengthQuantity : Quantity
+{
+    std::string name() const override { return "length"; }
+    std::map<QString, double> units() const override
+    {
+        return {
+                {"nm",1e-9},
+                {"um",1e-6},
+                {"mm",1e-3},
+                { "m",1e+0},
+                {"km",1e+3},
+                {"Mm",1e+6},
+                {"Gm",1e+9},
+               };
+    }
+    QString basicUnit() const override { return "m"; }
+};
+
+struct ReciprocalLengthQuantity : Quantity
+{
+    std::string name() const override { return "reciprocal length"; }
+    std::map<QString, double> units() const override
+    {
+        return {
+                {"nm^-1",1e+9},
+                {"um^-1",1e+6},
+                {"mm^-1",1e+3},
+                { "m^-1",1e-0},
+                {"km^-1",1e-3},
+                {"Mm^-1",1e-6},
+                {"Gm^-1",1e-9},
+               };
+    }
+    QString basicUnit() const override { return "m^-1"; }
+};
+
+struct DimensionlessQuantity {};
+
+double getQuantity(QString value, double min, double max, DimensionlessQuantity const& quantity, QString filename, int lineNumber)
+{
+    bool ok;
+    const auto x=value.toDouble(&ok);
+    if(!ok)
+    {
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": failed to parse number\n";
+        throw MustQuit{};
+    }
+    if(x<min || x>max)
+    {
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": value " << x << " is out of range. Valid range is [" << min << ".." << max << "].\n";
+        throw MustQuit{};
+    }
+    return x;
+}
+
+double getQuantity(QString value, double min, double max, Quantity const& quantity, QString filename, int lineNumber)
+{
+    auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z^-0-9]*)");
+    if(!regex.exactMatch(value))
+    {
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": bad format of " << quantity.name() << " quantity. Must be `NUMBER UNIT', e.g. `30.2 km' (without the quotes).\n";
+        throw MustQuit{};
+    }
+    bool ok;
+    const auto x=regex.cap(1).toDouble(&ok);
+    if(!ok)
+    {
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": failed to parse numeric part of the quantity\n";
+        throw MustQuit{};
+    }
+    const auto units=quantity.units();
+    const auto unit=regex.cap(2).trimmed();
+    const auto scaleIt=units.find(unit);
+    if(scaleIt==units.end())
+    {
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": unrecognized unit " << unit.toStdString() << ". Can be one of ";
+        for(auto it=units.begin(); it!=units.end(); ++it)
+        {
+            if(it!=units.begin()) std::cerr << ',';
+            std::cerr << it->first.toStdString();
+        }
+        std::cerr << ".\n";
+    }
+    const auto finalX = x * scaleIt->second;
+    if(finalX<min || finalX>max)
+    {
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": value " << finalX << " " << quantity.basicUnit().toStdString()
+                  << " is out of range. Valid range is [" << min << ".." << max << "] " << quantity.basicUnit().toStdString() << ".\n";
+        throw MustQuit{};
+    }
+    return finalX;
+}
+
+QString readGLSLFunctionBody(QString value, QTextStream& stream, const QString filename, int& lineNumber)
+{
+    if(!value.isEmpty() && !value.startsWith("```"))
+    {
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": bad value format. Must start and end with triple backtick \"```\".\n";
+        throw MustQuit{};
+    }
+    for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
+    {
+        if(value.isEmpty())
+        {
+            if(!line.startsWith("```"))
+            {
+                std::cerr << filename.toStdString() << ":" << lineNumber << ": value must start with triple backtick.\n";
+                throw MustQuit{};
+            }
+            value.append(line+'\n');
+            continue;
+        }
+
+        if(!line.contains("```"))
+            value.append(line+'\n');
+        else if(line.endsWith("```"))
+        {
+            value.append(line+'\n');
+            break;
+        }
+        else
+        {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": trailing characters after triple backtick.\n";
+            throw MustQuit{};
+        }
+    }
+    return value.mid(3,value.size()-(2*3+1));
 }
 
 void handleCmdLine()
 {
     QCommandLineParser parser;
-    const auto earthRadiusOpt=QCommandLineOption{"earth-radius", "Radius of the Earth surface", "value in meters"};
-    const auto atmoHeightOpt=QCommandLineOption{"atmosphere-height", "Cutoff altitude beyond which atmospheric density is neglected", "value in meters"};
-    parser.addOptions({earthRadiusOpt, atmoHeightOpt});
+    const auto atmoDescrOpt="atmo-descr";
+    parser.addPositionalArgument(atmoDescrOpt, "Atmosphere description file", "atmosphere-description.atmo");
     parser.addVersionOption();
     parser.addHelpOption();
     parser.process(*qApp);
 
-    if(parser.isSet(earthRadiusOpt))
-        handleFloatOption(earthRadius,parser.value(earthRadiusOpt), 1, 100e3, earthRadiusOpt.names().front());
-    if(parser.isSet(atmoHeightOpt))
-        handleFloatOption(atmosphereHeight,parser.value(atmoHeightOpt), 1e-2, 1000, atmoHeightOpt.names().front());
+    const auto posArgs=parser.positionalArguments();
+    if(posArgs.size()>1)
+    {
+        std::cerr << "Too many arguments\n";
+        throw MustQuit{};
+    }
+    if(posArgs.isEmpty())
+    {
+        std::cerr << parser.helpText().toStdString();
+        throw MustQuit{};
+    }
+    const auto atmoDescrFileName=posArgs[0];
+    QFile atmoDescr(atmoDescrFileName);
+    if(!atmoDescr.open(QIODevice::ReadOnly))
+    {
+        std::cerr << "Failed to open atmosphere description file: " << atmoDescr.errorString().toStdString() << '\n';
+        throw MustQuit{};
+    }
+    QTextStream stream(&atmoDescr);
+    int lineNumber=1;
+    for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
+    {
+        const auto codeAndComment=line.split('#');
+        assert(codeAndComment.size());
+        if(codeAndComment[0].trimmed().isEmpty())
+            continue;
+        const auto keyValue=codeAndComment[0].split(':');
+        if(keyValue.size()!=2)
+        {
+            std::cerr << atmoDescrFileName.toStdString() << ":" << lineNumber << ": error: not a key:value pair\n";
+            throw MustQuit{};
+        }
+        const auto key=keyValue[0].simplified().toLower();
+        const auto value=keyValue[1].trimmed();
+        if(key=="transmittance texture width")
+            transmittanceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="transmittance texture height")
+            transmittanceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="transmittance integration points")
+            numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="earth radius")
+            earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
+        else if(key=="atmosphere height")
+            atmosphereHeight=getQuantity(value,1,1e6,LengthQuantity{},atmoDescrFileName,lineNumber);
+        else if(key=="rayleigh scattering coefficient at 1 um")
+            rayleighScatteringCoefficientAt1um=getQuantity(value,1e-20,100,ReciprocalLengthQuantity{},atmoDescrFileName,lineNumber);
+        else if(key=="mie scattering coefficient at 1 um")
+            mieScatteringCoefficientAt1um=getQuantity(value,1e-20,100,ReciprocalLengthQuantity{},atmoDescrFileName,lineNumber);
+        else if(key=="mie angstrom exponent")
+            mieAngstromExponent=getQuantity(value,-10,10,DimensionlessQuantity{},atmoDescrFileName,lineNumber);
+        else if(key=="mie single scattering albedo")
+            mieSingleScatteringAlbedo=getQuantity(value,0,1,DimensionlessQuantity{},atmoDescrFileName,lineNumber);
+        else if(key=="rayleigh scatterer relative density")
+            rayleighScattererRelativeDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
+        else if(key=="mie scatterer relative density")
+            mieScattererRelativeDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
+        else if(key=="ozone density")
+            ozoneDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
+    }
+    if(!stream.atEnd())
+    {
+        std::cerr << atmoDescrFileName.toStdString() << ":" << lineNumber << ": error: failed to read file\n";
+        throw MustQuit{};
+    }
 }
 
 void computeTransmittance(QOpenGLShaderProgram& program)
@@ -333,47 +521,47 @@ int main(int argc, char** argv)
     app.setApplicationName("Atmosphere textures generator");
     app.setApplicationVersion(APP_VERSION);
 
-    handleCmdLine();
-
-    QSurfaceFormat format;
-    format.setMajorVersion(3);
-    format.setMinorVersion(3);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-
-    QOpenGLContext context;
-    context.setFormat(format);
-    context.create();
-    if(!context.isValid())
-    {
-        std::cerr << "Failed to create OpenGL "
-                  << format.majorVersion() << '.'
-                  << format.minorVersion() << " context";
-        return 1;
-    }
-
-    QOffscreenSurface surface;
-    surface.setFormat(format);
-    surface.create();
-    if(!surface.isValid())
-    {
-        std::cerr << "Failed to create OpenGL "
-                  << format.majorVersion() << '.'
-                  << format.minorVersion() << " offscreen surface";
-        return 1;
-    }
-
-    context.makeCurrent(&surface);
-
-    if(!gl.initializeOpenGLFunctions())
-    {
-        std::cerr << "Failed to initialize OpenGL "
-                  << format.majorVersion() << '.'
-                  << format.minorVersion() << " functions";
-        return 1;
-    }
-
     try
     {
+        handleCmdLine();
+
+        QSurfaceFormat format;
+        format.setMajorVersion(3);
+        format.setMinorVersion(3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+
+        QOpenGLContext context;
+        context.setFormat(format);
+        context.create();
+        if(!context.isValid())
+        {
+            std::cerr << "Failed to create OpenGL "
+                << format.majorVersion() << '.'
+                << format.minorVersion() << " context";
+            return 1;
+        }
+
+        QOffscreenSurface surface;
+        surface.setFormat(format);
+        surface.create();
+        if(!surface.isValid())
+        {
+            std::cerr << "Failed to create OpenGL "
+                << format.majorVersion() << '.'
+                << format.minorVersion() << " offscreen surface";
+            return 1;
+        }
+
+        context.makeCurrent(&surface);
+
+        if(!gl.initializeOpenGLFunctions())
+        {
+            std::cerr << "Failed to initialize OpenGL "
+                << format.majorVersion() << '.'
+                << format.minorVersion() << " functions";
+            return 1;
+        }
+
         init();
 
         QOpenGLShader commonVertShader(QOpenGLShader::Vertex);

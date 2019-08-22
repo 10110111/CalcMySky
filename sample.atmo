@@ -1,0 +1,28 @@
+transmittance texture width: 128
+transmittance texture height: 64
+transmittance integration points: 500
+earth radius: 6371 km
+atmosphere height: 120 km
+Rayleigh scattering coefficient at 1 um: 1.24062 Mm^-1 # cross-section * numberDensityAtSeaLevel
+Mie scattering coefficient at 1 um: 4.44 Mm^-1 # cross-section * numberDensityAtSeaLevel
+Mie angstrom exponent: 0
+Mie single scattering albedo: 1.0
+
+Rayleigh scatterer relative density:
+```
+    const float rayleighScaleHeight=8000.;
+    return exp(-1/rayleighScaleHeight * altitude);
+```
+Mie scatterer relative density:
+```
+    const float mieScaleHeight=1200;
+    return exp(-1/mieScaleHeight*altitude);
+```
+ozone density:
+```
+    const float totalOzoneAmount=300*dobsonUnit;
+    if(altitude<10*km || altitude>40*km) return 0;
+    if(altitude<25*km)
+        return (altitude-10*km)/sqr(25*km-10*km) * totalOzoneAmount;
+    return (40*km-altitude)/sqr(40*km-25*km) * totalOzoneAmount;
+```
