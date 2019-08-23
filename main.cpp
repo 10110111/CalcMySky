@@ -28,12 +28,13 @@ constexpr auto allWavelengths=[]() constexpr
  * which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html .
  * Values are in W/(m^2*nm).
  */
-constexpr decltype(allWavelengths) fullSunSpectrum={1.037,1.249,1.684,1.975,
+constexpr decltype(allWavelengths) fullSunSpectrum=
+   {1.037,1.249,1.684,1.975,
     1.968,1.877,1.854,1.818,
     1.723,1.604,1.516,1.408,
     1.309,1.23,1.142,1.062};
 constexpr decltype(allWavelengths) fullOzoneAbsCrossSection=
-{1.394e-26,6.052e-28,4.923e-27,2.434e-26,
+   {1.394e-26,6.052e-28,4.923e-27,2.434e-26,
     7.361e-26,1.831e-25,3.264e-25,4.514e-25,
     4.544e-25,2.861e-25,1.571e-25,7.902e-26,
     4.452e-26,2.781e-26,1.764e-26,5.369e-27};
