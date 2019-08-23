@@ -33,6 +33,10 @@ constexpr decltype(allWavelengths) fullSunSpectrum=
     1.968,1.877,1.854,1.818,
     1.723,1.604,1.516,1.408,
     1.309,1.23,1.142,1.062};
+/* Data taken from http://www.iup.uni-bremen.de/gruppen/molspec/downloads/serdyuchenkogorshelevversionjuly2013.zip
+ * which is linked to at http://www.iup.uni-bremen.de/gruppen/molspec/databases/referencespectra/o3spectra2011/index.html .
+ * Data are for 233K. Values are in m^2/molecule.
+ */
 constexpr decltype(allWavelengths) fullOzoneAbsCrossSection=
    {1.394e-26,6.052e-28,4.923e-27,2.434e-26,
     7.361e-26,1.831e-25,3.264e-25,4.514e-25,
