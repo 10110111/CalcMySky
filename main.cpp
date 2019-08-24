@@ -28,7 +28,7 @@ constexpr auto allWavelengths=[]() constexpr
  * which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html .
  * Values are in W/(m^2*nm).
  */
-constexpr decltype(allWavelengths) fullSunSpectrum=
+constexpr decltype(allWavelengths) solarIrradiance=
    {1.037,1.249,1.684,1.975,
     1.968,1.877,1.854,1.818,
     1.723,1.604,1.516,1.408,
@@ -37,7 +37,7 @@ constexpr decltype(allWavelengths) fullSunSpectrum=
  * which is linked to at http://www.iup.uni-bremen.de/gruppen/molspec/databases/referencespectra/o3spectra2011/index.html .
  * Data are for 233K. Values are in m^2/molecule.
  */
-constexpr decltype(allWavelengths) fullOzoneAbsCrossSection=
+constexpr decltype(allWavelengths) ozoneAbsCrossSection=
    {1.394e-26,6.052e-28,4.923e-27,2.434e-26,
     7.361e-26,1.831e-25,3.264e-25,4.514e-25,
     4.544e-25,2.861e-25,1.571e-25,7.902e-26,
@@ -492,10 +492,10 @@ void computeTransmittance(std::vector<QOpenGLShader*> const& commonShaders)
                                     allWavelengths[texIndex*4+1],
                                     allWavelengths[texIndex*4+2],
                                     allWavelengths[texIndex*4+3]);
-        const QVector4D ozoneCS(fullOzoneAbsCrossSection[texIndex*4+0],
-                                fullOzoneAbsCrossSection[texIndex*4+1],
-                                fullOzoneAbsCrossSection[texIndex*4+2],
-                                fullOzoneAbsCrossSection[texIndex*4+3]);
+        const QVector4D ozoneCS(ozoneAbsCrossSection[texIndex*4+0],
+                                ozoneAbsCrossSection[texIndex*4+1],
+                                ozoneAbsCrossSection[texIndex*4+2],
+                                ozoneAbsCrossSection[texIndex*4+3]);
 
         assert(fbos[FBO_TRANSMITTANCE]);
         gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE0+texIndex]);
