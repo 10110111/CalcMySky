@@ -466,8 +466,25 @@ void handleCmdLine()
     }
 }
 
-void computeTransmittance(QOpenGLShaderProgram& program)
+void computeTransmittance(std::vector<QOpenGLShader*> const& commonShaders)
 {
+    QOpenGLShaderProgram program;
+    {
+        QOpenGLShader computeTransmittanceShader(QOpenGLShader::Fragment);
+        handleCompileStatus(computeTransmittanceShader.compileSourceCode(getShaderSrc(":/compute-transmittance.frag")),
+                            computeTransmittanceShader, "transmittance computation shader");
+        program.addShader(&computeTransmittanceShader);
+        for(const auto sh : commonShaders)
+            program.addShader(sh);
+
+        if(!program.link())
+        {
+            // Qt prints linking errors to stderr, so don't print them again
+            std::cerr << "Failed to link transmittance computation shader program\n";
+            throw MustQuit{};
+        }
+    }
+
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
     for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
     {
@@ -582,28 +599,13 @@ int main(int argc, char** argv)
         handleCompileStatus(densitiesShader.compileSourceCode(makeDensitiesSrc()),
                             densitiesShader, "shader for calculating scatterer and absorber densities");
 
-        {
-            QOpenGLShaderProgram computeTransmittanceProg;
-            {
-                QOpenGLShader computeTransmittanceShader(QOpenGLShader::Fragment);
-                handleCompileStatus(computeTransmittanceShader.compileSourceCode(getShaderSrc(":/compute-transmittance.frag")),
-                                    computeTransmittanceShader, "transmittance computation shader");
-                computeTransmittanceProg.addShader(&commonVertShader);
-                computeTransmittanceProg.addShader(&texCoordsShader);
-                computeTransmittanceProg.addShader(&densitiesShader);
-                computeTransmittanceProg.addShader(&commonFunctionsShader);
-                computeTransmittanceProg.addShader(&computeTransmittanceShader);
-
-                if(!computeTransmittanceProg.link())
-                {
-                    // Qt prints linking errors to stderr, so don't print them again
-                    std::cerr << "Failed to link transmittance computation shader program\n";
-                    return 1;
-                }
-            }
-
-            computeTransmittance(computeTransmittanceProg);
-        }
+        const std::vector<QOpenGLShader*> commonShaders{
+                                                        &commonVertShader,
+                                                        &texCoordsShader,
+                                                        &densitiesShader,
+                                                        &commonFunctionsShader,
+                                                       };
+        computeTransmittance(commonShaders);
     }
     catch(MustQuit&)
     {
