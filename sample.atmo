@@ -1,7 +1,7 @@
 transmittance texture width: 128
 transmittance texture height: 64
 transmittance integration points: 500
-earth radius: 6371 km
+Earth radius: 6371 km
 atmosphere height: 120 km
 Rayleigh scattering coefficient at 1 um: 1.24062 Mm^-1 # cross-section * numberDensityAtSeaLevel
 Mie scattering coefficient at 1 um: 4.44 Mm^-1 # cross-section * numberDensityAtSeaLevel
