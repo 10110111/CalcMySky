@@ -12,9 +12,9 @@ uniform vec4 mieScatteringCoefficient; // cross-section * numberDensityAtSeaLeve
 uniform float mieSingleScatteringAlbedo; // the ratio mieScatteringExtinction/(mieScatteringExtinction+aerosolAbsorptionExtinction)
 uniform int numTransmittanceIntegrationPoints;
 
-float density(float altitude, int whichDensity);
-vec2 transmittanceTexCoordToMuAlt(vec2 texCoord);
-float distanceToAtmosphereBorder(float observerAltitude, float cosZenithAngle);
+#include "densities.h.glsl"
+#include "texture-coordinates.h.glsl"
+#include "common-functions.h.glsl"
 
 vec4 opticalDepthToAtmosphereBorder(float altitude, float cosZenithAngle,
                                     int whichDensity, vec4 crossSection)

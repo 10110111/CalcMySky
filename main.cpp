@@ -2,6 +2,7 @@
 #include <fstream>
 #include <memory>
 #include <map>
+#include <set>
 
 #include <QOpenGLFunctions_3_3_Core>
 #include <QCommandLineParser>
@@ -17,6 +18,7 @@
 #include <glm/glm.hpp>
 
 #include "config.h"
+QString withHeadersIncluded(QString src, QString filename);
 
 constexpr auto allWavelengths=[]() constexpr
 {
@@ -47,6 +49,12 @@ constexpr decltype(allWavelengths) ozoneAbsCrossSection=
     4.452e-26,2.781e-26,1.764e-26,5.369e-27};
 static_assert(allWavelengths.size()%4==0,"Non-round number of wavelengths");
 
+std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
+constexpr char DENSITIES_SHADER_FILENAME[]="densities.frag";
+std::set<QString> internalShaders
+{
+    DENSITIES_SHADER_FILENAME
+};
 GLuint vao, vbo;
 enum
 {
@@ -180,11 +188,6 @@ QString addConstDefinitions(QString src)
                          R"(
 const vec3 earthCenter=vec3(0,0,-earthRadius);
 
-// These are like enum entries. They are used to choose which density to calculate.
-const int DENSITY_ABS_OZONE=1;
-const int DENSITY_REL_RAYLEIGH=2;
-const int DENSITY_REL_MIE=3;
-
 const float dobsonUnit = 2.687e20; // molecules/m^2
 const float PI=3.1415926535897932;
 const float km=1000;
@@ -196,11 +199,12 @@ const float km=1000;
 
 QString makeDensitiesSrc()
 {
-    return addConstDefinitions(1+R"(
+    return withHeadersIncluded(addConstDefinitions(1+R"(
 #version 330
 #extension GL_ARB_shading_language_420pack : require
 
 #include "const.h.glsl"
+#include "densities.h.glsl"
 
 float rayleighScattererRelativeDensity(float altitude)
 {
@@ -214,7 +218,19 @@ float ozoneDensity(float altitude)
 {
 )" + ozoneDensity.trimmed() + R"(
 }
-)");
+float density(float altitude, int whichDensity)
+{
+    switch(whichDensity)
+    {
+    case DENSITY_ABS_OZONE:
+        return ozoneDensity(altitude);
+    case DENSITY_REL_RAYLEIGH:
+        return rayleighScattererRelativeDensity(altitude);
+    case DENSITY_REL_MIE:
+        return mieScattererRelativeDensity(altitude);
+    }
+}
+)"), "(virtual)densities.frag");
 }
 
 QString getShaderSrc(QString const& fileName)
@@ -242,6 +258,7 @@ QString getShaderSrc(QString const& fileName)
 std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString description)
 {
     auto shader=std::make_unique<QOpenGLShader>(type);
+    source=withHeadersIncluded(source, description);
     if(!shader->compileSourceCode(source))
     {
         // Qt prints compilation errors to stderr, so don't print them again
@@ -259,6 +276,98 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
 {
     const auto src=getShaderSrc(filename);
     return compileShader(type, src, filename);
+}
+
+QOpenGLShader& getOrCompileShader(QOpenGLShader::ShaderType type, QString filename)
+{
+    const auto it=allShaders.find(filename);
+    if(it!=allShaders.end()) return *it->second;
+    return *allShaders.emplace(filename, compileShader(type, filename)).first->second;
+}
+
+QString withHeadersIncluded(QString src, QString filename)
+{
+    QTextStream srcStream(&src);
+    int lineNumber=1;
+    int headerNumber=1;
+    QString newSrc;
+    for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine(), ++lineNumber)
+    {
+        if(!line.simplified().startsWith("#include \""))
+        {
+            newSrc.append(line+'\n');
+            continue;
+        }
+        auto includePattern=QRegExp("^#include \"([^\"]+)\"$");
+        if(!includePattern.exactMatch(line))
+        {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": syntax error in #include directive\n";
+            throw MustQuit{};
+        }
+        const auto includeFileName=includePattern.cap(1);
+        static const char headerSuffix[]=".h.glsl";
+        if(!includeFileName.endsWith(headerSuffix))
+        {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": file to include must have suffix \""
+                      << headerSuffix << "\"\n";
+            throw MustQuit{};
+        }
+        const auto header=getShaderSrc(includeFileName);
+        newSrc.append(QString("#line 1 %1\n").arg(headerNumber++));
+        newSrc.append(header);
+        newSrc.append(QString("#line %1 0\n").arg(lineNumber));
+    }
+    return newSrc;
+}
+
+std::set<QString> getShaderFileNamesToLinkWith(QString shaderSrc, int recursionDepth=0)
+{
+    constexpr int maxRecursionDepth=50;
+    if(recursionDepth>maxRecursionDepth)
+    {
+        std::cerr << "Include recursion depth exceeded " << maxRecursionDepth << "\n";
+        throw MustQuit{};
+    }
+    std::set<QString> filenames;
+    QTextStream srcStream(&shaderSrc);
+    for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine())
+    {
+        auto includePattern=QRegExp("^#include \"([^\"]+)\\.h\\.glsl\"$");
+        if(!includePattern.exactMatch(line))
+            continue;
+        const auto includeFileBaseName=includePattern.cap(1);
+        const auto shaderFileNameToLinkWith=includeFileBaseName+".frag";
+        filenames.insert(shaderFileNameToLinkWith);
+        if(!internalShaders.count(shaderFileNameToLinkWith))
+        {
+            const auto extraFileNames=getShaderFileNamesToLinkWith(getShaderSrc(shaderFileNameToLinkWith), recursionDepth+1);
+            filenames.insert(extraFileNames.begin(), extraFileNames.end());
+        }
+    }
+    return filenames;
+}
+
+std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString mainSrcFileName, const char* description)
+{
+    auto program=std::make_unique<QOpenGLShaderProgram>();
+
+    auto mainSrc=getShaderSrc(mainSrcFileName);
+    for(const auto filename : getShaderFileNamesToLinkWith(mainSrc))
+        program->addShader(&getOrCompileShader(QOpenGLShader::Fragment, filename));
+
+    mainSrc=withHeadersIncluded(mainSrc, mainSrcFileName);
+    const auto mainShader=compileShader(QOpenGLShader::Fragment, mainSrc, mainSrcFileName);
+    program->addShader(mainShader.get());
+
+    program->addShader(&getOrCompileShader(QOpenGLShader::Vertex, "shader.vert"));
+
+    if(!program->link())
+    {
+        // Qt prints linking errors to stderr, so don't print them again
+        std::cerr << "Failed to link " << description << "\n";
+        throw MustQuit{};
+    }
+    return program;
 }
 
 unsigned long long getUInt(QString value, unsigned long long min, unsigned long long max, QString filename, int lineNumber)
@@ -488,24 +597,9 @@ void handleCmdLine()
     }
 }
 
-void computeTransmittance(std::vector<QOpenGLShader*> const& commonShaders)
+void computeTransmittance()
 {
-    QOpenGLShaderProgram program;
-    {
-        const auto computeTransmittanceShader=compileShader(QOpenGLShader::Fragment,
-                                                            getShaderSrc("compute-transmittance.frag"),
-                                                            "transmittance computation shader");
-        program.addShader(computeTransmittanceShader.get());
-        for(const auto sh : commonShaders)
-            program.addShader(sh);
-
-        if(!program.link())
-        {
-            // Qt prints linking errors to stderr, so don't print them again
-            std::cerr << "Failed to link transmittance computation shader program\n";
-            throw MustQuit{};
-        }
-    }
+    const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
     for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
@@ -528,15 +622,15 @@ void computeTransmittance(std::vector<QOpenGLShader*> const& commonShaders)
                                   textures[TEX_TRANSMITTANCE0+texIndex],0);
         checkFramebufferStatus("framebuffer for transmittance texture");
 
-        program.bind();
-        program.setUniformValue("visibleAtmosphereHeight",atmosphereHeight);
-        program.setUniformValue("wavelengths",wavelengths);
-        program.setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
-        program.setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
-        program.setUniformValue("mieSingleScatteringAlbedo",mieSingleScatteringAlbedo);
-        program.setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
-        program.setUniformValue("numTransmittanceIntegrationPoints",numTransmittanceIntegrationPoints);
-        program.setUniformValue("transmittanceTextureSize",transmittanceTexW,transmittanceTexH);
+        program->bind();
+        program->setUniformValue("visibleAtmosphereHeight",atmosphereHeight);
+        program->setUniformValue("wavelengths",wavelengths);
+        program->setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
+        program->setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
+        program->setUniformValue("mieSingleScatteringAlbedo",mieSingleScatteringAlbedo);
+        program->setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
+        program->setUniformValue("numTransmittanceIntegrationPoints",numTransmittanceIntegrationPoints);
+        program->setUniformValue("transmittanceTextureSize",transmittanceTexW,transmittanceTexH);
         gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
         renderUntexturedQuad();
 
@@ -607,20 +701,9 @@ int main(int argc, char** argv)
         }
 
         init();
-
-        const auto commonVertShader = compileShader(QOpenGLShader::Vertex, "shader.vert");
-        const auto commonFunctionsShader = compileShader(QOpenGLShader::Fragment, "common-functions.frag");
-        const auto texCoordsShader = compileShader(QOpenGLShader::Fragment, "texture-coordinates.frag");
-        const auto densitiesShader = compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
-                                                   "shader for calculating scatterer and absorber densities");
-
-        const std::vector<QOpenGLShader*> commonShaders{
-                                                        commonVertShader.get(),
-                                                        texCoordsShader.get(),
-                                                        densitiesShader.get(),
-                                                        commonFunctionsShader.get(),
-                                                       };
-        computeTransmittance(commonShaders);
+        allShaders.emplace(DENSITIES_SHADER_FILENAME, compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
+                                                           "shader for calculating scatterer and absorber densities"));
+        computeTransmittance();
     }
     catch(MustQuit&)
     {
