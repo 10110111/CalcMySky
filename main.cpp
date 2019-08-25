@@ -235,8 +235,19 @@ float ozoneDensity(float altitude)
 
 QString getShaderSrc(QString const& fileName)
 {
-    QFile file(fileName);
-    if(!file.open(QIODevice::ReadOnly))
+    QFile file(DATA_ROOT_DIR + fileName);
+    bool opened = file.open(QIODevice::ReadOnly);
+    if(!opened)
+    {
+        file.setFileName(qApp->applicationDirPath() + "/" + fileName);
+        opened = file.open(QIODevice::ReadOnly);
+    }
+    if(!opened)
+    {
+        file.setFileName(qApp->applicationDirPath() + "/../" + fileName);
+        opened = file.open(QIODevice::ReadOnly);
+    }
+    if(!opened)
     {
         std::cerr << "Error opening shader \"" << fileName.toStdString() << "\"\n";
         throw MustQuit{};
@@ -476,7 +487,7 @@ void computeTransmittance(std::vector<QOpenGLShader*> const& commonShaders)
     QOpenGLShaderProgram program;
     {
         const auto computeTransmittanceShader=compileShader(QOpenGLShader::Fragment,
-                                                            getShaderSrc(":/compute-transmittance.frag"),
+                                                            getShaderSrc("compute-transmittance.frag"),
                                                             "transmittance computation shader");
         program.addShader(computeTransmittanceShader.get());
         for(const auto sh : commonShaders)
@@ -591,11 +602,11 @@ int main(int argc, char** argv)
 
         init();
 
-        const auto commonVertShader = compileShader(QOpenGLShader::Vertex, getShaderSrc(":shader.vert"),
+        const auto commonVertShader = compileShader(QOpenGLShader::Vertex, getShaderSrc("shader.vert"),
                                                     "common vertex shader");
-        const auto commonFunctionsShader = compileShader(QOpenGLShader::Fragment, getShaderSrc(":/common-functions.frag"),
+        const auto commonFunctionsShader = compileShader(QOpenGLShader::Fragment, getShaderSrc("common-functions.frag"),
                                                          "common functions shader");
-        const auto texCoordsShader = compileShader(QOpenGLShader::Fragment, getShaderSrc(":/texture-coordinates.frag"),
+        const auto texCoordsShader = compileShader(QOpenGLShader::Fragment, getShaderSrc("texture-coordinates.frag"),
                                                    "texture coordinates transformation shader");
         const auto densitiesShader = compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
                                                    "shader for calculating scatterer and absorber densities");
