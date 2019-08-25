@@ -173,22 +173,6 @@ void renderUntexturedQuad()
 	gl.glBindVertexArray(0);
 }
 
-std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, const char* description)
-{
-    auto shader=std::make_unique<QOpenGLShader>(type);
-    if(!shader->compileSourceCode(source))
-    {
-        // Qt prints compilation errors to stderr, so don't print them again
-        std::cerr << "Failed to compile " << description << "\n";
-        throw MustQuit{};
-    }
-    if(!shader->log().isEmpty())
-    {
-        std::cerr << "Warnings while compiling " << description << ": " << shader->log().toStdString() << "\n";
-    }
-    return shader;
-}
-
 QString addConstDefinitions(QString src)
 {
     const auto constants="const float earthRadius="+QString::number(earthRadius)+"; // must be in meters\n"
@@ -253,6 +237,28 @@ QString getShaderSrc(QString const& fileName)
         throw MustQuit{};
     }
     return addConstDefinitions(file.readAll());
+}
+
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString description)
+{
+    auto shader=std::make_unique<QOpenGLShader>(type);
+    if(!shader->compileSourceCode(source))
+    {
+        // Qt prints compilation errors to stderr, so don't print them again
+        std::cerr << "Failed to compile " << description.toStdString() << "\n";
+        throw MustQuit{};
+    }
+    if(!shader->log().isEmpty())
+    {
+        std::cerr << "Warnings while compiling " << description.toStdString() << ": " << shader->log().toStdString() << "\n";
+    }
+    return shader;
+}
+
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString filename)
+{
+    const auto src=getShaderSrc(filename);
+    return compileShader(type, src, filename);
 }
 
 unsigned long long getUInt(QString value, unsigned long long min, unsigned long long max, QString filename, int lineNumber)
@@ -602,12 +608,9 @@ int main(int argc, char** argv)
 
         init();
 
-        const auto commonVertShader = compileShader(QOpenGLShader::Vertex, getShaderSrc("shader.vert"),
-                                                    "common vertex shader");
-        const auto commonFunctionsShader = compileShader(QOpenGLShader::Fragment, getShaderSrc("common-functions.frag"),
-                                                         "common functions shader");
-        const auto texCoordsShader = compileShader(QOpenGLShader::Fragment, getShaderSrc("texture-coordinates.frag"),
-                                                   "texture coordinates transformation shader");
+        const auto commonVertShader = compileShader(QOpenGLShader::Vertex, "shader.vert");
+        const auto commonFunctionsShader = compileShader(QOpenGLShader::Fragment, "common-functions.frag");
+        const auto texCoordsShader = compileShader(QOpenGLShader::Fragment, "texture-coordinates.frag");
         const auto densitiesShader = compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
                                                    "shader for calculating scatterer and absorber densities");
 
