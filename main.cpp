@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <memory>
 #include <map>
 
 #include <QOpenGLFunctions_3_3_Core>
@@ -170,19 +171,21 @@ void renderUntexturedQuad()
 	gl.glBindVertexArray(0);
 }
 
-void handleCompileStatus(bool success, QOpenGLShader const& shader, const char* what)
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, const char* description)
 {
-    if(!success)
+    auto shader=std::make_unique<QOpenGLShader>(type);
+    if(!shader->compileSourceCode(source))
     {
         // Qt prints compilation errors to stderr, so don't print them again
-        std::cerr << "Failed to compile " << what << "\n";
+        std::cerr << "Failed to compile " << description << "\n";
         throw MustQuit{};
     }
-    if(!shader.log().isEmpty())
+    if(!shader->log().isEmpty())
     {
-        std::cerr << "Warnings while compiling " << what << ": " << shader.log().toStdString() << "\n";
+        std::cerr << "Warnings while compiling " << description << ": " << shader->log().toStdString() << "\n";
     }
-};
+    return shader;
+}
 
 QString addConstDefinitions(QString src)
 {
@@ -470,10 +473,10 @@ void computeTransmittance(std::vector<QOpenGLShader*> const& commonShaders)
 {
     QOpenGLShaderProgram program;
     {
-        QOpenGLShader computeTransmittanceShader(QOpenGLShader::Fragment);
-        handleCompileStatus(computeTransmittanceShader.compileSourceCode(getShaderSrc(":/compute-transmittance.frag")),
-                            computeTransmittanceShader, "transmittance computation shader");
-        program.addShader(&computeTransmittanceShader);
+        const auto computeTransmittanceShader=compileShader(QOpenGLShader::Fragment,
+                                                            getShaderSrc(":/compute-transmittance.frag"),
+                                                            "transmittance computation shader");
+        program.addShader(computeTransmittanceShader.get());
         for(const auto sh : commonShaders)
             program.addShader(sh);
 
@@ -586,24 +589,20 @@ int main(int argc, char** argv)
 
         init();
 
-        QOpenGLShader commonVertShader(QOpenGLShader::Vertex);
-        handleCompileStatus(commonVertShader.compileSourceCode(getShaderSrc(":shader.vert")),
-                            commonVertShader, "common vertex shader");
-        QOpenGLShader commonFunctionsShader(QOpenGLShader::Fragment);
-        handleCompileStatus(commonFunctionsShader.compileSourceCode(getShaderSrc(":/common-functions.frag")),
-                            commonFunctionsShader, "common functions shader");
-        QOpenGLShader texCoordsShader(QOpenGLShader::Fragment);
-        handleCompileStatus(texCoordsShader.compileSourceCode(getShaderSrc(":/texture-coordinates.frag")),
-                            texCoordsShader, "texture coordinates transformation shader");
-        QOpenGLShader densitiesShader(QOpenGLShader::Fragment);
-        handleCompileStatus(densitiesShader.compileSourceCode(makeDensitiesSrc()),
-                            densitiesShader, "shader for calculating scatterer and absorber densities");
+        const auto commonVertShader = compileShader(QOpenGLShader::Vertex, getShaderSrc(":shader.vert"),
+                                                    "common vertex shader");
+        const auto commonFunctionsShader = compileShader(QOpenGLShader::Fragment, getShaderSrc(":/common-functions.frag"),
+                                                         "common functions shader");
+        const auto texCoordsShader = compileShader(QOpenGLShader::Fragment, getShaderSrc(":/texture-coordinates.frag"),
+                                                   "texture coordinates transformation shader");
+        const auto densitiesShader = compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
+                                                   "shader for calculating scatterer and absorber densities");
 
         const std::vector<QOpenGLShader*> commonShaders{
-                                                        &commonVertShader,
-                                                        &texCoordsShader,
-                                                        &densitiesShader,
-                                                        &commonFunctionsShader,
+                                                        commonVertShader.get(),
+                                                        texCoordsShader.get(),
+                                                        densitiesShader.get(),
+                                                        commonFunctionsShader.get(),
                                                        };
         computeTransmittance(commonShaders);
     }
