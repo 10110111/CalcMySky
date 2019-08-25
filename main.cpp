@@ -16,6 +16,8 @@
 
 #include <glm/glm.hpp>
 
+#include "config.h"
+
 constexpr auto allWavelengths=[]() constexpr
 {
     constexpr float wlMin=360, wlMax=830;
