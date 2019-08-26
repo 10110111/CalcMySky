@@ -14,6 +14,7 @@
 #include <QVector4D>
 #include <QRegExp>
 #include <QFile>
+#include <QDir>
 
 #include <glm/glm.hpp>
 
@@ -235,18 +236,20 @@ float density(float altitude, int whichDensity)
 
 QString getShaderSrc(QString const& fileName)
 {
-    QFile file(DATA_ROOT_DIR + fileName);
-    bool opened = file.open(QIODevice::ReadOnly);
-    if(!opened)
+    QFile file;
+    bool opened=false;
+    const auto appBinDir=QDir(qApp->applicationDirPath()+"/").canonicalPath();
+    if(appBinDir==QDir(INSTALL_BINDIR).canonicalPath())
     {
-        file.setFileName(qApp->applicationDirPath() + "/" + fileName);
+        file.setFileName(DATA_ROOT_DIR + fileName);
+        opened=file.open(QIODevice::ReadOnly);
+    }
+    else if(appBinDir==QDir(BUILD_BINDIR).canonicalPath())
+    {
+        file.setFileName(SOURCE_DIR + fileName);
         opened = file.open(QIODevice::ReadOnly);
     }
-    if(!opened)
-    {
-        file.setFileName(qApp->applicationDirPath() + "/../" + fileName);
-        opened = file.open(QIODevice::ReadOnly);
-    }
+
     if(!opened)
     {
         std::cerr << "Error opening shader \"" << fileName.toStdString() << "\"\n";
