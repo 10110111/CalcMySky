@@ -658,8 +658,6 @@ void computeTransmittance()
         checkFramebufferStatus("framebuffer for transmittance texture");
 
         program->bind();
-        program->setUniformValue("visibleAtmosphereHeight",atmosphereHeight);
-        program->setUniformValue("wavelengths",wavelengths);
         program->setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
         program->setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
         program->setUniformValue("mieSingleScatteringAlbedo",mieSingleScatteringAlbedo);
