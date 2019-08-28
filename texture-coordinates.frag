@@ -56,12 +56,10 @@ vec2 transmittanceMuAltToTexCoord(float mu, float altitude)
         altitude=0;
 
     const float altMax=atmosphereHeight;
-
     const float R=earthRadius;
-    const float r=R+altitude;
 
     const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
-    const float distToHorizon=sqrt(sqr(altitude)+2*altitude*R); // sqr(r)-sqr(R) gives -1956800 when altitude==0 on nvidia 390.116 driver...
+    const float distToHorizon=sqrt(sqr(altitude)+2*altitude*R);
     const float t=unitRangeToTexCoord(distToHorizon / lengthOfHorizRayFromGroundToBorderOfAtmo,
                                       textureSize(transmittanceTexture,0).t);
     const float dMin=altMax-altitude; // distance to zenith
