@@ -682,7 +682,7 @@ void computeTransmittance()
             QImage image(transmittanceTexW, transmittanceTexH, QImage::Format_RGBA8888);
             image.fill(Qt::magenta);
             gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-            image.save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
+            image.mirrored().save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
         }
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -733,7 +733,7 @@ void computeGroundIrradiance()
             QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
             image.fill(Qt::magenta);
             gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-            image.save(QString("/tmp/irradiance-png-%1.png").arg(texIndex));
+            image.mirrored().save(QString("/tmp/irradiance-png-%1.png").arg(texIndex));
         }
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
