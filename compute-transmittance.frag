@@ -19,7 +19,7 @@ uniform int numTransmittanceIntegrationPoints;
 vec4 opticalDepthToAtmosphereBorder(float altitude, float cosZenithAngle,
                                     int whichDensity, vec4 crossSection)
 {
-    const float integrInterval=distanceToAtmosphereBorder(altitude, cosZenithAngle);
+    const float integrInterval=distanceToAtmosphereBorder(cosZenithAngle, altitude);
 
     const float R=earthRadius;
     const float r1=R+altitude;
@@ -42,7 +42,7 @@ vec4 opticalDepthToAtmosphereBorder(float altitude, float cosZenithAngle,
 }
 
 // This assumes that ray doesn't intersect Earth
-vec4 computeTransmittanceToAtmosphereBorder(float altitude, float cosZenithAngle)
+vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude)
 {
     return exp(-(opticalDepthToAtmosphereBorder(altitude,cosZenithAngle,DENSITY_REL_RAYLEIGH,
                                                 rayleighScatteringCoefficient)
@@ -58,5 +58,5 @@ void main()
 {
     const vec2 texCoord=0.5*position.xy+vec2(0.5);
     const vec2 muAlt=transmittanceTexCoordToMuAlt(texCoord);
-    color=computeTransmittanceToAtmosphereBorder(muAlt.y, muAlt.x);
+    color=computeTransmittanceToAtmosphereBorder(muAlt.x, muAlt.y);
 }

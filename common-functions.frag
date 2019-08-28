@@ -3,7 +3,7 @@
 
 #include "const.h.glsl"
 
-float distanceToAtmosphereBorder(float observerAltitude, float cosZenithAngle)
+float distanceToAtmosphereBorder(float cosZenithAngle, float observerAltitude)
 {
     const float Robs=earthRadius+observerAltitude;
     const float Ratm=earthRadius+atmosphereHeight;
