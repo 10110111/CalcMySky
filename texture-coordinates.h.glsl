@@ -4,5 +4,7 @@
 float texCoordToUnitRange(const float texCoord, const float texSize);
 float unitRangeToTexCoord(const float u, const float texSize);
 vec2 transmittanceTexCoordToMuAlt(vec2 texCoord);
+vec2 transmittanceMuAltToTexCoord(float mu, float altitude);
+vec2 irradianceTexCoordToMuSAlt(vec2 texCoord);
 
 #endif

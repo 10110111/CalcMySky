@@ -1,6 +1,9 @@
 transmittance texture width: 128
 transmittance texture height: 64
+irradiance texture width: 128
+irradiance texture height: 64
 transmittance integration points: 500
+Earth-Sun distance: 1 AU
 Earth radius: 6371 km
 atmosphere height: 120 km
 Rayleigh scattering coefficient at 1 um: 1.24062 Mm^-1 # cross-section * numberDensityAtSeaLevel

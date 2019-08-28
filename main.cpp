@@ -19,7 +19,11 @@
 #include <glm/glm.hpp>
 
 #include "config.h"
+
 QString withHeadersIncluded(QString src, QString filename);
+
+constexpr double astronomicalUnit=149'597'870'700.; // m
+constexpr double AU=astronomicalUnit;
 
 constexpr auto allWavelengths=[]() constexpr
 {
@@ -50,6 +54,8 @@ constexpr decltype(allWavelengths) ozoneAbsCrossSection=
     4.452e-26,2.781e-26,1.764e-26,5.369e-27};
 static_assert(allWavelengths.size()%4==0,"Non-round number of wavelengths");
 
+constexpr double sunRadius=696350e3; /* m */
+
 std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
 constexpr char DENSITIES_SHADER_FILENAME[]="densities.frag";
 std::set<QString> internalShaders
@@ -60,6 +66,7 @@ GLuint vao, vbo;
 enum
 {
     FBO_TRANSMITTANCE,
+    FBO_IRRADIANCE,
 
     FBO_COUNT
 };
@@ -68,13 +75,16 @@ enum
 {
     TEX_TRANSMITTANCE0,
     TEX_TRANSMITTANCE_LAST=TEX_TRANSMITTANCE0+allWavelengths.size()/4-1,
+    TEX_IRRADIANCE0,
+    TEX_IRRADIANCE_LAST=TEX_IRRADIANCE0+allWavelengths.size()/4-1,
 
     TEX_COUNT
 };
 GLuint textures[TEX_COUNT];
 
-std::string transmittanceTexDir=".";
+std::string textureOutputDir=".";
 GLint transmittanceTexW, transmittanceTexH;
+GLint irradianceTexW, irradianceTexH;
 GLint numTransmittanceIntegrationPoints;
 GLfloat earthRadius;
 GLfloat atmosphereHeight;
@@ -85,8 +95,12 @@ GLfloat mieSingleScatteringAlbedo;
 QString rayleighScattererRelativeDensity;
 QString mieScattererRelativeDensity;
 QString ozoneDensity;
+double earthSunDistance;
+GLfloat sunAngularRadius; // calculated from earthSunDistance
 
 QOpenGLFunctions_3_3_Core gl;
+
+#include "debug.h"
 
 struct MustQuit{};
 
@@ -161,6 +175,11 @@ void initTexturesAndFramebuffers()
     for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
     {
         gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE0+texIndex]);
+        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
+        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE0+texIndex]);
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
@@ -409,6 +428,7 @@ struct LengthQuantity : Quantity
                 {"km",1e+3},
                 {"Mm",1e+6},
                 {"Gm",1e+9},
+                {"AU",astronomicalUnit},
                };
     }
     QString basicUnit() const override { return "m"; }
@@ -574,6 +594,10 @@ void handleCmdLine()
             transmittanceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="transmittance integration points")
             numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="irradiance texture width")
+            irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="irradiance texture height")
+            irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
@@ -592,6 +616,14 @@ void handleCmdLine()
             mieScattererRelativeDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
         else if(key=="ozone density")
             ozoneDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
+        else if(key=="earth-sun distance")
+        {
+            earthSunDistance=getQuantity(value,0.5*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
+            // Here we don't take into account the fact that camera is not in the center of the Earth. It's not too
+            // important until we simulate eclipsed atmosphere, when we'll have to recompute Sun angular radius for
+            // each camera position.
+            sunAngularRadius=sunRadius/earthSunDistance;
+        }
     }
     if(!stream.atEnd())
     {
@@ -639,7 +671,7 @@ void computeTransmittance()
 
         std::vector<glm::vec4> pixels(transmittanceTexW*transmittanceTexH);
         gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_FLOAT,pixels.data());
-        std::ofstream out(transmittanceTexDir+"/transmittance-"+std::to_string(texIndex)+".f32");
+        std::ofstream out(textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32");
         const std::uint32_t w=transmittanceTexW, h=transmittanceTexH;
         out.write(reinterpret_cast<const char*>(&w), sizeof w);
         out.write(reinterpret_cast<const char*>(&h), sizeof h);
@@ -651,6 +683,57 @@ void computeTransmittance()
             image.fill(Qt::magenta);
             gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
             image.save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
+        }
+    }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void computeGroundIrradiance()
+{
+    const auto program=compileShaderProgram("compute-irradiance.frag", "irradiance computation shader program");
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
+    for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
+    {
+        const QVector4D solarIrradiance(::solarIrradiance[texIndex*4+0],
+                                        ::solarIrradiance[texIndex*4+1],
+                                        ::solarIrradiance[texIndex*4+2],
+                                        ::solarIrradiance[texIndex*4+3]);
+        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE0+texIndex]);
+        gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,irradianceTexW,irradianceTexH,
+                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        gl.glBindTexture(GL_TEXTURE_2D,0);
+        gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,
+                                  textures[TEX_IRRADIANCE0+texIndex],0);
+        checkFramebufferStatus("framebuffer for irradiance texture");
+
+        gl.glActiveTexture(GL_TEXTURE0);
+        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE0+texIndex]);
+
+        program->bind();
+
+        program->setUniformValue("irradianceTextureSize",QVector2D(irradianceTexW,irradianceTexH));
+        program->setUniformValue("transmittanceTexture",0);
+        program->setUniformValue("solarIrradiance",solarIrradiance);
+        program->setUniformValue("sunAngularRadius",sunAngularRadius);
+
+        gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
+        renderUntexturedQuad();
+
+        std::vector<glm::vec4> pixels(irradianceTexW*irradianceTexH);
+        gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_FLOAT,pixels.data());
+        std::ofstream out(textureOutputDir+"/irradiance-"+std::to_string(texIndex)+".f32");
+        const std::uint32_t w=irradianceTexW, h=irradianceTexH;
+        out.write(reinterpret_cast<const char*>(&w), sizeof w);
+        out.write(reinterpret_cast<const char*>(&h), sizeof h);
+        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+
+        if(false) // for debugging
+        {
+            QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
+            image.fill(Qt::magenta);
+            gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
+            image.save(QString("/tmp/irradiance-png-%1.png").arg(texIndex));
         }
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -707,6 +790,9 @@ int main(int argc, char** argv)
         allShaders.emplace(DENSITIES_SHADER_FILENAME, compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
                                                            "shader for calculating scatterer and absorber densities"));
         computeTransmittance();
+        // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
+        // sky color. Irradiance will also be needed when we want to draw the ground itself.
+        computeGroundIrradiance();
     }
     catch(MustQuit&)
     {
