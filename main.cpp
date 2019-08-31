@@ -57,7 +57,9 @@ static_assert(allWavelengths.size()%4==0,"Non-round number of wavelengths");
 constexpr double sunRadius=696350e3; /* m */
 
 std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
+QString constantsHeader;
 constexpr char DENSITIES_SHADER_FILENAME[]="densities.frag";
+constexpr char CONSTANTS_HEADER_FILENAME[]="const.h.glsl";
 std::set<QString> internalShaders
 {
     DENSITIES_SHADER_FILENAME
@@ -201,9 +203,9 @@ void renderUntexturedQuad()
 	gl.glBindVertexArray(0);
 }
 
-QString addConstDefinitions(QString src)
+void initConstHeader()
 {
-    const auto constants="const float earthRadius="+QString::number(earthRadius)+"; // must be in meters\n"
+    constantsHeader="const float earthRadius="+QString::number(earthRadius)+"; // must be in meters\n"
                          "const float atmosphereHeight="+QString::number(atmosphereHeight)+"; // must be in meters\n"
                          R"(
 const vec3 earthCenter=vec3(0,0,-earthRadius);
@@ -213,13 +215,11 @@ const float PI=3.1415926535897932;
 const float km=1000;
 #define sqr(x) ((x)*(x))
 )";
-    src.replace("\n#include \"const.h.glsl\"\n", constants);
-    return src;
 }
 
 QString makeDensitiesSrc()
 {
-    return withHeadersIncluded(addConstDefinitions(1+R"(
+    return withHeadersIncluded(1+R"(
 #version 330
 #extension GL_ARB_shading_language_420pack : require
 
@@ -250,7 +250,7 @@ float density(float altitude, int whichDensity)
         return mieScattererRelativeDensity(altitude);
     }
 }
-)"), "(virtual)densities.frag");
+)", "(virtual)densities.frag");
 }
 
 QString getShaderSrc(QString const& fileName)
@@ -274,7 +274,7 @@ QString getShaderSrc(QString const& fileName)
         std::cerr << "Error opening shader \"" << fileName.toStdString() << "\"\n";
         throw MustQuit{};
     }
-    return addConstDefinitions(file.readAll());
+    return file.readAll();
 }
 
 std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString description)
@@ -334,7 +334,7 @@ QString withHeadersIncluded(QString src, QString filename)
                       << headerSuffix << "\"\n";
             throw MustQuit{};
         }
-        const auto header=getShaderSrc(includeFileName);
+        const auto header = includeFileName==CONSTANTS_HEADER_FILENAME ? constantsHeader : getShaderSrc(includeFileName);
         newSrc.append(QString("// --------- include \"%1\" ----------------\n").arg(includeFileName));
         newSrc.append(QString("#line 1 %1\n").arg(headerNumber++));
         newSrc.append(header);
@@ -356,10 +356,12 @@ std::set<QString> getShaderFileNamesToLinkWith(QString shaderSrc, int recursionD
     QTextStream srcStream(&shaderSrc);
     for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine())
     {
-        auto includePattern=QRegExp("^#include \"([^\"]+)\\.h\\.glsl\"$");
+        auto includePattern=QRegExp("^#include \"([^\"]+)(\\.h\\.glsl)\"$");
         if(!includePattern.exactMatch(line))
             continue;
         const auto includeFileBaseName=includePattern.cap(1);
+        if(includeFileBaseName+includePattern.cap(2) == CONSTANTS_HEADER_FILENAME) // no companion source for constants header
+            continue;
         const auto shaderFileNameToLinkWith=includeFileBaseName+".frag";
         filenames.insert(shaderFileNameToLinkWith);
         if(!internalShaders.count(shaderFileNameToLinkWith))
@@ -787,6 +789,7 @@ int main(int argc, char** argv)
         }
 
         init();
+        initConstHeader();
         allShaders.emplace(DENSITIES_SHADER_FILENAME, compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
                                                            "shader for calculating scatterer and absorber densities"));
         computeTransmittance();
