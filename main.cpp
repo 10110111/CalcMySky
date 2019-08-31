@@ -20,7 +20,7 @@
 
 #include "config.h"
 
-QString withHeadersIncluded(QString src, QString filename);
+QString withHeadersIncluded(QString src, QString const& filename);
 
 constexpr double astronomicalUnit=149'597'870'700.; // m
 constexpr double AU=astronomicalUnit;
@@ -277,7 +277,7 @@ QString getShaderSrc(QString const& fileName)
     return file.readAll();
 }
 
-std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString description)
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString const& description)
 {
     auto shader=std::make_unique<QOpenGLShader>(type);
     source=withHeadersIncluded(source, description);
@@ -294,20 +294,20 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     return shader;
 }
 
-std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString filename)
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString const& filename)
 {
     const auto src=getShaderSrc(filename);
     return compileShader(type, src, filename);
 }
 
-QOpenGLShader& getOrCompileShader(QOpenGLShader::ShaderType type, QString filename)
+QOpenGLShader& getOrCompileShader(QOpenGLShader::ShaderType type, QString const& filename)
 {
     const auto it=allShaders.find(filename);
     if(it!=allShaders.end()) return *it->second;
     return *allShaders.emplace(filename, compileShader(type, filename)).first->second;
 }
 
-QString withHeadersIncluded(QString src, QString filename)
+QString withHeadersIncluded(QString src, QString const& filename)
 {
     QTextStream srcStream(&src);
     int lineNumber=1;
@@ -342,7 +342,7 @@ QString withHeadersIncluded(QString src, QString filename)
     return newSrc;
 }
 
-std::set<QString> getShaderFileNamesToLinkWith(QString filename, int recursionDepth=0)
+std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recursionDepth=0)
 {
     constexpr int maxRecursionDepth=50;
     if(recursionDepth>maxRecursionDepth)
@@ -372,7 +372,7 @@ std::set<QString> getShaderFileNamesToLinkWith(QString filename, int recursionDe
     return filenames;
 }
 
-std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString mainSrcFileName, const char* description)
+std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName, const char* description)
 {
     auto program=std::make_unique<QOpenGLShaderProgram>();
 
@@ -394,7 +394,7 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString mainSrcFileNa
     return program;
 }
 
-unsigned long long getUInt(QString value, unsigned long long min, unsigned long long max, QString filename, int lineNumber)
+unsigned long long getUInt(QString const& value, unsigned long long min, unsigned long long max, QString const& filename, int lineNumber)
 {
     bool ok;
     const auto x=value.toULongLong(&ok);
@@ -456,7 +456,7 @@ struct ReciprocalLengthQuantity : Quantity
 
 struct DimensionlessQuantity {};
 
-double getQuantity(QString value, double min, double max, DimensionlessQuantity const& quantity, QString filename, int lineNumber)
+double getQuantity(QString const& value, double min, double max, DimensionlessQuantity const& quantity, QString const& filename, int lineNumber)
 {
     bool ok;
     const auto x=value.toDouble(&ok);
@@ -473,7 +473,7 @@ double getQuantity(QString value, double min, double max, DimensionlessQuantity 
     return x;
 }
 
-double getQuantity(QString value, double min, double max, Quantity const& quantity, QString filename, int lineNumber)
+double getQuantity(QString const& value, double min, double max, Quantity const& quantity, QString const& filename, int lineNumber)
 {
     auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z^-0-9]*)");
     if(!regex.exactMatch(value))
