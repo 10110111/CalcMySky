@@ -339,7 +339,7 @@ QString withHeadersIncluded(QString src, QString filename)
         newSrc.append(QString("#line 1 %1\n").arg(headerNumber++));
         newSrc.append(header);
         newSrc.append(QString("// -------end_include \"%1\" ----------------\n").arg(includeFileName));
-        newSrc.append(QString("#line %1 0\n").arg(lineNumber));
+        newSrc.append(QString("#line %1 0\n").arg(lineNumber+1));
     }
     return newSrc;
 }
