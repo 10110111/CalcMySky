@@ -335,8 +335,10 @@ QString withHeadersIncluded(QString src, QString filename)
             throw MustQuit{};
         }
         const auto header=getShaderSrc(includeFileName);
+        newSrc.append(QString("// --------- include \"%1\" ----------------\n").arg(includeFileName));
         newSrc.append(QString("#line 1 %1\n").arg(headerNumber++));
         newSrc.append(header);
+        newSrc.append(QString("// -------end_include \"%1\" ----------------\n").arg(includeFileName));
         newSrc.append(QString("#line %1 0\n").arg(lineNumber));
     }
     return newSrc;
