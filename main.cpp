@@ -342,7 +342,7 @@ QString withHeadersIncluded(QString src, QString filename)
     return newSrc;
 }
 
-std::set<QString> getShaderFileNamesToLinkWith(QString shaderSrc, int recursionDepth=0)
+std::set<QString> getShaderFileNamesToLinkWith(QString filename, int recursionDepth=0)
 {
     constexpr int maxRecursionDepth=50;
     if(recursionDepth>maxRecursionDepth)
@@ -351,6 +351,7 @@ std::set<QString> getShaderFileNamesToLinkWith(QString shaderSrc, int recursionD
         throw MustQuit{};
     }
     std::set<QString> filenames;
+    auto shaderSrc=getShaderSrc(filename);
     QTextStream srcStream(&shaderSrc);
     for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine())
     {
@@ -362,9 +363,9 @@ std::set<QString> getShaderFileNamesToLinkWith(QString shaderSrc, int recursionD
             continue;
         const auto shaderFileNameToLinkWith=includeFileBaseName+".frag";
         filenames.insert(shaderFileNameToLinkWith);
-        if(!internalShaders.count(shaderFileNameToLinkWith))
+        if(!internalShaders.count(shaderFileNameToLinkWith) && shaderFileNameToLinkWith!=filename)
         {
-            const auto extraFileNames=getShaderFileNamesToLinkWith(getShaderSrc(shaderFileNameToLinkWith), recursionDepth+1);
+            const auto extraFileNames=getShaderFileNamesToLinkWith(shaderFileNameToLinkWith, recursionDepth+1);
             filenames.insert(extraFileNames.begin(), extraFileNames.end());
         }
     }
@@ -375,11 +376,10 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString mainSrcFileNa
 {
     auto program=std::make_unique<QOpenGLShaderProgram>();
 
-    auto mainSrc=getShaderSrc(mainSrcFileName);
-    for(const auto filename : getShaderFileNamesToLinkWith(mainSrc))
+    for(const auto filename : getShaderFileNamesToLinkWith(mainSrcFileName))
         program->addShader(&getOrCompileShader(QOpenGLShader::Fragment, filename));
 
-    mainSrc=withHeadersIncluded(mainSrc, mainSrcFileName);
+    const auto mainSrc=withHeadersIncluded(getShaderSrc(mainSrcFileName), mainSrcFileName);
     const auto mainShader=compileShader(QOpenGLShader::Fragment, mainSrc, mainSrcFileName);
     program->addShader(mainShader.get());
 
