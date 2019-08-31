@@ -8,6 +8,6 @@ uniform sampler2D transmittanceTexture;
 
 vec4 transmittanceToAtmosphereBorder(float cosViewZenithAngle, float altitude)
 {
-    const vec2 texCoords=transmittanceMuAltToTexCoord(cosViewZenithAngle, altitude);
+    const vec2 texCoords=transmittanceTexVarsToTexCoord(cosViewZenithAngle, altitude);
     return texture(transmittanceTexture, texCoords);
 }

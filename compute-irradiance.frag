@@ -29,6 +29,6 @@ vec4 computeDirectGroundIrradiance(float cosSunZenithAngle, float altitude)
 void main()
 {
     const vec2 texCoord=0.5*position.xy+vec2(0.5);
-    const vec2 muAlt=irradianceTexCoordToMuSAlt(texCoord);
-    color=computeDirectGroundIrradiance(muAlt.x, muAlt.y);
+    const IrradianceTexVars vars=irradianceTexCoordToTexVars(texCoord);
+    color=computeDirectGroundIrradiance(vars.cosSunZenithAngle, vars.altitude);
 }

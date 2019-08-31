@@ -57,6 +57,6 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
 void main()
 {
     const vec2 texCoord=0.5*position.xy+vec2(0.5);
-    const vec2 muAlt=transmittanceTexCoordToMuAlt(texCoord);
-    color=computeTransmittanceToAtmosphereBorder(muAlt.x, muAlt.y);
+    const TransmittanceTexVars vars=transmittanceTexCoordToTexVars(texCoord);
+    color=computeTransmittanceToAtmosphereBorder(vars.cosViewZenithAngle, vars.altitude);
 }
