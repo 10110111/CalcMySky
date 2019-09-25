@@ -11,17 +11,17 @@ Mie scattering coefficient at 1 um: 4.44 Mm^-1 # cross-section * numberDensityAt
 Mie angstrom exponent: 0
 Mie single scattering albedo: 1.0
 
-Rayleigh scatterer relative density:
+Rayleigh scatterer relative density: # relative to number density at sea level
 ```
     const float rayleighScaleHeight=8000.;
     return exp(-1/rayleighScaleHeight * altitude);
 ```
-Mie scatterer relative density:
+Mie scatterer relative density: # relative to number density at sea level
 ```
     const float mieScaleHeight=1200;
     return exp(-1/mieScaleHeight*altitude);
 ```
-ozone density:
+ozone density: # absolute
 ```
     const float totalOzoneAmount=300*dobsonUnit;
     if(altitude<10*km || altitude>40*km) return 0;
