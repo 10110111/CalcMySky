@@ -3,12 +3,17 @@
 
 #include "const.h.glsl"
 
+// Assumes that if its argument is negative, it's due to rounding errors and
+// should instead be zero.
+float safeSqrt(float x)
+{
+    return sqrt(max(x,0.));
+}
+
 float distanceToAtmosphereBorder(float cosZenithAngle, float observerAltitude)
 {
     const float Robs=earthRadius+observerAltitude;
     const float Ratm=earthRadius+atmosphereHeight;
     float discriminant=sqr(Ratm)-sqr(Robs)*(1-sqr(cosZenithAngle));
-    if(discriminant<0 && abs(Robs/Ratm-1)<1e-4)
-        discriminant=0; // This can only happen due to rounding errors, so fix it
-    return sqrt(discriminant)-Robs*cosZenithAngle;
+    return safeSqrt(discriminant)-Robs*cosZenithAngle;
 }
