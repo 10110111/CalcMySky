@@ -14,6 +14,6 @@ float distanceToAtmosphereBorder(float cosZenithAngle, float observerAltitude)
 {
     const float Robs=earthRadius+observerAltitude;
     const float Ratm=earthRadius+atmosphereHeight;
-    float discriminant=sqr(Ratm)-sqr(Robs)*(1-sqr(cosZenithAngle));
+    const float discriminant=sqr(Ratm)-sqr(Robs)*(1-sqr(cosZenithAngle));
     return safeSqrt(discriminant)-Robs*cosZenithAngle;
 }
