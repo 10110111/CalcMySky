@@ -376,12 +376,11 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
 {
     auto program=std::make_unique<QOpenGLShaderProgram>();
 
-    for(const auto filename : getShaderFileNamesToLinkWith(mainSrcFileName))
-        program->addShader(&getOrCompileShader(QOpenGLShader::Fragment, filename));
+    auto shaderFileNames=getShaderFileNamesToLinkWith(mainSrcFileName);
+    shaderFileNames.insert(mainSrcFileName);
 
-    const auto mainSrc=withHeadersIncluded(getShaderSrc(mainSrcFileName), mainSrcFileName);
-    const auto mainShader=compileShader(QOpenGLShader::Fragment, mainSrc, mainSrcFileName);
-    program->addShader(mainShader.get());
+    for(const auto filename : shaderFileNames)
+        program->addShader(&getOrCompileShader(QOpenGLShader::Fragment, filename));
 
     program->addShader(&getOrCompileShader(QOpenGLShader::Vertex, "shader.vert"));
 
