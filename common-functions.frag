@@ -10,10 +10,16 @@ float safeSqrt(float x)
     return sqrt(max(x,0.));
 }
 
+// Fixup for possible rounding errors resulting in distance being outside of theoretical bounds
+float clampDistance(float d)
+{
+    return max(d, 0.);
+}
+
 float distanceToAtmosphereBorder(float cosZenithAngle, float observerAltitude)
 {
     const float Robs=earthRadius+observerAltitude;
     const float Ratm=earthRadius+atmosphereHeight;
     const float discriminant=sqr(Ratm)-sqr(Robs)*(1-sqr(cosZenithAngle));
-    return safeSqrt(discriminant)-Robs*cosZenithAngle;
+    return clampDistance(safeSqrt(discriminant)-Robs*cosZenithAngle);
 }
