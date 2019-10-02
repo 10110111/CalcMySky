@@ -5,18 +5,18 @@
 
 // Assumes that if its argument is negative, it's due to rounding errors and
 // should instead be zero.
-float safeSqrt(float x)
+float safeSqrt(const float x)
 {
     return sqrt(max(x,0.));
 }
 
 // Fixup for possible rounding errors resulting in distance being outside of theoretical bounds
-float clampDistance(float d)
+float clampDistance(const float d)
 {
     return max(d, 0.);
 }
 
-float distanceToAtmosphereBorder(float cosZenithAngle, float observerAltitude)
+float distanceToAtmosphereBorder(const float cosZenithAngle, const float observerAltitude)
 {
     const float Robs=earthRadius+observerAltitude;
     const float Ratm=earthRadius+atmosphereHeight;

@@ -8,13 +8,13 @@ struct TransmittanceTexVars
     float cosViewZenithAngle;
     float altitude;
 };
-TransmittanceTexVars transmittanceTexCoordToTexVars(vec2 texCoord);
-vec2 transmittanceTexVarsToTexCoord(float cosVZA, float altitude);
+TransmittanceTexVars transmittanceTexCoordToTexVars(const vec2 texCoord);
+vec2 transmittanceTexVarsToTexCoord(const float cosVZA, float altitude);
 struct IrradianceTexVars
 {
     float cosSunZenithAngle;
     float altitude;
 };
-IrradianceTexVars irradianceTexCoordToTexVars(vec2 texCoord);
+IrradianceTexVars irradianceTexCoordToTexVars(const vec2 texCoord);
 
 #endif

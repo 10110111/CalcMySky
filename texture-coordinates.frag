@@ -20,7 +20,7 @@ float unitRangeToTexCoord(const float u, const float texSize)
     return (0.5+(texSize-1)*u)/texSize;
 }
 
-TransmittanceTexVars transmittanceTexCoordToTexVars(vec2 texCoord)
+TransmittanceTexVars transmittanceTexCoordToTexVars(const vec2 texCoord)
 {
     const float R=earthRadius;
 
@@ -50,7 +50,7 @@ TransmittanceTexVars transmittanceTexCoordToTexVars(vec2 texCoord)
 // resolution at low altitudes, where transmittance has noticeable but very thin
 // dip near horizon.
 //  NOTE: this function relies on transmittanceTexture sampler being defined
-vec2 transmittanceTexVarsToTexCoord(float cosVZA, float altitude)
+vec2 transmittanceTexVarsToTexCoord(const float cosVZA, float altitude)
 {
     if(altitude<0)
         altitude=0;
@@ -70,7 +70,7 @@ vec2 transmittanceTexVarsToTexCoord(float cosVZA, float altitude)
 }
 
 // Output: vec2(cos(sunZenithAngle), altitude)
-IrradianceTexVars irradianceTexCoordToTexVars(vec2 texCoord)
+IrradianceTexVars irradianceTexCoordToTexVars(const vec2 texCoord)
 {
     const float alt=atmosphereHeight*texCoordToUnitRange(texCoord.s, irradianceTextureSize.s);
     const float cosSZA=2*texCoordToUnitRange(texCoord.t, irradianceTextureSize.t)-1;
