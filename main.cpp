@@ -289,7 +289,8 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     }
     if(!shader->log().isEmpty())
     {
-        std::cerr << "Warnings while compiling " << description.toStdString() << ": " << shader->log().toStdString() << "\n";
+        std::cerr << "Warnings while compiling " << description.toStdString() << ":\n"
+                  << shader->log().toStdString() << "\n";
     }
     return shader;
 }
