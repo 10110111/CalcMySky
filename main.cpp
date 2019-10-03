@@ -283,8 +283,8 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     source=withHeadersIncluded(source, description);
     if(!shader->compileSourceCode(source))
     {
-        // Qt prints compilation errors to stderr, so don't print them again
-        std::cerr << "Failed to compile " << description.toStdString() << "\n";
+        std::cerr << "Failed to compile " << description.toStdString() << ":\n"
+                  << shader->log().toStdString() << "\n";
         throw MustQuit{};
     }
     if(!shader->log().isEmpty())
@@ -747,6 +747,8 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
         break;
     case QtWarningMsg:
         if(message.startsWith("*** Problematic Fragment shader source code ***"))
+            break;
+        if(message.startsWith("QOpenGLShader::compile("))
             break;
         std::cerr << "[WARN] " << message.toStdString() << "\n";
         break;
