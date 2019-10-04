@@ -121,6 +121,23 @@ QVector4D mieScatteringCoefficient(QVector4D wavelengths)
     return QVec(mieScatteringCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(mieAngstromExponent)));
 }
 
+// Function useful only for debugging
+void dumpActiveUniforms(const GLuint program)
+{
+    int uniformCount=0, maxLen=0;
+    gl.glGetProgramiv(program,GL_ACTIVE_UNIFORMS,&uniformCount);
+    gl.glGetProgramiv(program,GL_ACTIVE_UNIFORM_MAX_LENGTH,&maxLen);
+    std::cerr << "Active uniforms:\n";
+    for(int uniformIndex=0;uniformIndex<uniformCount;++uniformIndex)
+    {
+        std::vector<char> name(maxLen);
+        GLsizei size;
+        GLenum type;
+        gl.glGetActiveUniform(program,uniformIndex,maxLen,nullptr,&size,&type,name.data());
+        std::cerr << ' ' << name.data() << "\n";
+    }
+}
+
 void checkFramebufferStatus(const char*const fboDescription)
 {
     GLenum status=gl.glCheckFramebufferStatus(GL_FRAMEBUFFER);
