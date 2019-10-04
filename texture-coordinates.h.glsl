@@ -17,4 +17,43 @@ struct IrradianceTexVars
 };
 IrradianceTexVars irradianceTexCoordToTexVars(const vec2 texCoord);
 
+struct ScatteringTexVars
+{
+    float cosSunZenithAngle;
+    float cosViewZenithAngle;
+    float dotViewSun;
+    float altitude;
+    bool viewRayIntersectsGround;
+};
+ScatteringTexVars scatteringTexIndicesToTexVars(const vec3 texIndices);
+vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
+                     const float dotViewSun, const float altitude, const bool viewRayIntersectsGround);
+#ifdef ENABLE_TESTING_CODE
+struct Scattering4DCoords
+{
+    float cosSunZenithAngle;
+    float cosViewZenithAngle;
+    float dotViewSun;
+    float altInTexSlice;
+    bool viewRayIntersectsGround;
+};
+struct TexCoordPair
+{
+    vec3 lower;
+    float alphaLower;
+    vec3 upper;
+    float alphaUpper;
+};
+
+ScatteringTexVars scatteringTex4DCoordsToTexVars(const Scattering4DCoords coords);
+Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                                               const float dotViewSun, const float altitude,
+                                               const bool viewRayIntersectsGround);
+TexCoordPair texVarsToScatteringTexCoords(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                                          const float dotViewSun, const float altitude,
+                                          const bool viewRayIntersectsGround);
+Scattering4DCoords scatteringTexIndicesTo4DCoords(const vec3 texIndices);
+TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords);
+#endif
+
 #endif

@@ -9,7 +9,7 @@ in vec3 position;
 out vec4 color;
 
 uniform float sunAngularRadius;
-uniform vec4 solarIrradiance;
+uniform vec4 solarIrradianceAtTOA;
 
 vec4 computeDirectGroundIrradiance(float cosSunZenithAngle, float altitude)
 {
@@ -23,7 +23,7 @@ vec4 computeDirectGroundIrradiance(float cosSunZenithAngle, float altitude)
     const float averageCosFactor = cosSunZenithAngle < -sunAngularRadius ? 0
                                       : cosSunZenithAngle > sunAngularRadius ? cosSunZenithAngle
                                       : sqr(cosSunZenithAngle+sunAngularRadius)/(4*sunAngularRadius);
-    return solarIrradiance * transmittanceToAtmosphereBorder(cosSunZenithAngle, altitude) * averageCosFactor;
+    return solarIrradianceAtTOA * transmittanceToAtmosphereBorder(cosSunZenithAngle, altitude) * averageCosFactor;
 }
 
 void main()

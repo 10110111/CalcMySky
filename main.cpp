@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <random>
 #include <map>
 #include <set>
 
@@ -38,7 +39,7 @@ constexpr auto allWavelengths=[]() constexpr
  * which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html .
  * Values are in W/(m^2*nm).
  */
-constexpr decltype(allWavelengths) solarIrradiance=
+constexpr decltype(allWavelengths) solarIrradianceAtTOA=
    {1.037,1.249,1.684,1.975,
     1.968,1.877,1.854,1.818,
     1.723,1.604,1.516,1.408,
@@ -69,6 +70,7 @@ enum
 {
     FBO_TRANSMITTANCE,
     FBO_IRRADIANCE,
+    FBO_SINGLE_SCATTERING,
 
     FBO_COUNT
 };
@@ -79,6 +81,10 @@ enum
     TEX_TRANSMITTANCE_LAST=TEX_TRANSMITTANCE0+allWavelengths.size()/4-1,
     TEX_IRRADIANCE0,
     TEX_IRRADIANCE_LAST=TEX_IRRADIANCE0+allWavelengths.size()/4-1,
+    TEX_SINGLE_SCATTERING_RAYLEIGH0,
+    TEX_SINGLE_SCATTERING_RAYLEIGH_LAST=TEX_SINGLE_SCATTERING_RAYLEIGH0+allWavelengths.size()/4-1,
+    TEX_SINGLE_SCATTERING_MIE0,
+    TEX_SINGLE_SCATTERING_MIE_LAST=TEX_SINGLE_SCATTERING_MIE0+allWavelengths.size()/4-1,
 
     TEX_COUNT
 };
@@ -87,7 +93,9 @@ GLuint textures[TEX_COUNT];
 std::string textureOutputDir=".";
 GLint transmittanceTexW, transmittanceTexH;
 GLint irradianceTexW, irradianceTexH;
+QVector4D scatteringTextureSize;
 GLint numTransmittanceIntegrationPoints;
+GLint singleScatteringIntegrationPoints;
 GLfloat earthRadius;
 GLfloat atmosphereHeight;
 GLfloat rayleighScatteringCoefficientAt1um;
@@ -202,6 +210,12 @@ void initTexturesAndFramebuffers()
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
+        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH0+texIndex]);
+        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
     }
 
     gl.glGenFramebuffers(FBO_COUNT,fbos);
@@ -390,7 +404,8 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
     return filenames;
 }
 
-std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName, const char* description)
+std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName, const char* description,
+                                                           const bool useGeomShader=false)
 {
     auto program=std::make_unique<QOpenGLShaderProgram>();
 
@@ -401,6 +416,8 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
         program->addShader(&getOrCompileShader(QOpenGLShader::Fragment, filename));
 
     program->addShader(&getOrCompileShader(QOpenGLShader::Vertex, "shader.vert"));
+    if(useGeomShader)
+        program->addShader(&getOrCompileShader(QOpenGLShader::Geometry, "shader.geom"));
 
     if(!program->link())
     {
@@ -613,10 +630,20 @@ void handleCmdLine()
             transmittanceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="transmittance integration points")
             numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="single scattering integration points")
+            singleScatteringIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for altitude")
             irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for cos(sza)")
             irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="scattering texture size for cos(vza)")
+            scatteringTextureSize[0]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="scattering texture size for dot(view,sun)")
+            scatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="scattering texture size for cos(sza)")
+            scatteringTextureSize[2]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="scattering texture size for altitude")
+            scatteringTextureSize[3]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
@@ -657,6 +684,7 @@ void computeTransmittance()
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
 
+    std::cerr << "Computing transmittance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
     for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
     {
@@ -703,6 +731,8 @@ void computeTransmittance()
             image.mirrored().save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
         }
     }
+    gl.glFinish();
+    std::cerr << "done\n";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
@@ -710,13 +740,14 @@ void computeGroundIrradiance()
 {
     const auto program=compileShaderProgram("compute-irradiance.frag", "irradiance computation shader program");
 
+    std::cerr << "Computing ground irradiance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
     for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
     {
-        const QVector4D solarIrradiance(::solarIrradiance[texIndex*4+0],
-                                        ::solarIrradiance[texIndex*4+1],
-                                        ::solarIrradiance[texIndex*4+2],
-                                        ::solarIrradiance[texIndex*4+3]);
+        const QVector4D solarIrradianceAtTOA(::solarIrradianceAtTOA[texIndex*4+0],
+                                             ::solarIrradianceAtTOA[texIndex*4+1],
+                                             ::solarIrradianceAtTOA[texIndex*4+2],
+                                             ::solarIrradianceAtTOA[texIndex*4+3]);
         gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE0+texIndex]);
         gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,irradianceTexW,irradianceTexH,
                         0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
@@ -731,7 +762,7 @@ void computeGroundIrradiance()
 
         program->setUniformValue("irradianceTextureSize",QVector2D(irradianceTexW,irradianceTexH));
         program->setUniformValue("transmittanceTexture",0);
-        program->setUniformValue("solarIrradiance",solarIrradiance);
+        program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
         program->setUniformValue("sunAngularRadius",sunAngularRadius);
 
         gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
@@ -753,7 +784,92 @@ void computeGroundIrradiance()
             image.mirrored().save(QString("/tmp/irradiance-png-%1.png").arg(texIndex));
         }
     }
+    gl.glFinish();
+    std::cerr << "done\n";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void computeSingleScattering()
+{
+    const auto program=compileShaderProgram("compute-single-scattering.frag", "single scattering computation shader program", true);
+    const auto scatTexWidth=scatteringTextureSize[0];
+    const auto scatTexHeight=scatteringTextureSize[1]*scatteringTextureSize[2];
+    const auto scatTexDepth=scatteringTextureSize[3];
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_SINGLE_SCATTERING]);
+    program->bind();
+
+    gl.glViewport(0, 0, scatTexWidth, scatTexHeight);
+    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
+    for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
+    {
+        const QVector4D wavelengths(allWavelengths[texIndex*4+0],
+                                    allWavelengths[texIndex*4+1],
+                                    allWavelengths[texIndex*4+2],
+                                    allWavelengths[texIndex*4+3]);
+        const QVector4D solarIrradianceAtTOA(::solarIrradianceAtTOA[texIndex*4+0],
+                                             ::solarIrradianceAtTOA[texIndex*4+1],
+                                             ::solarIrradianceAtTOA[texIndex*4+2],
+                                             ::solarIrradianceAtTOA[texIndex*4+3]);
+        program->setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
+        program->setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
+        program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
+        program->setUniformValue("sunAngularRadius",sunAngularRadius);
+        program->setUniformValue("altitudeMin", altitudeMin);
+        program->setUniformValue("altitudeMax", altitudeMax);
+        program->setUniformValue("scatteringTextureSize", scatteringTextureSize);
+        program->setUniformValue("singleScatteringIntegrationPoints", singleScatteringIntegrationPoints);
+
+        gl.glActiveTexture(GL_TEXTURE0);
+        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH0+texIndex]);
+        gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
+                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
+                                textures[TEX_SINGLE_SCATTERING_RAYLEIGH0+texIndex],0);
+        checkFramebufferStatus("framebuffer for single Rayleigh scattering");
+
+        gl.glActiveTexture(GL_TEXTURE1);
+        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_MIE0+texIndex]);
+        gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
+                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,
+                                textures[TEX_SINGLE_SCATTERING_MIE0+texIndex],0);
+        checkFramebufferStatus("framebuffer for single Mie scattering");
+
+        gl.glActiveTexture(GL_TEXTURE2);
+        gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE0+texIndex]);
+        program->setUniformValue("transmittanceTexture", 2);
+
+        const GLenum buffers[]={GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+        gl.glDrawBuffers(std::size(buffers), buffers);
+
+        std::cerr << "Computing single scattering layers... ";
+        for(int layer=0; layer<scatTexDepth; ++layer)
+        {
+            std::cerr << layer;
+            program->setUniformValue("layer",layer);
+            renderUntexturedQuad();
+            gl.glFinish();
+            if(layer+1<scatTexDepth) std::cerr << ',';
+        }
+        std::cerr << "; done\n";
+
+        if(false) // for debugging
+        {
+            std::cerr << "Saving texture...";
+            const uint16_t w=scatteringTextureSize[0], h=scatteringTextureSize[1],
+                           d=scatteringTextureSize[2], q=scatteringTextureSize[3];
+            std::vector<glm::vec4> pixels(w*h*d*q);
+            gl.glActiveTexture(GL_TEXTURE0);
+            gl.glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+            std::ofstream out(textureOutputDir+"/single-scattering-rayleigh-"+std::to_string(texIndex)+".f32");
+            out.write(reinterpret_cast<const char*>(&w), sizeof w);
+            out.write(reinterpret_cast<const char*>(&h), sizeof h);
+            out.write(reinterpret_cast<const char*>(&d), sizeof d);
+            out.write(reinterpret_cast<const char*>(&q), sizeof q);
+            out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+            std::cerr << " done\n";
+        }
+    }
 }
 
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message)
@@ -835,6 +951,8 @@ int main(int argc, char** argv)
         // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
         // sky color. Irradiance will also be needed when we want to draw the ground itself.
         computeGroundIrradiance();
+
+        computeSingleScattering();
     }
     catch(MustQuit&)
     {
