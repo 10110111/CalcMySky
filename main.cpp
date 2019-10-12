@@ -22,16 +22,8 @@
 
 QString withHeadersIncluded(QString src, QString const& filename);
 
-constexpr double meter=1;
-constexpr double square_meter=meter*meter;
-constexpr double km=1000*meter;
-constexpr double astronomicalUnit=149'597'870'700.*meter;
+constexpr double astronomicalUnit=149'597'870'700.; // m
 constexpr double AU=astronomicalUnit;
-constexpr double watt=1;
-constexpr double molecule=1;
-// Wavelength is in nanometers, but this is orthogonal to our ray-optics length
-// calculations, so we can treat wavelength dimension as independent from length.
-constexpr double wl_nm=1;
 
 constexpr auto allWavelengths=[]() constexpr
 {
@@ -44,24 +36,25 @@ constexpr auto allWavelengths=[]() constexpr
 }();
 /* Data taken from https://www.nrel.gov/grid/solar-resource/assets/data/astmg173.zip
  * which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html .
+ * Values are in W/(m^2*nm).
  */
 constexpr decltype(allWavelengths) solarIrradiance=
-   {1.037*watt/square_meter/wl_nm,1.249*watt/square_meter/wl_nm,1.684*watt/square_meter/wl_nm,1.975*watt/square_meter/wl_nm,
-    1.968*watt/square_meter/wl_nm,1.877*watt/square_meter/wl_nm,1.854*watt/square_meter/wl_nm,1.818*watt/square_meter/wl_nm,
-    1.723*watt/square_meter/wl_nm,1.604*watt/square_meter/wl_nm,1.516*watt/square_meter/wl_nm,1.408*watt/square_meter/wl_nm,
-    1.309*watt/square_meter/wl_nm,1.23 *watt/square_meter/wl_nm,1.142*watt/square_meter/wl_nm,1.062*watt/square_meter/wl_nm};
+   {1.037,1.249,1.684,1.975,
+    1.968,1.877,1.854,1.818,
+    1.723,1.604,1.516,1.408,
+    1.309,1.23,1.142,1.062};
 /* Data taken from http://www.iup.uni-bremen.de/gruppen/molspec/downloads/serdyuchenkogorshelevversionjuly2013.zip
  * which is linked to at http://www.iup.uni-bremen.de/gruppen/molspec/databases/referencespectra/o3spectra2011/index.html .
- * Data are for 233K.
+ * Data are for 233K. Values are in m^2/molecule.
  */
 constexpr decltype(allWavelengths) ozoneAbsCrossSection=
-   {1.394e-26*square_meter/molecule,6.052e-28*square_meter/molecule,4.923e-27*square_meter/molecule,2.434e-26*square_meter/molecule,
-    7.361e-26*square_meter/molecule,1.831e-25*square_meter/molecule,3.264e-25*square_meter/molecule,4.514e-25*square_meter/molecule,
-    4.544e-25*square_meter/molecule,2.861e-25*square_meter/molecule,1.571e-25*square_meter/molecule,7.902e-26*square_meter/molecule,
-    4.452e-26*square_meter/molecule,2.781e-26*square_meter/molecule,1.764e-26*square_meter/molecule,5.369e-27*square_meter/molecule};
+   {1.394e-26,6.052e-28,4.923e-27,2.434e-26,
+    7.361e-26,1.831e-25,3.264e-25,4.514e-25,
+    4.544e-25,2.861e-25,1.571e-25,7.902e-26,
+    4.452e-26,2.781e-26,1.764e-26,5.369e-27};
 static_assert(allWavelengths.size()%4==0,"Non-round number of wavelengths");
 
-constexpr double sunRadius=696350*meter;
+constexpr double sunRadius=696350e3; /* m */
 
 std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
 QString constantsHeader;
@@ -229,17 +222,14 @@ void renderUntexturedQuad()
 
 void initConstHeader()
 {
-    constantsHeader="const float earthRadius="+QString::number(earthRadius)+";\n"
-                         "const float atmosphereHeight="+QString::number(atmosphereHeight)+";\n"
+    constantsHeader="const float earthRadius="+QString::number(earthRadius)+"; // must be in meters\n"
+                         "const float atmosphereHeight="+QString::number(atmosphereHeight)+"; // must be in meters\n"
                          R"(
 const vec3 earthCenter=vec3(0,0,-earthRadius);
 
-const float molecule=1;
-const float meter=)"+QString::number(meter)+R"(;
-const float square_meter=meter*meter;
-const float km=1e3*meter;
-const float dobsonUnit = 2.687e20*molecule/square_meter;
+const float dobsonUnit = 2.687e20; // molecules/m^2
 const float PI=3.1415926535897932;
+const float km=1000;
 #define sqr(x) ((x)*(x))
 )";
 }
@@ -450,22 +440,17 @@ struct LengthQuantity : Quantity
     std::map<QString, double> units() const override
     {
         return {
-                {"nm",1e-9*meter},
-                {"um",1e-6*meter},
-                {"mm",1e-3*meter},
-                { "m",1e+0*meter},
-                {"km",1e+3*meter},
-                {"Mm",1e+6*meter},
-                {"Gm",1e+9*meter},
+                {"nm",1e-9},
+                {"um",1e-6},
+                {"mm",1e-3},
+                { "m",1e+0},
+                {"km",1e+3},
+                {"Mm",1e+6},
+                {"Gm",1e+9},
                 {"AU",astronomicalUnit},
                };
     }
-    QString basicUnit() const override
-    {
-        if(meter==1) return "m";
-        else if(meter==1e-3) return "km";
-        // Relying on -Werror=return-type to catch the case when value of meter is not handled
-    }
+    QString basicUnit() const override { return "m"; }
 };
 
 struct ReciprocalLengthQuantity : Quantity
@@ -474,21 +459,16 @@ struct ReciprocalLengthQuantity : Quantity
     std::map<QString, double> units() const override
     {
         return {
-                {"nm^-1",1e+9/meter},
-                {"um^-1",1e+6/meter},
-                {"mm^-1",1e+3/meter},
-                { "m^-1",1e-0/meter},
-                {"km^-1",1e-3/meter},
-                {"Mm^-1",1e-6/meter},
-                {"Gm^-1",1e-9/meter},
+                {"nm^-1",1e+9},
+                {"um^-1",1e+6},
+                {"mm^-1",1e+3},
+                { "m^-1",1e-0},
+                {"km^-1",1e-3},
+                {"Mm^-1",1e-6},
+                {"Gm^-1",1e-9},
                };
     }
-    QString basicUnit() const override
-    {
-        if(meter==1) return "m^-1";
-        else if(meter==1e-3) return "km^-1";
-        // Relying on -Werror=return-type to catch the case when value of meter is not handled
-    }
+    QString basicUnit() const override { return "m^-1"; }
 };
 
 struct DimensionlessQuantity {};
@@ -638,13 +618,13 @@ void handleCmdLine()
         else if(key=="irradiance texture height")
             irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
-            earthRadius=getQuantity(value,1*meter,1e10*meter,LengthQuantity{},atmoDescrFileName,lineNumber);
+            earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
-            atmosphereHeight=getQuantity(value,1*meter,1e6*meter,LengthQuantity{},atmoDescrFileName,lineNumber);
+            atmosphereHeight=getQuantity(value,1,1e6,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="rayleigh scattering coefficient at 1 um")
-            rayleighScatteringCoefficientAt1um=getQuantity(value,1e-20/meter,100/meter,ReciprocalLengthQuantity{},atmoDescrFileName,lineNumber);
+            rayleighScatteringCoefficientAt1um=getQuantity(value,1e-20,100,ReciprocalLengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="mie scattering coefficient at 1 um")
-            mieScatteringCoefficientAt1um=getQuantity(value,1e-20/meter,100/meter,ReciprocalLengthQuantity{},atmoDescrFileName,lineNumber);
+            mieScatteringCoefficientAt1um=getQuantity(value,1e-20,100,ReciprocalLengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="mie angstrom exponent")
             mieAngstromExponent=getQuantity(value,-10,10,DimensionlessQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="mie single scattering albedo")

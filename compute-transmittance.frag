@@ -6,9 +6,9 @@
 in vec3 position;
 out vec4 color;
 
-uniform vec4 ozoneAbsorptionCrossSection; // length^2
-uniform vec4 rayleighScatteringCoefficient; // cross-section * numberDensityAtSeaLevel => length^-1
-uniform vec4 mieScatteringCoefficient; // cross-section * numberDensityAtSeaLevel => length^-1
+uniform vec4 ozoneAbsorptionCrossSection; // m^2
+uniform vec4 rayleighScatteringCoefficient; // cross-section * numberDensityAtSeaLevel => m^-1
+uniform vec4 mieScatteringCoefficient; // cross-section * numberDensityAtSeaLevel => m^-1
 uniform float mieSingleScatteringAlbedo; // the ratio mieScatteringExtinction/(mieScatteringExtinction+aerosolAbsorptionExtinction)
 uniform int numTransmittanceIntegrationPoints;
 
