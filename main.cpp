@@ -672,8 +672,7 @@ void computeTransmittance()
         gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,transmittanceTexW,transmittanceTexH,
                         0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
         gl.glBindTexture(GL_TEXTURE_2D,0);
-        gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,
-                                  textures[TEX_TRANSMITTANCE0+texIndex],0);
+        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_TRANSMITTANCE0+texIndex],0);
         checkFramebufferStatus("framebuffer for transmittance texture");
 
         program->bind();
@@ -720,8 +719,7 @@ void computeGroundIrradiance()
         gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,irradianceTexW,irradianceTexH,
                         0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
         gl.glBindTexture(GL_TEXTURE_2D,0);
-        gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,
-                                  textures[TEX_IRRADIANCE0+texIndex],0);
+        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_IRRADIANCE0+texIndex],0);
         checkFramebufferStatus("framebuffer for irradiance texture");
 
         gl.glActiveTexture(GL_TEXTURE0);
