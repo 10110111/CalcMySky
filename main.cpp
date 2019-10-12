@@ -643,6 +643,8 @@ void handleCmdLine()
             // each camera position.
             sunAngularRadius=sunRadius/earthSunDistance;
         }
+        else
+            std::cerr << "WARNING: Unknown key: " << key.toStdString() << "\n";
     }
     if(!stream.atEnd())
     {
