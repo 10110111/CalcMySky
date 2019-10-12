@@ -607,15 +607,15 @@ void handleCmdLine()
         }
         const auto key=keyValue[0].simplified().toLower();
         const auto value=keyValue[1].trimmed();
-        if(key=="transmittance texture width")
+        if(key=="transmittance texture size for cos(vza)")
             transmittanceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
-        else if(key=="transmittance texture height")
+        else if(key=="transmittance texture size for altitude")
             transmittanceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="transmittance integration points")
             numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
-        else if(key=="irradiance texture width")
+        else if(key=="irradiance texture size for altitude")
             irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
-        else if(key=="irradiance texture height")
+        else if(key=="irradiance texture size for cos(sza)")
             irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
