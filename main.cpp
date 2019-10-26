@@ -690,7 +690,7 @@ void computeTransmittance()
         std::vector<glm::vec4> pixels(transmittanceTexW*transmittanceTexH);
         gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_FLOAT,pixels.data());
         std::ofstream out(textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32");
-        const std::uint32_t w=transmittanceTexW, h=transmittanceTexH;
+        const std::uint16_t w=transmittanceTexW, h=transmittanceTexH;
         out.write(reinterpret_cast<const char*>(&w), sizeof w);
         out.write(reinterpret_cast<const char*>(&h), sizeof h);
         out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
@@ -740,7 +740,7 @@ void computeGroundIrradiance()
         std::vector<glm::vec4> pixels(irradianceTexW*irradianceTexH);
         gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_FLOAT,pixels.data());
         std::ofstream out(textureOutputDir+"/irradiance-"+std::to_string(texIndex)+".f32");
-        const std::uint32_t w=irradianceTexW, h=irradianceTexH;
+        const std::uint16_t w=irradianceTexW, h=irradianceTexH;
         out.write(reinterpret_cast<const char*>(&w), sizeof w);
         out.write(reinterpret_cast<const char*>(&h), sizeof h);
         out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
