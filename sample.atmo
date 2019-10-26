@@ -1,7 +1,9 @@
-transmittance texture size for cos(VZA): 128
+transmittance texture size for cos(VZA): 256
 transmittance texture size for altitude: 64
-irradiance texture size for altitude: 128
+
 irradiance texture size for cos(SZA): 64
+irradiance texture size for altitude: 16
+
 transmittance integration points: 500
 Earth-Sun distance: 1 AU
 Earth radius: 6371 km
