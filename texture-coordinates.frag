@@ -72,7 +72,7 @@ vec2 transmittanceTexVarsToTexCoord(const float cosVZA, float altitude)
 // Output: vec2(cos(sunZenithAngle), altitude)
 IrradianceTexVars irradianceTexCoordToTexVars(const vec2 texCoord)
 {
-    const float alt=atmosphereHeight*texCoordToUnitRange(texCoord.s, irradianceTextureSize.s);
-    const float cosSZA=2*texCoordToUnitRange(texCoord.t, irradianceTextureSize.t)-1;
+    const float cosSZA=2*texCoordToUnitRange(texCoord.s, irradianceTextureSize.s)-1;
+    const float alt=atmosphereHeight*texCoordToUnitRange(texCoord.t, irradianceTextureSize.t);
     return IrradianceTexVars(cosSZA,alt);
 }
