@@ -2,7 +2,6 @@
 #extension GL_ARB_shading_language_420pack : require
 
 #include "const.h.glsl"
-#define ENABLE_TESTING_CODE
 #include "texture-coordinates.h.glsl"
 #include "common-functions.h.glsl"
 
@@ -11,6 +10,22 @@ uniform sampler2D transmittanceTexture;
 
 uniform vec2 irradianceTextureSize;
 uniform vec4 scatteringTextureSize;
+
+struct Scattering4DCoords
+{
+    float cosSunZenithAngle;
+    float cosViewZenithAngle;
+    float dotViewSun;
+    float altInTexSlice;
+    bool viewRayIntersectsGround;
+};
+struct TexCoordPair
+{
+    vec3 lower;
+    float alphaLower;
+    vec3 upper;
+    float alphaUpper;
+};
 
 // These two uniforms select the range of altitudes represented in the current block of the full texture.
 // When sampling the texture, we need to map altMin -> texCoord==0 and altMax -> texCoord==1.
