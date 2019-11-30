@@ -22,12 +22,12 @@ Mie single scattering albedo: 1.0
 
 Rayleigh scatterer relative density: # relative to number density at sea level
 ```
-    const float rayleighScaleHeight=8000.;
+    const float rayleighScaleHeight=8*km;
     return exp(-1/rayleighScaleHeight * altitude);
 ```
 Mie scatterer relative density: # relative to number density at sea level
 ```
-    const float mieScaleHeight=1200;
+    const float mieScaleHeight=1.2*km;
     return exp(-1/mieScaleHeight*altitude);
 ```
 ozone density: # absolute
