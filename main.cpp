@@ -60,10 +60,12 @@ constexpr double sunRadius=696350e3; /* m */
 std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
 QString constantsHeader;
 constexpr char DENSITIES_SHADER_FILENAME[]="densities.frag";
+constexpr char PHASE_FUNCTIONS_SHADER_FILENAME[]="phase-functions.frag";
 constexpr char CONSTANTS_HEADER_FILENAME[]="const.h.glsl";
 std::set<QString> internalShaders
 {
     DENSITIES_SHADER_FILENAME,
+    PHASE_FUNCTIONS_SHADER_FILENAME,
 };
 GLuint vao, vbo;
 enum
@@ -104,6 +106,7 @@ GLfloat mieAngstromExponent;
 GLfloat mieSingleScatteringAlbedo;
 QString rayleighScattererRelativeDensity;
 QString mieScattererRelativeDensity;
+QString miePhaseFunction;
 QString ozoneDensity;
 double earthSunDistance;
 GLfloat sunAngularRadius; // calculated from earthSunDistance
@@ -282,6 +285,26 @@ float density(float altitude, int whichDensity)
     }
 }
 )", QString("(virtual)%1").arg(DENSITIES_SHADER_FILENAME));
+}
+
+QString makePhaseFunctionsSrc()
+{
+    return withHeadersIncluded(1+R"(
+#version 330
+#extension GL_ARB_shading_language_420pack : require
+
+#include "const.h.glsl"
+
+vec4 rayleighPhaseFunction(float dotViewSun)
+{
+    return vec4(3./(16*PI)*(1+sqr(dotViewSun)));
+}
+
+vec4 miePhaseFunction(float dotViewSun)
+{
+)" + miePhaseFunction.trimmed() + R"(
+}
+)", QString("(virtual)%1").arg(PHASE_FUNCTIONS_SHADER_FILENAME));
 }
 
 QString getShaderSrc(QString const& fileName)
@@ -660,6 +683,8 @@ void handleCmdLine()
             rayleighScattererRelativeDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
         else if(key=="mie scatterer relative density")
             mieScattererRelativeDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
+        else if(key=="mie scattering phase function")
+            miePhaseFunction=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
         else if(key=="ozone density")
             ozoneDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
         else if(key=="earth-sun distance")
@@ -947,6 +972,8 @@ int main(int argc, char** argv)
         initConstHeader();
         allShaders.emplace(DENSITIES_SHADER_FILENAME, compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
                                                            "shader for calculating scatterer and absorber densities"));
+        allShaders.emplace(PHASE_FUNCTIONS_SHADER_FILENAME, compileShader(QOpenGLShader::Fragment, makePhaseFunctionsSrc(),
+                                                           "shader for calculating scattering phase functions"));
         computeTransmittance();
         // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
         // sky color. Irradiance will also be needed when we want to draw the ground itself.

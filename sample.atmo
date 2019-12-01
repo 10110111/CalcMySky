@@ -30,6 +30,13 @@ Mie scatterer relative density: # relative to number density at sea level
     const float mieScaleHeight=1.2*km;
     return exp(-1/mieScaleHeight*altitude);
 ```
+Mie scattering phase function:
+```
+    const float g=0.76;
+    const float g2=g*g;
+    const float k = 3/(8*PI)*(1-g2)/(2+g2);
+    return vec4(k * (1+sqr(dotViewSun)) / pow(1+g2 - 2*g*dotViewSun, 1.5) + 1/((1-dotViewSun)*600+0.05))*0.904;
+```
 ozone density: # absolute
 ```
     const float totalOzoneAmount=300*dobsonUnit;

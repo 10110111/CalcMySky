@@ -2,6 +2,7 @@
 #extension GL_ARB_shading_language_420pack : require
 
 #include "const.h.glsl"
+#include "phase-functions.h.glsl"
 #include "common-functions.h.glsl"
 #include "texture-coordinates.h.glsl"
 
@@ -59,4 +60,25 @@ vec4 transmittanceToSun(const float cosSunZenithAngle, float altitude)
            smoothstep(-sinHorizonZenithAngle*sunAngularRadius,
                        sinHorizonZenithAngle*sunAngularRadius,
                        cosSunZenithAngle-cosHorizonZenithAngle);
+}
+
+vec4 scattering(const sampler3D singleRayleighScatteringTexture, const sampler3D singleMieScatteringTexture,
+                const sampler3D multipleScatteringTexture,
+                const float cosSunZenithAngle, const float cosViewZenithAngle,
+                const float dotViewSun, const float altitude, const bool viewRayIntersectsGround,
+                const int scatteringOrder)
+{
+    if(scatteringOrder==1)
+    {
+        const vec4 rayleigh = sample4DTexture(singleRayleighScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+                                              dotViewSun, altitude, viewRayIntersectsGround);
+        const vec4 mie      = sample4DTexture(singleMieScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+                                              dotViewSun, altitude, viewRayIntersectsGround);
+        return rayleigh*rayleighPhaseFunction(dotViewSun)+mie*miePhaseFunction(dotViewSun);
+    }
+    else
+    {
+        return sample4DTexture(multipleScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+                               dotViewSun, altitude, viewRayIntersectsGround);
+    }
 }
