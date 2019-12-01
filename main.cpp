@@ -95,7 +95,7 @@ GLuint textures[TEX_COUNT];
 std::string textureOutputDir=".";
 GLint transmittanceTexW, transmittanceTexH;
 GLint irradianceTexW, irradianceTexH;
-QVector4D scatteringTextureSize;
+glm::vec4 scatteringTextureSize;
 GLint numTransmittanceIntegrationPoints;
 GLint singleScatteringIntegrationPoints;
 GLfloat earthRadius;
@@ -128,7 +128,6 @@ QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(double(v
                                                                    .arg(double(v.y), 0,'g',9)
                                                                    .arg(double(v.z), 0,'g',9)
                                                                    .arg(double(v.w), 0,'g',9); }
-QString toString(QVector4D v) { return toString(Vec(v)); }
 
 QVector4D rayleighScatteringCoefficient(QVector4D wavelengths)
 {
