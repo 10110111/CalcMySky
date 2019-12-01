@@ -7,7 +7,6 @@
 #include "single-scattering.h.glsl"
 #include "texture-sampling-functions.h.glsl"
 
-uniform int singleScatteringIntegrationPoints;
 uniform vec4 rayleighScatteringCoefficient; // cross-section * numberDensityAtSeaLevel => m^-1
 uniform vec4 mieScatteringCoefficient; // cross-section * numberDensityAtSeaLevel => m^-1
 uniform vec4 solarIrradianceAtTOA; // W/m^2/nm

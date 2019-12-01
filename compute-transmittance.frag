@@ -9,8 +9,6 @@ out vec4 color;
 uniform vec4 ozoneAbsorptionCrossSection; // m^2
 uniform vec4 rayleighScatteringCoefficient; // cross-section * numberDensityAtSeaLevel => m^-1
 uniform vec4 mieScatteringCoefficient; // cross-section * numberDensityAtSeaLevel => m^-1
-uniform float mieSingleScatteringAlbedo; // the ratio mieScatteringExtinction/(mieScatteringExtinction+aerosolAbsorptionExtinction)
-uniform int numTransmittanceIntegrationPoints;
 
 #include "densities.h.glsl"
 #include "texture-coordinates.h.glsl"

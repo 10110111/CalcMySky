@@ -7,7 +7,6 @@
 #include "texture-coordinates.h.glsl"
 
 uniform sampler2D transmittanceTexture;
-uniform float sunAngularRadius;
 
 uniform sampler3D singleRayleighScatteringTexture;
 uniform sampler3D singleMieScatteringTexture;

@@ -119,6 +119,16 @@ struct MustQuit{};
 
 glm::vec4 Vec(QVector4D v) { return glm::vec4(v.x(), v.y(), v.z(), v.w()); }
 QVector4D QVec(glm::vec4 v) { return QVector4D(v.x, v.y, v.z, v.w); }
+QString toString(int x) { return QString::number(x); }
+QString toString(double x) { return QString::number(x, 'g', 17); }
+QString toString(float x) { return QString::number(x, 'g', 9); }
+QString toString(glm::vec2 v) { return QString("vec2(%1,%2)").arg(double(v.x), 0,'g',9)
+                                                             .arg(double(v.y), 0,'g',9); }
+QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(double(v.x), 0,'g',9)
+                                                                   .arg(double(v.y), 0,'g',9)
+                                                                   .arg(double(v.z), 0,'g',9)
+                                                                   .arg(double(v.w), 0,'g',9); }
+QString toString(QVector4D v) { return toString(Vec(v)); }
 
 QVector4D rayleighScatteringCoefficient(QVector4D wavelengths)
 {
@@ -248,6 +258,15 @@ const float dobsonUnit = 2.687e20; // molecules/m^2
 const float PI=3.1415926535897932;
 const float km=1000;
 #define sqr(x) ((x)*(x))
+
+const float sunAngularRadius=)" + toString(sunAngularRadius) + R"(;
+ // the ratio mieScatteringExtinction/(mieScatteringExtinction+aerosolAbsorptionExtinction)
+const float mieSingleScatteringAlbedo=)" + toString(mieSingleScatteringAlbedo) + R"(;
+const vec4 scatteringTextureSize=)" + toString(scatteringTextureSize) + R"(;
+const vec2 irradianceTextureSize=)" + toString(glm::vec2(irradianceTexW, irradianceTexH)) + R"(;
+const vec2 transmittanceTextureSize=)" + toString(glm::vec2(transmittanceTexW,transmittanceTexH)) + R"(;
+const int singleScatteringIntegrationPoints=)" + toString(singleScatteringIntegrationPoints) + R"(;
+const int numTransmittanceIntegrationPoints=)" + toString(numTransmittanceIntegrationPoints) + R"(;
 )";
 }
 
@@ -733,10 +752,7 @@ void computeTransmittance()
         program->bind();
         program->setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
         program->setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
-        program->setUniformValue("mieSingleScatteringAlbedo",mieSingleScatteringAlbedo);
         program->setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
-        program->setUniformValue("numTransmittanceIntegrationPoints",numTransmittanceIntegrationPoints);
-        program->setUniformValue("transmittanceTextureSize",transmittanceTexW,transmittanceTexH);
         gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
         renderUntexturedQuad();
 
@@ -785,10 +801,8 @@ void computeGroundIrradiance()
 
         program->bind();
 
-        program->setUniformValue("irradianceTextureSize",QVector2D(irradianceTexW,irradianceTexH));
         program->setUniformValue("transmittanceTexture",0);
         program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
-        program->setUniformValue("sunAngularRadius",sunAngularRadius);
 
         gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
         renderUntexturedQuad();
@@ -838,11 +852,8 @@ void computeSingleScattering()
         program->setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
         program->setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
         program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
-        program->setUniformValue("sunAngularRadius",sunAngularRadius);
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
-        program->setUniformValue("scatteringTextureSize", scatteringTextureSize);
-        program->setUniformValue("singleScatteringIntegrationPoints", singleScatteringIntegrationPoints);
 
         gl.glActiveTexture(GL_TEXTURE0);
         gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH0+texIndex]);

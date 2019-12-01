@@ -5,11 +5,7 @@
 #include "texture-coordinates.h.glsl"
 #include "common-functions.h.glsl"
 
-uniform vec2 transmittanceTextureSize;
 uniform sampler2D transmittanceTexture;
-
-uniform vec2 irradianceTextureSize;
-uniform vec4 scatteringTextureSize;
 
 struct Scattering4DCoords
 {
