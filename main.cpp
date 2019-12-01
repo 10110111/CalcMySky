@@ -281,7 +281,7 @@ float density(float altitude, int whichDensity)
         return mieScattererRelativeDensity(altitude);
     }
 }
-)", "(virtual)densities.frag");
+)", QString("(virtual)%1").arg(DENSITIES_SHADER_FILENAME));
 }
 
 QString getShaderSrc(QString const& fileName)
