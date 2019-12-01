@@ -9,6 +9,10 @@
 uniform sampler2D transmittanceTexture;
 uniform float sunAngularRadius;
 
+uniform sampler3D singleRayleighScatteringTexture;
+uniform sampler3D singleMieScatteringTexture;
+uniform sampler3D multipleScatteringTexture;
+
 vec4 transmittanceToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
 {
     const vec2 texCoords=transmittanceTexVarsToTexCoord(cosViewZenithAngle, altitude);
@@ -62,9 +66,7 @@ vec4 transmittanceToSun(const float cosSunZenithAngle, float altitude)
                        cosSunZenithAngle-cosHorizonZenithAngle);
 }
 
-vec4 scattering(const sampler3D singleRayleighScatteringTexture, const sampler3D singleMieScatteringTexture,
-                const sampler3D multipleScatteringTexture,
-                const float cosSunZenithAngle, const float cosViewZenithAngle,
+vec4 scattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
                 const float dotViewSun, const float altitude, const bool viewRayIntersectsGround,
                 const int scatteringOrder)
 {
