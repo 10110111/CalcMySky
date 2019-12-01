@@ -63,7 +63,7 @@ constexpr char DENSITIES_SHADER_FILENAME[]="densities.frag";
 constexpr char CONSTANTS_HEADER_FILENAME[]="const.h.glsl";
 std::set<QString> internalShaders
 {
-    DENSITIES_SHADER_FILENAME
+    DENSITIES_SHADER_FILENAME,
 };
 GLuint vao, vbo;
 enum
