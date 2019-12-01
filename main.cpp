@@ -117,7 +117,6 @@ QOpenGLFunctions_3_3_Core gl;
 
 struct MustQuit{};
 
-glm::vec4 Vec(QVector4D v) { return glm::vec4(v.x(), v.y(), v.z(), v.w()); }
 QVector4D QVec(glm::vec4 v) { return QVector4D(v.x, v.y, v.z, v.w); }
 QString toString(int x) { return QString::number(x); }
 QString toString(double x) { return QString::number(x, 'g', 17); }
@@ -129,16 +128,16 @@ QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(double(v
                                                                    .arg(double(v.z), 0,'g',9)
                                                                    .arg(double(v.w), 0,'g',9); }
 
-QVector4D rayleighScatteringCoefficient(QVector4D wavelengths)
+glm::vec4 rayleighScatteringCoefficient(glm::vec4 wavelengths)
 {
     constexpr float refWL=1000; // nm
-    return QVec(rayleighScatteringCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(-4)));
+    return rayleighScatteringCoefficientAt1um*pow(wavelengths/refWL, glm::vec4(-4));
 }
 
-QVector4D mieScatteringCoefficient(QVector4D wavelengths)
+glm::vec4 mieScatteringCoefficient(glm::vec4 wavelengths)
 {
     constexpr float refWL=1000; // nm
-    return QVec(mieScatteringCoefficientAt1um*pow(Vec(wavelengths/refWL), glm::vec4(mieAngstromExponent)));
+    return mieScatteringCoefficientAt1um*pow(wavelengths/refWL, glm::vec4(mieAngstromExponent));
 }
 
 // Function useful only for debugging
@@ -731,7 +730,7 @@ void computeTransmittance()
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
     for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
     {
-        const QVector4D wavelengths(allWavelengths[texIndex*4+0],
+        const glm::vec4 wavelengths(allWavelengths[texIndex*4+0],
                                     allWavelengths[texIndex*4+1],
                                     allWavelengths[texIndex*4+2],
                                     allWavelengths[texIndex*4+3]);
@@ -749,8 +748,8 @@ void computeTransmittance()
         checkFramebufferStatus("framebuffer for transmittance texture");
 
         program->bind();
-        program->setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
-        program->setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
+        program->setUniformValue("rayleighScatteringCoefficient",QVec(rayleighScatteringCoefficient(wavelengths)));
+        program->setUniformValue("mieScatteringCoefficient",QVec(mieScatteringCoefficient(wavelengths)));
         program->setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
         gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
         renderUntexturedQuad();
@@ -840,7 +839,7 @@ void computeSingleScattering()
     const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
     for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
     {
-        const QVector4D wavelengths(allWavelengths[texIndex*4+0],
+        const glm::vec4 wavelengths(allWavelengths[texIndex*4+0],
                                     allWavelengths[texIndex*4+1],
                                     allWavelengths[texIndex*4+2],
                                     allWavelengths[texIndex*4+3]);
@@ -848,8 +847,8 @@ void computeSingleScattering()
                                              ::solarIrradianceAtTOA[texIndex*4+1],
                                              ::solarIrradianceAtTOA[texIndex*4+2],
                                              ::solarIrradianceAtTOA[texIndex*4+3]);
-        program->setUniformValue("rayleighScatteringCoefficient",rayleighScatteringCoefficient(wavelengths));
-        program->setUniformValue("mieScatteringCoefficient",mieScatteringCoefficient(wavelengths));
+        program->setUniformValue("rayleighScatteringCoefficient",QVec(rayleighScatteringCoefficient(wavelengths)));
+        program->setUniformValue("mieScatteringCoefficient",QVec(mieScatteringCoefficient(wavelengths)));
         program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
