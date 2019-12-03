@@ -10,7 +10,7 @@ out vec4 color;
 
 uniform vec4 solarIrradianceAtTOA;
 
-vec4 computeDirectGroundIrradiance(float cosSunZenithAngle, float altitude)
+vec4 computeDirectGroundIrradiance(const float cosSunZenithAngle, const float altitude)
 {
     // Several approximations are used:
     // * Radiance is assumed independent of position on the solar disk.
