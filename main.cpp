@@ -97,7 +97,7 @@ GLint transmittanceTexW, transmittanceTexH;
 GLint irradianceTexW, irradianceTexH;
 glm::vec4 scatteringTextureSize;
 GLint numTransmittanceIntegrationPoints;
-GLint singleScatteringIntegrationPoints;
+GLint radialIntegrationPoints;
 GLfloat earthRadius;
 GLfloat atmosphereHeight;
 GLfloat rayleighScatteringCoefficientAt1um;
@@ -263,7 +263,7 @@ const float mieSingleScatteringAlbedo=)" + toString(mieSingleScatteringAlbedo) +
 const vec4 scatteringTextureSize=)" + toString(scatteringTextureSize) + R"(;
 const vec2 irradianceTextureSize=)" + toString(glm::vec2(irradianceTexW, irradianceTexH)) + R"(;
 const vec2 transmittanceTextureSize=)" + toString(glm::vec2(transmittanceTexW,transmittanceTexH)) + R"(;
-const int singleScatteringIntegrationPoints=)" + toString(singleScatteringIntegrationPoints) + R"(;
+const int radialIntegrationPoints=)" + toString(radialIntegrationPoints) + R"(;
 const int numTransmittanceIntegrationPoints=)" + toString(numTransmittanceIntegrationPoints) + R"(;
 )";
 }
@@ -670,8 +670,8 @@ void handleCmdLine()
             transmittanceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="transmittance integration points")
             numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
-        else if(key=="single scattering integration points")
-            singleScatteringIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="radial integration points")
+            radialIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for altitude")
             irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for cos(sza)")

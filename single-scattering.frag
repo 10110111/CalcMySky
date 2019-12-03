@@ -49,8 +49,8 @@ ScatteringSpectra computeSingleScattering(const float cosSunZenithAngle, const f
     spectra.rayleigh*=0.5;
     spectra.mie*=0.5;
 
-    const float dl=integrInterval/(singleScatteringIntegrationPoints-1);
-    for(int n=1; n<singleScatteringIntegrationPoints-1; ++n)
+    const float dl=integrInterval/(radialIntegrationPoints-1);
+    for(int n=1; n<radialIntegrationPoints-1; ++n)
     {
         const float dist=n*dl;
         const ScatteringSpectra dSpect=computeSingleScatteringIntegrand(cosSunZenithAngle, altitude, dotViewSun,

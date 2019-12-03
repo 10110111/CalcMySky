@@ -10,7 +10,7 @@ scattering texture size for cos(SZA): 128
 scattering texture size for altitude: 64
 
 transmittance integration points: 500
-single scattering integration points: 50
+radial integration points: 50
 
 Earth-Sun distance: 1 AU
 Earth radius: 6371 km
