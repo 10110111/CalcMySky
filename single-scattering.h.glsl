@@ -7,6 +7,7 @@ struct ScatteringSpectra
     vec4 mie;
 };
 
-ScatteringSpectra computeSingleScattering(const float cosSunZenithAngle, const float altitude, const float dotViewSun,
-                                          const float cosViewZenithAngle, const bool viewRayIntersectsGround);
+ScatteringSpectra computeSingleScattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                                          const float dotViewSun, const float altitude,
+                                          const bool viewRayIntersectsGround);
 #endif

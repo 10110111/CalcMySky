@@ -12,8 +12,8 @@ uniform vec4 mieScatteringCoefficient; // cross-section * numberDensityAtSeaLeve
 uniform vec4 solarIrradianceAtTOA; // W/m^2/nm
 
 // This function omits phase function and solar irradiance: these are to be applied somewhere in the calling code.
-ScatteringSpectra computeSingleScatteringIntegrand(const float cosSunZenithAngle, const float altitude,
-                                                   const float dotViewSun, const float cosViewZenithAngle,
+ScatteringSpectra computeSingleScatteringIntegrand(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                                                   const float dotViewSun, const float altitude,
                                                    const float dist, const bool viewRayIntersectsGround)
 {
     const float r=earthRadius+altitude;
@@ -32,19 +32,19 @@ ScatteringSpectra computeSingleScatteringIntegrand(const float cosSunZenithAngle
     return spectra;
 }
 
-ScatteringSpectra computeSingleScattering(const float cosSunZenithAngle, const float altitude, const float dotViewSun,
-                                          const float cosViewZenithAngle, const bool viewRayIntersectsGround)
+ScatteringSpectra computeSingleScattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                                          const float dotViewSun, const float altitude,
+                                          const bool viewRayIntersectsGround)
 {
     const float integrInterval=distanceToNearestAtmosphereBoundary(cosViewZenithAngle, altitude,
                                                                    viewRayIntersectsGround);
 
     // Using trapezoid rule on a uniform grid: f0/2+f1+f2+...+f(N-2)+f(N-1)/2.
     // Initializing with sum of values at endpoints, with weight of 0.5
-    const ScatteringSpectra end1=computeSingleScatteringIntegrand(cosSunZenithAngle, altitude, dotViewSun,
-                                                                  cosViewZenithAngle, 0, viewRayIntersectsGround);
-    const ScatteringSpectra end2=computeSingleScatteringIntegrand(cosSunZenithAngle, altitude, dotViewSun,
-                                                                  cosViewZenithAngle, integrInterval,
-                                                                  viewRayIntersectsGround);
+    const ScatteringSpectra end1=computeSingleScatteringIntegrand(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
+                                                                  altitude, 0, viewRayIntersectsGround);
+    const ScatteringSpectra end2=computeSingleScatteringIntegrand(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
+                                                                  altitude, integrInterval, viewRayIntersectsGround);
     ScatteringSpectra spectra=ScatteringSpectra(end1.rayleigh+end2.rayleigh, end1.mie+end2.mie);
     spectra.rayleigh*=0.5;
     spectra.mie*=0.5;
@@ -53,9 +53,8 @@ ScatteringSpectra computeSingleScattering(const float cosSunZenithAngle, const f
     for(int n=1; n<radialIntegrationPoints-1; ++n)
     {
         const float dist=n*dl;
-        const ScatteringSpectra dSpect=computeSingleScatteringIntegrand(cosSunZenithAngle, altitude, dotViewSun,
-                                                                        cosViewZenithAngle, dist,
-                                                                        viewRayIntersectsGround);
+        const ScatteringSpectra dSpect=computeSingleScatteringIntegrand(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
+                                                                        altitude, dist, viewRayIntersectsGround);
         spectra.rayleigh += dSpect.rayleigh;
         spectra.mie += dSpect.mie;
     }

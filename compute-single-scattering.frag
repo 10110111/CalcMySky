@@ -12,8 +12,8 @@ layout(location=1) out vec4 mie;
 void main()
 {
     const ScatteringTexVars vars=scatteringTexIndicesToTexVars(vec3(gl_FragCoord.xy-vec2(0.5),layer));
-    const ScatteringSpectra scat=computeSingleScattering(vars.cosSunZenithAngle,vars.altitude,vars.dotViewSun,
-                                                         vars.cosViewZenithAngle,vars.viewRayIntersectsGround);
+    const ScatteringSpectra scat=computeSingleScattering(vars.cosSunZenithAngle,vars.cosViewZenithAngle,vars.dotViewSun,
+                                                         vars.altitude,vars.viewRayIntersectsGround);
     rayleigh=scat.rayleigh;
     mie=scat.mie;
 }
