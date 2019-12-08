@@ -81,8 +81,10 @@ enum
 {
     TEX_TRANSMITTANCE,
     TEX_IRRADIANCE,
-    TEX_SINGLE_SCATTERING_RAYLEIGH,
-    TEX_SINGLE_SCATTERING_MIE,
+    TEX_DELTA_SCATTERING_RAYLEIGH,
+    TEX_DELTA_SCATTERING_MIE,
+    TEX_SCATTERING_RAYLEIGH,
+    TEX_SCATTERING_MIE,
 
     TEX_COUNT
 };
@@ -206,21 +208,25 @@ void initBuffers()
 void initTexturesAndFramebuffers()
 {
     gl.glGenTextures(TEX_COUNT,textures);
-    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE]);
-    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    for(const auto tex : {TEX_TRANSMITTANCE,TEX_IRRADIANCE})
+    {
+        gl.glBindTexture(GL_TEXTURE_2D,textures[tex]);
+        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    }
 
-    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE]);
-    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-
-    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH]);
-    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
+    for(const auto tex : {TEX_DELTA_SCATTERING_RAYLEIGH,
+                          TEX_DELTA_SCATTERING_MIE,
+                          TEX_SCATTERING_RAYLEIGH,
+                          TEX_SCATTERING_MIE})
+    {
+        gl.glBindTexture(GL_TEXTURE_3D,textures[tex]);
+        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
+    }
 
     gl.glGenFramebuffers(FBO_COUNT,fbos);
 }
@@ -818,26 +824,39 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
     program->setUniformValue("altitudeMax", altitudeMax);
 
     gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH]);
+    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_RAYLEIGH]);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
                     0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
-                            textures[TEX_SINGLE_SCATTERING_RAYLEIGH],0);
-    checkFramebufferStatus("framebuffer for single Rayleigh scattering");
+                            textures[TEX_DELTA_SCATTERING_RAYLEIGH],0);
+    checkFramebufferStatus("framebuffer for one-order Rayleigh scattering");
 
-    gl.glActiveTexture(GL_TEXTURE1);
-    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_MIE]);
+    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_MIE]);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
                     0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,
-                            textures[TEX_SINGLE_SCATTERING_MIE],0);
-    checkFramebufferStatus("framebuffer for single Mie scattering");
+                            textures[TEX_DELTA_SCATTERING_MIE],0);
+    checkFramebufferStatus("framebuffer for one-order Mie scattering");
 
-    gl.glActiveTexture(GL_TEXTURE2);
+    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SCATTERING_RAYLEIGH]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
+                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2,
+                            textures[TEX_SCATTERING_RAYLEIGH],0);
+    checkFramebufferStatus("framebuffer for accumulated Rayleigh scattering of different orders");
+
+    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SCATTERING_MIE]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
+                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT3,
+                            textures[TEX_SCATTERING_MIE],0);
+    checkFramebufferStatus("framebuffer for accumulated Mie scattering of different orders");
+
+    gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
-    program->setUniformValue("transmittanceTexture", 2);
+    program->setUniformValue("transmittanceTexture", 0);
 
-    const GLenum buffers[]={GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    const GLenum buffers[]={GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
     gl.glDrawBuffers(std::size(buffers), buffers);
 
     std::cerr << "Computing single scattering layers... ";
@@ -858,6 +877,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
                        d=scatteringTextureSize[2], q=scatteringTextureSize[3];
         std::vector<glm::vec4> pixels(w*h*d*q);
         gl.glActiveTexture(GL_TEXTURE0);
+        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_RAYLEIGH]);
         gl.glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
         std::ofstream out(textureOutputDir+"/single-scattering-rayleigh-"+std::to_string(texIndex)+".f32");
         out.write(reinterpret_cast<const char*>(&w), sizeof w);
