@@ -79,14 +79,10 @@ enum
 GLuint fbos[FBO_COUNT];
 enum
 {
-    TEX_TRANSMITTANCE0,
-    TEX_TRANSMITTANCE_LAST=TEX_TRANSMITTANCE0+allWavelengths.size()/4-1,
-    TEX_IRRADIANCE0,
-    TEX_IRRADIANCE_LAST=TEX_IRRADIANCE0+allWavelengths.size()/4-1,
-    TEX_SINGLE_SCATTERING_RAYLEIGH0,
-    TEX_SINGLE_SCATTERING_RAYLEIGH_LAST=TEX_SINGLE_SCATTERING_RAYLEIGH0+allWavelengths.size()/4-1,
-    TEX_SINGLE_SCATTERING_MIE0,
-    TEX_SINGLE_SCATTERING_MIE_LAST=TEX_SINGLE_SCATTERING_MIE0+allWavelengths.size()/4-1,
+    TEX_TRANSMITTANCE,
+    TEX_IRRADIANCE,
+    TEX_SINGLE_SCATTERING_RAYLEIGH,
+    TEX_SINGLE_SCATTERING_MIE,
 
     TEX_COUNT
 };
@@ -210,24 +206,21 @@ void initBuffers()
 void initTexturesAndFramebuffers()
 {
     gl.glGenTextures(TEX_COUNT,textures);
-    for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
-    {
-        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE0+texIndex]);
-        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE]);
+    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
 
-        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE0+texIndex]);
-        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE]);
+    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
 
-        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH0+texIndex]);
-        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
-    }
+    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH]);
+    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
 
     gl.glGenFramebuffers(FBO_COUNT,fbos);
 }
@@ -722,111 +715,92 @@ void handleCmdLine()
     }
 }
 
-void computeTransmittance()
+void computeTransmittance(glm::vec4 const& wavelengths, QVector4D const& ozoneCS, int texIndex)
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
 
     std::cerr << "Computing transmittance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
-    for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
+    assert(fbos[FBO_TRANSMITTANCE]);
+    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE]);
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,transmittanceTexW,transmittanceTexH,
+                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glBindTexture(GL_TEXTURE_2D,0);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_TRANSMITTANCE],0);
+    checkFramebufferStatus("framebuffer for transmittance texture");
+
+    program->bind();
+    program->setUniformValue("rayleighScatteringCoefficient",QVec(rayleighScatteringCoefficient(wavelengths)));
+    program->setUniformValue("mieScatteringCoefficient",QVec(mieScatteringCoefficient(wavelengths)));
+    program->setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
+    gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
+    renderUntexturedQuad();
+
+    std::vector<glm::vec4> pixels(transmittanceTexW*transmittanceTexH);
+    gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_FLOAT,pixels.data());
+    std::ofstream out(textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32");
+    const std::uint16_t w=transmittanceTexW, h=transmittanceTexH;
+    out.write(reinterpret_cast<const char*>(&w), sizeof w);
+    out.write(reinterpret_cast<const char*>(&h), sizeof h);
+    out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+
+    if(false) // for debugging
     {
-        const glm::vec4 wavelengths(allWavelengths[texIndex*4+0],
-                                    allWavelengths[texIndex*4+1],
-                                    allWavelengths[texIndex*4+2],
-                                    allWavelengths[texIndex*4+3]);
-        const QVector4D ozoneCS(ozoneAbsCrossSection[texIndex*4+0],
-                                ozoneAbsCrossSection[texIndex*4+1],
-                                ozoneAbsCrossSection[texIndex*4+2],
-                                ozoneAbsCrossSection[texIndex*4+3]);
-
-        assert(fbos[FBO_TRANSMITTANCE]);
-        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE0+texIndex]);
-        gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,transmittanceTexW,transmittanceTexH,
-                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-        gl.glBindTexture(GL_TEXTURE_2D,0);
-        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_TRANSMITTANCE0+texIndex],0);
-        checkFramebufferStatus("framebuffer for transmittance texture");
-
-        program->bind();
-        program->setUniformValue("rayleighScatteringCoefficient",QVec(rayleighScatteringCoefficient(wavelengths)));
-        program->setUniformValue("mieScatteringCoefficient",QVec(mieScatteringCoefficient(wavelengths)));
-        program->setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
-        gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
-        renderUntexturedQuad();
-
-        std::vector<glm::vec4> pixels(transmittanceTexW*transmittanceTexH);
-        gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_FLOAT,pixels.data());
-        std::ofstream out(textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32");
-        const std::uint16_t w=transmittanceTexW, h=transmittanceTexH;
-        out.write(reinterpret_cast<const char*>(&w), sizeof w);
-        out.write(reinterpret_cast<const char*>(&h), sizeof h);
-        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
-
-        if(false) // for debugging
-        {
-            QImage image(transmittanceTexW, transmittanceTexH, QImage::Format_RGBA8888);
-            image.fill(Qt::magenta);
-            gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-            image.mirrored().save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
-        }
+        QImage image(transmittanceTexW, transmittanceTexH, QImage::Format_RGBA8888);
+        image.fill(Qt::magenta);
+        gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
+        image.mirrored().save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
     }
     gl.glFinish();
     std::cerr << "done\n";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeGroundIrradiance()
+void computeGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
     const auto program=compileShaderProgram("compute-irradiance.frag", "irradiance computation shader program");
 
     std::cerr << "Computing ground irradiance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
-    for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
+    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE]);
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,irradianceTexW,irradianceTexH,
+                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glBindTexture(GL_TEXTURE_2D,0);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_IRRADIANCE],0);
+    checkFramebufferStatus("framebuffer for irradiance texture");
+
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE]);
+
+    program->bind();
+
+    program->setUniformValue("transmittanceTexture",0);
+    program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
+
+    gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
+    renderUntexturedQuad();
+
+    std::vector<glm::vec4> pixels(irradianceTexW*irradianceTexH);
+    gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_FLOAT,pixels.data());
+    std::ofstream out(textureOutputDir+"/irradiance-"+std::to_string(texIndex)+".f32");
+    const std::uint16_t w=irradianceTexW, h=irradianceTexH;
+    out.write(reinterpret_cast<const char*>(&w), sizeof w);
+    out.write(reinterpret_cast<const char*>(&h), sizeof h);
+    out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+
+    if(false) // for debugging
     {
-        const QVector4D solarIrradianceAtTOA(::solarIrradianceAtTOA[texIndex*4+0],
-                                             ::solarIrradianceAtTOA[texIndex*4+1],
-                                             ::solarIrradianceAtTOA[texIndex*4+2],
-                                             ::solarIrradianceAtTOA[texIndex*4+3]);
-        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE0+texIndex]);
-        gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,irradianceTexW,irradianceTexH,
-                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-        gl.glBindTexture(GL_TEXTURE_2D,0);
-        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_IRRADIANCE0+texIndex],0);
-        checkFramebufferStatus("framebuffer for irradiance texture");
-
-        gl.glActiveTexture(GL_TEXTURE0);
-        gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE0+texIndex]);
-
-        program->bind();
-
-        program->setUniformValue("transmittanceTexture",0);
-        program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
-
-        gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
-        renderUntexturedQuad();
-
-        std::vector<glm::vec4> pixels(irradianceTexW*irradianceTexH);
-        gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_FLOAT,pixels.data());
-        std::ofstream out(textureOutputDir+"/irradiance-"+std::to_string(texIndex)+".f32");
-        const std::uint16_t w=irradianceTexW, h=irradianceTexH;
-        out.write(reinterpret_cast<const char*>(&w), sizeof w);
-        out.write(reinterpret_cast<const char*>(&h), sizeof h);
-        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
-
-        if(false) // for debugging
-        {
-            QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
-            image.fill(Qt::magenta);
-            gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-            image.mirrored().save(QString("/tmp/irradiance-png-%1.png").arg(texIndex));
-        }
+        QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
+        image.fill(Qt::magenta);
+        gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
+        image.mirrored().save(QString("/tmp/irradiance-png-%1.png").arg(texIndex));
     }
     gl.glFinish();
     std::cerr << "done\n";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeSingleScattering()
+void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
     const auto program=compileShaderProgram("compute-single-scattering.frag", "single scattering computation shader program", true);
     const auto scatTexWidth=scatteringTextureSize[0];
@@ -837,72 +811,61 @@ void computeSingleScattering()
 
     gl.glViewport(0, 0, scatTexWidth, scatTexHeight);
     const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
-    for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
+    program->setUniformValue("rayleighScatteringCoefficient",QVec(rayleighScatteringCoefficient(wavelengths)));
+    program->setUniformValue("mieScatteringCoefficient",QVec(mieScatteringCoefficient(wavelengths)));
+    program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
+    program->setUniformValue("altitudeMin", altitudeMin);
+    program->setUniformValue("altitudeMax", altitudeMax);
+
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
+                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
+                            textures[TEX_SINGLE_SCATTERING_RAYLEIGH],0);
+    checkFramebufferStatus("framebuffer for single Rayleigh scattering");
+
+    gl.glActiveTexture(GL_TEXTURE1);
+    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_MIE]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
+                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,
+                            textures[TEX_SINGLE_SCATTERING_MIE],0);
+    checkFramebufferStatus("framebuffer for single Mie scattering");
+
+    gl.glActiveTexture(GL_TEXTURE2);
+    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
+    program->setUniformValue("transmittanceTexture", 2);
+
+    const GLenum buffers[]={GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    gl.glDrawBuffers(std::size(buffers), buffers);
+
+    std::cerr << "Computing single scattering layers... ";
+    for(int layer=0; layer<scatTexDepth; ++layer)
     {
-        const glm::vec4 wavelengths(allWavelengths[texIndex*4+0],
-                                    allWavelengths[texIndex*4+1],
-                                    allWavelengths[texIndex*4+2],
-                                    allWavelengths[texIndex*4+3]);
-        const QVector4D solarIrradianceAtTOA(::solarIrradianceAtTOA[texIndex*4+0],
-                                             ::solarIrradianceAtTOA[texIndex*4+1],
-                                             ::solarIrradianceAtTOA[texIndex*4+2],
-                                             ::solarIrradianceAtTOA[texIndex*4+3]);
-        program->setUniformValue("rayleighScatteringCoefficient",QVec(rayleighScatteringCoefficient(wavelengths)));
-        program->setUniformValue("mieScatteringCoefficient",QVec(mieScatteringCoefficient(wavelengths)));
-        program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
-        program->setUniformValue("altitudeMin", altitudeMin);
-        program->setUniformValue("altitudeMax", altitudeMax);
+        std::cerr << layer;
+        program->setUniformValue("layer",layer);
+        renderUntexturedQuad();
+        gl.glFinish();
+        if(layer+1<scatTexDepth) std::cerr << ',';
+    }
+    std::cerr << "; done\n";
 
+    if(false) // for debugging
+    {
+        std::cerr << "Saving texture...";
+        const uint16_t w=scatteringTextureSize[0], h=scatteringTextureSize[1],
+                       d=scatteringTextureSize[2], q=scatteringTextureSize[3];
+        std::vector<glm::vec4> pixels(w*h*d*q);
         gl.glActiveTexture(GL_TEXTURE0);
-        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_RAYLEIGH0+texIndex]);
-        gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
-                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
-                                textures[TEX_SINGLE_SCATTERING_RAYLEIGH0+texIndex],0);
-        checkFramebufferStatus("framebuffer for single Rayleigh scattering");
-
-        gl.glActiveTexture(GL_TEXTURE1);
-        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SINGLE_SCATTERING_MIE0+texIndex]);
-        gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
-                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,
-                                textures[TEX_SINGLE_SCATTERING_MIE0+texIndex],0);
-        checkFramebufferStatus("framebuffer for single Mie scattering");
-
-        gl.glActiveTexture(GL_TEXTURE2);
-        gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE0+texIndex]);
-        program->setUniformValue("transmittanceTexture", 2);
-
-        const GLenum buffers[]={GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-        gl.glDrawBuffers(std::size(buffers), buffers);
-
-        std::cerr << "Computing single scattering layers... ";
-        for(int layer=0; layer<scatTexDepth; ++layer)
-        {
-            std::cerr << layer;
-            program->setUniformValue("layer",layer);
-            renderUntexturedQuad();
-            gl.glFinish();
-            if(layer+1<scatTexDepth) std::cerr << ',';
-        }
-        std::cerr << "; done\n";
-
-        if(false) // for debugging
-        {
-            std::cerr << "Saving texture...";
-            const uint16_t w=scatteringTextureSize[0], h=scatteringTextureSize[1],
-                           d=scatteringTextureSize[2], q=scatteringTextureSize[3];
-            std::vector<glm::vec4> pixels(w*h*d*q);
-            gl.glActiveTexture(GL_TEXTURE0);
-            gl.glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
-            std::ofstream out(textureOutputDir+"/single-scattering-rayleigh-"+std::to_string(texIndex)+".f32");
-            out.write(reinterpret_cast<const char*>(&w), sizeof w);
-            out.write(reinterpret_cast<const char*>(&h), sizeof h);
-            out.write(reinterpret_cast<const char*>(&d), sizeof d);
-            out.write(reinterpret_cast<const char*>(&q), sizeof q);
-            out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
-            std::cerr << " done\n";
-        }
+        gl.glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+        std::ofstream out(textureOutputDir+"/single-scattering-rayleigh-"+std::to_string(texIndex)+".f32");
+        out.write(reinterpret_cast<const char*>(&w), sizeof w);
+        out.write(reinterpret_cast<const char*>(&h), sizeof h);
+        out.write(reinterpret_cast<const char*>(&d), sizeof d);
+        out.write(reinterpret_cast<const char*>(&q), sizeof q);
+        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+        std::cerr << " done\n";
     }
 }
 
@@ -983,12 +946,28 @@ int main(int argc, char** argv)
                                                            "shader for calculating scatterer and absorber densities"));
         allShaders.emplace(PHASE_FUNCTIONS_SHADER_FILENAME, compileShader(QOpenGLShader::Fragment, makePhaseFunctionsSrc(),
                                                            "shader for calculating scattering phase functions"));
-        computeTransmittance();
-        // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
-        // sky color. Irradiance will also be needed when we want to draw the ground itself.
-        computeGroundIrradiance();
+        for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
+        {
+            const glm::vec4 wavelengths(allWavelengths[texIndex*4+0],
+                                        allWavelengths[texIndex*4+1],
+                                        allWavelengths[texIndex*4+2],
+                                        allWavelengths[texIndex*4+3]);
+            const QVector4D solarIrradianceAtTOA(::solarIrradianceAtTOA[texIndex*4+0],
+                                                 ::solarIrradianceAtTOA[texIndex*4+1],
+                                                 ::solarIrradianceAtTOA[texIndex*4+2],
+                                                 ::solarIrradianceAtTOA[texIndex*4+3]);
+            const QVector4D ozoneCS(ozoneAbsCrossSection[texIndex*4+0],
+                                    ozoneAbsCrossSection[texIndex*4+1],
+                                    ozoneAbsCrossSection[texIndex*4+2],
+                                    ozoneAbsCrossSection[texIndex*4+3]);
 
-        computeSingleScattering();
+            computeTransmittance(wavelengths, ozoneCS, texIndex);
+            // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
+            // sky color. Irradiance will also be needed when we want to draw the ground itself.
+            computeGroundIrradiance(solarIrradianceAtTOA, texIndex);
+
+            computeSingleScattering(wavelengths, solarIrradianceAtTOA, texIndex);
+        }
     }
     catch(MustQuit&)
     {
