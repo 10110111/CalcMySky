@@ -84,11 +84,11 @@ vec2 transmittanceTexVarsToTexCoord(const float cosVZA, float altitude)
     const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
     const float distToHorizon=sqrt(sqr(altitude)+2*altitude*R);
     const float t=unitRangeToTexCoord(distToHorizon / lengthOfHorizRayFromGroundToBorderOfAtmo,
-                                      textureSize(transmittanceTexture,0).t);
+                                      transmittanceTextureSize.t);
     const float dMin=altMax-altitude; // distance to zenith
     const float dMax=lengthOfHorizRayFromGroundToBorderOfAtmo+distToHorizon;
     const float d=distanceToAtmosphereBorder(cosVZA,altitude);
-    const float s=unitRangeToTexCoord((d-dMin)/(dMax-dMin), textureSize(transmittanceTexture,0).s);
+    const float s=unitRangeToTexCoord((d-dMin)/(dMax-dMin), transmittanceTextureSize.s);
     return vec2(s,t);
 }
 
