@@ -573,6 +573,7 @@ double getQuantity(QString const& value, double min, double max, Quantity const&
             std::cerr << it->first.toStdString();
         }
         std::cerr << ".\n";
+        throw MustQuit{};
     }
     const auto finalX = x * scaleIt->second;
     if(finalX<min || finalX>max)
