@@ -566,7 +566,7 @@ double getQuantity(QString const& value, double min, double max, Quantity const&
     const auto scaleIt=units.find(unit);
     if(scaleIt==units.end())
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": unrecognized unit " << unit.toStdString() << ". Can be one of ";
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": unrecognized " << quantity.name() << " unit " << unit.toStdString() << ". Can be one of ";
         for(auto it=units.begin(); it!=units.end(); ++it)
         {
             if(it!=units.begin()) std::cerr << ',';
