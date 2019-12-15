@@ -15,33 +15,46 @@ radial integration points: 50
 Earth-Sun distance: 1 AU
 Earth radius: 6371 km
 atmosphere height: 120 km
-Rayleigh scattering coefficient at 1 um: 1.24062 Mm^-1 # cross-section * numberDensityAtSeaLevel
-Mie scattering coefficient at 1 um: 4.44 Mm^-1 # cross-section * numberDensityAtSeaLevel
-Mie angstrom exponent: 0
-Mie single scattering albedo: 1.0
 
-Rayleigh scatterer relative density: # relative to number density at sea level
-```
-    const float rayleighScaleHeight=8*km;
-    return exp(-1/rayleighScaleHeight * altitude);
-```
-Mie scatterer relative density: # relative to number density at sea level
-```
-    const float mieScaleHeight=1.2*km;
-    return exp(-1/mieScaleHeight*altitude);
-```
-Mie scattering phase function:
-```
-    const float g=0.76;
-    const float g2=g*g;
-    const float k = 3/(8*PI)*(1-g2)/(2+g2);
-    return vec4(k * (1+sqr(dotViewSun)) / pow(1+g2 - 2*g*dotViewSun, 1.5) + 1/((1-dotViewSun)*600+0.05))*0.904;
-```
-ozone density: # absolute
-```
-    const float totalOzoneAmount=300*dobsonUnit;
-    if(altitude<10*km || altitude>40*km) return 0;
-    if(altitude<25*km)
-        return (altitude-10*km)/sqr(25*km-10*km) * totalOzoneAmount;
-    return (40*km-altitude)/sqr(40*km-25*km) * totalOzoneAmount;
-```
+Scatterer "molecules": # Rayleigh scattering
+{
+    number density: # in m^-3
+    ```
+        const float rayleighScaleHeight=8*km;
+        return 3.08458e25*exp(-1/rayleighScaleHeight * altitude);
+    ```
+    phase function:
+    ```
+        return vec4(3./(16*PI)*(1+sqr(dotViewSun)));
+    ```
+    cross section at 1 um: 0.04022 fm^2
+    angstrom exponent: 4
+}
+Scatterer "aerosols": # Mie scattering
+{
+    number density: # in m^-3
+    ```
+        const float mieScaleHeight=1.2*km;
+        return 1.03333e8*exp(-1/mieScaleHeight*altitude);
+    ```
+    phase function:
+    ```
+        const float g=0.76;
+        const float g2=g*g;
+        const float k = 3/(8*PI)*(1-g2)/(2+g2);
+        return vec4(k * (1+sqr(dotViewSun)) / pow(1+g2 - 2*g*dotViewSun, 1.5) + 1/((1-dotViewSun)*600+0.05))*0.904;
+    ```
+    cross section at 1 um: 0.042968 um^2
+    angstrom exponent: 0
+}
+Absorber "ozone":
+{
+    number density:
+    ```
+        const float totalOzoneAmount=300*dobsonUnit;
+        if(altitude<10*km || altitude>40*km) return 0;
+        if(altitude<25*km)
+            return (altitude-10*km)/sqr(25*km-10*km) * totalOzoneAmount;
+        return (40*km-altitude)/sqr(40*km-25*km) * totalOzoneAmount;
+    ```
+}

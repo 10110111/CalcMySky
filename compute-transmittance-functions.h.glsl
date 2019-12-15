@@ -1,0 +1,4 @@
+#ifndef INCLUDE_ONCE_10D217E6_AF99_4DEA_B95F_06C2B9196685
+#define INCLUDE_ONCE_10D217E6_AF99_4DEA_B95F_06C2B9196685
+vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude);
+#endif

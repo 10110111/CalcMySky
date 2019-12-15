@@ -23,6 +23,8 @@
 
 QString withHeadersIncluded(QString src, QString const& filename);
 
+constexpr auto NaN=std::numeric_limits<float>::quiet_NaN();
+
 constexpr double astronomicalUnit=149'597'870'700.; // m
 constexpr double AU=astronomicalUnit;
 
@@ -59,13 +61,17 @@ constexpr double sunRadius=696350e3; /* m */
 
 std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
 QString constantsHeader;
+QString densitiesHeader;
 constexpr char DENSITIES_SHADER_FILENAME[]="densities.frag";
 constexpr char PHASE_FUNCTIONS_SHADER_FILENAME[]="phase-functions.frag";
+constexpr char COMPUTE_TRANSMITTANCE_SHADER_FILENAME[]="compute-transmittance-functions.frag";
 constexpr char CONSTANTS_HEADER_FILENAME[]="const.h.glsl";
+constexpr char DENSITIES_HEADER_FILENAME[]="densities.h.glsl";
 std::set<QString> internalShaders
 {
     DENSITIES_SHADER_FILENAME,
     PHASE_FUNCTIONS_SHADER_FILENAME,
+    COMPUTE_TRANSMITTANCE_SHADER_FILENAME,
 };
 GLuint vao, vbo;
 enum
@@ -81,10 +87,7 @@ enum
 {
     TEX_TRANSMITTANCE,
     TEX_IRRADIANCE,
-    TEX_DELTA_SCATTERING_RAYLEIGH,
-    TEX_DELTA_SCATTERING_MIE,
-    TEX_SCATTERING_RAYLEIGH,
-    TEX_SCATTERING_MIE,
+    TEX_FIRST_SCATTERING,
 
     TEX_COUNT
 };
@@ -98,16 +101,56 @@ GLint numTransmittanceIntegrationPoints;
 GLint radialIntegrationPoints;
 GLfloat earthRadius;
 GLfloat atmosphereHeight;
-GLfloat rayleighScatteringCoefficientAt1um;
-GLfloat mieScatteringCoefficientAt1um;
-GLfloat mieAngstromExponent;
-GLfloat mieSingleScatteringAlbedo;
-QString rayleighScattererRelativeDensity;
-QString mieScattererRelativeDensity;
-QString miePhaseFunction;
-QString ozoneDensity;
 double earthSunDistance;
 GLfloat sunAngularRadius; // calculated from earthSunDistance
+struct ScattererDescription
+{
+    GLfloat crossSectionAt1um = NaN;
+    GLfloat angstromExponent = NaN;
+    QString numberDensity;
+    QString phaseFunction;
+    QString name;
+
+    ScattererDescription(QString const& name) : name(name) {}
+    bool valid() const
+    {
+        return std::isfinite(crossSectionAt1um) &&
+               std::isfinite(angstromExponent) &&
+               !numberDensity.isEmpty() &&
+               !phaseFunction.isEmpty() &&
+               !name.isEmpty();
+    }
+    glm::vec4 crossSection(glm::vec4 const wavelengths) const
+    {
+        constexpr float refWL=1000; // nm
+        return crossSectionAt1um*pow(wavelengths/refWL, glm::vec4(-angstromExponent));
+    }
+};
+std::vector<ScattererDescription> scatterers;
+struct AbsorberDescription
+{
+    QString numberDensity;
+    QString name;
+    std::array<float,allWavelengths.size()> absorptionCrossSection{};
+
+    AbsorberDescription(QString const& name) : name(name) {}
+    bool valid() const
+    {
+        return !numberDensity.isEmpty() &&
+               std::accumulate(absorptionCrossSection.begin(),absorptionCrossSection.end(), 0.) != 0 &&
+               !name.isEmpty();
+    }
+    glm::vec4 crossSection(glm::vec4 const wavelengths) const
+    {
+        const auto wlIt=std::find(allWavelengths.begin(), allWavelengths.end(), wavelengths[0]);
+        assert(wlIt!=allWavelengths.end());
+        const auto*const wl0=&*wlIt;
+        assert(glm::vec4(wl0[0],wl0[1],wl0[2],wl0[3])==wavelengths);
+        const auto i=wl0-&allWavelengths[0];
+        return {absorptionCrossSection[i],absorptionCrossSection[i+1],absorptionCrossSection[i+2],absorptionCrossSection[i+3]};
+    }
+};
+std::vector<AbsorberDescription> absorbers;
 
 QOpenGLFunctions_3_3_Core gl;
 
@@ -125,18 +168,6 @@ QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(double(v
                                                                    .arg(double(v.y), 0,'g',9)
                                                                    .arg(double(v.z), 0,'g',9)
                                                                    .arg(double(v.w), 0,'g',9); }
-
-glm::vec4 rayleighScatteringCoefficient(glm::vec4 wavelengths)
-{
-    constexpr float refWL=1000; // nm
-    return rayleighScatteringCoefficientAt1um*pow(wavelengths/refWL, glm::vec4(-4));
-}
-
-glm::vec4 mieScatteringCoefficient(glm::vec4 wavelengths)
-{
-    constexpr float refWL=1000; // nm
-    return mieScatteringCoefficientAt1um*pow(wavelengths/refWL, glm::vec4(mieAngstromExponent));
-}
 
 // Function useful only for debugging
 void dumpActiveUniforms(const GLuint program)
@@ -216,10 +247,7 @@ void initTexturesAndFramebuffers()
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
     }
 
-    for(const auto tex : {TEX_DELTA_SCATTERING_RAYLEIGH,
-                          TEX_DELTA_SCATTERING_MIE,
-                          TEX_SCATTERING_RAYLEIGH,
-                          TEX_SCATTERING_MIE})
+    for(const auto tex : {TEX_FIRST_SCATTERING})
     {
         gl.glBindTexture(GL_TEXTURE_3D,textures[tex]);
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
@@ -257,8 +285,6 @@ const float km=1000;
 #define sqr(x) ((x)*(x))
 
 const float sunAngularRadius=)" + toString(sunAngularRadius) + R"(;
- // the ratio mieScatteringExtinction/(mieScatteringExtinction+aerosolAbsorptionExtinction)
-const float mieSingleScatteringAlbedo=)" + toString(mieSingleScatteringAlbedo) + R"(;
 const vec4 scatteringTextureSize=)" + toString(scatteringTextureSize) + R"(;
 const vec2 irradianceTextureSize=)" + toString(glm::vec2(irradianceTexW, irradianceTexH)) + R"(;
 const vec2 transmittanceTextureSize=)" + toString(glm::vec2(transmittanceTexW,transmittanceTexH)) + R"(;
@@ -267,43 +293,113 @@ const int numTransmittanceIntegrationPoints=)" + toString(numTransmittanceIntegr
 )";
 }
 
-QString makeDensitiesSrc()
+QString makeDensitiesFunctions()
 {
-    return withHeadersIncluded(1+R"(
-#version 330
-#extension GL_ARB_shading_language_420pack : require
-
-#include "const.h.glsl"
-#include "densities.h.glsl"
-
-float rayleighScattererRelativeDensity(float altitude)
-{
-)" + rayleighScattererRelativeDensity.trimmed() + R"(
-}
-float mieScattererRelativeDensity(float altitude)
-{
-)" + mieScattererRelativeDensity.trimmed() + R"(
-}
-float ozoneDensity(float altitude)
-{
-)" + ozoneDensity.trimmed() + R"(
-}
-float density(float altitude, int whichDensity)
-{
-    switch(whichDensity)
+    QString header;
+    QString src;
+    for(auto const& scatterer : scatterers)
     {
-    case DENSITY_ABS_OZONE:
-        return ozoneDensity(altitude);
-    case DENSITY_REL_RAYLEIGH:
-        return rayleighScattererRelativeDensity(altitude);
-    case DENSITY_REL_MIE:
-        return mieScattererRelativeDensity(altitude);
+        src += "float scattererNumberDensity_"+scatterer.name+"(float altitude)\n"
+               "{\n"
+               +scatterer.numberDensity+
+               "}\n";
+        header += "float scattererNumberDensity_"+scatterer.name+"(float altitude);\n";
     }
-}
-)", QString("(virtual)%1").arg(DENSITIES_SHADER_FILENAME));
+    for(auto const& absorber : absorbers)
+    {
+        src += "float absorberNumberDensity_"+absorber.name+"(float altitude)\n"
+               "{\n"
+               +absorber.numberDensity+
+               "}\n";
+        header += "float absorberNumberDensity_"+absorber.name+"(float altitude);\n";
+    }
+
+    header += "vec4 scatteringCoefficient();\n"
+              "float scattererDensity(float altitude);\n";
+
+    if(densitiesHeader.isEmpty())
+        densitiesHeader=header;
+
+    return src;
 }
 
-QString makePhaseFunctionsSrc()
+QString makeTransmittanceComputeFunctionsSrc(glm::vec4 const& wavelengths)
+{
+    const QString head=1+R"(
+#version 330
+#extension GL_ARB_shading_language_420pack : require
+
+#include "const.h.glsl"
+#include "common-functions.h.glsl"
+)";
+    const QString opticalDepthFunctionTemplate=R"(
+vec4 opticalDepthToAtmosphereBorder_##agentSpecies(float altitude, float cosZenithAngle, vec4 crossSection)
+{
+    const float integrInterval=distanceToAtmosphereBorder(cosZenithAngle, altitude);
+
+    const float R=earthRadius;
+    const float r1=R+altitude;
+    const float l=integrInterval;
+    const float mu=cosZenithAngle;
+    /* From law of cosines: r₂²=r₁²+l²+2r₁lμ */
+    const float endAltitude=-R+sqrt(sqr(r1)+sqr(l)+2*r1*l*mu);
+
+    const float dl=integrInterval/(numTransmittanceIntegrationPoints-1);
+
+    /* Using trapezoid rule on a uniform grid: f0/2+f1+f2+...+f(N-2)+f(N-1)/2. */
+    float sum=(agent##NumberDensity_##agentSpecies(altitude)+
+               agent##NumberDensity_##agentSpecies(endAltitude))/2;
+    for(int n=1;n<numTransmittanceIntegrationPoints-1;++n)
+    {
+        const float dist=n*dl;
+        const float currAlt=-R+sqrt(sqr(r1)+sqr(dist)+2*r1*dist*mu);
+        sum+=agent##NumberDensity_##agentSpecies(currAlt);
+    }
+    return sum*dl*crossSection;
+}
+)";
+    QString opticalDepthFunctions;
+    QString computeFunction = R"(
+// This assumes that ray doesn't intersect Earth
+vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude)
+{
+    const vec4 depth=
+)";
+    for(auto const& scatterer : scatterers)
+    {
+        opticalDepthFunctions += QString(opticalDepthFunctionTemplate).replace("##agentSpecies",scatterer.name).replace("agent##","scatterer");
+        computeFunction += "        +opticalDepthToAtmosphereBorder_"+scatterer.name+
+                             "(altitude,cosZenithAngle,"+toString(scatterer.crossSection(wavelengths))+")\n";
+    }
+    for(auto const& absorber : absorbers)
+    {
+        opticalDepthFunctions += QString(opticalDepthFunctionTemplate).replace("##agentSpecies",absorber.name).replace("agent##","absorber");
+        computeFunction += "        +opticalDepthToAtmosphereBorder_"+absorber.name+
+                             "(altitude,cosZenithAngle,"+toString(absorber.crossSection(wavelengths))+")\n";
+    }
+    computeFunction += R"(      ;
+    return exp(-depth);
+}
+)";
+    constexpr char mainFunc[]=R"(
+)";
+    return withHeadersIncluded(head+makeDensitiesFunctions()+opticalDepthFunctions+computeFunction,
+                               QString("(virtual)%1").arg(COMPUTE_TRANSMITTANCE_SHADER_FILENAME));
+}
+
+QString makeScattererDensityFunctionsSrc(glm::vec4 const& wavelengths)
+{
+    const QString head=1+R"(
+#version 330
+#extension GL_ARB_shading_language_420pack : require
+
+#include "const.h.glsl"
+)";
+    return withHeadersIncluded(head+makeDensitiesFunctions(),
+                               QString("(virtual)%1").arg(DENSITIES_SHADER_FILENAME));
+}
+
+QString makePhaseFunctionsSrc(QString const& source)
 {
     return withHeadersIncluded(1+R"(
 #version 330
@@ -311,14 +407,9 @@ QString makePhaseFunctionsSrc()
 
 #include "const.h.glsl"
 
-vec4 rayleighPhaseFunction(float dotViewSun)
+vec4 phaseFunction(float dotViewSun)
 {
-    return vec4(3./(16*PI)*(1+sqr(dotViewSun)));
-}
-
-vec4 miePhaseFunction(float dotViewSun)
-{
-)" + miePhaseFunction.trimmed() + R"(
+)" + source.trimmed() + R"(
 }
 )", QString("(virtual)%1").arg(PHASE_FUNCTIONS_SHADER_FILENAME));
 }
@@ -420,7 +511,9 @@ QString withHeadersIncluded(QString src, QString const& filename)
                       << headerSuffix << "\"\n";
             throw MustQuit{};
         }
-        const auto header = includeFileName==CONSTANTS_HEADER_FILENAME ? constantsHeader : getShaderSrc(includeFileName);
+        const auto header = includeFileName==CONSTANTS_HEADER_FILENAME ? constantsHeader :
+                            includeFileName==DENSITIES_HEADER_FILENAME ? densitiesHeader :
+                                getShaderSrc(includeFileName);
         newSrc.append(QString("#line 1 %1 // %2\n").arg(headerNumber++).arg(includeFileName));
         newSrc.append(header);
         newSrc.append(QString("#line %1 0 // %2\n").arg(lineNumber+1).arg(filename));
@@ -542,6 +635,28 @@ struct ReciprocalLengthQuantity : Quantity
     QString basicUnit() const override { return "m^-1"; }
 };
 
+struct AreaQuantity : Quantity
+{
+    std::string name() const override { return "area"; }
+    std::map<QString, double> units() const override
+    {
+        return {
+                {"am^2",1e-36},
+                {"fm^2",1e-30},
+                {"pm^2",1e-24},
+                {"nm^2",1e-18},
+                {"um^2",1e-12},
+                {"mm^2",1e-6},
+                {"cm^2",1e-4},
+                { "m^2",1e-0},
+                {"km^2",1e+6},
+                {"Mm^2",1e+12},
+                {"Gm^2",1e+18},
+               };
+    }
+    QString basicUnit() const override { return "m^2"; }
+};
+
 struct DimensionlessQuantity {};
 
 double getQuantity(QString const& value, double min, double max, DimensionlessQuantity const& quantity, QString const& filename, int lineNumber)
@@ -600,40 +715,129 @@ double getQuantity(QString const& value, double min, double max, Quantity const&
     return finalX;
 }
 
-QString readGLSLFunctionBody(QString value, QTextStream& stream, const QString filename, int& lineNumber)
+QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& lineNumber)
 {
-    if(!value.isEmpty() && !value.startsWith("```"))
-    {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": bad value format. Must start and end with triple backtick \"```\".\n";
-        throw MustQuit{};
-    }
+    QString function;
+    const QRegExp startEndMarker("^\\s*```\\s*$");
+    bool begun=false;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
     {
-        if(value.isEmpty())
+        if(!begun)
         {
-            if(!line.startsWith("```"))
+            if(!startEndMarker.exactMatch(line))
             {
-                std::cerr << filename.toStdString() << ":" << lineNumber << ": value must start with triple backtick.\n";
+                std::cerr << filename.toStdString() << ":" << lineNumber << ": function body must start and end with triple backtick placed on a separate line.\n";
                 throw MustQuit{};
             }
-            value.append(line+'\n');
+            begun=true;
             continue;
         }
 
-        if(!line.contains("```"))
-            value.append(line+'\n');
-        else if(line.endsWith("```"))
-        {
-            value.append(line+'\n');
-            break;
-        }
+        if(!startEndMarker.exactMatch(line))
+            function.append(line+'\n');
         else
+            break;
+    }
+    return function;
+}
+
+ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
+{
+    ScattererDescription description(name);
+    bool begun=false;
+    for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
+    {
+        const auto codeAndComment=line.split('#');
+        assert(codeAndComment.size());
+        if(codeAndComment[0].trimmed().isEmpty())
+            continue;
+        const auto keyValue=codeAndComment[0].split(':');
+
+        if(!begun)
         {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": trailing characters after triple backtick.\n";
+            if(keyValue.size()!=1 || keyValue[0] != "{")
+            {
+                std::cerr << filename.toStdString() << ":" << lineNumber << ": scatterer description must begin with a '{'\n";
+                throw MustQuit{};
+            }
+            begun=true;
+            continue;
+        }
+        if(keyValue.size()==1 && keyValue[0]=="}")
+            break;
+
+        if(keyValue.size()!=2)
+        {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": error: not a key:value pair\n";
             throw MustQuit{};
         }
+        const auto key=keyValue[0].simplified().toLower();
+        const auto value=keyValue[1].trimmed();
+
+        if(key=="cross section at 1 um")
+            description.crossSectionAt1um=getQuantity(value,1e-35,1,AreaQuantity{},filename,lineNumber);
+        else if(key=="angstrom exponent")
+            description.angstromExponent=getQuantity(value,-10,10,DimensionlessQuantity{},filename,lineNumber);
+        else if(key=="number density")
+            description.numberDensity=readGLSLFunctionBody(stream,filename,++lineNumber);
+        else if(key=="phase function")
+            description.phaseFunction=readGLSLFunctionBody(stream,filename,++lineNumber);
     }
-    return value.mid(3,value.size()-(2*3+1));
+    if(!description.valid())
+    {
+        std::cerr << "Description of scatterer \"" << name.toStdString() << "\" is incomplete\n";
+        throw MustQuit{};
+    }
+
+    return description;
+}
+
+AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
+{
+    AbsorberDescription description(name);
+    if(name=="ozone")
+        description.absorptionCrossSection=ozoneAbsCrossSection;
+
+    bool begun=false;
+    for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
+    {
+        const auto codeAndComment=line.split('#');
+        assert(codeAndComment.size());
+        if(codeAndComment[0].trimmed().isEmpty())
+            continue;
+        const auto keyValue=codeAndComment[0].split(':');
+
+        if(!begun)
+        {
+            if(keyValue.size()!=1 || keyValue[0] != "{")
+            {
+                std::cerr << filename.toStdString() << ":" << lineNumber << ": absorber description must begin with a '{'\n";
+                throw MustQuit{};
+            }
+            begun=true;
+            continue;
+        }
+        if(keyValue.size()==1 && keyValue[0]=="}")
+            break;
+
+        if(keyValue.size()!=2)
+        {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": error: not a key:value pair\n";
+            throw MustQuit{};
+        }
+        const auto key=keyValue[0].simplified().toLower();
+        const auto value=keyValue[1].trimmed();
+
+        if(key=="number density")
+            description.numberDensity=readGLSLFunctionBody(stream,filename,++lineNumber);
+    }
+    if(!description.valid())
+    {
+        std::cerr << "Description of absorber \"" << name.toStdString() << "\" is incomplete\n";
+        throw MustQuit{};
+    }
+
+    return description;
 }
 
 void handleCmdLine()
@@ -667,6 +871,8 @@ void handleCmdLine()
     int lineNumber=1;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
     {
+        QRegExp scattererDescriptionKey("^scatterer \"([^\"]+)\"$");
+        QRegExp absorberDescriptionKey("^absorber \"([^\"]+)\"$");
         const auto codeAndComment=line.split('#');
         assert(codeAndComment.size());
         if(codeAndComment[0].trimmed().isEmpty())
@@ -703,22 +909,6 @@ void handleCmdLine()
             earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
             atmosphereHeight=getQuantity(value,1,1e6,LengthQuantity{},atmoDescrFileName,lineNumber);
-        else if(key=="rayleigh scattering coefficient at 1 um")
-            rayleighScatteringCoefficientAt1um=getQuantity(value,1e-20,100,ReciprocalLengthQuantity{},atmoDescrFileName,lineNumber);
-        else if(key=="mie scattering coefficient at 1 um")
-            mieScatteringCoefficientAt1um=getQuantity(value,1e-20,100,ReciprocalLengthQuantity{},atmoDescrFileName,lineNumber);
-        else if(key=="mie angstrom exponent")
-            mieAngstromExponent=getQuantity(value,-10,10,DimensionlessQuantity{},atmoDescrFileName,lineNumber);
-        else if(key=="mie single scattering albedo")
-            mieSingleScatteringAlbedo=getQuantity(value,0,1,DimensionlessQuantity{},atmoDescrFileName,lineNumber);
-        else if(key=="rayleigh scatterer relative density")
-            rayleighScattererRelativeDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
-        else if(key=="mie scatterer relative density")
-            mieScattererRelativeDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
-        else if(key=="mie scattering phase function")
-            miePhaseFunction=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
-        else if(key=="ozone density")
-            ozoneDensity=readGLSLFunctionBody(value, stream,atmoDescrFileName,lineNumber);
         else if(key=="earth-sun distance")
         {
             earthSunDistance=getQuantity(value,0.5*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
@@ -727,6 +917,10 @@ void handleCmdLine()
             // each camera position.
             sunAngularRadius=sunRadius/earthSunDistance;
         }
+        else if(key.contains(scattererDescriptionKey))
+            scatterers.emplace_back(parseScatterer(stream, scattererDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
+        else if(key.contains(absorberDescriptionKey))
+            absorbers.emplace_back(parseAbsorber(stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
         else
             std::cerr << "WARNING: Unknown key: " << key.toStdString() << "\n";
     }
@@ -737,7 +931,7 @@ void handleCmdLine()
     }
 }
 
-void computeTransmittance(glm::vec4 const& wavelengths, QVector4D const& ozoneCS, int texIndex)
+void computeTransmittance(glm::vec4 const& wavelengths, int texIndex)
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
 
@@ -752,9 +946,6 @@ void computeTransmittance(glm::vec4 const& wavelengths, QVector4D const& ozoneCS
     checkFramebufferStatus("framebuffer for transmittance texture");
 
     program->bind();
-    program->setUniformValue("rayleighScatteringCoefficient",QVec(rayleighScatteringCoefficient(wavelengths)));
-    program->setUniformValue("mieScatteringCoefficient",QVec(mieScatteringCoefficient(wavelengths)));
-    program->setUniformValue("ozoneAbsorptionCrossSection",ozoneCS);
     gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
     renderUntexturedQuad();
 
@@ -780,9 +971,9 @@ void computeTransmittance(glm::vec4 const& wavelengths, QVector4D const& ozoneCS
 
 void computeGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
-    const auto program=compileShaderProgram("compute-irradiance.frag", "irradiance computation shader program");
+    const auto program=compileShaderProgram("compute-irradiance.frag", "direct ground irradiance computation shader program");
 
-    std::cerr << "Computing ground irradiance... ";
+    std::cerr << "Computing direct ground irradiance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
     gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE]);
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,irradianceTexW,irradianceTexH,
@@ -824,84 +1015,73 @@ void computeGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const int te
 
 void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
-    const auto program=compileShaderProgram("compute-single-scattering.frag", "single scattering computation shader program", true);
     const auto scatTexWidth=scatteringTextureSize[0];
     const auto scatTexHeight=scatteringTextureSize[1]*scatteringTextureSize[2];
     const auto scatTexDepth=scatteringTextureSize[3];
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_SINGLE_SCATTERING]);
-    program->bind();
 
     gl.glViewport(0, 0, scatTexWidth, scatTexHeight);
-    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
-    program->setUniformValue("rayleighScatteringCoefficient",QVec(rayleighScatteringCoefficient(wavelengths)));
-    program->setUniformValue("mieScatteringCoefficient",QVec(mieScatteringCoefficient(wavelengths)));
-    program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
-    program->setUniformValue("altitudeMin", altitudeMin);
-    program->setUniformValue("altitudeMax", altitudeMax);
 
-    gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_RAYLEIGH]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
-                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
-                            textures[TEX_DELTA_SCATTERING_RAYLEIGH],0);
-    checkFramebufferStatus("framebuffer for one-order Rayleigh scattering");
-
-    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_MIE]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
-                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,
-                            textures[TEX_DELTA_SCATTERING_MIE],0);
-    checkFramebufferStatus("framebuffer for one-order Mie scattering");
-
-    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SCATTERING_RAYLEIGH]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
-                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2,
-                            textures[TEX_SCATTERING_RAYLEIGH],0);
-    checkFramebufferStatus("framebuffer for accumulated Rayleigh scattering of different orders");
-
-    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_SCATTERING_MIE]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
-                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT3,
-                            textures[TEX_SCATTERING_MIE],0);
-    checkFramebufferStatus("framebuffer for accumulated Mie scattering of different orders");
-
-    gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
-    program->setUniformValue("transmittanceTexture", 0);
-
-    const GLenum buffers[]={GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
-    gl.glDrawBuffers(std::size(buffers), buffers);
-
-    std::cerr << "Computing single scattering layers... ";
-    for(int layer=0; layer<scatTexDepth; ++layer)
+    // TODO: try rendering multiple scatterers to multiple render targets at
+    // once - as VRAM size allows. This may improve performance.
+    for(const auto& scatterer : scatterers)
     {
-        std::cerr << layer;
-        program->setUniformValue("layer",layer);
-        renderUntexturedQuad();
-        gl.glFinish();
-        if(layer+1<scatTexDepth) std::cerr << ',';
-    }
-    std::cerr << "; done\n";
+        {
+            const auto src=makeScattererDensityFunctionsSrc(wavelengths)+
+                            "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
+                            "vec4 scatteringCoefficient() { return "+toString(scatterer.crossSection(wavelengths))+"; }\n";
+            allShaders[DENSITIES_SHADER_FILENAME]=compileShader(QOpenGLShader::Fragment, src,
+                                                                "scatterer density computation functions");
+        }
+        const auto program=compileShaderProgram("compute-single-scattering.frag",
+                                                "single scattering computation shader program",
+                                                true);
+        program->bind();
+        const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
+        program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
+        program->setUniformValue("altitudeMin", altitudeMin);
+        program->setUniformValue("altitudeMax", altitudeMax);
 
-    if(false) // for debugging
-    {
-        std::cerr << "Saving texture...";
-        const uint16_t w=scatteringTextureSize[0], h=scatteringTextureSize[1],
-                       d=scatteringTextureSize[2], q=scatteringTextureSize[3];
-        std::vector<glm::vec4> pixels(w*h*d*q);
         gl.glActiveTexture(GL_TEXTURE0);
-        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_RAYLEIGH]);
-        gl.glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
-        std::ofstream out(textureOutputDir+"/single-scattering-rayleigh-"+std::to_string(texIndex)+".f32");
-        out.write(reinterpret_cast<const char*>(&w), sizeof w);
-        out.write(reinterpret_cast<const char*>(&h), sizeof h);
-        out.write(reinterpret_cast<const char*>(&d), sizeof d);
-        out.write(reinterpret_cast<const char*>(&q), sizeof q);
-        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
-        std::cerr << " done\n";
+        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_FIRST_SCATTERING]);
+        gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
+                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
+                                textures[TEX_FIRST_SCATTERING],0);
+        checkFramebufferStatus("framebuffer for one-order Rayleigh scattering");
+
+        gl.glActiveTexture(GL_TEXTURE0);
+        gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
+        program->setUniformValue("transmittanceTexture", 0);
+
+        std::cerr << "Computing single scattering layers for scatterer \"" << scatterer.name.toStdString() << "\"... ";
+        for(int layer=0; layer<scatTexDepth; ++layer)
+        {
+            std::cerr << layer;
+            program->setUniformValue("layer",layer);
+            renderUntexturedQuad();
+            gl.glFinish();
+            if(layer+1<scatTexDepth) std::cerr << ',';
+        }
+        std::cerr << "; done\n";
+
+        if(false) // for debugging
+        {
+            std::cerr << "Saving texture...";
+            const uint16_t w=scatteringTextureSize[0], h=scatteringTextureSize[1],
+                           d=scatteringTextureSize[2], q=scatteringTextureSize[3];
+            std::vector<glm::vec4> pixels(w*h*d*q);
+            gl.glActiveTexture(GL_TEXTURE0);
+            gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_FIRST_SCATTERING]);
+            gl.glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+            std::ofstream out(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32");
+            out.write(reinterpret_cast<const char*>(&w), sizeof w);
+            out.write(reinterpret_cast<const char*>(&h), sizeof h);
+            out.write(reinterpret_cast<const char*>(&d), sizeof d);
+            out.write(reinterpret_cast<const char*>(&q), sizeof q);
+            out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+            std::cerr << " done\n";
+        }
     }
 }
 
@@ -978,12 +1158,9 @@ int main(int argc, char** argv)
 
         init();
         initConstHeader();
-        allShaders.emplace(DENSITIES_SHADER_FILENAME, compileShader(QOpenGLShader::Fragment, makeDensitiesSrc(),
-                                                           "shader for calculating scatterer and absorber densities"));
-        allShaders.emplace(PHASE_FUNCTIONS_SHADER_FILENAME, compileShader(QOpenGLShader::Fragment, makePhaseFunctionsSrc(),
-                                                           "shader for calculating scattering phase functions"));
         for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
         {
+            allShaders.clear();
             const glm::vec4 wavelengths(allWavelengths[texIndex*4+0],
                                         allWavelengths[texIndex*4+1],
                                         allWavelengths[texIndex*4+2],
@@ -992,12 +1169,10 @@ int main(int argc, char** argv)
                                                  ::solarIrradianceAtTOA[texIndex*4+1],
                                                  ::solarIrradianceAtTOA[texIndex*4+2],
                                                  ::solarIrradianceAtTOA[texIndex*4+3]);
-            const QVector4D ozoneCS(ozoneAbsCrossSection[texIndex*4+0],
-                                    ozoneAbsCrossSection[texIndex*4+1],
-                                    ozoneAbsCrossSection[texIndex*4+2],
-                                    ozoneAbsCrossSection[texIndex*4+3]);
-
-            computeTransmittance(wavelengths, ozoneCS, texIndex);
+            allShaders.emplace(COMPUTE_TRANSMITTANCE_SHADER_FILENAME,
+                               compileShader(QOpenGLShader::Fragment, makeTransmittanceComputeFunctionsSrc(wavelengths),
+                                             "transmittance computation functions"));
+            computeTransmittance(wavelengths, texIndex);
             // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
             // sky color. Irradiance will also be needed when we want to draw the ground itself.
             computeGroundIrradiance(solarIrradianceAtTOA, texIndex);
