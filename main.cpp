@@ -355,6 +355,21 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     {
         std::cerr << "Failed to compile " << description.toStdString() << ":\n"
                   << shader->log().toStdString() << "\n";
+        std::cerr << "Source of the shader:\n________________________________________________\n";
+        const auto lineCount=source.count(QChar('\n'));
+        QTextStream srcStream(&source);
+        int lineNumber=1;
+        for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine(), ++lineNumber)
+        {
+            QRegExp lineChanger("^\\s*#\\s*line\\s+([0-9]+)\\b.*");
+            std::cerr << std::setw(std::ceil(std::log10(lineCount))) << lineNumber << " " << line.toStdString() << "\n";
+            if(lineChanger.exactMatch(line))
+            {
+                lineNumber = lineChanger.cap(1).toInt() - 1;
+                continue;
+            }
+        }
+        std::cerr << "________________________________________________\n";
         throw MustQuit{};
     }
     if(!shader->log().isEmpty())
