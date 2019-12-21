@@ -56,7 +56,7 @@ QString makeDensitiesFunctions()
         header += "float absorberNumberDensity_"+absorber.name+"(float altitude);\n";
     }
 
-    header += "vec4 scatteringCoefficient();\n"
+    header += "vec4 scatteringCrossSection();\n"
               "float scattererDensity(float altitude);\n";
 
     if(densitiesHeader.isEmpty())

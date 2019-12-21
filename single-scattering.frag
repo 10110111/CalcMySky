@@ -48,6 +48,6 @@ vec4 computeSingleScattering(const float cosSunZenithAngle, const float cosViewZ
         spectrum += computeSingleScatteringIntegrand(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
                                                      altitude, dist, viewRayIntersectsGround);
     }
-    spectrum *= dl*solarIrradianceAtTOA*scatteringCoefficient();
+    spectrum *= dl*solarIrradianceAtTOA*scatteringCrossSection();
     return spectrum;
 }

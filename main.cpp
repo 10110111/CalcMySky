@@ -119,7 +119,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         {
             const auto src=makeScattererDensityFunctionsSrc(wavelengths)+
                             "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
-                            "vec4 scatteringCoefficient() { return "+toString(scatterer.crossSection(wavelengths))+"; }\n";
+                            "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(wavelengths))+"; }\n";
             allShaders[DENSITIES_SHADER_FILENAME]=compileShader(QOpenGLShader::Fragment, src,
                                                                 "scatterer density computation functions");
         }
