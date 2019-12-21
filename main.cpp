@@ -175,29 +175,6 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
     }
 }
 
-void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message)
-{
-    switch(type)
-    {
-    case QtDebugMsg:
-        std::cerr << "[DEBUG] " << message.toStdString() << "\n";
-        break;
-    case QtWarningMsg:
-        if(message.startsWith("*** Problematic Fragment shader source code ***"))
-            break;
-        if(message.startsWith("QOpenGLShader::compile("))
-            break;
-        std::cerr << "[WARN] " << message.toStdString() << "\n";
-        break;
-    case QtCriticalMsg:
-        std::cerr << "[ERROR] " << message.toStdString() << "\n";
-        break;
-    case QtFatalMsg:
-        std::cerr << "[FATAL] " << message.toStdString() << "\n";
-        break;
-    }
-}
-
 void fillSpectra()
 {
     constexpr int wlCount=16;

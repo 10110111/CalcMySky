@@ -22,6 +22,7 @@ inline QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(d
                                                                    .arg(double(v.w), 0,'g',9); }
 void renderUntexturedQuad();
 void checkFramebufferStatus(const char*const fboDescription);
+void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
 
 // Function useful only for debugging
 void dumpActiveUniforms(const GLuint program);

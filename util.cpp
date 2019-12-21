@@ -55,3 +55,26 @@ void renderUntexturedQuad()
 	gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	gl.glBindVertexArray(0);
 }
+
+void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message)
+{
+    switch(type)
+    {
+    case QtDebugMsg:
+        std::cerr << "[DEBUG] " << message.toStdString() << "\n";
+        break;
+    case QtWarningMsg:
+        if(message.startsWith("*** Problematic Fragment shader source code ***"))
+            break;
+        if(message.startsWith("QOpenGLShader::compile("))
+            break;
+        std::cerr << "[WARN] " << message.toStdString() << "\n";
+        break;
+    case QtCriticalMsg:
+        std::cerr << "[ERROR] " << message.toStdString() << "\n";
+        break;
+    case QtFatalMsg:
+        std::cerr << "[FATAL] " << message.toStdString() << "\n";
+        break;
+    }
+}
