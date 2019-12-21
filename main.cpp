@@ -59,17 +59,17 @@ void computeTransmittance(glm::vec4 const& wavelengths, int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const int texIndex)
+void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
     const auto program=compileShaderProgram("compute-irradiance.frag", "direct ground irradiance computation shader program");
 
     std::cerr << "Computing direct ground irradiance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
-    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE]);
+    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE]);
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,irradianceTexW,irradianceTexH,
                     0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindTexture(GL_TEXTURE_2D,0);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_IRRADIANCE],0);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_IRRADIANCE],0);
     checkFramebufferStatus("framebuffer for irradiance texture");
 
     gl.glActiveTexture(GL_TEXTURE0);
@@ -262,7 +262,7 @@ int main(int argc, char** argv)
             computeTransmittance(wavelengths, texIndex);
             // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
             // sky color. Irradiance will also be needed when we want to draw the ground itself.
-            computeGroundIrradiance(solarIrradianceAtTOA, texIndex);
+            computeDirectGroundIrradiance(solarIrradianceAtTOA, texIndex);
 
             computeSingleScattering(wavelengths, solarIrradianceAtTOA, texIndex);
         }

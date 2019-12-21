@@ -27,7 +27,7 @@ void initBuffers()
 void initTexturesAndFramebuffers()
 {
     gl.glGenTextures(TEX_COUNT,textures);
-    for(const auto tex : {TEX_TRANSMITTANCE,TEX_IRRADIANCE})
+    for(const auto tex : {TEX_TRANSMITTANCE,TEX_DELTA_IRRADIANCE})
     {
         gl.glBindTexture(GL_TEXTURE_2D,textures[tex]);
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
