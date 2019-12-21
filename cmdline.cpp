@@ -227,8 +227,17 @@ ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QS
 AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
 {
     AbsorberDescription description(name);
-    if(name=="ozone")
-        description.absorptionCrossSection=ozoneAbsCrossSection;
+    if(name=="ozone") // TODO: read the spectrum from the atmosphere description file
+    {
+        /* Data taken from http://www.iup.uni-bremen.de/gruppen/molspec/downloads/serdyuchenkogorshelevversionjuly2013.zip
+         * which is linked to at http://www.iup.uni-bremen.de/gruppen/molspec/databases/referencespectra/o3spectra2011/index.html .
+         * Data are for 233K. Values are in m^2/molecule.
+         */
+        description.absorptionCrossSection={1.394e-26,6.052e-28,4.923e-27,2.434e-26,
+                                            7.361e-26,1.831e-25,3.264e-25,4.514e-25,
+                                            4.544e-25,2.861e-25,1.571e-25,7.902e-26,
+                                            4.452e-26,2.781e-26,1.764e-26,5.369e-27};
+    }
 
     bool begun=false;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
