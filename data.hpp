@@ -52,6 +52,14 @@ inline GLfloat earthRadius;
 inline GLfloat atmosphereHeight;
 inline double earthSunDistance;
 inline GLfloat sunAngularRadius; // calculated from earthSunDistance
+inline unsigned wavelengthsIndex(glm::vec4 const& wavelengths)
+{
+    const auto wlIt=std::find(allWavelengths.begin(), allWavelengths.end(), wavelengths[0]);
+    assert(wlIt!=allWavelengths.end());
+    const auto*const wl0=&*wlIt;
+    assert(glm::vec4(wl0[0],wl0[1],wl0[2],wl0[3])==wavelengths);
+    return wl0-&allWavelengths[0];
+}
 struct ScattererDescription
 {
     GLfloat crossSectionAt1um = NaN;
@@ -91,11 +99,7 @@ struct AbsorberDescription
     }
     glm::vec4 crossSection(glm::vec4 const wavelengths) const
     {
-        const auto wlIt=std::find(allWavelengths.begin(), allWavelengths.end(), wavelengths[0]);
-        assert(wlIt!=allWavelengths.end());
-        const auto*const wl0=&*wlIt;
-        assert(glm::vec4(wl0[0],wl0[1],wl0[2],wl0[3])==wavelengths);
-        const auto i=wl0-&allWavelengths[0];
+        const auto i=wavelengthsIndex(wavelengths);
         return {absorptionCrossSection[i],absorptionCrossSection[i+1],absorptionCrossSection[i+2],absorptionCrossSection[i+3]};
     }
 };
