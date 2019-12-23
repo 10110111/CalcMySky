@@ -175,25 +175,6 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
     }
 }
 
-void fillSpectra()
-{
-    constexpr int wlCount=16;
-    constexpr float wlMin=360, wlMax=830;
-
-    const auto wlStep=(wlMax-wlMin)/(wlCount-1);
-    for(unsigned n=0; n<wlCount; ++n)
-        allWavelengths.emplace_back(wlMin+wlStep*n);
-
-    /* Data taken from https://www.nrel.gov/grid/solar-resource/assets/data/astmg173.zip
-     * which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html .
-     * Values are in W/(m^2*nm).
-     */
-    solarIrradianceAtTOA={1.037,1.249,1.684,1.975,
-                          1.968,1.877,1.854,1.818,
-                          1.723,1.604,1.516,1.408,
-                          1.309,1.23,1.142,1.062};
-}
-
 int main(int argc, char** argv)
 {
     qInstallMessageHandler(qtMessageHandler);
@@ -203,7 +184,6 @@ int main(int argc, char** argv)
 
     try
     {
-        fillSpectra();
         handleCmdLine();
 
         QSurfaceFormat format;

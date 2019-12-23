@@ -173,6 +173,40 @@ QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& l
     return function;
 }
 
+std::vector<GLfloat> getSpectrum(QString const& line, const GLfloat min, const GLfloat max,
+                                 QString const& filename, const int lineNumber, bool checkSize=true)
+{
+    const auto items=line.split(',');
+    std::vector<GLfloat> values;
+    for(int i=0; i<items.size(); ++i)
+    {
+        bool ok;
+        const auto value=items[i].toFloat(&ok);
+        if(!ok)
+        {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": failed to parse entry #" << i+1 << "\n";
+            throw MustQuit{};
+        }
+        if(value<min)
+        {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum point #" << i+1 << " is less than minimally allowed: " << value << " < " << min << "\n";
+            throw MustQuit{};
+        }
+        if(value>max)
+        {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum point #" << i+1 << " is greater than maximally allowed: " << value << " > " << max << "\n";
+            throw MustQuit{};
+        }
+        values.emplace_back(value);
+    }
+    if(checkSize && values.size() != allWavelengths.size())
+    {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum has " << values.size() << " entries, but there are " << allWavelengths.size() << " wavelengths\n";
+            throw MustQuit{};
+    }
+    return values;
+}
+
 ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
 {
     ScattererDescription description(name);
@@ -227,17 +261,6 @@ ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QS
 AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
 {
     AbsorberDescription description(name);
-    if(name=="ozone") // TODO: read the spectrum from the atmosphere description file
-    {
-        /* Data taken from http://www.iup.uni-bremen.de/gruppen/molspec/downloads/serdyuchenkogorshelevversionjuly2013.zip
-         * which is linked to at http://www.iup.uni-bremen.de/gruppen/molspec/databases/referencespectra/o3spectra2011/index.html .
-         * Data are for 233K. Values are in m^2/molecule.
-         */
-        description.absorptionCrossSection={1.394e-26,6.052e-28,4.923e-27,2.434e-26,
-                                            7.361e-26,1.831e-25,3.264e-25,4.514e-25,
-                                            4.544e-25,2.861e-25,1.571e-25,7.902e-26,
-                                            4.452e-26,2.781e-26,1.764e-26,5.369e-27};
-    }
 
     bool begun=false;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
@@ -271,6 +294,8 @@ AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QStr
 
         if(key=="number density")
             description.numberDensity=readGLSLFunctionBody(stream,filename,++lineNumber);
+        else if(key=="cross section")
+            description.absorptionCrossSection=getSpectrum(value,0,10,filename,lineNumber);
     }
     if(!description.valid())
     {
@@ -358,6 +383,14 @@ void handleCmdLine()
             // each camera position.
             sunAngularRadius=sunRadius/earthSunDistance;
         }
+        else if(key=="wavelengths")
+        {
+            allWavelengths=getSpectrum(value,1e2,1e5,atmoDescrFileName,lineNumber,false);
+            if(allWavelengths.size()%4)
+                std::cerr << "WARNING: number of wavelengths should be a multiple of 4\n";
+        }
+        else if(key=="solar irradiance at toa")
+            solarIrradianceAtTOA=getSpectrum(value,0,1e3,atmoDescrFileName,lineNumber);
         else if(key.contains(scattererDescriptionKey))
             scatterers.emplace_back(parseScatterer(stream, scattererDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
         else if(key.contains(absorberDescriptionKey))
@@ -368,6 +401,16 @@ void handleCmdLine()
     if(!stream.atEnd())
     {
         std::cerr << atmoDescrFileName.toStdString() << ":" << lineNumber << ": error: failed to read file\n";
+        throw MustQuit{};
+    }
+    if(allWavelengths.empty())
+    {
+        std::cerr << "Wavelengths aren't specified in atmosphere description\n";
+        throw MustQuit{};
+    }
+    if(solarIrradianceAtTOA.empty())
+    {
+        std::cerr << "Solar irradiance at TOA isn't specified in atmosphere description\n";
         throw MustQuit{};
     }
 }
