@@ -218,7 +218,7 @@ int main(int argc, char** argv)
         {
             std::cerr << "Failed to create OpenGL "
                 << format.majorVersion() << '.'
-                << format.minorVersion() << " context";
+                << format.minorVersion() << " context\n";
             return 1;
         }
 
@@ -229,7 +229,7 @@ int main(int argc, char** argv)
         {
             std::cerr << "Failed to create OpenGL "
                 << format.majorVersion() << '.'
-                << format.minorVersion() << " offscreen surface";
+                << format.minorVersion() << " offscreen surface\n";
             return 1;
         }
 
@@ -239,7 +239,7 @@ int main(int argc, char** argv)
         {
             std::cerr << "Failed to initialize OpenGL "
                 << format.majorVersion() << '.'
-                << format.minorVersion() << " functions";
+                << format.minorVersion() << " functions\n";
             return 1;
         }
 
