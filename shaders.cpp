@@ -185,6 +185,7 @@ QString getShaderSrc(QString const& fileName)
 
 std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString const& description)
 {
+    std::cerr << "Compiling " << description.toStdString() << "...\n";
     auto shader=std::make_unique<QOpenGLShader>(type);
     source=withHeadersIncluded(source, description);
     if(!shader->compileSourceCode(source))
@@ -309,6 +310,7 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     if(useGeomShader)
         program->addShader(&getOrCompileShader(QOpenGLShader::Geometry, "shader.geom"));
 
+    std::cerr << "Linking " << description << "\n";
     if(!program->link())
     {
         // Qt prints linking errors to stderr, so don't print them again
