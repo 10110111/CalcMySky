@@ -177,6 +177,11 @@ std::vector<GLfloat> getSpectrum(QString const& line, const GLfloat min, const G
                                  QString const& filename, const int lineNumber, bool checkSize=true)
 {
     const auto items=line.split(',');
+    if(checkSize && items.size() != allWavelengths.size())
+    {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are " << allWavelengths.size() << " wavelengths\n";
+            throw MustQuit{};
+    }
     std::vector<GLfloat> values;
     for(int i=0; i<items.size(); ++i)
     {
@@ -198,11 +203,6 @@ std::vector<GLfloat> getSpectrum(QString const& line, const GLfloat min, const G
             throw MustQuit{};
         }
         values.emplace_back(value);
-    }
-    if(checkSize && values.size() != allWavelengths.size())
-    {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum has " << values.size() << " entries, but there are " << allWavelengths.size() << " wavelengths\n";
-            throw MustQuit{};
     }
     return values;
 }
