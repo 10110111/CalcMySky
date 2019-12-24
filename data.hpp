@@ -10,8 +10,9 @@
 #include <glm/glm.hpp>
 #include "const.hpp"
 
-inline std::vector<GLfloat> allWavelengths;
-inline std::vector<GLfloat> solarIrradianceAtTOA;
+constexpr unsigned pointsPerWavelengthItem=4;
+inline std::vector<glm::vec4> allWavelengths;
+inline std::vector<glm::vec4> solarIrradianceAtTOA;
 
 inline std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
 inline QString constantsHeader;
@@ -54,11 +55,9 @@ inline double earthSunDistance;
 inline GLfloat sunAngularRadius; // calculated from earthSunDistance
 inline unsigned wavelengthsIndex(glm::vec4 const& wavelengths)
 {
-    const auto wlIt=std::find(allWavelengths.begin(), allWavelengths.end(), wavelengths[0]);
-    assert(wlIt!=allWavelengths.end());
-    const auto*const wl0=&*wlIt;
-    assert(glm::vec4(wl0[0],wl0[1],wl0[2],wl0[3])==wavelengths);
-    return wl0-&allWavelengths[0];
+    const auto it=std::find(allWavelengths.begin(), allWavelengths.end(), wavelengths);
+    assert(it!=allWavelengths.end());
+    return it-allWavelengths.begin();
 }
 struct ScattererDescription
 {
@@ -88,7 +87,7 @@ struct AbsorberDescription
 {
     QString numberDensity;
     QString name;
-    std::vector<GLfloat> absorptionCrossSection;
+    std::vector<glm::vec4> absorptionCrossSection;
 
     AbsorberDescription(QString const& name) : name(name) {}
     bool valid() const
@@ -100,7 +99,7 @@ struct AbsorberDescription
     glm::vec4 crossSection(glm::vec4 const wavelengths) const
     {
         const auto i=wavelengthsIndex(wavelengths);
-        return {absorptionCrossSection[i],absorptionCrossSection[i+1],absorptionCrossSection[i+2],absorptionCrossSection[i+3]};
+        return absorptionCrossSection[i];
     }
 };
 inline std::vector<AbsorberDescription> absorbers;

@@ -173,13 +173,18 @@ QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& l
     return function;
 }
 
-std::vector<GLfloat> getSpectrum(QString const& line, const GLfloat min, const GLfloat max,
+std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const GLfloat max,
                                  QString const& filename, const int lineNumber, bool checkSize=true)
 {
     const auto items=line.split(',');
-    if(checkSize && items.size() != allWavelengths.size())
+    if(checkSize && items.size() != allWavelengths.size()*pointsPerWavelengthItem)
     {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are " << allWavelengths.size() << " wavelengths\n";
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are " << allWavelengths.size()*pointsPerWavelengthItem << " wavelengths\n";
+            throw MustQuit{};
+    }
+    if(items.size()%4)
+    {
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum length must be a multiple of 4\n";
             throw MustQuit{};
     }
     std::vector<GLfloat> values;
@@ -204,7 +209,10 @@ std::vector<GLfloat> getSpectrum(QString const& line, const GLfloat min, const G
         }
         values.emplace_back(value);
     }
-    return values;
+    std::vector<glm::vec4> spectrum;
+    for(unsigned i=0; i<values.size(); i+=4)
+        spectrum.emplace_back(values[i+0], values[i+1], values[i+2], values[i+3]);
+    return spectrum;
 }
 
 ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
@@ -384,11 +392,7 @@ void handleCmdLine()
             sunAngularRadius=sunRadius/earthSunDistance;
         }
         else if(key=="wavelengths")
-        {
             allWavelengths=getSpectrum(value,1e2,1e5,atmoDescrFileName,lineNumber,false);
-            if(allWavelengths.size()%4)
-                std::cerr << "WARNING: number of wavelengths should be a multiple of 4\n";
-        }
         else if(key=="solar irradiance at toa")
             solarIrradianceAtTOA=getSpectrum(value,0,1e3,atmoDescrFileName,lineNumber);
         else if(key.contains(scattererDescriptionKey))

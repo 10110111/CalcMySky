@@ -225,26 +225,18 @@ int main(int argc, char** argv)
 
         init();
         initConstHeader();
-        for(int texIndex=0;texIndex<allWavelengths.size()/4;++texIndex)
+        for(int texIndex=0;texIndex<allWavelengths.size();++texIndex)
         {
             allShaders.clear();
-            const glm::vec4 wavelengths(allWavelengths[texIndex*4+0],
-                                        allWavelengths[texIndex*4+1],
-                                        allWavelengths[texIndex*4+2],
-                                        allWavelengths[texIndex*4+3]);
-            const QVector4D solarIrradianceAtTOA(::solarIrradianceAtTOA[texIndex*4+0],
-                                                 ::solarIrradianceAtTOA[texIndex*4+1],
-                                                 ::solarIrradianceAtTOA[texIndex*4+2],
-                                                 ::solarIrradianceAtTOA[texIndex*4+3]);
             allShaders.emplace(COMPUTE_TRANSMITTANCE_SHADER_FILENAME,
-                               compileShader(QOpenGLShader::Fragment, makeTransmittanceComputeFunctionsSrc(wavelengths),
+                               compileShader(QOpenGLShader::Fragment, makeTransmittanceComputeFunctionsSrc(allWavelengths[texIndex]),
                                              "transmittance computation functions"));
-            computeTransmittance(wavelengths, texIndex);
+            computeTransmittance(allWavelengths[texIndex], texIndex);
             // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
             // sky color. Irradiance will also be needed when we want to draw the ground itself.
-            computeDirectGroundIrradiance(solarIrradianceAtTOA, texIndex);
+            computeDirectGroundIrradiance(QVec(solarIrradianceAtTOA[texIndex]), texIndex);
 
-            computeSingleScattering(wavelengths, solarIrradianceAtTOA, texIndex);
+            computeSingleScattering(allWavelengths[texIndex], QVec(solarIrradianceAtTOA[texIndex]), texIndex);
         }
     }
     catch(MustQuit&)
