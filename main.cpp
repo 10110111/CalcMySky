@@ -120,8 +120,8 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
             const auto src=makeScattererDensityFunctionsSrc(wavelengths)+
                             "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
                             "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(wavelengths))+"; }\n";
-            allShaders[DENSITIES_SHADER_FILENAME]=compileShader(QOpenGLShader::Fragment, src,
-                                                                "scatterer density computation functions");
+            allShaders.erase(DENSITIES_SHADER_FILENAME);
+            virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
         }
         const auto program=compileShaderProgram("compute-single-scattering.frag",
                                                 "single scattering computation shader program",
@@ -228,9 +228,8 @@ int main(int argc, char** argv)
         for(int texIndex=0;texIndex<allWavelengths.size();++texIndex)
         {
             allShaders.clear();
-            allShaders.emplace(COMPUTE_TRANSMITTANCE_SHADER_FILENAME,
-                               compileShader(QOpenGLShader::Fragment, makeTransmittanceComputeFunctionsSrc(allWavelengths[texIndex]),
-                                             "transmittance computation functions"));
+            virtualSourceFiles[COMPUTE_TRANSMITTANCE_SHADER_FILENAME]=
+                makeTransmittanceComputeFunctionsSrc(allWavelengths[texIndex]);
             computeTransmittance(allWavelengths[texIndex], texIndex);
             // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
             // sky color. Irradiance will also be needed when we want to draw the ground itself.

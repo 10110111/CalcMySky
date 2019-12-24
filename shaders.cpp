@@ -16,7 +16,8 @@ QString withHeadersIncluded(QString src, QString const& filename);
 
 void initConstHeader()
 {
-    constantsHeader="const float earthRadius="+QString::number(earthRadius)+"; // must be in meters\n"
+    virtualHeaderFiles[CONSTANTS_HEADER_FILENAME]=
+        "const float earthRadius="+QString::number(earthRadius)+"; // must be in meters\n"
                          "const float atmosphereHeight="+QString::number(atmosphereHeight)+"; // must be in meters\n"
                          R"(
 const vec3 earthCenter=vec3(0,0,-earthRadius);
@@ -59,8 +60,7 @@ QString makeDensitiesFunctions()
     header += "vec4 scatteringCrossSection();\n"
               "float scattererDensity(float altitude);\n";
 
-    if(densitiesHeader.isEmpty())
-        densitiesHeader=header;
+    virtualHeaderFiles[DENSITIES_HEADER_FILENAME]=header;
 
     return src;
 }
@@ -125,8 +125,7 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
 )";
     constexpr char mainFunc[]=R"(
 )";
-    return withHeadersIncluded(head+makeDensitiesFunctions()+opticalDepthFunctions+computeFunction,
-                               QString("(virtual)%1").arg(COMPUTE_TRANSMITTANCE_SHADER_FILENAME));
+    return head+makeDensitiesFunctions()+opticalDepthFunctions+computeFunction;
 }
 
 QString makeScattererDensityFunctionsSrc(glm::vec4 const& wavelengths)
@@ -137,13 +136,12 @@ QString makeScattererDensityFunctionsSrc(glm::vec4 const& wavelengths)
 
 #include "const.h.glsl"
 )";
-    return withHeadersIncluded(head+makeDensitiesFunctions(),
-                               QString("(virtual)%1").arg(DENSITIES_SHADER_FILENAME));
+    return head+makeDensitiesFunctions();
 }
 
 QString makePhaseFunctionsSrc(QString const& source)
 {
-    return withHeadersIncluded(1+R"(
+    return 1+R"(
 #version 330
 #extension GL_ARB_shading_language_420pack : require
 
@@ -153,11 +151,16 @@ vec4 phaseFunction(float dotViewSun)
 {
 )" + source.trimmed() + R"(
 }
-)", QString("(virtual)%1").arg(PHASE_FUNCTIONS_SHADER_FILENAME));
+)";
 }
 
 QString getShaderSrc(QString const& fileName)
 {
+    if(const auto it=virtualSourceFiles.find(fileName); it!=virtualSourceFiles.end())
+        return it->second;
+    if(const auto it=virtualHeaderFiles.find(fileName); it!=virtualHeaderFiles.end())
+        return it->second;
+
     QFile file;
     bool opened=false;
     const auto appBinDir=QDir(qApp->applicationDirPath()+"/").canonicalPath();
@@ -253,9 +256,7 @@ QString withHeadersIncluded(QString src, QString const& filename)
                       << headerSuffix << "\"\n";
             throw MustQuit{};
         }
-        const auto header = includeFileName==CONSTANTS_HEADER_FILENAME ? constantsHeader :
-                            includeFileName==DENSITIES_HEADER_FILENAME ? densitiesHeader :
-                                getShaderSrc(includeFileName);
+        const auto header = getShaderSrc(includeFileName);
         newSrc.append(QString("#line 1 %1 // %2\n").arg(headerNumber++).arg(includeFileName));
         newSrc.append(header);
         newSrc.append(QString("#line %1 0 // %2\n").arg(lineNumber+1).arg(filename));
@@ -284,7 +285,7 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
             continue;
         const auto shaderFileNameToLinkWith=includeFileBaseName+".frag";
         filenames.insert(shaderFileNameToLinkWith);
-        if(!internalShaders.count(shaderFileNameToLinkWith) && shaderFileNameToLinkWith!=filename)
+        if(shaderFileNameToLinkWith!=filename)
         {
             const auto extraFileNames=getShaderFileNamesToLinkWith(shaderFileNameToLinkWith, recursionDepth+1);
             filenames.insert(extraFileNames.begin(), extraFileNames.end());

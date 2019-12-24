@@ -15,14 +15,9 @@ inline std::vector<glm::vec4> allWavelengths;
 inline std::vector<glm::vec4> solarIrradianceAtTOA;
 
 inline std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
-inline QString constantsHeader;
-inline QString densitiesHeader;
-inline std::set<QString> internalShaders
-{
-    DENSITIES_SHADER_FILENAME,
-    PHASE_FUNCTIONS_SHADER_FILENAME,
-    COMPUTE_TRANSMITTANCE_SHADER_FILENAME,
-};
+inline std::map<QString, QString> virtualSourceFiles;
+inline std::map<QString, QString> virtualHeaderFiles;
+
 inline GLuint vao, vbo;
 enum
 {
