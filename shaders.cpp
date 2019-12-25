@@ -183,17 +183,10 @@ QString getShaderSrc(QString const& fileName)
     return file.readAll();
 }
 
-std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString const& description, QString const& defines)
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString const& description)
 {
     std::cerr << "Compiling " << description.toStdString() << "...\n";
     auto shader=std::make_unique<QOpenGLShader>(type);
-    QRegExp verPattern(QRegExp("(^|\n)\\s*#\\s*version\\s*[0-9]+\\b[^\n]*\n"));
-    if(const auto verPos=source.indexOf(verPattern); verPos!=-1)
-    {
-        const auto nextLineBeginningPos=verPos+verPattern.cap(0).size();
-        const int verLineNum=source.left(nextLineBeginningPos).count(QChar('\n'));
-        source.insert(nextLineBeginningPos, QString("%1\n#line %2\n").arg(defines).arg(verLineNum+1));
-    }
     source=withHeadersIncluded(source, description);
     if(!shader->compileSourceCode(source))
     {
@@ -224,11 +217,11 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     return shader;
 }
 
-QOpenGLShader& getOrCompileShader(QOpenGLShader::ShaderType type, QString const& filename, QString const& defines="")
+QOpenGLShader& getOrCompileShader(QOpenGLShader::ShaderType type, QString const& filename)
 {
     const auto it=allShaders.find(filename);
     if(it!=allShaders.end()) return *it->second;
-    return *allShaders.emplace(filename, compileShader(type, getShaderSrc(filename), filename, defines)).first->second;
+    return *allShaders.emplace(filename, compileShader(type, getShaderSrc(filename), filename)).first->second;
 }
 
 QString withHeadersIncluded(QString src, QString const& filename)
@@ -297,9 +290,7 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
 }
 
 std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName,
-                                                           const char* description,
-                                                           const bool useGeomShader,
-                                                           QString const& defines)
+                                                           const char* description, const bool useGeomShader)
 {
     auto program=std::make_unique<QOpenGLShaderProgram>();
 
@@ -307,7 +298,7 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     shaderFileNames.insert(mainSrcFileName);
 
     for(const auto filename : shaderFileNames)
-        program->addShader(&getOrCompileShader(QOpenGLShader::Fragment, filename, defines));
+        program->addShader(&getOrCompileShader(QOpenGLShader::Fragment, filename));
 
     program->addShader(&getOrCompileShader(QOpenGLShader::Vertex, "shader.vert"));
     if(useGeomShader)

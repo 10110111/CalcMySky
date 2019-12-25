@@ -7,12 +7,10 @@
 
 std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type,
                                              QString source,
-                                             QString const& description,
-                                             QString const& defines="");
+                                             QString const& description);
 std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName,
                                                            const char* description,
-                                                           const bool useGeomShader=false,
-                                                           QString const& defines="");
+                                                           const bool useGeomShader=false);
 void initConstHeader();
 QString makeScattererDensityFunctionsSrc(glm::vec4 const& wavelengths);
 QString makeTransmittanceComputeFunctionsSrc(glm::vec4 const& wavelengths);
