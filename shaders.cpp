@@ -217,17 +217,11 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     return shader;
 }
 
-std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString const& filename)
-{
-    const auto src=getShaderSrc(filename);
-    return compileShader(type, src, filename);
-}
-
 QOpenGLShader& getOrCompileShader(QOpenGLShader::ShaderType type, QString const& filename)
 {
     const auto it=allShaders.find(filename);
     if(it!=allShaders.end()) return *it->second;
-    return *allShaders.emplace(filename, compileShader(type, filename)).first->second;
+    return *allShaders.emplace(filename, compileShader(type, getShaderSrc(filename), filename)).first->second;
 }
 
 QString withHeadersIncluded(QString src, QString const& filename)
