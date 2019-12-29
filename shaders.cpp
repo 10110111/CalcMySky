@@ -14,10 +14,12 @@
 
 QString withHeadersIncluded(QString src, QString const& filename);
 
-void initConstHeader()
+void initConstHeader(glm::vec4 const& wavelengths)
 {
-    virtualHeaderFiles[CONSTANTS_HEADER_FILENAME]=
-        "const float earthRadius="+QString::number(earthRadius)+"; // must be in meters\n"
+    QString header=1+R"(
+#ifndef INCLUDE_ONCE_2B59AE86_E78B_4D75_ACDF_5DA644F8E9A3
+#define INCLUDE_ONCE_2B59AE86_E78B_4D75_ACDF_5DA644F8E9A3
+const float earthRadius=)"+QString::number(earthRadius)+"; // must be in meters\n"
                          "const float atmosphereHeight="+QString::number(atmosphereHeight)+"; // must be in meters\n"
                          R"(
 const vec3 earthCenter=vec3(0,0,-earthRadius);
@@ -32,8 +34,16 @@ const vec4 scatteringTextureSize=)" + toString(scatteringTextureSize) + R"(;
 const vec2 irradianceTextureSize=)" + toString(glm::vec2(irradianceTexW, irradianceTexH)) + R"(;
 const vec2 transmittanceTextureSize=)" + toString(glm::vec2(transmittanceTexW,transmittanceTexH)) + R"(;
 const int radialIntegrationPoints=)" + toString(radialIntegrationPoints) + R"(;
+const int angularIntegrationPointsPerHalfRevolution=)" + toString(angularIntegrationPointsPerHalfRevolution) + R"(;
 const int numTransmittanceIntegrationPoints=)" + toString(numTransmittanceIntegrationPoints) + R"(;
 )";
+    for(auto const& scatterer : scatterers)
+        header += "vec4 scatteringCrossSection_"+scatterer.name+"="+toString(scatterer.crossSection(wavelengths))+";\n";
+    const auto wlI=wavelengthsIndex(wavelengths);
+    header += "vec4 groundAlbedo="+toString(groundAlbedo[wlI])+";\n";
+
+    header+="#endif\n"; // close the include guard
+    virtualHeaderFiles[CONSTANTS_HEADER_FILENAME]=header;
 }
 
 QString makeDensitiesFunctions()
@@ -128,7 +138,7 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
     return head+makeDensitiesFunctions()+opticalDepthFunctions+computeFunction;
 }
 
-QString makeScattererDensityFunctionsSrc(glm::vec4 const& wavelengths)
+QString makeScattererDensityFunctionsSrc()
 {
     const QString head=1+R"(
 #version 330
@@ -139,19 +149,53 @@ QString makeScattererDensityFunctionsSrc(glm::vec4 const& wavelengths)
     return head+makeDensitiesFunctions();
 }
 
-QString makePhaseFunctionsSrc(QString const& source)
+QString makePhaseFunctionsSrc()
 {
-    return 1+R"(
+    QString src = 1+R"(
 #version 330
 #extension GL_ARB_shading_language_420pack : require
 
 #include "const.h.glsl"
 
-vec4 phaseFunction(float dotViewSun)
-{
-)" + source.trimmed() + R"(
-}
 )";
+    QString header;
+    for(auto const& scatterer : scatterers)
+    {
+        src += "vec4 phaseFunction_"+scatterer.name+"(float dotViewSun)\n"
+               "{\n"
+               +scatterer.phaseFunction+
+               "}\n";
+        header += "vec4 phaseFunction_"+scatterer.name+"(float dotViewSun);\n";
+    }
+    header+="vec4 currentPhaseFunction(float dotViewSun);\n";
+    virtualHeaderFiles[PHASE_FUNCTIONS_HEADER_FILENAME]=header;
+    return src;
+}
+
+QString makeTotalScatteringCoefSrc()
+{
+    QString src=1+R"(
+#version 330
+#extension GL_ARB_shading_language_420pack : require
+
+#include "const.h.glsl"
+#include "densities.h.glsl"
+#include "phase-functions.h.glsl"
+
+vec4 totalScatteringCoefficient(float altitude, float dotViewInc)
+{
+    return
+)";
+    for(auto const& scatterer : scatterers)
+    {
+        src += "        + scatteringCrossSection_"+scatterer.name+
+               " * scattererNumberDensity_"+scatterer.name+"(altitude) "
+               " * phaseFunction_"+scatterer.name+"(dotViewInc)\n";
+    }
+    src += "        ;\n}\n";
+    virtualHeaderFiles[TOTAL_SCATTERING_COEFFICIENT_HEADER_FILENAME]=
+        "vec4 totalScatteringCoefficient(float altitude, float dotViewInc);\n";
+    return src;
 }
 
 QString getShaderSrc(QString const& fileName)

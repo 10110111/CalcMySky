@@ -11,6 +11,8 @@ scattering texture size for altitude: 64
 
 transmittance integration points: 500
 radial integration points: 50
+angular integration points per half revolution: 16
+scattering orders: 4
 
 Earth-Sun distance: 1 AU
 Earth radius: 6371 km # FIXME: at R=6371km and h=120km highest altitude layer appears to have some artifacts in first scattering from near horizon
@@ -22,6 +24,7 @@ wavelengths: 360,391.33333333333333333333,422.66666666666666666667,454,485.33333
 # which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html
 # Values are in W/(m^2*nm).
 solar irradiance at TOA: 1.037,1.249,1.684,1.975,1.968,1.877,1.854,1.818,1.723,1.604,1.516,1.408,1.309,1.23,1.142,1.062
+ground albedo: 0,0.035,0.04,0.041,0.043,0.067,0.107,0.09,0.07,0.057,0.047,0.12,0.268,0.417,0.566,0.715
 
 Scatterer "molecules": # Rayleigh scattering
 {

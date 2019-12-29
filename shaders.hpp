@@ -5,13 +5,16 @@
 #include <QOpenGLShader>
 #include <glm/glm.hpp>
 
+QString getShaderSrc(QString const& fileName);
 std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type,
                                              QString source,
                                              QString const& description);
 std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName,
                                                            const char* description,
                                                            const bool useGeomShader=false);
-void initConstHeader();
-QString makeScattererDensityFunctionsSrc(glm::vec4 const& wavelengths);
+void initConstHeader(glm::vec4 const& wavelengths);
+QString makeScattererDensityFunctionsSrc();
 QString makeTransmittanceComputeFunctionsSrc(glm::vec4 const& wavelengths);
+QString makeTotalScatteringCoefSrc();
+QString makePhaseFunctionsSrc();
 #endif

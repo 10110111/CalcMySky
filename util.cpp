@@ -100,3 +100,16 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
     std::cerr << " done\n";
 }
+
+void loadTexture(std::string const& path, const unsigned width, const unsigned height, const unsigned depth)
+{
+    std::vector<glm::vec4> pixels(width*height*depth);
+    std::ifstream file(path);
+    file.exceptions(std::ifstream::failbit);
+    uint16_t sizes[4];
+    file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
+    if(std::uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != std::uintptr_t(width)*height*depth)
+        throw std::runtime_error("Bad texture size in file "+path);
+    file.read(reinterpret_cast<char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,pixels.data());
+}

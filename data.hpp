@@ -12,7 +12,8 @@
 
 inline bool dbgSaveTransmittancePng=false;
 inline bool dbgSaveDirectGroundIrradiance=false;
-inline bool dbgSaveSingleScattering=false;
+inline bool dbgSaveScatDensityOrder2FromGround=false;
+inline bool dbgSaveScatDensityOrder2Full=false;
 
 constexpr unsigned pointsPerWavelengthItem=4;
 inline std::vector<glm::vec4> allWavelengths;
@@ -28,6 +29,7 @@ enum
     FBO_TRANSMITTANCE,
     FBO_IRRADIANCE,
     FBO_SINGLE_SCATTERING,
+    FBO_MULTIPLE_SCATTERING,
 
     FBO_COUNT
 };
@@ -37,6 +39,8 @@ enum
     TEX_TRANSMITTANCE,
     TEX_DELTA_IRRADIANCE,
     TEX_FIRST_SCATTERING,
+    TEX_DELTA_SCATTERING=TEX_FIRST_SCATTERING,
+    TEX_DELTA_SCATTERING_DENSITY,
 
     TEX_COUNT
 };
@@ -46,12 +50,15 @@ inline std::string textureOutputDir=".";
 inline GLint transmittanceTexW, transmittanceTexH;
 inline GLint irradianceTexW, irradianceTexH;
 inline glm::vec4 scatteringTextureSize;
+inline GLint scatteringOrdersToCompute;
 inline GLint numTransmittanceIntegrationPoints;
 inline GLint radialIntegrationPoints;
+inline GLint angularIntegrationPointsPerHalfRevolution;
 inline GLfloat earthRadius;
 inline GLfloat atmosphereHeight;
 inline double earthSunDistance;
 inline GLfloat sunAngularRadius; // calculated from earthSunDistance
+inline std::vector<glm::vec4> groundAlbedo;
 inline unsigned wavelengthsIndex(glm::vec4 const& wavelengths)
 {
     const auto it=std::find(allWavelengths.begin(), allWavelengths.end(), wavelengths);

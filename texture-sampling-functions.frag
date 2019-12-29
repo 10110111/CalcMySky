@@ -2,10 +2,21 @@
 #extension GL_ARB_shading_language_420pack : require
 
 #include "const.h.glsl"
+#include "phase-functions.h.glsl"
 #include "common-functions.h.glsl"
 #include "texture-coordinates.h.glsl"
 
 uniform sampler2D transmittanceTexture;
+uniform sampler2D irradianceTexture;
+
+uniform sampler3D firstScatteringTexture;
+uniform sampler3D multipleScatteringTexture;
+
+vec4 irradiance(const float cosSunZenithAngle, const float altitude)
+{
+    const vec2 texCoords=irradianceTexVarsToTexCoord(cosSunZenithAngle, altitude);
+    return texture(irradianceTexture, texCoords);
+}
 
 vec4 transmittanceToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
 {
@@ -58,4 +69,24 @@ vec4 transmittanceToSun(const float cosSunZenithAngle, float altitude)
            smoothstep(-sinHorizonZenithAngle*sunAngularRadius,
                        sinHorizonZenithAngle*sunAngularRadius,
                        cosSunZenithAngle-cosHorizonZenithAngle);
+}
+
+vec4 calcFirstScattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                         const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
+{
+    const vec4 scattering = sample4DTexture(firstScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+                                          dotViewSun, altitude, viewRayIntersectsGround);
+    return scattering*currentPhaseFunction(dotViewSun);
+}
+
+vec4 scattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                const float dotViewSun, const float altitude, const bool viewRayIntersectsGround,
+                const int scatteringOrder)
+{
+    if(scatteringOrder==1)
+        return calcFirstScattering(cosSunZenithAngle, cosViewZenithAngle,
+                                   dotViewSun, altitude, viewRayIntersectsGround);
+    else
+        return sample4DTexture(multipleScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+                               dotViewSun, altitude, viewRayIntersectsGround);
 }

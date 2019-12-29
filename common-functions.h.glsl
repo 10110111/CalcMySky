@@ -3,6 +3,8 @@
 float distanceToAtmosphereBorder(const float cosZenithAngle, const float observerAltitude);
 float distanceToNearestAtmosphereBoundary(const float cosZenithAngle, const float observerAltitude,
                                           const bool viewRayIntersectsGround);
+float distanceToGround(const float cosZenithAngle, const float observerAltitude);
+bool rayIntersectsGround(const float cosViewZenithAngle, const float observerAltitude);
 float safeSqrt(const float x);
 float clampCosine(const float x);
 float clampDistance(const float x);

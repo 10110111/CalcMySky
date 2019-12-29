@@ -16,6 +16,7 @@ struct IrradianceTexVars
     float altitude;
 };
 IrradianceTexVars irradianceTexCoordToTexVars(const vec2 texCoord);
+vec2 irradianceTexVarsToTexCoord(const float cosSunZenithAngle, const float altitude);
 
 struct ScatteringTexVars
 {

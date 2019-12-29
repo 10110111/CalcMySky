@@ -100,6 +100,13 @@ IrradianceTexVars irradianceTexCoordToTexVars(const vec2 texCoord)
     return IrradianceTexVars(cosSZA,alt);
 }
 
+vec2 irradianceTexVarsToTexCoord(const float cosSunZenithAngle, const float altitude)
+{
+    const float s=unitRangeToTexCoord((cosSunZenithAngle+1)/2, irradianceTextureSize.s);
+    const float t=unitRangeToTexCoord(altitude/atmosphereHeight, irradianceTextureSize.t);
+    return vec2(s,t);
+}
+
 // dotViewSun: dot(viewDir,sunDir)
 Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, const float cosViewZenithAngle,
                                                const float dotViewSun, const float altitude,

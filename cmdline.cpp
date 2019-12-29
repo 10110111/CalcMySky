@@ -323,16 +323,23 @@ void handleCmdLine()
     parser.addHelpOption();
     const QCommandLineOption dbgSaveTransmittancePngOpt("save-xmittance-png","Save transmittance textures as PNG (for debugging)");
     const QCommandLineOption dbgSaveDirectGroundIrradianceOpt("save-dir-gnd-irr","Save direct ground irradiance textures (for debugging)");
-    const QCommandLineOption dbgSaveSingleScatteringOpt("save-single-scattering","Save single scattering textures (for debugging)");
-    parser.addOptions({dbgSaveTransmittancePngOpt,dbgSaveDirectGroundIrradianceOpt,dbgSaveSingleScatteringOpt});
+    const QCommandLineOption dbgSaveScatDensityOrder2FromGroundOpt("save-scat-density2-from-ground","Save order 2 scattering density from ground (for debugging)");
+    const QCommandLineOption dbgSaveScatDensityOrder2FullOpt("save-scat-density2-full","Save order 2 scattering density full texture (for debugging)");
+    parser.addOptions({dbgSaveTransmittancePngOpt,
+                       dbgSaveDirectGroundIrradianceOpt,
+                       dbgSaveScatDensityOrder2FromGroundOpt,
+                       dbgSaveScatDensityOrder2FullOpt,
+                      });
     parser.process(*qApp);
 
     if(parser.isSet(dbgSaveTransmittancePngOpt))
         dbgSaveTransmittancePng=true;
     if(parser.isSet(dbgSaveDirectGroundIrradianceOpt))
         dbgSaveDirectGroundIrradiance=true;
-    if(parser.isSet(dbgSaveSingleScatteringOpt))
-        dbgSaveSingleScattering=true;
+    if(parser.isSet(dbgSaveScatDensityOrder2FromGroundOpt))
+        dbgSaveScatDensityOrder2FromGround=true;
+    if(parser.isSet(dbgSaveScatDensityOrder2FullOpt))
+        dbgSaveScatDensityOrder2Full=true;
 
     const auto posArgs=parser.positionalArguments();
     if(posArgs.size()>1)
@@ -379,6 +386,8 @@ void handleCmdLine()
             numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="radial integration points")
             radialIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="angular integration points per half revolution")
+            angularIntegrationPointsPerHalfRevolution=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for cos(sza)")
             irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for altitude")
@@ -411,6 +420,12 @@ void handleCmdLine()
             scatterers.emplace_back(parseScatterer(stream, scattererDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
         else if(key.contains(absorberDescriptionKey))
             absorbers.emplace_back(parseAbsorber(stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
+        else if(key=="scattering orders")
+            scatteringOrdersToCompute=getQuantity(value,1,100, DimensionlessQuantity{},atmoDescrFileName,lineNumber);
+        else if(key=="ground albedo")
+        {
+            groundAlbedo=getSpectrum(value, 0, 1, atmoDescrFileName, lineNumber);
+        }
         else
             std::cerr << "WARNING: Unknown key: " << key.toStdString() << "\n";
     }
@@ -428,5 +443,10 @@ void handleCmdLine()
     {
         std::cerr << "Solar irradiance at TOA isn't specified in atmosphere description\n";
         throw MustQuit{};
+    }
+    if(groundAlbedo.empty())
+    {
+        std::cerr << "Warning: ground albedo was not specified, assuming 100% white.\n";
+        groundAlbedo=std::vector<glm::vec4>(allWavelengths.size(), glm::vec4(1));
     }
 }
