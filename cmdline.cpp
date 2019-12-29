@@ -321,7 +321,18 @@ void handleCmdLine()
     parser.addPositionalArgument(atmoDescrOpt, "Atmosphere description file", "atmosphere-description.atmo");
     parser.addVersionOption();
     parser.addHelpOption();
+    const QCommandLineOption dbgSaveTransmittancePngOpt("save-xmittance-png","Save transmittance textures as PNG (for debugging)");
+    const QCommandLineOption dbgSaveDirectGroundIrradiancePngOpt("save-dir-gnd-irr-png","Save direct ground irradiance textures as PNG (for debugging)");
+    const QCommandLineOption dbgSaveSingleScatteringOpt("save-single-scattering","Save single scattering textures (for debugging)");
+    parser.addOptions({dbgSaveTransmittancePngOpt,dbgSaveDirectGroundIrradiancePngOpt,dbgSaveSingleScatteringOpt});
     parser.process(*qApp);
+
+    if(parser.isSet(dbgSaveTransmittancePngOpt))
+        dbgSaveTransmittancePng=true;
+    if(parser.isSet(dbgSaveDirectGroundIrradiancePngOpt))
+        dbgSaveDirectGroundIrradiancePng=true;
+    if(parser.isSet(dbgSaveSingleScatteringOpt))
+        dbgSaveSingleScattering=true;
 
     const auto posArgs=parser.positionalArguments();
     if(posArgs.size()>1)
@@ -334,6 +345,7 @@ void handleCmdLine()
         std::cerr << parser.helpText().toStdString();
         throw MustQuit{};
     }
+
     const auto atmoDescrFileName=posArgs[0];
     QFile atmoDescr(atmoDescrFileName);
     if(!atmoDescr.open(QIODevice::ReadOnly))

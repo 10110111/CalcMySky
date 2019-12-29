@@ -47,12 +47,12 @@ void computeTransmittance(glm::vec4 const& wavelengths, int texIndex)
     out.write(reinterpret_cast<const char*>(&h), sizeof h);
     out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
 
-    if(false) // for debugging
+    if(dbgSaveTransmittancePng)
     {
         QImage image(transmittanceTexW, transmittanceTexH, QImage::Format_RGBA8888);
         image.fill(Qt::magenta);
         gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-        image.mirrored().save(QString("/tmp/transmittance-png-%1.png").arg(texIndex));
+        image.mirrored().save(QString("%1/transmittance-png-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
     }
     gl.glFinish();
     std::cerr << "done\n";
@@ -91,12 +91,12 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     out.write(reinterpret_cast<const char*>(&h), sizeof h);
     out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
 
-    if(false) // for debugging
+    if(dbgSaveDirectGroundIrradiancePng)
     {
         QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
         image.fill(Qt::magenta);
         gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-        image.mirrored().save(QString("/tmp/irradiance-png-%1.png").arg(texIndex));
+        image.mirrored().save(QString("%1/irradiance-png-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
     }
     gl.glFinish();
     std::cerr << "done\n";
@@ -155,9 +155,9 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         }
         std::cerr << "; done\n";
 
-        if(false) // for debugging
+        if(dbgSaveSingleScattering)
         {
-            std::cerr << "Saving texture...";
+            std::cerr << "Saving single scattering texture...";
             const uint16_t w=scatteringTextureSize[0], h=scatteringTextureSize[1],
                            d=scatteringTextureSize[2], q=scatteringTextureSize[3];
             std::vector<glm::vec4> pixels(w*h*d*q);

@@ -10,6 +10,10 @@
 #include <glm/glm.hpp>
 #include "const.hpp"
 
+inline bool dbgSaveTransmittancePng=false;
+inline bool dbgSaveDirectGroundIrradiancePng=false;
+inline bool dbgSaveSingleScattering=false;
+
 constexpr unsigned pointsPerWavelengthItem=4;
 inline std::vector<glm::vec4> allWavelengths;
 inline std::vector<glm::vec4> solarIrradianceAtTOA;
