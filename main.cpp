@@ -39,13 +39,9 @@ void computeTransmittance(glm::vec4 const& wavelengths, int texIndex)
     gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
     renderUntexturedQuad();
 
-    std::vector<glm::vec4> pixels(transmittanceTexW*transmittanceTexH);
-    gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_FLOAT,pixels.data());
-    std::ofstream out(textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32");
-    const std::uint16_t w=transmittanceTexW, h=transmittanceTexH;
-    out.write(reinterpret_cast<const char*>(&w), sizeof w);
-    out.write(reinterpret_cast<const char*>(&h), sizeof h);
-    out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+    saveTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE],"transmittance texture",
+                textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32",
+                {float(transmittanceTexW), float(transmittanceTexH)});
 
     if(dbgSaveTransmittancePng)
     {
@@ -83,13 +79,9 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
     renderUntexturedQuad();
 
-    std::vector<glm::vec4> pixels(irradianceTexW*irradianceTexH);
-    gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_FLOAT,pixels.data());
-    std::ofstream out(textureOutputDir+"/irradiance-"+std::to_string(texIndex)+".f32");
-    const std::uint16_t w=irradianceTexW, h=irradianceTexH;
-    out.write(reinterpret_cast<const char*>(&w), sizeof w);
-    out.write(reinterpret_cast<const char*>(&h), sizeof h);
-    out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+    saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
+                textureOutputDir+"/irradiance-"+std::to_string(texIndex)+".f32",
+                {float(irradianceTexW), float(irradianceTexH)});
 
     if(dbgSaveDirectGroundIrradiancePng)
     {
