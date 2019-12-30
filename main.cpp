@@ -157,20 +157,10 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
 
         if(dbgSaveSingleScattering)
         {
-            std::cerr << "Saving single scattering texture...";
-            const uint16_t w=scatteringTextureSize[0], h=scatteringTextureSize[1],
-                           d=scatteringTextureSize[2], q=scatteringTextureSize[3];
-            std::vector<glm::vec4> pixels(w*h*d*q);
-            gl.glActiveTexture(GL_TEXTURE0);
-            gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_FIRST_SCATTERING]);
-            gl.glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
-            std::ofstream out(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32");
-            out.write(reinterpret_cast<const char*>(&w), sizeof w);
-            out.write(reinterpret_cast<const char*>(&h), sizeof h);
-            out.write(reinterpret_cast<const char*>(&d), sizeof d);
-            out.write(reinterpret_cast<const char*>(&q), sizeof q);
-            out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
-            std::cerr << " done\n";
+            saveTexture(GL_TEXTURE_3D,textures[TEX_FIRST_SCATTERING],
+                        "single scattering texture",
+                        textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
+                        {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
         }
     }
 }
