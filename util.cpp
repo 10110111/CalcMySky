@@ -1,5 +1,6 @@
 #include "util.hpp"
 
+#include <fstream>
 #include <iostream>
 
 #include "data.hpp"
@@ -77,4 +78,25 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
         std::cerr << "[FATAL] " << message.toStdString() << "\n";
         break;
     }
+}
+
+void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
+                 const std::string_view path, std::vector<float> const& sizes)
+{
+    std::cerr << "Saving " << name << " to \"" << path << "\"...";
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(target,texture);
+    int w=1,h=1,d=1;
+    gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_WIDTH,&w);
+    if(target==GL_TEXTURE_2D || target==GL_TEXTURE_3D)
+        gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_HEIGHT,&h);
+    if(target==GL_TEXTURE_3D)
+        gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_DEPTH,&d);
+    std::vector<glm::vec4> pixels(w*h*d);
+    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, pixels.data());
+    std::ofstream out{std::string(path)};
+    for(const uint16_t s : sizes)
+        out.write(reinterpret_cast<const char*>(&s), sizeof s);
+    out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+    std::cerr << " done\n";
 }

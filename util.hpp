@@ -23,6 +23,7 @@ inline QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(d
 void renderUntexturedQuad();
 void checkFramebufferStatus(const char*const fboDescription);
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
+void saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path, std::vector<float> const& sizes);
 
 // Function useful only for debugging
 void dumpActiveUniforms(const GLuint program);
