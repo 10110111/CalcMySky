@@ -39,6 +39,9 @@ void computeTransmittance(glm::vec4 const& wavelengths, int texIndex)
     gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
     renderUntexturedQuad();
 
+    gl.glFinish();
+    std::cerr << "done\n";
+
     saveTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE],"transmittance texture",
                 textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32",
                 {float(transmittanceTexW), float(transmittanceTexH)});
@@ -50,8 +53,6 @@ void computeTransmittance(glm::vec4 const& wavelengths, int texIndex)
         gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
         image.mirrored().save(QString("%1/transmittance-png-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
     }
-    gl.glFinish();
-    std::cerr << "done\n";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
@@ -79,6 +80,9 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
     renderUntexturedQuad();
 
+    gl.glFinish();
+    std::cerr << "done\n";
+
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                 textureOutputDir+"/irradiance-"+std::to_string(texIndex)+".f32",
                 {float(irradianceTexW), float(irradianceTexH)});
@@ -90,8 +94,6 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
         gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
         image.mirrored().save(QString("%1/irradiance-png-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
     }
-    gl.glFinish();
-    std::cerr << "done\n";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
