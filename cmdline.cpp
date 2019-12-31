@@ -322,15 +322,15 @@ void handleCmdLine()
     parser.addVersionOption();
     parser.addHelpOption();
     const QCommandLineOption dbgSaveTransmittancePngOpt("save-xmittance-png","Save transmittance textures as PNG (for debugging)");
-    const QCommandLineOption dbgSaveDirectGroundIrradiancePngOpt("save-dir-gnd-irr-png","Save direct ground irradiance textures as PNG (for debugging)");
+    const QCommandLineOption dbgSaveDirectGroundIrradianceOpt("save-dir-gnd-irr","Save direct ground irradiance textures (for debugging)");
     const QCommandLineOption dbgSaveSingleScatteringOpt("save-single-scattering","Save single scattering textures (for debugging)");
-    parser.addOptions({dbgSaveTransmittancePngOpt,dbgSaveDirectGroundIrradiancePngOpt,dbgSaveSingleScatteringOpt});
+    parser.addOptions({dbgSaveTransmittancePngOpt,dbgSaveDirectGroundIrradianceOpt,dbgSaveSingleScatteringOpt});
     parser.process(*qApp);
 
     if(parser.isSet(dbgSaveTransmittancePngOpt))
         dbgSaveTransmittancePng=true;
-    if(parser.isSet(dbgSaveDirectGroundIrradiancePngOpt))
-        dbgSaveDirectGroundIrradiancePng=true;
+    if(parser.isSet(dbgSaveDirectGroundIrradianceOpt))
+        dbgSaveDirectGroundIrradiance=true;
     if(parser.isSet(dbgSaveSingleScatteringOpt))
         dbgSaveSingleScattering=true;
 

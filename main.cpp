@@ -83,12 +83,12 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glFinish();
     std::cerr << "done\n";
 
-    saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
-                textureOutputDir+"/direct-irradiance-"+std::to_string(texIndex)+".f32",
-                {float(irradianceTexW), float(irradianceTexH)});
-
-    if(dbgSaveDirectGroundIrradiancePng)
+    if(dbgSaveDirectGroundIrradiance)
     {
+        saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
+                    textureOutputDir+"/direct-irradiance-"+std::to_string(texIndex)+".f32",
+                    {float(irradianceTexW), float(irradianceTexH)});
+
         QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
         image.fill(Qt::magenta);
         gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
