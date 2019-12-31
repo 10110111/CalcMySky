@@ -379,9 +379,9 @@ void handleCmdLine()
             numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="radial integration points")
             radialIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
-        else if(key=="irradiance texture size for altitude")
-            irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for cos(sza)")
+            irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="irradiance texture size for altitude")
             irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for cos(vza)")
             scatteringTextureSize[0]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
