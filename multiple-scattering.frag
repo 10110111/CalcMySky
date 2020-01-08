@@ -9,6 +9,22 @@
 
 uniform sampler3D scatteringDensityTexture;
 
+bool dbgDataPresent=false;
+bool debugDataPresent()
+{
+    return dbgDataPresent;
+}
+vec3 dbgData;
+vec3 debugData()
+{
+    return dbgData;
+}
+void setDebugData(float a,float b, float c)
+{
+    dbgDataPresent=true;
+    dbgData=vec3(a,b,c);
+}
+
 vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosViewZenithAngle, const float dotViewSun,
                               const float altitude, const int scatteringOrder, const bool radiationIsFromGroundOnly)
 {
