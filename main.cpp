@@ -156,8 +156,10 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
     }
 }
 
-void computeMultipleScattering(const int texIndex)
+void computeScatteringDensityOrder2(const int texIndex)
 {
+    constexpr int scatteringOrder=2;
+
     std::unique_ptr<QOpenGLShaderProgram> compScatDensityProgram;
     {
         // Make a stub for current phase function. It's not used for ground radiance, but we need it to avoid linking errors.
@@ -204,88 +206,98 @@ void computeMultipleScattering(const int texIndex)
     gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
     compScatDensityProgram->setUniformValue("transmittanceTexture", transmittanceTextureSampler);
 
+    gl.glActiveTexture(GL_TEXTURE1);
+    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_DELTA_IRRADIANCE]);
+    compScatDensityProgram->setUniformValue("irradianceTexture", 1);
+
+    gl.glDisable(GL_BLEND);
+    std::cerr << " Computing scattering density layers for radiation from the ground... ";
+    for(int layer=0; layer<scatTexDepth; ++layer)
+    {
+        std::cerr << layer;
+        compScatDensityProgram->setUniformValue("layer",layer);
+        renderUntexturedQuad();
+        gl.glFinish();
+        if(layer+1<scatTexDepth) std::cerr << ',';
+    }
+    std::cerr << "; done\n";
+
+    if(dbgSaveScatDensityOrder2FromGround)
+    {
+        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
+                    "order 2 scattering density from ground texture",
+                    textureOutputDir+"/scattering-density2-from-ground-"+std::to_string(texIndex)+".f32",
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+    }
+
+    gl.glBlendFunc(GL_ONE, GL_ONE);
+    gl.glEnable(GL_BLEND);
+    for(const auto& scatterer : scatterers)
+    {
+        {
+            const auto src=makePhaseFunctionsSrc()+
+                "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
+            allShaders.erase(PHASE_FUNCTIONS_SHADER_FILENAME);
+            virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
+
+            allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
+            virtualSourceFiles.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
+            virtualSourceFiles.emplace(COMPUTE_SCATTERING_DENSITY_FILENAME,
+                                       getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME)
+                                            .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
+                                            .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder)));
+            // recompile the program
+            compScatDensityProgram=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
+                                                        "scattering density computation shader program", true);
+        }
+        compScatDensityProgram->bind();
+
+        const auto firstScatteringTextureSampler=1;
+        gl.glActiveTexture(GL_TEXTURE0+firstScatteringTextureSampler);
+        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_FIRST_SCATTERING]);
+        loadTexture(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
+                    scatTexWidth,scatTexHeight,scatTexDepth);
+        compScatDensityProgram->setUniformValue("firstScatteringTexture",firstScatteringTextureSampler);
+
+        compScatDensityProgram->setUniformValue("altitudeMin", altitudeMin);
+        compScatDensityProgram->setUniformValue("altitudeMax", altitudeMax);
+        std::cerr << " Computing scattering density layers for scatterer \"" << scatterer.name.toStdString() << "\"... ";
+        for(int layer=0; layer<scatTexDepth; ++layer)
+        {
+            std::cerr << layer;
+            compScatDensityProgram->setUniformValue("layer",layer);
+            renderUntexturedQuad();
+            gl.glFinish();
+            if(layer+1<scatTexDepth) std::cerr << ',';
+        }
+        std::cerr << "; done\n";
+    }
+    if(dbgSaveScatDensityOrder2Full)
+    {
+        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
+                    "order 2 scattering density",
+                    textureOutputDir+"/scattering-density2-full-"+std::to_string(texIndex)+".f32",
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+    }
+}
+
+void computeScatteringDensityHigherOrder(const int scatteringOrder, const int texIndex)
+{
+    (void)(scatteringOrder+texIndex);// TODO: implement
+}
+
+void computeMultipleScattering(const int texIndex)
+{
     for(int scatteringOrder=2; scatteringOrder<=scatteringOrdersToCompute; ++scatteringOrder)
     {
         std::cerr << "Computing scattering order " << scatteringOrder << "...\n";
         if(scatteringOrder==2)
         {
-            gl.glActiveTexture(GL_TEXTURE1);
-            gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_DELTA_IRRADIANCE]);
-            compScatDensityProgram->setUniformValue("irradianceTexture", 1);
-
-            gl.glDisable(GL_BLEND);
-            std::cerr << " Computing scattering density layers for radiation from the ground... ";
-            for(int layer=0; layer<scatTexDepth; ++layer)
-            {
-                std::cerr << layer;
-                compScatDensityProgram->setUniformValue("layer",layer);
-                renderUntexturedQuad();
-                gl.glFinish();
-                if(layer+1<scatTexDepth) std::cerr << ',';
-            }
-            std::cerr << "; done\n";
-
-            if(dbgSaveScatDensityOrder2FromGround)
-            {
-                saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
-                            "order 2 scattering density from ground texture",
-                            textureOutputDir+"/scattering-density2-from-ground-"+std::to_string(texIndex)+".f32",
-                            {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
-            }
-
-            gl.glBlendFunc(GL_ONE, GL_ONE);
-            gl.glEnable(GL_BLEND);
-            for(const auto& scatterer : scatterers)
-            {
-                {
-                    const auto src=makePhaseFunctionsSrc()+
-                        "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
-                    allShaders.erase(PHASE_FUNCTIONS_SHADER_FILENAME);
-                    virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
-
-                    allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
-                    virtualSourceFiles.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
-                    virtualSourceFiles.emplace(COMPUTE_SCATTERING_DENSITY_FILENAME,
-                                               getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME)
-                                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
-                                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder)));
-                    // recompile the program
-                    compScatDensityProgram=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
-                                                                "scattering density computation shader program", true);
-                }
-                compScatDensityProgram->bind();
-
-                const auto firstScatteringTextureSampler=1;
-                gl.glActiveTexture(GL_TEXTURE0+firstScatteringTextureSampler);
-                gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_FIRST_SCATTERING]);
-                loadTexture(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
-                            scatTexWidth,scatTexHeight,scatTexDepth);
-                compScatDensityProgram->setUniformValue("firstScatteringTexture",firstScatteringTextureSampler);
-
-                compScatDensityProgram->setUniformValue("altitudeMin", altitudeMin);
-                compScatDensityProgram->setUniformValue("altitudeMax", altitudeMax);
-                std::cerr << " Computing scattering density layers for scatterer \"" << scatterer.name.toStdString() << "\"... ";
-                for(int layer=0; layer<scatTexDepth; ++layer)
-                {
-                    std::cerr << layer;
-                    compScatDensityProgram->setUniformValue("layer",layer);
-                    renderUntexturedQuad();
-                    gl.glFinish();
-                    if(layer+1<scatTexDepth) std::cerr << ',';
-                }
-                std::cerr << "; done\n";
-            }
-            if(dbgSaveScatDensityOrder2Full)
-            {
-                saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
-                            "order 2 scattering density",
-                            textureOutputDir+"/scattering-density2-full-"+std::to_string(texIndex)+".f32",
-                            {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
-            }
+            computeScatteringDensityOrder2(texIndex);
         }
         else
         {
-            // TODO: implement
+            computeScatteringDensityHigherOrder(scatteringOrder,texIndex);
         }
     }
 }
