@@ -21,7 +21,7 @@
 
 QOpenGLFunctions_3_3_Core gl;
 
-void computeTransmittance(glm::vec4 const& wavelengths, int texIndex)
+void computeTransmittance(const int texIndex)
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
 
@@ -359,7 +359,7 @@ int main(int argc, char** argv)
                 makeTransmittanceComputeFunctionsSrc(allWavelengths[texIndex]);
             virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc();
             virtualSourceFiles[TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME]=makeTotalScatteringCoefSrc();
-            computeTransmittance(allWavelengths[texIndex], texIndex);
+            computeTransmittance(texIndex);
             // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
             // sky color. Irradiance will also be needed when we want to draw the ground itself.
             computeDirectGroundIrradiance(QVec(solarIrradianceAtTOA[texIndex]), texIndex);

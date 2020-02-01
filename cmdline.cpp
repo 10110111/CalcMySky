@@ -91,7 +91,7 @@ struct AreaQuantity : Quantity
 
 struct DimensionlessQuantity {};
 
-double getQuantity(QString const& value, double min, double max, DimensionlessQuantity const& quantity, QString const& filename, int lineNumber)
+double getQuantity(QString const& value, double min, double max, DimensionlessQuantity const&, QString const& filename, int lineNumber)
 {
     bool ok;
     const auto x=value.toDouble(&ok);

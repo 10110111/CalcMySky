@@ -133,8 +133,6 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
     return exp(-depth);
 }
 )";
-    constexpr char mainFunc[]=R"(
-)";
     return head+makeDensitiesFunctions()+opticalDepthFunctions+computeFunction;
 }
 
