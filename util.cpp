@@ -77,6 +77,9 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
     case QtFatalMsg:
         std::cerr << "[FATAL] " << message.toStdString() << "\n";
         break;
+    case QtInfoMsg:
+        std::cerr << "[INFO] " << message.toStdString() << "\n";
+        break;
     }
 }
 
