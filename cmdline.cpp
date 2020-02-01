@@ -177,7 +177,7 @@ std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const
                                  QString const& filename, const int lineNumber, bool checkSize=true)
 {
     const auto items=line.split(',');
-    if(checkSize && items.size() != allWavelengths.size()*pointsPerWavelengthItem)
+    if(checkSize && std::size_t(items.size()) != allWavelengths.size()*pointsPerWavelengthItem)
     {
             std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are " << allWavelengths.size()*pointsPerWavelengthItem << " wavelengths\n";
             throw MustQuit{};

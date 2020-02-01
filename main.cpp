@@ -351,7 +351,7 @@ int main(int argc, char** argv)
         }
 
         init();
-        for(int texIndex=0;texIndex<allWavelengths.size();++texIndex)
+        for(unsigned texIndex=0;texIndex<allWavelengths.size();++texIndex)
         {
             allShaders.clear();
             initConstHeader(allWavelengths[texIndex]);
