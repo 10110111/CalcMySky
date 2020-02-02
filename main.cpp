@@ -175,7 +175,7 @@ void computeScatteringDensityOrder2(const int texIndex)
         virtualSourceFiles.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
         virtualSourceFiles.emplace(COMPUTE_SCATTERING_DENSITY_FILENAME,
             getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME).replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "true")
-                                                             .replace(QRegExp("\\bSCATTERING_ORDER\\b"), "2"));
+                                                             .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder)));
         // recompile the program
         compScatDensityProgram=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
                                                     "scattering density computation shader program", true);
