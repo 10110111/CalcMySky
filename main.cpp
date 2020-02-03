@@ -28,10 +28,7 @@ void computeTransmittance(const int texIndex)
     std::cerr << "Computing transmittance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
     assert(fbos[FBO_TRANSMITTANCE]);
-    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE]);
-    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,transmittanceTexW,transmittanceTexH,
-                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glBindTexture(GL_TEXTURE_2D,0);
+    setupTexture(TEX_TRANSMITTANCE,transmittanceTexW,transmittanceTexH);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_TRANSMITTANCE],0);
     checkFramebufferStatus("framebuffer for transmittance texture");
 
@@ -62,10 +59,7 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
 
     std::cerr << "Computing direct ground irradiance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
-    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE]);
-    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,irradianceTexW,irradianceTexH,
-                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glBindTexture(GL_TEXTURE_2D,0);
+    setupTexture(TEX_DELTA_IRRADIANCE,irradianceTexW,irradianceTexH);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_IRRADIANCE],0);
     checkFramebufferStatus("framebuffer for irradiance texture");
 
@@ -126,10 +120,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
 
-        gl.glActiveTexture(GL_TEXTURE0);
-        gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_FIRST_SCATTERING]);
-        gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
-                        0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        setupTexture(TEX_FIRST_SCATTERING,scatTexWidth,scatTexHeight,scatTexDepth);
         gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
                                 textures[TEX_FIRST_SCATTERING],0);
         checkFramebufferStatus("framebuffer for one-order Rayleigh scattering");
@@ -193,10 +184,7 @@ void computeScatteringDensityOrder2(const int texIndex)
     compScatDensityProgram->setUniformValue("altitudeMin", altitudeMin);
     compScatDensityProgram->setUniformValue("altitudeMax", altitudeMax);
 
-    gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,scatTexWidth,scatTexHeight,scatTexDepth,
-                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    setupTexture(TEX_DELTA_SCATTERING_DENSITY,scatTexWidth,scatTexHeight,scatTexDepth);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
                             textures[TEX_DELTA_SCATTERING_DENSITY],0);
     checkFramebufferStatus("framebuffer for scattering density");

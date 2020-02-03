@@ -24,7 +24,7 @@ inline std::map<QString, QString> virtualSourceFiles;
 inline std::map<QString, QString> virtualHeaderFiles;
 
 inline GLuint vao, vbo;
-enum
+enum FBOId
 {
     FBO_TRANSMITTANCE,
     FBO_IRRADIANCE,
@@ -34,7 +34,7 @@ enum
     FBO_COUNT
 };
 inline GLuint fbos[FBO_COUNT];
-enum
+enum TextureId
 {
     TEX_TRANSMITTANCE,
     TEX_DELTA_IRRADIANCE,
