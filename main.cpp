@@ -61,7 +61,10 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
     setupTexture(TEX_DELTA_IRRADIANCE,irradianceTexW,irradianceTexH);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_IRRADIANCE],0);
+    setupTexture(TEX_IRRADIANCE,irradianceTexW,irradianceTexH);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,textures[TEX_IRRADIANCE],0);
     checkFramebufferStatus("framebuffer for irradiance texture");
+    setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
 
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE]);
@@ -80,15 +83,22 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     if(dbgSaveDirectGroundIrradiance)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/direct-irradiance-"+std::to_string(texIndex)+".f32",
+                    textureOutputDir+"/irradiance-delta-direct-"+std::to_string(texIndex)+".f32",
                     {float(irradianceTexW), float(irradianceTexH)});
-
         QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
         image.fill(Qt::magenta);
-        gl.glReadPixels(0,0,irradianceTexW,irradianceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-        image.mirrored().save(QString("%1/direct-irradiance-png-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
+        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+        image.mirrored().save(QString("%1/irradiance-delta-direct-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
+
+        saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
+                    textureOutputDir+"/irradiance-accum-direct-"+std::to_string(texIndex)+".f32",
+                    {float(irradianceTexW), float(irradianceTexH)});
+        image.fill(Qt::magenta);
+        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+        image.mirrored().save(QString("%1/irradiance-accum-direct-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+    setDrawBuffers({GL_COLOR_ATTACHMENT0});
 }
 
 void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& solarIrradianceAtTOA, const int texIndex)

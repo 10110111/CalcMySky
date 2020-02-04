@@ -34,6 +34,11 @@ inline void setupTexture(TextureId id, unsigned width, unsigned height, unsigned
     gl.glBindTexture(GL_TEXTURE_3D,0);
 }
 
+inline void setDrawBuffers(std::vector<GLenum> const& bufs)
+{
+    gl.glDrawBuffers(bufs.size(), bufs.data());
+}
+
 void renderUntexturedQuad();
 void checkFramebufferStatus(const char*const fboDescription);
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);

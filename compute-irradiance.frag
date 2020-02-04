@@ -6,7 +6,8 @@
 #include "texture-coordinates.h.glsl"
 
 in vec3 position;
-out vec4 color;
+layout(location=0) out vec4 deltaIrradianceOutput;
+layout(location=1) out vec4 irradianceOutput;
 
 uniform vec4 solarIrradianceAtTOA;
 
@@ -29,5 +30,7 @@ void main()
 {
     const vec2 texCoord=0.5*position.xy+vec2(0.5);
     const IrradianceTexVars vars=irradianceTexCoordToTexVars(texCoord);
-    color=computeDirectGroundIrradiance(vars.cosSunZenithAngle, vars.altitude);
+    const vec4 color=computeDirectGroundIrradiance(vars.cosSunZenithAngle, vars.altitude);
+    deltaIrradianceOutput=color;
+    irradianceOutput=color;
 }
