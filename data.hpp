@@ -11,7 +11,7 @@
 #include "const.hpp"
 
 inline bool dbgSaveTransmittancePng=false;
-inline bool dbgSaveDirectGroundIrradiance=false;
+inline bool dbgSaveGroundIrradiance=false;
 inline bool dbgSaveScatDensityOrder2FromGround=false;
 inline bool dbgSaveScatDensityOrder2Full=false;
 

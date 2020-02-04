@@ -322,11 +322,11 @@ void handleCmdLine()
     parser.addVersionOption();
     parser.addHelpOption();
     const QCommandLineOption dbgSaveTransmittancePngOpt("save-xmittance-png","Save transmittance textures as PNG (for debugging)");
-    const QCommandLineOption dbgSaveDirectGroundIrradianceOpt("save-dir-gnd-irr","Save direct ground irradiance textures (for debugging)");
+    const QCommandLineOption dbgSaveGroundIrradianceOpt("save-irradiance","Save ground irradiance textures as F32 and PNG (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOrder2FromGroundOpt("save-scat-density2-from-ground","Save order 2 scattering density from ground (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOrder2FullOpt("save-scat-density2-full","Save order 2 scattering density full texture (for debugging)");
     parser.addOptions({dbgSaveTransmittancePngOpt,
-                       dbgSaveDirectGroundIrradianceOpt,
+                       dbgSaveGroundIrradianceOpt,
                        dbgSaveScatDensityOrder2FromGroundOpt,
                        dbgSaveScatDensityOrder2FullOpt,
                       });
@@ -334,8 +334,8 @@ void handleCmdLine()
 
     if(parser.isSet(dbgSaveTransmittancePngOpt))
         dbgSaveTransmittancePng=true;
-    if(parser.isSet(dbgSaveDirectGroundIrradianceOpt))
-        dbgSaveDirectGroundIrradiance=true;
+    if(parser.isSet(dbgSaveGroundIrradianceOpt))
+        dbgSaveGroundIrradiance=true;
     if(parser.isSet(dbgSaveScatDensityOrder2FromGroundOpt))
         dbgSaveScatDensityOrder2FromGround=true;
     if(parser.isSet(dbgSaveScatDensityOrder2FullOpt))

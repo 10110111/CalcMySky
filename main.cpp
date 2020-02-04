@@ -80,7 +80,7 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glFinish();
     std::cerr << "done\n";
 
-    if(dbgSaveDirectGroundIrradiance)
+    if(dbgSaveGroundIrradiance)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                     textureOutputDir+"/irradiance-delta-direct-"+std::to_string(texIndex)+".f32",
