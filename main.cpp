@@ -185,8 +185,7 @@ void computeScatteringDensityOrder2(const int texIndex)
     compScatDensityProgram->setUniformValue("altitudeMax", altitudeMax);
 
     setupTexture(TEX_DELTA_SCATTERING_DENSITY,scatTexWidth,scatTexHeight,scatTexDepth);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
-                            textures[TEX_DELTA_SCATTERING_DENSITY],0);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
     checkFramebufferStatus("framebuffer for scattering density");
 
     const auto transmittanceTextureSampler=0;
