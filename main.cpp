@@ -55,7 +55,7 @@ void computeTransmittance(const int texIndex)
 
 void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
-    const auto program=compileShaderProgram("compute-irradiance.frag", "direct ground irradiance computation shader program");
+    const auto program=compileShaderProgram("compute-direct-irradiance.frag", "direct ground irradiance computation shader program");
 
     std::cerr << "Computing direct ground irradiance... ";
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
