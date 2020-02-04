@@ -83,19 +83,19 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     if(dbgSaveGroundIrradiance)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-delta-direct-"+std::to_string(texIndex)+".f32",
+                    textureOutputDir+"/irradiance-delta-order0-"+std::to_string(texIndex)+".f32",
                     {float(irradianceTexW), float(irradianceTexH)});
         QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
         image.fill(Qt::magenta);
         gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-        image.mirrored().save(QString("%1/irradiance-delta-direct-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
+        image.mirrored().save(QString("%1/irradiance-delta-order0-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
 
         saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-accum-direct-"+std::to_string(texIndex)+".f32",
+                    textureOutputDir+"/irradiance-accum-order0-"+std::to_string(texIndex)+".f32",
                     {float(irradianceTexW), float(irradianceTexH)});
         image.fill(Qt::magenta);
         gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-        image.mirrored().save(QString("%1/irradiance-accum-direct-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
+        image.mirrored().save(QString("%1/irradiance-accum-order0-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
     setDrawBuffers({GL_COLOR_ATTACHMENT0});
