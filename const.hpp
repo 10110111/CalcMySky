@@ -19,5 +19,6 @@ constexpr char DENSITIES_HEADER_FILENAME[]="densities.h.glsl";
 constexpr char PHASE_FUNCTIONS_HEADER_FILENAME[]="phase-functions.h.glsl";
 constexpr char TOTAL_SCATTERING_COEFFICIENT_HEADER_FILENAME[]="total-scattering-coefficient.h.glsl";
 constexpr char COMPUTE_SCATTERING_DENSITY_FILENAME[]="compute-scattering-density.frag";
+constexpr char COMPUTE_INDIRECT_IRRADIANCE_FILENAME[]="compute-indirect-irradiance.frag";
 
 #endif

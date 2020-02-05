@@ -272,6 +272,69 @@ void computeScatteringDensityOrder2(const int texIndex)
     }
 }
 
+void computeIndirectIrradianceOrder1(const int texIndex)
+{
+    constexpr int scatteringOrder=2;
+
+    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
+
+    gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
+    gl.glDisablei(GL_BLEND, 0); // First scatterer overwrites delta-irradiance-texture
+    gl.glEnablei(GL_BLEND, 1); // Total irradiance is always accumulated
+    for(const auto& scatterer : scatterers)
+    {
+        allShaders.erase(PHASE_FUNCTIONS_SHADER_FILENAME);
+        virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
+            "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
+
+        allShaders.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
+        virtualSourceFiles.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
+        virtualSourceFiles.emplace(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
+                                   getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME)
+                                        .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1)));
+        std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
+                                                                           "indirect irradiance computation shader program");
+        program->bind();
+
+        const auto firstScatteringTextureSampler=1;
+        gl.glActiveTexture(GL_TEXTURE0+firstScatteringTextureSampler);
+        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_FIRST_SCATTERING]);
+        loadTexture(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
+                    scatTexWidth(),scatTexHeight(),scatTexDepth());
+        program->setUniformValue("firstScatteringTexture",firstScatteringTextureSampler);
+
+        program->setUniformValue("altitudeMin", altitudeMin);
+        program->setUniformValue("altitudeMax", altitudeMax);
+
+        std::cerr << " Computing indirect irradiance for scatterer \"" << scatterer.name.toStdString() << "\"... ";
+        renderUntexturedQuad();
+        gl.glFinish();
+        std::cerr << "done\n";
+
+        gl.glEnablei(GL_BLEND, 0); // Second and subsequent scatterers blend into delta-irradiance-texture
+    }
+    if(dbgSaveGroundIrradiance)
+    {
+        saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
+                    textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                    {float(irradianceTexW), float(irradianceTexH)});
+        QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
+        image.fill(Qt::magenta);
+        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+        image.mirrored().save(QString("%1/irradiance-delta-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
+
+        saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
+                    textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                    {float(irradianceTexW), float(irradianceTexH)});
+        image.fill(Qt::magenta);
+        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+        image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
+    }
+    setDrawBuffers({GL_COLOR_ATTACHMENT0});
+}
+
 void computeScatteringDensityHigherOrder(const int scatteringOrder, const int texIndex)
 {
     (void)(scatteringOrder+texIndex);// TODO: implement
@@ -285,6 +348,7 @@ void computeMultipleScattering(const int texIndex)
         if(scatteringOrder==2)
         {
             computeScatteringDensityOrder2(texIndex);
+            computeIndirectIrradianceOrder1(texIndex);
         }
         else
         {
