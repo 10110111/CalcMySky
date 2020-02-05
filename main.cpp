@@ -273,6 +273,16 @@ void computeScatteringDensityOrder2(const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
+void computeScatteringDensity(const int scatteringOrder, const int texIndex)
+{
+    if(scatteringOrder==2)
+    {
+        computeScatteringDensityOrder2(texIndex);
+        return;
+    }
+    // TODO: implement the rest
+}
+
 void computeIndirectIrradianceOrder1(const int texIndex)
 {
     constexpr int scatteringOrder=2;
@@ -338,9 +348,19 @@ void computeIndirectIrradianceOrder1(const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeScatteringDensityHigherOrder(const int scatteringOrder, const int texIndex)
+void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
 {
-    (void)(scatteringOrder+texIndex);// TODO: implement
+    if(scatteringOrder==2)
+    {
+        computeIndirectIrradianceOrder1(texIndex);
+        return;
+    }
+    // TODO: implement the rest
+}
+
+void computeMultipleScatteringFromDensity(const int texIndex)
+{
+    // TODO: implement
 }
 
 void computeMultipleScattering(const int texIndex)
@@ -348,15 +368,9 @@ void computeMultipleScattering(const int texIndex)
     for(int scatteringOrder=2; scatteringOrder<=scatteringOrdersToCompute; ++scatteringOrder)
     {
         std::cerr << "Computing scattering order " << scatteringOrder << "...\n";
-        if(scatteringOrder==2)
-        {
-            computeScatteringDensityOrder2(texIndex);
-            computeIndirectIrradianceOrder1(texIndex);
-        }
-        else
-        {
-            computeScatteringDensityHigherOrder(scatteringOrder,texIndex);
-        }
+        computeScatteringDensity(scatteringOrder,texIndex);
+        computeIndirectIrradiance(scatteringOrder,texIndex);
+        computeMultipleScatteringFromDensity(texIndex);
     }
 }
 
