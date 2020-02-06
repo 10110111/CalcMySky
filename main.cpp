@@ -357,9 +357,90 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     // TODO: implement the rest
 }
 
-void computeMultipleScatteringFromDensity(const int texIndex)
+void computeMultipleScatteringFromDensity(const int scatteringOrder, const int texIndex)
 {
-    // TODO: implement
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
+    setupTexture(TEX_DELTA_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_DELTA_SCATTERING],0);
+    checkFramebufferStatus("framebuffer for delta multiple scattering");
+
+    gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
+
+    {
+        const auto program=compileShaderProgram("compute-multiple-scattering.frag",
+                                                "multiple scattering computation shader program",
+                                                true);
+        program->bind();
+
+        const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
+        program->setUniformValue("altitudeMin", altitudeMin);
+        program->setUniformValue("altitudeMax", altitudeMax);
+
+        gl.glActiveTexture(GL_TEXTURE0);
+        gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
+        program->setUniformValue("transmittanceTexture", 0);
+
+        gl.glActiveTexture(GL_TEXTURE1);
+        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING_DENSITY]);
+        program->setUniformValue("scatteringDensityTexture", 1);
+
+        std::cerr << "Computing multiple scattering layers... ";
+        for(int layer=0; layer<scatTexDepth(); ++layer)
+        {
+            std::cerr << layer;
+            program->setUniformValue("layer",layer);
+            renderUntexturedQuad();
+            gl.glFinish();
+            if(layer+1<scatTexDepth()) std::cerr << ',';
+        }
+        std::cerr << "; done\n";
+
+        if(dbgSaveDeltaScattering)
+        {
+            saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
+                        "delta scattering texture",
+                        textureOutputDir+"/delta-scattering-order"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
+                        {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+        }
+    }
+
+    {
+        // We didn't render to the accumulating texture to avoid holding more than two 4D textures in VRAM at once.
+        // Now it's time to do this by only holding the accumulator and delta scattering texture in VRAM.
+        gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
+        setupTexture(TEX_MULTIPLE_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
+        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_MULTIPLE_SCATTERING],0);
+        checkFramebufferStatus("framebuffer for accumulation of multiple scattering data");
+
+        const auto program=compileShaderProgram("copy-scattering-texture.frag",
+                                                "scattering texture copy-blend shader program",
+                                                true);
+        program->bind();
+        gl.glActiveTexture(GL_TEXTURE0);
+        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
+        program->setUniformValue("tex", 0);
+        gl.glEnable(GL_BLEND);
+        std::cerr << "Blending multiple scattering layers into accumulator texture... ";
+        for(int layer=0; layer<scatTexDepth(); ++layer)
+        {
+            std::cerr << layer;
+            program->setUniformValue("layer",layer);
+            renderUntexturedQuad();
+            gl.glFinish();
+            if(layer+1<scatTexDepth()) std::cerr << ',';
+        }
+        std::cerr << "; done\n";
+        gl.glDisable(GL_BLEND);
+
+        if(dbgSaveAccumScattering)
+        {
+            saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
+                        "multiple scattering accumulator texture",
+                        textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
+                        {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+        }
+    }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
 void computeMultipleScattering(const int texIndex)
@@ -369,7 +450,7 @@ void computeMultipleScattering(const int texIndex)
         std::cerr << "Computing scattering order " << scatteringOrder << "...\n";
         computeScatteringDensity(scatteringOrder,texIndex);
         computeIndirectIrradiance(scatteringOrder,texIndex);
-        computeMultipleScatteringFromDensity(texIndex);
+        computeMultipleScatteringFromDensity(scatteringOrder,texIndex);
     }
 }
 

@@ -14,6 +14,8 @@ inline bool dbgSaveTransmittancePng=false;
 inline bool dbgSaveGroundIrradiance=false;
 inline bool dbgSaveScatDensityOrder2FromGround=false;
 inline bool dbgSaveScatDensityOrder2Full=false;
+inline bool dbgSaveDeltaScattering=false;
+inline bool dbgSaveAccumScattering=false;
 
 constexpr unsigned pointsPerWavelengthItem=4;
 inline std::vector<glm::vec4> allWavelengths;
@@ -41,6 +43,7 @@ enum TextureId
     TEX_DELTA_IRRADIANCE,
     TEX_FIRST_SCATTERING,
     TEX_DELTA_SCATTERING=TEX_FIRST_SCATTERING,
+    TEX_MULTIPLE_SCATTERING,
     TEX_DELTA_SCATTERING_DENSITY,
 
     TEX_COUNT

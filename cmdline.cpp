@@ -325,10 +325,14 @@ void handleCmdLine()
     const QCommandLineOption dbgSaveGroundIrradianceOpt("save-irradiance","Save ground irradiance textures as F32 and PNG (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOrder2FromGroundOpt("save-scat-density2-from-ground","Save order 2 scattering density from ground (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOrder2FullOpt("save-scat-density2-full","Save order 2 scattering density full texture (for debugging)");
+    const QCommandLineOption dbgSaveDeltaScatteringOpt("save-delta-scattering","Save delta scattering textures for each order (for debugging)");
+    const QCommandLineOption dbgSaveAccumScatteringOpt("save-accum-scattering","Save accumulated multiple scattering textures for each order (for debugging)");
     parser.addOptions({dbgSaveTransmittancePngOpt,
                        dbgSaveGroundIrradianceOpt,
                        dbgSaveScatDensityOrder2FromGroundOpt,
                        dbgSaveScatDensityOrder2FullOpt,
+                       dbgSaveDeltaScatteringOpt,
+                       dbgSaveAccumScatteringOpt,
                       });
     parser.process(*qApp);
 
@@ -340,6 +344,10 @@ void handleCmdLine()
         dbgSaveScatDensityOrder2FromGround=true;
     if(parser.isSet(dbgSaveScatDensityOrder2FullOpt))
         dbgSaveScatDensityOrder2Full=true;
+    if(parser.isSet(dbgSaveDeltaScatteringOpt))
+        dbgSaveDeltaScattering=true;
+    if(parser.isSet(dbgSaveAccumScatteringOpt))
+        dbgSaveAccumScattering=true;
 
     const auto posArgs=parser.positionalArguments();
     if(posArgs.size()>1)
