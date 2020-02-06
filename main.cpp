@@ -127,8 +127,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         program->setUniformValue("altitudeMax", altitudeMax);
 
         setupTexture(TEX_FIRST_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
-        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
-                                textures[TEX_FIRST_SCATTERING],0);
+        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_FIRST_SCATTERING],0);
         checkFramebufferStatus("framebuffer for first scattering");
 
         gl.glActiveTexture(GL_TEXTURE0);
