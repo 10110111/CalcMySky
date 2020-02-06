@@ -102,7 +102,7 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
 
 void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_SINGLE_SCATTERING]);
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
 
     gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
 
