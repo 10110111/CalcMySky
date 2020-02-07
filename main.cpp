@@ -98,7 +98,6 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
         image.mirrored().save(QString("%1/irradiance-accum-order0-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
-    setDrawBuffers({GL_COLOR_ATTACHMENT0});
 }
 
 void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& solarIrradianceAtTOA, const int texIndex)
