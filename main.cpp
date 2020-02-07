@@ -200,7 +200,6 @@ void computeScatteringDensityOrder2(const int texIndex)
     gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_DELTA_IRRADIANCE]);
     compScatDensityProgram->setUniformValue("irradianceTexture", 1);
 
-    gl.glDisable(GL_BLEND);
     std::cerr << " Computing scattering density layers for radiation from the ground... ";
     for(int layer=0; layer<scatTexDepth(); ++layer)
     {
@@ -262,6 +261,7 @@ void computeScatteringDensityOrder2(const int texIndex)
         }
         std::cerr << "; done\n";
     }
+    gl.glDisable(GL_BLEND);
     if(dbgSaveScatDensityOrder2Full)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
@@ -314,6 +314,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
 
         gl.glEnablei(GL_BLEND, 0); // Second and subsequent scatterers blend into delta-irradiance-texture
     }
+    gl.glDisable(GL_BLEND);
     if(dbgSaveGroundIrradiance)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
