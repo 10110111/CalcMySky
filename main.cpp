@@ -151,6 +151,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
                     textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
 void computeScatteringDensityOrder2(const int texIndex)
@@ -269,6 +270,7 @@ void computeScatteringDensityOrder2(const int texIndex)
                     textureOutputDir+"/scattering-density2-full-"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
 void computeIndirectIrradianceOrder1(const int texIndex)
@@ -333,6 +335,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
         image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
     }
     setDrawBuffers({GL_COLOR_ATTACHMENT0});
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
 void computeScatteringDensityHigherOrder(const int scatteringOrder, const int texIndex)
