@@ -103,6 +103,9 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
 void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
+    setupTexture(TEX_FIRST_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_FIRST_SCATTERING],0);
+    checkFramebufferStatus("framebuffer for first scattering");
 
     gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
 
@@ -125,10 +128,6 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
-
-        setupTexture(TEX_FIRST_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
-        gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_FIRST_SCATTERING],0);
-        checkFramebufferStatus("framebuffer for first scattering");
 
         gl.glActiveTexture(GL_TEXTURE0);
         gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
