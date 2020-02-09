@@ -204,7 +204,8 @@ void computeScatteringDensityOrder2(const int texIndex)
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                     "order 2 scattering density from ground texture",
                     textureOutputDir+"/scattering-density2-from-ground-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
+                    1);
     }
 
     gl.glBlendFunc(GL_ONE, GL_ONE);
@@ -255,7 +256,8 @@ void computeScatteringDensityOrder2(const int texIndex)
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                     "order "+std::to_string(scatteringOrder)+" scattering density",
                     textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
+                    1);
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -305,7 +307,8 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                     "order "+std::to_string(scatteringOrder)+" scattering density",
                     textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
+                    1);
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -358,7 +361,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                     textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)});
+                    {float(irradianceTexW), float(irradianceTexH)}, 1);
         QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
         image.fill(Qt::magenta);
         gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
@@ -366,7 +369,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
 
         saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                     textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)});
+                    {float(irradianceTexW), float(irradianceTexH)}, 1);
         image.fill(Qt::magenta);
         gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
         image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
@@ -413,7 +416,7 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                     textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)});
+                    {float(irradianceTexW), float(irradianceTexH)}, 1);
         QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
         image.fill(Qt::magenta);
         gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
@@ -421,7 +424,7 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
 
         saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                     textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)});
+                    {float(irradianceTexW), float(irradianceTexH)}, 1);
         image.fill(Qt::magenta);
         gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
         image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));

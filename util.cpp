@@ -84,9 +84,9 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
 }
 
 void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
-                 const std::string_view path, std::vector<float> const& sizes)
+                 const std::string_view path, std::vector<float> const& sizes, const int indent)
 {
-    std::cerr << "Saving " << name << " to \"" << path << "\"...";
+    std::cerr << std::string(indent, ' ') << "Saving " << name << " to \"" << path << "\"...";
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(target,texture);
     int w=1,h=1,d=1;
