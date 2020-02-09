@@ -13,7 +13,7 @@
 inline bool dbgSaveTransmittancePng=false;
 inline bool dbgSaveGroundIrradiance=false;
 inline bool dbgSaveScatDensityOrder2FromGround=false;
-inline bool dbgSaveScatDensityOrder2Full=false;
+inline bool dbgSaveScatDensity=false;
 inline bool dbgSaveDeltaScattering=false;
 inline bool dbgSaveAccumScattering=false;
 

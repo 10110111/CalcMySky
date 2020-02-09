@@ -261,11 +261,11 @@ void computeScatteringDensityOrder2(const int texIndex)
         std::cerr << "; done\n";
     }
     gl.glDisable(GL_BLEND);
-    if(dbgSaveScatDensityOrder2Full)
+    if(dbgSaveScatDensity)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
-                    "order 2 scattering density",
-                    textureOutputDir+"/scattering-density2-full-"+std::to_string(texIndex)+".f32",
+                    "order "+std::to_string(scatteringOrder)+" scattering density",
+                    textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
