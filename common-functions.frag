@@ -8,15 +8,30 @@ bool debugDataPresent()
 {
     return dbgDataPresent;
 }
-vec3 dbgData;
-vec3 debugData()
+vec4 dbgData;
+vec4 debugData()
 {
     return dbgData;
+}
+void setDebugData(float a)
+{
+    dbgDataPresent=true;
+    dbgData=vec4(a,0,0,0);
+}
+void setDebugData(float a,float b)
+{
+    dbgDataPresent=true;
+    dbgData=vec4(a,b,0,0);
 }
 void setDebugData(float a,float b, float c)
 {
     dbgDataPresent=true;
-    dbgData=vec3(a,b,c);
+    dbgData=vec4(a,b,c,0);
+}
+void setDebugData(float a,float b, float c, float d)
+{
+    dbgDataPresent=true;
+    dbgData=vec4(a,b,c,d);
 }
 
 // Assumes that if its argument is negative, it's due to rounding errors and

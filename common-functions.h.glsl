@@ -12,5 +12,9 @@ float clampAltitude(const float altitude);
 vec4 rayleighPhaseFunction(float dotViewSun);
 
 bool debugDataPresent();
-vec3 debugData();
+vec4 debugData();
+void setDebugData(float a);
+void setDebugData(float a,float b);
+void setDebugData(float a,float b,float c);
+void setDebugData(float a,float b,float c,float d);
 #endif
