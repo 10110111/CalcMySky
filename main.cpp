@@ -100,8 +100,8 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
 void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
-    setupTexture(TEX_FIRST_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_FIRST_SCATTERING],0);
+    setupTexture(TEX_DELTA_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_DELTA_SCATTERING],0);
     checkFramebufferStatus("framebuffer for first scattering");
 
     gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
@@ -139,7 +139,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         }
         std::cerr << "; done\n";
 
-        saveTexture(GL_TEXTURE_3D,textures[TEX_FIRST_SCATTERING],
+        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
                     "single scattering texture",
                     textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
@@ -232,7 +232,7 @@ void computeScatteringDensityOrder2(const int texIndex)
 
         const auto firstScatteringTextureSampler=1;
         gl.glActiveTexture(GL_TEXTURE0+firstScatteringTextureSampler);
-        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_FIRST_SCATTERING]);
+        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
         loadTexture(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
                     scatTexWidth(),scatTexHeight(),scatTexDepth());
         program->setUniformValue("firstScatteringTexture",firstScatteringTextureSampler);
@@ -341,7 +341,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
 
         const auto firstScatteringTextureSampler=1;
         gl.glActiveTexture(GL_TEXTURE0+firstScatteringTextureSampler);
-        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_FIRST_SCATTERING]);
+        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
         loadTexture(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
                     scatTexWidth(),scatTexHeight(),scatTexDepth());
         program->setUniformValue("firstScatteringTexture",firstScatteringTextureSampler);

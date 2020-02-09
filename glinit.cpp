@@ -35,7 +35,7 @@ void initTexturesAndFramebuffers()
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
     }
 
-    for(const auto tex : {TEX_FIRST_SCATTERING,TEX_DELTA_SCATTERING_DENSITY})
+    for(const auto tex : {TEX_DELTA_SCATTERING,TEX_DELTA_SCATTERING_DENSITY})
     {
         gl.glBindTexture(GL_TEXTURE_3D,textures[tex]);
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
