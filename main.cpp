@@ -342,7 +342,6 @@ void computeIndirectIrradianceOrder1(const int texIndex)
         gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
         image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
     }
-    setDrawBuffers({GL_COLOR_ATTACHMENT0});
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
