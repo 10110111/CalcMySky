@@ -95,8 +95,8 @@ vec4 computeMultipleScattering(const float cosSunZenithAngle, const float cosVie
         const float cosVZAatDist=clampCosine((r*cosViewZenithAngle+dist)/(earthRadius+altAtDist));
         const float cosSZAatDist=clampCosine((r*cosSunZenithAngle+dist*dotViewSun)/(earthRadius+altAtDist));
 
-        const vec4 scDensity=sample4DTexture(scatteringDensityTexture, cosSZAatDist, cosVZAatDist, altAtDist,
-                                             dotViewSun, viewRayIntersectsGround);
+        const vec4 scDensity=sample4DTexture(scatteringDensityTexture, cosSZAatDist, cosVZAatDist,
+                                             dotViewSun, altAtDist, viewRayIntersectsGround);
         const vec4 xmittance=transmittance(cosViewZenithAngle, altitude, dist, viewRayIntersectsGround);
         const float weight = n==0||n==radialIntegrationPoints ? 0.5 : 1; // weight by trapezoidal rule
         radiance += scDensity*xmittance*weight*dl;
