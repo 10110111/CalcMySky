@@ -356,7 +356,7 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     // TODO: implement the rest
 }
 
-void accumulateMultipleScattering(const bool blend, const int scatteringOrder, const int texIndex)
+void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
 {
     // We didn't render to the accumulating texture to avoid holding more than two 4D textures in VRAM at once.
     // Now it's time to do this by only holding the accumulator and delta scattering texture in VRAM.
@@ -372,7 +372,7 @@ void accumulateMultipleScattering(const bool blend, const int scatteringOrder, c
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
     program->setUniformValue("tex", 0);
-    if(blend)
+    if(scatteringOrder>2)
         gl.glEnable(GL_BLEND);
     else
         gl.glDisable(GL_BLEND);
@@ -445,7 +445,7 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
         }
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
-    accumulateMultipleScattering(false, scatteringOrder, texIndex);
+    accumulateMultipleScattering(scatteringOrder, texIndex);
 }
 
 void computeMultipleScattering(const int texIndex)
