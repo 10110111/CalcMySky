@@ -352,7 +352,54 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
         computeIndirectIrradianceOrder1(texIndex);
         return;
     }
-    // TODO: implement the rest
+    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
+
+    gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
+    gl.glDisablei(GL_BLEND, 0); // Overwrite delta-irradiance-texture
+    gl.glEnablei(GL_BLEND, 1); // Accumulate total irradiance
+
+    allShaders.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
+    virtualSourceFiles.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
+    virtualSourceFiles.emplace(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
+                               getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME)
+                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1)));
+    std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
+                                                                       "indirect irradiance computation shader program");
+    program->bind();
+
+    program->setUniformValue("altitudeMin", altitudeMin);
+    program->setUniformValue("altitudeMax", altitudeMax);
+
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
+    program->setUniformValue("multipleScatteringTexture", 0);
+
+    std::cerr << " Computing indirect irradiance... ";
+    renderUntexturedQuad();
+    gl.glFinish();
+    std::cerr << "done\n";
+
+    gl.glDisable(GL_BLEND);
+    if(dbgSaveGroundIrradiance)
+    {
+        saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
+                    textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                    {float(irradianceTexW), float(irradianceTexH)});
+        QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
+        image.fill(Qt::magenta);
+        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+        image.mirrored().save(QString("%1/irradiance-delta-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
+
+        saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
+                    textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                    {float(irradianceTexW), float(irradianceTexH)});
+        image.fill(Qt::magenta);
+        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+        image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
+    }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
 void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
