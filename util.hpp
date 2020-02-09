@@ -34,6 +34,13 @@ inline void setupTexture(TextureId id, unsigned width, unsigned height, unsigned
     gl.glBindTexture(GL_TEXTURE_3D,0);
 }
 
+inline void setUniformTexture(QOpenGLShaderProgram& program, GLenum target, TextureId id, GLint sampler, const char* uniformName)
+{
+    gl.glActiveTexture(GL_TEXTURE0+sampler);
+    gl.glBindTexture(target, textures[id]);
+    program.setUniformValue(uniformName,sampler);
+}
+
 inline void setDrawBuffers(std::vector<GLenum> const& bufs)
 {
     gl.glDrawBuffers(bufs.size(), bufs.data());

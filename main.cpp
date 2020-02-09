@@ -66,12 +66,9 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     checkFramebufferStatus("framebuffer for irradiance texture");
     setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
 
-    gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE]);
-
     program->bind();
 
-    program->setUniformValue("transmittanceTexture",0);
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
     program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
@@ -129,9 +126,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
 
-        gl.glActiveTexture(GL_TEXTURE0);
-        gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
-        program->setUniformValue("transmittanceTexture", 0);
+        setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
 
         std::cerr << "Computing single scattering layers for scatterer \"" << scatterer.name.toStdString() << "\"... ";
         for(int layer=0; layer<scatTexDepth(); ++layer)
@@ -190,14 +185,8 @@ void computeScatteringDensityOrder2(const int texIndex)
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
     checkFramebufferStatus("framebuffer for scattering density");
 
-    const auto transmittanceTextureSampler=0;
-    gl.glActiveTexture(GL_TEXTURE0+transmittanceTextureSampler);
-    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
-    program->setUniformValue("transmittanceTexture", transmittanceTextureSampler);
-
-    gl.glActiveTexture(GL_TEXTURE1);
-    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_DELTA_IRRADIANCE]);
-    program->setUniformValue("irradianceTexture", 1);
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE   ,0,"transmittanceTexture");
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_DELTA_IRRADIANCE,1,"irradianceTexture");
 
     std::cerr << " Computing scattering density layers for radiation from the ground... ";
     for(int layer=0; layer<scatTexDepth(); ++layer)
@@ -291,17 +280,9 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
                                                                              true);
     program->bind();
 
-    gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
-    program->setUniformValue("transmittanceTexture", 0);
-
-    gl.glActiveTexture(GL_TEXTURE1);
-    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_DELTA_IRRADIANCE]);
-    program->setUniformValue("irradianceTexture", 1);
-
-    gl.glActiveTexture(GL_TEXTURE2);
-    gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
-    program->setUniformValue("multipleScatteringTexture",2);
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE   ,0,"transmittanceTexture");
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_DELTA_IRRADIANCE,1,"irradianceTexture");
+    setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,2,"multipleScatteringTexture");
 
     const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
     program->setUniformValue("altitudeMin", altitudeMin);
@@ -420,9 +401,7 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     program->setUniformValue("altitudeMin", altitudeMin);
     program->setUniformValue("altitudeMax", altitudeMax);
 
-    gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
-    program->setUniformValue("multipleScatteringTexture", 0);
+    setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"multipleScatteringTexture");
 
     std::cerr << " Computing indirect irradiance... ";
     renderUntexturedQuad();
@@ -463,9 +442,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
                                             "scattering texture copy-blend shader program",
                                             true);
     program->bind();
-    gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
-    program->setUniformValue("tex", 0);
+    setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
     if(scatteringOrder>2)
         gl.glEnable(GL_BLEND);
     else
@@ -511,13 +488,8 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
 
-        gl.glActiveTexture(GL_TEXTURE0);
-        gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
-        program->setUniformValue("transmittanceTexture", 0);
-
-        gl.glActiveTexture(GL_TEXTURE1);
-        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING_DENSITY]);
-        program->setUniformValue("scatteringDensityTexture", 1);
+        setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
+        setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING_DENSITY,1,"scatteringDensityTexture");
 
         std::cerr << "Computing multiple scattering layers... ";
         for(int layer=0; layer<scatTexDepth(); ++layer)
