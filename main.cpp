@@ -278,7 +278,55 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
         computeScatteringDensityOrder2(texIndex);
         return;
     }
-    // TODO: implement the rest
+
+    allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
+    virtualSourceFiles.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
+    virtualSourceFiles.emplace(COMPUTE_SCATTERING_DENSITY_FILENAME,
+                               getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME)
+                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
+                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder)));
+    // recompile the program
+    const std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
+                                                                             "scattering density computation shader program",
+                                                                             true);
+    program->bind();
+
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_TRANSMITTANCE]);
+    program->setUniformValue("transmittanceTexture", 0);
+
+    gl.glActiveTexture(GL_TEXTURE1);
+    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_DELTA_IRRADIANCE]);
+    program->setUniformValue("irradianceTexture", 1);
+
+    gl.glActiveTexture(GL_TEXTURE2);
+    gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
+    program->setUniformValue("multipleScatteringTexture",2);
+
+    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
+    program->setUniformValue("altitudeMin", altitudeMin);
+    program->setUniformValue("altitudeMax", altitudeMax);
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
+    std::cerr << " Computing scattering density layers... ";
+    for(int layer=0; layer<scatTexDepth(); ++layer)
+    {
+        std::cerr << layer;
+        program->setUniformValue("layer",layer);
+        renderUntexturedQuad();
+        gl.glFinish();
+        if(layer+1<scatTexDepth()) std::cerr << ',';
+    }
+    std::cerr << "; done\n";
+    if(dbgSaveScatDensity)
+    {
+        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
+                    "order "+std::to_string(scatteringOrder)+" scattering density",
+                    textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+    }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
 void computeIndirectIrradianceOrder1(const int texIndex)
