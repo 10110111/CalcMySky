@@ -3,6 +3,22 @@
 
 #include "const.h.glsl"
 
+bool dbgDataPresent=false;
+bool debugDataPresent()
+{
+    return dbgDataPresent;
+}
+vec3 dbgData;
+vec3 debugData()
+{
+    return dbgData;
+}
+void setDebugData(float a,float b, float c)
+{
+    dbgDataPresent=true;
+    dbgData=vec3(a,b,c);
+}
+
 // Assumes that if its argument is negative, it's due to rounding errors and
 // should instead be zero.
 float safeSqrt(const float x)
