@@ -2,6 +2,7 @@
 #extension GL_ARB_shading_language_420pack : require
 
 #include "const.h.glsl"
+#include "common-functions.h.glsl"
 #include "texture-sampling-functions.h.glsl"
 #include "texture-coordinates.h.glsl"
 
@@ -13,7 +14,7 @@ vec4 computeIndirectGroundIrradiance(const float cosSunZenithAngle, const float 
 {
     const float dAzimuth = PI/angularIntegrationPointsPerHalfRevolution;
     const float dZenAng  = PI/angularIntegrationPointsPerHalfRevolution;
-    const vec3 sunDir = vec3(sqrt(1-sqr(cosSunZenithAngle)), 0, cosSunZenithAngle);
+    const vec3 sunDir = vec3(safeSqrt(1-sqr(cosSunZenithAngle)), 0, cosSunZenithAngle);
     vec4 radiance=vec4(0);
     for(int z=0; z<angularIntegrationPointsPerHalfRevolution/2; ++z)
     {
