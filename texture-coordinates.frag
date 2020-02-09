@@ -300,7 +300,7 @@ ScatteringTexVars scatteringTexIndicesToTexVars(const vec3 texIndices)
     const float cosVZA=vars.cosViewZenithAngle,
                 cosSZA=vars.cosSunZenithAngle;
     vars.dotViewSun=clamp(vars.dotViewSun,
-                          cosVZA*cosSZA-sqrt((1-sqr(cosVZA))*(1-sqr(cosSZA))),
-                          cosVZA*cosSZA+sqrt((1-sqr(cosVZA))*(1-sqr(cosSZA))));
+                          cosVZA*cosSZA-safeSqrt((1-sqr(cosVZA))*(1-sqr(cosSZA))),
+                          cosVZA*cosSZA+safeSqrt((1-sqr(cosVZA))*(1-sqr(cosSZA))));
     return vars;
 }
