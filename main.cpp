@@ -40,6 +40,16 @@ void saveIrradiance(const int scatteringOrder, const int texIndex)
     image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
 }
 
+void saveScatteringDensity(const int scatteringOrder, const int texIndex)
+{
+    if(!dbgSaveScatDensity) return;
+    saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
+                "order "+std::to_string(scatteringOrder)+" scattering density",
+                textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
+                {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
+                1);
+}
+
 void computeTransmittance(const int texIndex)
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
@@ -254,14 +264,7 @@ void computeScatteringDensityOrder2(const int texIndex)
         std::cerr << "; done\n";
     }
     gl.glDisable(GL_BLEND);
-    if(dbgSaveScatDensity)
-    {
-        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
-                    "order "+std::to_string(scatteringOrder)+" scattering density",
-                    textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
-                    1);
-    }
+    saveScatteringDensity(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
@@ -305,14 +308,7 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
         if(layer+1<scatTexDepth()) std::cerr << ',';
     }
     std::cerr << "; done\n";
-    if(dbgSaveScatDensity)
-    {
-        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
-                    "order "+std::to_string(scatteringOrder)+" scattering density",
-                    textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
-                    1);
-    }
+    saveScatteringDensity(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
