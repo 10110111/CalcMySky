@@ -208,12 +208,12 @@ QString getShaderSrc(QString const& fileName)
     const auto appBinDir=QDir(qApp->applicationDirPath()+"/").canonicalPath();
     if(appBinDir==QDir(INSTALL_BINDIR).canonicalPath())
     {
-        file.setFileName(DATA_ROOT_DIR + fileName);
+        file.setFileName(DATA_ROOT_DIR "shaders/" + fileName);
         opened=file.open(QIODevice::ReadOnly);
     }
     else if(appBinDir==QDir(BUILD_BINDIR).canonicalPath())
     {
-        file.setFileName(SOURCE_DIR + fileName);
+        file.setFileName(SOURCE_DIR "shaders/" + fileName);
         opened = file.open(QIODevice::ReadOnly);
     }
 
