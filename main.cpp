@@ -50,6 +50,20 @@ void saveScatteringDensity(const int scatteringOrder, const int texIndex)
                 1);
 }
 
+void render3DTexLayers(QOpenGLShaderProgram& program, std::string_view whatIsBeingDone)
+{
+    std::cerr << whatIsBeingDone << "... ";
+    for(int layer=0; layer<scatTexDepth(); ++layer)
+    {
+        std::cerr << layer;
+        program.setUniformValue("layer",layer);
+        renderUntexturedQuad();
+        gl.glFinish();
+        if(layer+1<scatTexDepth()) std::cerr << ',';
+    }
+    std::cerr << "; done\n";
+}
+
 void computeTransmittance(const int texIndex)
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
@@ -141,16 +155,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
 
         setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
 
-        std::cerr << "Computing single scattering layers for scatterer \"" << scatterer.name.toStdString() << "\"... ";
-        for(int layer=0; layer<scatTexDepth(); ++layer)
-        {
-            std::cerr << layer;
-            program->setUniformValue("layer",layer);
-            renderUntexturedQuad();
-            gl.glFinish();
-            if(layer+1<scatTexDepth()) std::cerr << ',';
-        }
-        std::cerr << "; done\n";
+        render3DTexLayers(*program, "Computing single scattering layers for scatterer \""+scatterer.name.toStdString()+"\"");
 
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
                     "single scattering texture",
@@ -201,16 +206,7 @@ void computeScatteringDensityOrder2(const int texIndex)
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE   ,0,"transmittanceTexture");
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_DELTA_IRRADIANCE,1,"irradianceTexture");
 
-    std::cerr << " Computing scattering density layers for radiation from the ground... ";
-    for(int layer=0; layer<scatTexDepth(); ++layer)
-    {
-        std::cerr << layer;
-        program->setUniformValue("layer",layer);
-        renderUntexturedQuad();
-        gl.glFinish();
-        if(layer+1<scatTexDepth()) std::cerr << ',';
-    }
-    std::cerr << "; done\n";
+    render3DTexLayers(*program, "Computing scattering density layers for radiation from the ground");
 
     if(dbgSaveScatDensityOrder2FromGround)
     {
@@ -252,16 +248,8 @@ void computeScatteringDensityOrder2(const int texIndex)
 
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
-        std::cerr << " Computing scattering density layers for scatterer \"" << scatterer.name.toStdString() << "\"... ";
-        for(int layer=0; layer<scatTexDepth(); ++layer)
-        {
-            std::cerr << layer;
-            program->setUniformValue("layer",layer);
-            renderUntexturedQuad();
-            gl.glFinish();
-            if(layer+1<scatTexDepth()) std::cerr << ',';
-        }
-        std::cerr << "; done\n";
+
+        render3DTexLayers(*program, "Computing scattering density layers for scatterer \""+scatterer.name.toStdString()+"\"");
     }
     gl.glDisable(GL_BLEND);
     saveScatteringDensity(scatteringOrder,texIndex);
@@ -298,16 +286,7 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
-    std::cerr << " Computing scattering density layers... ";
-    for(int layer=0; layer<scatTexDepth(); ++layer)
-    {
-        std::cerr << layer;
-        program->setUniformValue("layer",layer);
-        renderUntexturedQuad();
-        gl.glFinish();
-        if(layer+1<scatTexDepth()) std::cerr << ',';
-    }
-    std::cerr << "; done\n";
+    render3DTexLayers(*program, "Computing scattering density layers");
     saveScatteringDensity(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -417,16 +396,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
         gl.glEnable(GL_BLEND);
     else
         gl.glDisable(GL_BLEND);
-    std::cerr << "Blending multiple scattering layers into accumulator texture... ";
-    for(int layer=0; layer<scatTexDepth(); ++layer)
-    {
-        std::cerr << layer;
-        program->setUniformValue("layer",layer);
-        renderUntexturedQuad();
-        gl.glFinish();
-        if(layer+1<scatTexDepth()) std::cerr << ',';
-    }
-    std::cerr << "; done\n";
+    render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
     gl.glDisable(GL_BLEND);
 
     if(dbgSaveAccumScattering)
@@ -461,16 +431,7 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
         setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
         setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING_DENSITY,1,"scatteringDensityTexture");
 
-        std::cerr << "Computing multiple scattering layers... ";
-        for(int layer=0; layer<scatTexDepth(); ++layer)
-        {
-            std::cerr << layer;
-            program->setUniformValue("layer",layer);
-            renderUntexturedQuad();
-            gl.glFinish();
-            if(layer+1<scatTexDepth()) std::cerr << ',';
-        }
-        std::cerr << "; done\n";
+        render3DTexLayers(*program, "Computing multiple scattering layers");
 
         if(dbgSaveDeltaScattering)
         {
