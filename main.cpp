@@ -120,7 +120,7 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glFinish();
     std::cerr << "done\n";
 
-    saveIrradiance(0,texIndex);
+    saveIrradiance(1,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
