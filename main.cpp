@@ -53,6 +53,25 @@ void computeTransmittance(const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
+void saveIrradiance(const int scatteringOrder, const int texIndex)
+{
+    if(!dbgSaveGroundIrradiance) return;
+    saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
+                textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                {float(irradianceTexW), float(irradianceTexH)}, 1);
+    QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
+    image.fill(Qt::magenta);
+    gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+    image.mirrored().save(QString("%1/irradiance-delta-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
+
+    saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
+                textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                {float(irradianceTexW), float(irradianceTexH)}, 1);
+    image.fill(Qt::magenta);
+    gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+    image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
+}
+
 void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const int texIndex)
 {
     const auto program=compileShaderProgram("compute-direct-irradiance.frag", "direct ground irradiance computation shader program");
@@ -77,23 +96,7 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glFinish();
     std::cerr << "done\n";
 
-    if(dbgSaveGroundIrradiance)
-    {
-        saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-delta-order0-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)});
-        QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
-        image.fill(Qt::magenta);
-        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-        image.mirrored().save(QString("%1/irradiance-delta-order0-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
-
-        saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-accum-order0-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)});
-        image.fill(Qt::magenta);
-        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-        image.mirrored().save(QString("%1/irradiance-accum-order0-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
-    }
+    saveIrradiance(0,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
@@ -357,23 +360,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
         gl.glEnablei(GL_BLEND, 0); // Second and subsequent scatterers blend into delta-irradiance-texture
     }
     gl.glDisable(GL_BLEND);
-    if(dbgSaveGroundIrradiance)
-    {
-        saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)}, 1);
-        QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
-        image.fill(Qt::magenta);
-        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-        image.mirrored().save(QString("%1/irradiance-delta-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
-
-        saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)}, 1);
-        image.fill(Qt::magenta);
-        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-        image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
-    }
+    saveIrradiance(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
@@ -412,23 +399,7 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     std::cerr << "done\n";
 
     gl.glDisable(GL_BLEND);
-    if(dbgSaveGroundIrradiance)
-    {
-        saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)}, 1);
-        QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
-        image.fill(Qt::magenta);
-        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-        image.mirrored().save(QString("%1/irradiance-delta-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
-
-        saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    {float(irradianceTexW), float(irradianceTexH)}, 1);
-        image.fill(Qt::magenta);
-        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-        image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
-    }
+    saveIrradiance(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
