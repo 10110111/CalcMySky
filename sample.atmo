@@ -4,7 +4,7 @@ transmittance texture size for altitude: 64
 irradiance texture size for cos(SZA): 64
 irradiance texture size for altitude: 16
 
-scattering texture size for cos(VZA): 128 # NOTE: this should be even if we ever want to compare output with Bruneton's (because it's int there and is divided by 2, while we use float)
+scattering texture size for cos(VZA): 128 # must be even
 scattering texture size for dot(view,sun): 16
 scattering texture size for cos(SZA): 128
 scattering texture size for altitude: 64
