@@ -402,12 +402,13 @@ void handleCmdLine()
             irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for cos(vza)")
         {
-            scatteringTextureSize[0]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
-            if(unsigned(scatteringTextureSize[0])%2)
+            const auto integer=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            if(integer%2)
             {
                 std::cerr << atmoDescrFileName.toStdString() << ":" << lineNumber << ": value for \"" << key.toStdString() << "\" must be even (shaders rely on this)\n";
                 throw MustQuit{};
             }
+            scatteringTextureSize[0]=integer;
         }
         else if(key=="scattering texture size for dot(view,sun)")
             scatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
