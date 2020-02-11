@@ -1,5 +1,6 @@
 #include "glinit.hpp"
 
+#include <iostream>
 #include "util.hpp"
 #include "data.hpp"
 
@@ -47,9 +48,21 @@ void initTexturesAndFramebuffers()
     gl.glGenFramebuffers(FBO_COUNT,fbos);
 }
 
+void checkLimits()
+{
+    GLint max3DTexSize=-1;
+    gl.glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &max3DTexSize);
+    if(scatTexWidth()>max3DTexSize || scatTexHeight()>max3DTexSize || scatTexDepth()>max3DTexSize)
+    {
+        std::cerr << "Scattering texture 3D size of " << scatTexWidth() << "x" << scatTexHeight() << "x" << scatTexDepth() << " is too large: GL_MAX_3D_TEXTURE_SIZE is " << max3DTexSize << "\n";
+        throw MustQuit{};
+    }
+}
+
 void init()
 {
     initBuffers();
     initTexturesAndFramebuffers();
+    checkLimits();
 }
 
