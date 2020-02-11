@@ -38,9 +38,9 @@ const int angularIntegrationPointsPerHalfRevolution=)" + toString(angularIntegra
 const int numTransmittanceIntegrationPoints=)" + toString(numTransmittanceIntegrationPoints) + R"(;
 )";
     for(auto const& scatterer : scatterers)
-        header += "vec4 scatteringCrossSection_"+scatterer.name+"="+toString(scatterer.crossSection(wavelengths))+";\n";
+        header += "const vec4 scatteringCrossSection_"+scatterer.name+"="+toString(scatterer.crossSection(wavelengths))+";\n";
     const auto wlI=wavelengthsIndex(wavelengths);
-    header += "vec4 groundAlbedo="+toString(groundAlbedo[wlI])+";\n";
+    header += "const vec4 groundAlbedo="+toString(groundAlbedo[wlI])+";\n";
 
     header+="#endif\n"; // close the include guard
     virtualHeaderFiles[CONSTANTS_HEADER_FILENAME]=header;
