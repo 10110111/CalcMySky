@@ -1,5 +1,6 @@
 #include "util.hpp"
 
+#include <memory>
 #include <fstream>
 #include <iostream>
 
@@ -95,24 +96,28 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_HEIGHT,&h);
     if(target==GL_TEXTURE_3D)
         gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_DEPTH,&d);
-    std::vector<glm::vec4> pixels(w*h*d);
-    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, pixels.data());
+    // NOTE: not using glm::vec4[] because in older versions it initializes the components in default constructor
+    const auto elemCount = 4*std::size_t(w)*h*d;
+    std::unique_ptr<GLfloat[]> pixels(new GLfloat[elemCount]);
+    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, pixels.get());
     std::ofstream out{std::string(path)};
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
-    out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+    out.write(reinterpret_cast<const char*>(pixels.get()), elemCount*sizeof pixels[0]);
     std::cerr << " done\n";
 }
 
 void loadTexture(std::string const& path, const unsigned width, const unsigned height, const unsigned depth)
 {
-    std::vector<glm::vec4> pixels(width*height*depth);
+    // NOTE: not using glm::vec4[] because in older versions it initializes the components in default constructor
+    const std::size_t elemCount = 4*std::size_t(width)*height*depth;
+    std::unique_ptr<GLfloat[]> pixels(new GLfloat[elemCount]);
     std::ifstream file(path);
     file.exceptions(std::ifstream::failbit);
     uint16_t sizes[4];
     file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
     if(std::uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != std::uintptr_t(width)*height*depth)
         throw std::runtime_error("Bad texture size in file "+path);
-    file.read(reinterpret_cast<char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,pixels.data());
+    file.read(reinterpret_cast<char*>(pixels.get()), elemCount*sizeof pixels[0]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,pixels.get());
 }
