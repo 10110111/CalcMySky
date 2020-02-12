@@ -18,7 +18,7 @@ endif()
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
-find_package(Qt5 5.10 REQUIRED Core OpenGL)
+find_package(Qt5 5.9 REQUIRED Core OpenGL)
 configure_file(config.h.in config.h)
 include_directories(${CMAKE_BINARY_DIR})
 add_executable(atmosphere-textures-generator
