@@ -509,6 +509,12 @@ int main(int argc, char** argv)
         init();
         for(unsigned texIndex=0;texIndex<allWavelengths.size();++texIndex)
         {
+            std::cerr << "Working on wavelengths " << allWavelengths[texIndex][0] << ", "
+                                                   << allWavelengths[texIndex][1] << ", "
+                                                   << allWavelengths[texIndex][2] << ", "
+                                                   << allWavelengths[texIndex][3] << " nm...\n";
+            OutputIndentIncrease incr;
+
             allShaders.clear();
             initConstHeader(allWavelengths[texIndex]);
             virtualSourceFiles[COMPUTE_TRANSMITTANCE_SHADER_FILENAME]=
