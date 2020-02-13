@@ -46,7 +46,7 @@ inline void setDrawBuffers(std::vector<GLenum> const& bufs)
     gl.glDrawBuffers(bufs.size(), bufs.data());
 }
 
-void renderUntexturedQuad();
+void renderQuad();
 void checkFramebufferStatus(const char*const fboDescription);
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
 void saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,

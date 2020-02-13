@@ -60,7 +60,7 @@ void render3DTexLayers(QOpenGLShaderProgram& program, std::string_view whatIsBei
         std::cerr << ss.str();
 
         program.setUniformValue("layer",layer);
-        renderUntexturedQuad();
+        renderQuad();
         gl.glFinish();
 
         // Clear previous status and reset cursor position
@@ -85,7 +85,7 @@ void computeTransmittance(const int texIndex)
 
     program->bind();
     gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
-    renderUntexturedQuad();
+    renderQuad();
 
     gl.glFinish();
     std::cerr << "done\n";
@@ -124,7 +124,7 @@ void computeDirectGroundIrradiance(const int texIndex)
     program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
-    renderUntexturedQuad();
+    renderQuad();
 
     gl.glFinish();
     std::cerr << "done\n";
@@ -336,7 +336,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
         program->setUniformValue("altitudeMax", altitudeMax);
 
         std::cerr << indentOutput() << "Computing indirect irradiance for scatterer \"" << scatterer.name.toStdString() << "\"... ";
-        renderUntexturedQuad();
+        renderQuad();
         gl.glFinish();
         std::cerr << "done\n";
 
@@ -377,7 +377,7 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"multipleScatteringTexture");
 
     std::cerr << indentOutput() << "Computing indirect irradiance... ";
-    renderUntexturedQuad();
+    renderQuad();
     gl.glFinish();
     std::cerr << "done\n";
 

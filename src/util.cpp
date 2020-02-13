@@ -51,7 +51,7 @@ void checkFramebufferStatus(const char*const fboDescription)
     }
 }
 
-void renderUntexturedQuad()
+void renderQuad()
 {
 	gl.glBindVertexArray(vao);
 	gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
