@@ -21,12 +21,12 @@
 
 QOpenGLFunctions_3_3_Core gl;
 
-void saveIrradiance(const int scatteringOrder, const int texIndex, const int printIndentLevel)
+void saveIrradiance(const int scatteringOrder, const int texIndex)
 {
     if(!dbgSaveGroundIrradiance) return;
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                 textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                {float(irradianceTexW), float(irradianceTexH)}, printIndentLevel);
+                {float(irradianceTexW), float(irradianceTexH)});
     QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
     image.fill(Qt::magenta);
     gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
@@ -34,7 +34,7 @@ void saveIrradiance(const int scatteringOrder, const int texIndex, const int pri
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                 textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                {float(irradianceTexW), float(irradianceTexH)}, printIndentLevel);
+                {float(irradianceTexW), float(irradianceTexH)});
     image.fill(Qt::magenta);
     gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
     image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
@@ -46,13 +46,12 @@ void saveScatteringDensity(const int scatteringOrder, const int texIndex)
     saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                 "order "+std::to_string(scatteringOrder)+" scattering density",
                 textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
-                {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
-                2);
+                {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
 }
 
 void render3DTexLayers(QOpenGLShaderProgram& program, std::string_view whatIsBeingDone)
 {
-    std::cerr << whatIsBeingDone << "... ";
+    std::cerr << indentOutput() << whatIsBeingDone << "... ";
     for(int layer=0; layer<scatTexDepth(); ++layer)
     {
         std::cerr << layer;
@@ -68,7 +67,8 @@ void computeTransmittance(const int texIndex)
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
 
-    std::cerr << "Computing transmittance... ";
+    std::cerr << indentOutput() << "Computing transmittance... ";
+
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
     assert(fbos[FBO_TRANSMITTANCE]);
     setupTexture(TEX_TRANSMITTANCE,transmittanceTexW,transmittanceTexH);
@@ -84,7 +84,7 @@ void computeTransmittance(const int texIndex)
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE],"transmittance texture",
                 textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32",
-                {float(transmittanceTexW), float(transmittanceTexH)},1);
+                {float(transmittanceTexW), float(transmittanceTexH)});
 
     if(dbgSaveTransmittancePng)
     {
@@ -100,7 +100,8 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
 {
     const auto program=compileShaderProgram("compute-direct-irradiance.frag", "direct ground irradiance computation shader program");
 
-    std::cerr << "Computing direct ground irradiance... ";
+    std::cerr << indentOutput() << "Computing direct ground irradiance... ";
+
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
     setupTexture(TEX_DELTA_IRRADIANCE,irradianceTexW,irradianceTexH);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_IRRADIANCE],0);
@@ -120,7 +121,7 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glFinish();
     std::cerr << "done\n";
 
-    saveIrradiance(1,texIndex,1);
+    saveIrradiance(1,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
@@ -160,8 +161,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
                     "single scattering texture",
                     textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
-                    1);
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -207,15 +207,14 @@ void computeScatteringDensityOrder2(const int texIndex)
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE   ,0,"transmittanceTexture");
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_DELTA_IRRADIANCE,1,"irradianceTexture");
 
-    render3DTexLayers(*program, " Computing scattering density layers for radiation from the ground");
+    render3DTexLayers(*program, "Computing scattering density layers for radiation from the ground");
 
     if(dbgSaveScatDensityOrder2FromGround)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                     "order 2 scattering density from ground texture",
                     textureOutputDir+"/scattering-density2-from-ground-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
-                    2);
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
 
     gl.glBlendFunc(GL_ONE, GL_ONE);
@@ -250,7 +249,7 @@ void computeScatteringDensityOrder2(const int texIndex)
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
 
-        render3DTexLayers(*program, " Computing scattering density layers for scatterer \""+scatterer.name.toStdString()+"\"");
+        render3DTexLayers(*program, "Computing scattering density layers for scatterer \""+scatterer.name.toStdString()+"\"");
     }
     gl.glDisable(GL_BLEND);
     saveScatteringDensity(scatteringOrder,texIndex);
@@ -287,7 +286,7 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
-    render3DTexLayers(*program, " Computing scattering density layers");
+    render3DTexLayers(*program, "Computing scattering density layers");
     saveScatteringDensity(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -328,7 +327,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
 
-        std::cerr << " Computing indirect irradiance for scatterer \"" << scatterer.name.toStdString() << "\"... ";
+        std::cerr << indentOutput() << "Computing indirect irradiance for scatterer \"" << scatterer.name.toStdString() << "\"... ";
         renderUntexturedQuad();
         gl.glFinish();
         std::cerr << "done\n";
@@ -336,7 +335,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
         gl.glEnablei(GL_BLEND, 0); // Second and subsequent scatterers blend into delta-irradiance-texture
     }
     gl.glDisable(GL_BLEND);
-    saveIrradiance(scatteringOrder,texIndex,2);
+    saveIrradiance(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
@@ -369,13 +368,13 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
 
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"multipleScatteringTexture");
 
-    std::cerr << " Computing indirect irradiance... ";
+    std::cerr << indentOutput() << "Computing indirect irradiance... ";
     renderUntexturedQuad();
     gl.glFinish();
     std::cerr << "done\n";
 
     gl.glDisable(GL_BLEND);
-    saveIrradiance(scatteringOrder,texIndex,2);
+    saveIrradiance(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
@@ -397,7 +396,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
         gl.glEnable(GL_BLEND);
     else
         gl.glDisable(GL_BLEND);
-    render3DTexLayers(*program, " Blending multiple scattering layers into accumulator texture");
+    render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
     gl.glDisable(GL_BLEND);
 
     if(dbgSaveAccumScattering)
@@ -405,8 +404,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
                     "multiple scattering accumulator texture",
                     textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
-                    2);
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -433,15 +431,14 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
         setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
         setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING_DENSITY,1,"scatteringDensityTexture");
 
-        render3DTexLayers(*program, " Computing multiple scattering layers");
+        render3DTexLayers(*program, "Computing multiple scattering layers");
 
         if(dbgSaveDeltaScattering)
         {
             saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
                         "delta scattering texture",
                         textureOutputDir+"/delta-scattering-order"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
-                        {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]},
-                        2);
+                        {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
         }
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -452,7 +449,9 @@ void computeMultipleScattering(const int texIndex)
 {
     for(int scatteringOrder=2; scatteringOrder<=scatteringOrdersToCompute; ++scatteringOrder)
     {
-        std::cerr << "Computing scattering order " << scatteringOrder << "...\n";
+        std::cerr << indentOutput() << "Computing scattering order " << scatteringOrder << "...\n";
+        OutputIndentIncrease incr;
+
         computeScatteringDensity(scatteringOrder,texIndex);
         computeIndirectIrradiance(scatteringOrder,texIndex);
         computeMultipleScatteringFromDensity(scatteringOrder,texIndex);
@@ -516,12 +515,19 @@ int main(int argc, char** argv)
                 makeTransmittanceComputeFunctionsSrc(allWavelengths[texIndex]);
             virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc();
             virtualSourceFiles[TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME]=makeTotalScatteringCoefSrc();
-            computeTransmittance(texIndex);
-            // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
-            // sky color. Irradiance will also be needed when we want to draw the ground itself.
-            computeDirectGroundIrradiance(QVec(solarIrradianceAtTOA[texIndex]), texIndex);
 
-            computeSingleScattering(allWavelengths[texIndex], QVec(solarIrradianceAtTOA[texIndex]), texIndex);
+            {
+                std::cerr << indentOutput() << "Computing scattering order 1...\n";
+                OutputIndentIncrease incr;
+
+                computeTransmittance(texIndex);
+                // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
+                // sky color. Irradiance will also be needed when we want to draw the ground itself.
+                computeDirectGroundIrradiance(QVec(solarIrradianceAtTOA[texIndex]), texIndex);
+
+                computeSingleScattering(allWavelengths[texIndex], QVec(solarIrradianceAtTOA[texIndex]), texIndex);
+            }
+
             computeMultipleScattering(texIndex);
         }
     }

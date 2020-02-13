@@ -10,6 +10,19 @@
 #include <glm/glm.hpp>
 #include "const.hpp"
 
+class OutputIndentIncrease
+{
+    inline static unsigned outputIndent=0;
+    friend std::string indentOutput();
+public:
+     OutputIndentIncrease() { ++outputIndent; }
+    ~OutputIndentIncrease() { --outputIndent; }
+};
+inline std::string indentOutput()
+{
+    return std::string(OutputIndentIncrease::outputIndent, ' ');
+}
+
 inline bool dbgSaveTransmittancePng=false;
 inline bool dbgSaveGroundIrradiance=false;
 inline bool dbgSaveScatDensityOrder2FromGround=false;
