@@ -96,7 +96,7 @@ void computeTransmittance(const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const int texIndex)
+void computeDirectGroundIrradiance(const int texIndex)
 {
     const auto program=compileShaderProgram("compute-direct-irradiance.frag", "direct ground irradiance computation shader program");
 
@@ -113,7 +113,7 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     program->bind();
 
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
-    program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
+    program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
     renderUntexturedQuad();
@@ -125,7 +125,7 @@ void computeDirectGroundIrradiance(QVector4D const& solarIrradianceAtTOA, const 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& solarIrradianceAtTOA, const int texIndex)
+void computeSingleScattering(const int texIndex)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
     setupTexture(TEX_DELTA_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
@@ -141,7 +141,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
         {
             const auto src=makeScattererDensityFunctionsSrc()+
                             "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
-                            "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(wavelengths))+"; }\n";
+                            "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(allWavelengths[texIndex]))+"; }\n";
             allShaders.erase(DENSITIES_SHADER_FILENAME);
             virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
         }
@@ -150,7 +150,7 @@ void computeSingleScattering(glm::vec4 const& wavelengths, QVector4D const& sola
                                                 true);
         program->bind();
         const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
-        program->setUniformValue("solarIrradianceAtTOA",solarIrradianceAtTOA);
+        program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
 
@@ -523,9 +523,8 @@ int main(int argc, char** argv)
                 computeTransmittance(texIndex);
                 // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
                 // sky color. Irradiance will also be needed when we want to draw the ground itself.
-                computeDirectGroundIrradiance(QVec(solarIrradianceAtTOA[texIndex]), texIndex);
-
-                computeSingleScattering(allWavelengths[texIndex], QVec(solarIrradianceAtTOA[texIndex]), texIndex);
+                computeDirectGroundIrradiance(texIndex);
+                computeSingleScattering(texIndex);
             }
 
             computeMultipleScattering(texIndex);
