@@ -84,6 +84,16 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
     }
 }
 
+GLfloat* pixelsToSaveOrLoad()
+{
+    // Allocate this once at the beginning, so as to avoid std::bad_alloc when we have taken a fair
+    // chunk of VRAM. Dunno why, but on my nvidia cards VRAM usage somehow makes the system deny us
+    // even 1G of RAM.
+    // As the scattering texture is the largest texture we are using here, allocating this size
+    // would be enough for saving/loading any texture.
+    static GLfloat* pixels=new GLfloat[std::size_t(scatTexWidth()*scatTexHeight()*scatTexDepth()*4)];
+    return pixels;
+}
 void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
                  const std::string_view path, std::vector<float> const& sizes)
 {
@@ -99,12 +109,12 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_DEPTH,&d);
     // NOTE: not using glm::vec4[] because in older versions it initializes the components in default constructor
     const auto elemCount = 4*std::size_t(w)*h*d;
-    std::unique_ptr<GLfloat[]> pixels(new GLfloat[elemCount]);
-    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, pixels.get());
+    const auto pixels=pixelsToSaveOrLoad();
+    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, pixels);
     std::ofstream out{std::string(path)};
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
-    out.write(reinterpret_cast<const char*>(pixels.get()), elemCount*sizeof pixels[0]);
+    out.write(reinterpret_cast<const char*>(pixels), elemCount*sizeof pixels[0]);
     std::cerr << " done\n";
 }
 
@@ -112,13 +122,13 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
 {
     // NOTE: not using glm::vec4[] because in older versions it initializes the components in default constructor
     const std::size_t elemCount = 4*std::size_t(width)*height*depth;
-    std::unique_ptr<GLfloat[]> pixels(new GLfloat[elemCount]);
+    const auto pixels=pixelsToSaveOrLoad();
     std::ifstream file(path);
     file.exceptions(std::ifstream::failbit);
     uint16_t sizes[4];
     file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
     if(std::uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != std::uintptr_t(width)*height*depth)
         throw std::runtime_error("Bad texture size in file "+path);
-    file.read(reinterpret_cast<char*>(pixels.get()), elemCount*sizeof pixels[0]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,pixels.get());
+    file.read(reinterpret_cast<char*>(pixels), elemCount*sizeof pixels[0]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,pixels);
 }
