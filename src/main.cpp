@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <memory>
 #include <random>
 #include <map>
@@ -54,13 +55,20 @@ void render3DTexLayers(QOpenGLShaderProgram& program, std::string_view whatIsBei
     std::cerr << indentOutput() << whatIsBeingDone << "... ";
     for(int layer=0; layer<scatTexDepth(); ++layer)
     {
-        std::cerr << layer;
+        std::ostringstream ss;
+        ss << layer << " of " << scatTexDepth() << " layers done";
+        std::cerr << ss.str();
+
         program.setUniformValue("layer",layer);
         renderUntexturedQuad();
         gl.glFinish();
-        if(layer+1<scatTexDepth()) std::cerr << ',';
+
+        // Clear previous status and reset cursor position
+        const auto statusWidth=ss.tellp();
+        std::cerr << std::string(statusWidth, '\b') << std::string(statusWidth, ' ')
+                  << std::string(statusWidth, '\b');
     }
-    std::cerr << "; done\n";
+    std::cerr << "done\n";
 }
 
 void computeTransmittance(const int texIndex)
