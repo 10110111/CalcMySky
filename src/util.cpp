@@ -138,7 +138,7 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         throw MustQuit{};
     }
     OutputIndentIncrease incr;
-    std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"...";
+    std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"... ";
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(target,texture);
     int w=1,h=1,d=1;
