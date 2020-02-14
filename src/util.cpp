@@ -170,13 +170,33 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
 
 void setupTexture(TextureId id, unsigned width, unsigned height)
 {
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error on entry to setupTexture(" << width << "," << height << "): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
     gl.glBindTexture(GL_TEXTURE_2D,textures[id]);
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindTexture(GL_TEXTURE_2D,0);
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in setupTexture(" << width << "," << height << "): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
 }
 void setupTexture(TextureId id, unsigned width, unsigned height, unsigned depth)
 {
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error on entry to setupTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
     gl.glBindTexture(GL_TEXTURE_3D,textures[id]);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindTexture(GL_TEXTURE_3D,0);
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in setupTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
 }
