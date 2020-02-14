@@ -132,3 +132,16 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
     file.read(reinterpret_cast<char*>(pixels), elemCount*sizeof pixels[0]);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,pixels);
 }
+
+void setupTexture(TextureId id, unsigned width, unsigned height)
+{
+    gl.glBindTexture(GL_TEXTURE_2D,textures[id]);
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glBindTexture(GL_TEXTURE_2D,0);
+}
+void setupTexture(TextureId id, unsigned width, unsigned height, unsigned depth)
+{
+    gl.glBindTexture(GL_TEXTURE_3D,textures[id]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glBindTexture(GL_TEXTURE_3D,0);
+}
