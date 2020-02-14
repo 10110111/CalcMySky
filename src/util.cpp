@@ -132,6 +132,11 @@ GLfloat* pixelsToSaveOrLoad()
 void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
                  const std::string_view path, std::vector<float> const& sizes)
 {
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error on entry to saveTexture(): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
     OutputIndentIncrease incr;
     std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"...";
     gl.glActiveTexture(GL_TEXTURE0);
@@ -146,6 +151,11 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     const auto elemCount = 4*std::size_t(w)*h*d;
     const auto pixels=pixelsToSaveOrLoad();
     gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, pixels);
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in saveTexture() after glGetTexImage() call: " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
     std::ofstream out{std::string(path)};
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
