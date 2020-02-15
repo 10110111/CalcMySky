@@ -190,6 +190,11 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
     const std::size_t elemCount = 4*std::size_t(width)*height*depth;
     const auto pixels=pixelsToSaveOrLoad();
     std::ifstream file(path);
+    if(!file)
+    {
+        std::cerr << "failed to open file\n";
+        throw MustQuit{};
+    }
     file.exceptions(std::ifstream::failbit);
     uint16_t sizes[4];
     file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
