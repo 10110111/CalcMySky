@@ -147,6 +147,20 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_HEIGHT,&h);
     if(target==GL_TEXTURE_3D)
         gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_DEPTH,&d);
+
+    // Sanity check
+    {
+        std::size_t logicalSize=1;
+        for(const std::size_t s : sizes)
+            logicalSize *= s;
+        const auto physicalSize = std::size_t(w)*h*d;
+        if(physicalSize!=logicalSize)
+        {
+            std::cerr << "internal inconsistency detected: texture logical size " << logicalSize << " doesn't match physical size " << physicalSize << "\n";
+            throw MustQuit{};
+        }
+    }
+
     // NOTE: not using glm::vec4[] because in older versions it initializes the components in default constructor
     const auto elemCount = 4*std::size_t(w)*h*d;
     const auto pixels=pixelsToSaveOrLoad();
