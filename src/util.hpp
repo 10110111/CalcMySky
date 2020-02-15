@@ -41,7 +41,7 @@ void checkFramebufferStatus(const char*const fboDescription);
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
 void saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,
                  std::vector<float> const& sizes);
-void loadTexture(std::string const& path, unsigned width, unsigned height, unsigned depth);
+void loadTexture(std::string const& path, std::size_t width, std::size_t height, std::size_t depth);
 
 // Function useful only for debugging
 void dumpActiveUniforms(const GLuint program);

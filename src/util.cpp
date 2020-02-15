@@ -126,7 +126,7 @@ GLfloat* pixelsToSaveOrLoad()
     // even 1G of RAM.
     // As the scattering texture is the largest texture we are using here, allocating this size
     // would be enough for saving/loading any texture.
-    static GLfloat* pixels=new GLfloat[std::size_t(scatTexWidth()*scatTexHeight()*scatTexDepth()*4)];
+    static GLfloat* pixels=new GLfloat[scatTexWidth()*scatTexHeight()*scatTexDepth()*4];
     return pixels;
 }
 void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
@@ -178,7 +178,7 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     std::cerr << " done\n";
 }
 
-void loadTexture(std::string const& path, const unsigned width, const unsigned height, const unsigned depth)
+void loadTexture(std::string const& path, const std::size_t width, const std::size_t height, const std::size_t depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -186,7 +186,7 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
         throw MustQuit{};
     }
     std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
-    const std::size_t subpixelCount = 4*std::size_t(width)*height*depth;
+    const std::size_t subpixelCount = 4*width*height*depth;
     const auto subpixels=pixelsToSaveOrLoad();
     std::ifstream file(path);
     if(!file)
