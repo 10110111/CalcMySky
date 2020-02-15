@@ -161,7 +161,6 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         }
     }
 
-    // NOTE: not using glm::vec4[] because in older versions it initializes the components in default constructor
     const auto elemCount = 4*std::size_t(w)*h*d;
     const auto pixels=pixelsToSaveOrLoad();
     gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, pixels);
@@ -186,7 +185,6 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
         throw MustQuit{};
     }
     std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
-    // NOTE: not using glm::vec4[] because in older versions it initializes the components in default constructor
     const std::size_t elemCount = 4*std::size_t(width)*height*depth;
     const auto pixels=pixelsToSaveOrLoad();
     std::ifstream file(path);
