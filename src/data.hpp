@@ -66,9 +66,9 @@ inline std::string textureOutputDir=".";
 inline GLint transmittanceTexW, transmittanceTexH;
 inline GLint irradianceTexW, irradianceTexH;
 inline glm::vec4 scatteringTextureSize;
-inline auto scatTexWidth() { return scatteringTextureSize[0]; }
-inline auto scatTexHeight() { return scatteringTextureSize[1]*scatteringTextureSize[2]; }
-inline auto scatTexDepth() { return scatteringTextureSize[3]; }
+inline std::size_t scatTexWidth() { return scatteringTextureSize[0]; }
+inline std::size_t scatTexHeight() { return scatteringTextureSize[1]*scatteringTextureSize[2]; }
+inline std::size_t scatTexDepth() { return scatteringTextureSize[3]; }
 inline GLint scatteringOrdersToCompute;
 inline GLint numTransmittanceIntegrationPoints;
 inline GLint radialIntegrationPoints;
