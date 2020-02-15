@@ -148,22 +148,23 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     if(target==GL_TEXTURE_3D)
         gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_DEPTH,&d);
 
+    std::size_t pixelCount=1;
+    for(const std::size_t s : sizes)
+        pixelCount *= s;
+
     // Sanity check
     {
-        std::size_t logicalSize=1;
-        for(const std::size_t s : sizes)
-            logicalSize *= s;
         const auto physicalSize = std::size_t(w)*h*d;
-        if(physicalSize!=logicalSize)
+        if(physicalSize!=pixelCount)
         {
-            std::cerr << "internal inconsistency detected: texture logical size " << logicalSize << " doesn't match physical size " << physicalSize << "\n";
+            std::cerr << "internal inconsistency detected: texture logical size " << pixelCount << " doesn't match physical size " << physicalSize << "\n";
             throw MustQuit{};
         }
     }
 
-    const auto elemCount = 4*std::size_t(w)*h*d;
-    const auto pixels=pixelsToSaveOrLoad();
-    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, pixels);
+    const auto subpixelCount = 4*pixelCount;
+    const auto subpixels=pixelsToSaveOrLoad();
+    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, subpixels);
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         std::cerr << "GL error in saveTexture() after glGetTexImage() call: " << openglErrorString(err) << "\n";
@@ -172,7 +173,7 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     std::ofstream out{std::string(path)};
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
-    out.write(reinterpret_cast<const char*>(pixels), elemCount*sizeof pixels[0]);
+    out.write(reinterpret_cast<const char*>(subpixels), subpixelCount*sizeof subpixels[0]);
     out.close();
     std::cerr << " done\n";
 }
@@ -185,8 +186,8 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
         throw MustQuit{};
     }
     std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
-    const std::size_t elemCount = 4*std::size_t(width)*height*depth;
-    const auto pixels=pixelsToSaveOrLoad();
+    const std::size_t subpixelCount = 4*std::size_t(width)*height*depth;
+    const auto subpixels=pixelsToSaveOrLoad();
     std::ifstream file(path);
     if(!file)
     {
@@ -198,8 +199,8 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
     file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
     if(std::uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != std::uintptr_t(width)*height*depth)
         throw std::runtime_error("Bad texture size in file "+path);
-    file.read(reinterpret_cast<char*>(pixels), elemCount*sizeof pixels[0]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,pixels);
+    file.read(reinterpret_cast<char*>(subpixels), subpixelCount*sizeof subpixels[0]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels);
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         std::cerr << "GL error in loadTexture(" << width << "," << height << "," << depth << ") after glTexImage3D() call: " << openglErrorString(err) << "\n";
