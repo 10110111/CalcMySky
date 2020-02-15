@@ -52,7 +52,8 @@ void checkLimits()
 {
     GLint max3DTexSize=-1;
     gl.glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &max3DTexSize);
-    if(scatTexWidth()>max3DTexSize || scatTexHeight()>max3DTexSize || scatTexDepth()>max3DTexSize)
+    const unsigned max3DSize=max3DTexSize; // to silence compiler warning about comparisons
+    if(scatTexWidth()>max3DSize || scatTexHeight()>max3DSize || scatTexDepth()>max3DSize)
     {
         std::cerr << "Scattering texture 3D size of " << scatTexWidth() << "x" << scatTexHeight() << "x" << scatTexDepth() << " is too large: GL_MAX_3D_TEXTURE_SIZE is " << max3DTexSize << "\n";
         throw MustQuit{};

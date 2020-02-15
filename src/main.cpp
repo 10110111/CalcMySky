@@ -53,7 +53,7 @@ void saveScatteringDensity(const int scatteringOrder, const int texIndex)
 void render3DTexLayers(QOpenGLShaderProgram& program, std::string_view whatIsBeingDone)
 {
     std::cerr << indentOutput() << whatIsBeingDone << "... ";
-    for(int layer=0; layer<scatTexDepth(); ++layer)
+    for(unsigned layer=0; layer<scatTexDepth(); ++layer)
     {
         std::ostringstream ss;
         ss << layer << " of " << scatTexDepth() << " layers done";
