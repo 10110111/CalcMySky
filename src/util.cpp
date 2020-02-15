@@ -174,11 +174,18 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
     out.write(reinterpret_cast<const char*>(pixels), elemCount*sizeof pixels[0]);
+    out.close();
     std::cerr << " done\n";
 }
 
 void loadTexture(std::string const& path, const unsigned width, const unsigned height, const unsigned depth)
 {
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error on entry to loadTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
+    std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
     // NOTE: not using glm::vec4[] because in older versions it initializes the components in default constructor
     const std::size_t elemCount = 4*std::size_t(width)*height*depth;
     const auto pixels=pixelsToSaveOrLoad();
@@ -190,6 +197,12 @@ void loadTexture(std::string const& path, const unsigned width, const unsigned h
         throw std::runtime_error("Bad texture size in file "+path);
     file.read(reinterpret_cast<char*>(pixels), elemCount*sizeof pixels[0]);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,pixels);
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in loadTexture(" << width << "," << height << "," << depth << ") after glTexImage3D() call: " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
+    std::cerr << "done\n";
 }
 
 void setupTexture(TextureId id, unsigned width, unsigned height)
