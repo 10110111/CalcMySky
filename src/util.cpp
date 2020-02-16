@@ -147,6 +147,11 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_HEIGHT,&h);
     if(target==GL_TEXTURE_3D)
         gl.glGetTexLevelParameteriv(target,0,GL_TEXTURE_DEPTH,&d);
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in saveTexture() on attempt to get texture dimensions: " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
 
     std::size_t pixelCount=1;
     for(const std::size_t s : sizes)
