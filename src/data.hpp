@@ -23,6 +23,7 @@ inline std::string indentOutput()
     return std::string(OutputIndentIncrease::outputIndent, ' ');
 }
 
+inline bool mustSaveTextureLayerByLayer=false;
 inline bool dbgSaveTransmittancePng=false;
 inline bool dbgSaveGroundIrradiance=false;
 inline bool dbgSaveScatDensityOrder2FromGround=false;
@@ -41,6 +42,7 @@ inline std::map<QString, QString> virtualHeaderFiles;
 inline GLuint vao, vbo;
 enum FBOId
 {
+    FBO_FOR_TEXTURE_SAVING,
     FBO_TRANSMITTANCE,
     FBO_IRRADIANCE,
     FBO_DELTA_SCATTERING,

@@ -321,13 +321,17 @@ void handleCmdLine()
     parser.addPositionalArgument(atmoDescrOpt, "Atmosphere description file", "atmosphere-description.atmo");
     parser.addVersionOption();
     parser.addHelpOption();
+    const QCommandLineOption mustSaveTextureLayerByLayerOpt("save-tex-layer-by-layer",
+             "Save 3D/4D textures layer by layer instead of attempting to use glGetTexImage."
+             " This can avoid some types of \"Out of memory\" errors from OpenGL");
     const QCommandLineOption dbgSaveTransmittancePngOpt("save-xmittance-png","Save transmittance textures as PNG (for debugging)");
     const QCommandLineOption dbgSaveGroundIrradianceOpt("save-irradiance","Save ground irradiance textures as F32 and PNG (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOrder2FromGroundOpt("save-scat-density2-from-ground","Save order 2 scattering density from ground (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOpt("save-scat-density","Save scattering density textures (for debugging)");
     const QCommandLineOption dbgSaveDeltaScatteringOpt("save-delta-scattering","Save delta scattering textures for each order (for debugging)");
     const QCommandLineOption dbgSaveAccumScatteringOpt("save-accum-scattering","Save accumulated multiple scattering textures for each order (for debugging)");
-    parser.addOptions({dbgSaveTransmittancePngOpt,
+    parser.addOptions({mustSaveTextureLayerByLayerOpt,
+                       dbgSaveTransmittancePngOpt,
                        dbgSaveGroundIrradianceOpt,
                        dbgSaveScatDensityOrder2FromGroundOpt,
                        dbgSaveScatDensityOpt,
@@ -336,6 +340,8 @@ void handleCmdLine()
                       });
     parser.process(*qApp);
 
+    if(parser.isSet(mustSaveTextureLayerByLayerOpt))
+        mustSaveTextureLayerByLayer=true;
     if(parser.isSet(dbgSaveTransmittancePngOpt))
         dbgSaveTransmittancePng=true;
     if(parser.isSet(dbgSaveGroundIrradianceOpt))

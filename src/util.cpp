@@ -169,11 +169,39 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
 
     const auto subpixelCount = 4*pixelCount;
     const auto subpixels=pixelsToSaveOrLoad();
-    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, subpixels);
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    if(mustSaveTextureLayerByLayer && target==GL_TEXTURE_3D)
     {
-        std::cerr << "GL error in saveTexture() after glGetTexImage() call: " << openglErrorString(err) << "\n";
-        throw MustQuit{};
+        GLint origReadFramebuffer=0, origDrawFramebuffer=0;
+        gl.glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &origReadFramebuffer);
+        gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &origDrawFramebuffer);
+        if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+        {
+            std::cerr << "GL error in saveTexture() on trying to save original framebuffer bindings: " << openglErrorString(err) << "\n";
+            throw MustQuit{};
+        }
+        gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_FOR_TEXTURE_SAVING]);
+        for(int layer=0; layer<d; ++layer)
+        {
+            gl.glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, layer);
+            checkFramebufferStatus("framebuffer for saving textures");
+            gl.glReadPixels(0,0,w,h,GL_RGBA,GL_FLOAT, subpixels+layer*w*h*4);
+            if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+            {
+                std::cerr << "GL error in saveTexture() after glReadPixels() call: " << openglErrorString(err) << "\n";
+                throw MustQuit{};
+            }
+        }
+        gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, origReadFramebuffer);
+        gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, origDrawFramebuffer);
+    }
+    else
+    {
+        gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, subpixels);
+        if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+        {
+            std::cerr << "GL error in saveTexture() after glGetTexImage() call: " << openglErrorString(err) << "\n";
+            throw MustQuit{};
+        }
     }
     std::ofstream out{std::string(path)};
     for(const uint16_t s : sizes)
