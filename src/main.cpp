@@ -416,6 +416,8 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+    // We won't use this texture until next scattering order, so free up the space it took
+    setupTexture(TEX_MULTIPLE_SCATTERING,1,1,1);
 }
 
 void computeMultipleScatteringFromDensity(const int scatteringOrder, const int texIndex)
@@ -441,6 +443,9 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
         setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING_DENSITY,1,"scatteringDensityTexture");
 
         render3DTexLayers(*program, "Computing multiple scattering layers");
+
+        // We no longer need the scattering density we calculated, so free up the space it took
+        setupTexture(TEX_DELTA_SCATTERING_DENSITY,1,1,1);
 
         if(dbgSaveDeltaScattering)
         {
