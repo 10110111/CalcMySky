@@ -201,13 +201,13 @@ void computeScatteringDensityOrder2(const int texIndex)
 
     gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
 
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     program->bind();
 
     const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
     program->setUniformValue("altitudeMin", altitudeMin);
     program->setUniformValue("altitudeMax", altitudeMax);
 
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     setupTexture(TEX_DELTA_SCATTERING_DENSITY,scatTexWidth(),scatTexHeight(),scatTexDepth());
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
     checkFramebufferStatus("framebuffer for scattering density");
