@@ -388,7 +388,8 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
 
 void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
 {
-    // We didn't render to the accumulating texture to avoid holding more than two 4D textures in VRAM at once.
+    // We didn't render to the accumulating texture when computing delta scattering to avoid holding
+    // more than two 4D textures in VRAM at once.
     // Now it's time to do this by only holding the accumulator and delta scattering texture in VRAM.
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     setupTexture(TEX_MULTIPLE_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
