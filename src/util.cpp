@@ -208,7 +208,7 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
     out.write(reinterpret_cast<const char*>(subpixels), subpixelCount*sizeof subpixels[0]);
     out.close();
-    std::cerr << " done\n";
+    std::cerr << "done\n";
 }
 
 void loadTexture(std::string const& path, const std::size_t width, const std::size_t height, const std::size_t depth)
