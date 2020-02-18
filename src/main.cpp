@@ -272,6 +272,10 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
         return;
     }
 
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
+    setupTexture(TEX_DELTA_SCATTERING_DENSITY,scatTexWidth(),scatTexHeight(),scatTexDepth());
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
+
     allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
     virtualSourceFiles.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
     virtualSourceFiles.emplace(COMPUTE_SCATTERING_DENSITY_FILENAME,
@@ -292,8 +296,6 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
     program->setUniformValue("altitudeMin", altitudeMin);
     program->setUniformValue("altitudeMax", altitudeMax);
 
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
     render3DTexLayers(*program, "Computing scattering density layers");
     saveScatteringDensity(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -391,8 +393,20 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     // We didn't render to the accumulating texture when computing delta scattering to avoid holding
     // more than two 4D textures in VRAM at once.
     // Now it's time to do this by only holding the accumulator and delta scattering texture in VRAM.
+    if(scatteringOrder>2)
+    {
+        gl.glActiveTexture(GL_TEXTURE0);
+        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_MULTIPLE_SCATTERING]);
+        loadTexture(textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                    scatTexWidth(),scatTexHeight(),scatTexDepth());
+        gl.glEnable(GL_BLEND);
+    }
+    else
+    {
+        setupTexture(TEX_MULTIPLE_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
+        gl.glDisable(GL_BLEND);
+    }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
-    setupTexture(TEX_MULTIPLE_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_MULTIPLE_SCATTERING],0);
     checkFramebufferStatus("framebuffer for accumulation of multiple scattering data");
 
@@ -401,10 +415,6 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
                                             true);
     program->bind();
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
-    if(scatteringOrder>2)
-        gl.glEnable(GL_BLEND);
-    else
-        gl.glDisable(GL_BLEND);
     render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
     gl.glDisable(GL_BLEND);
 
