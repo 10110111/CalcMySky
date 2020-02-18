@@ -133,7 +133,7 @@ void computeDirectGroundIrradiance(const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeSingleScattering(const int texIndex)
+void computeSingleScattering(const int texIndex, ScattererDescription const& scatterer)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
     setupTexture(TEX_DELTA_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
@@ -142,42 +142,34 @@ void computeSingleScattering(const int texIndex)
 
     gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
 
-    // TODO: try rendering multiple scatterers to multiple render targets at
-    // once - as VRAM size allows. This may improve performance.
-    for(const auto& scatterer : scatterers)
-    {
-        {
-            const auto src=makeScattererDensityFunctionsSrc()+
-                            "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
-                            "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(allWavelengths[texIndex]))+"; }\n";
-            allShaders.erase(DENSITIES_SHADER_FILENAME);
-            virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
-        }
-        const auto program=compileShaderProgram("compute-single-scattering.frag",
-                                                "single scattering computation shader program",
-                                                true);
-        program->bind();
-        const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
-        program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
-        program->setUniformValue("altitudeMin", altitudeMin);
-        program->setUniformValue("altitudeMax", altitudeMax);
+    const auto src=makeScattererDensityFunctionsSrc()+
+                    "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
+                    "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(allWavelengths[texIndex]))+"; }\n";
+    allShaders.erase(DENSITIES_SHADER_FILENAME);
+    virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
+    const auto program=compileShaderProgram("compute-single-scattering.frag",
+                                            "single scattering computation shader program",
+                                            true);
+    program->bind();
+    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
+    program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
+    program->setUniformValue("altitudeMin", altitudeMin);
+    program->setUniformValue("altitudeMax", altitudeMax);
 
-        setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
 
-        render3DTexLayers(*program, "Computing single scattering layers for scatterer \""+scatterer.name.toStdString()+"\"");
+    render3DTexLayers(*program, "Computing single scattering layers");
 
-        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
-                    "single scattering texture",
-                    textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
-    }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
+void computeIndirectIrradianceOrder1(const int texIndex, const int scattererIndex);
 void computeScatteringDensityOrder2(const int texIndex)
 {
     constexpr int scatteringOrder=2;
 
+    allShaders.erase(DENSITIES_SHADER_FILENAME);
+    virtualSourceFiles[DENSITIES_SHADER_FILENAME]=makeScattererDensityFunctionsSrc();
     std::unique_ptr<QOpenGLShaderProgram> program;
     {
         // Make a stub for current phase function. It's not used for ground radiance, but we need it to avoid linking errors.
@@ -226,9 +218,15 @@ void computeScatteringDensityOrder2(const int texIndex)
     }
 
     gl.glBlendFunc(GL_ONE, GL_ONE);
-    gl.glEnable(GL_BLEND);
-    for(const auto& scatterer : scatterers)
+    for(unsigned scattererIndex=0; scattererIndex<scatterers.size(); ++scattererIndex)
     {
+        const auto& scatterer=scatterers[scattererIndex];
+        std::cerr << indentOutput() << "Processing scatterer \""+scatterer.name.toStdString()+"\":\n";
+        OutputIndentIncrease incr;
+
+        computeSingleScattering(texIndex, scatterer);
+        gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
+
         {
             const auto src=makePhaseFunctionsSrc()+
                 "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
@@ -247,17 +245,15 @@ void computeScatteringDensityOrder2(const int texIndex)
         }
         program->bind();
 
-        const auto firstScatteringTextureSampler=1;
-        gl.glActiveTexture(GL_TEXTURE0+firstScatteringTextureSampler);
-        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
-        loadTexture(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
-                    scatTexWidth(),scatTexHeight(),scatTexDepth());
-        program->setUniformValue("firstScatteringTexture",firstScatteringTextureSampler);
+        setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,1,"firstScatteringTexture");
 
         program->setUniformValue("altitudeMin", altitudeMin);
         program->setUniformValue("altitudeMax", altitudeMax);
 
-        render3DTexLayers(*program, "Computing scattering density layers for scatterer \""+scatterer.name.toStdString()+"\"");
+        gl.glEnable(GL_BLEND);
+        render3DTexLayers(*program, "Computing scattering density layers");
+
+        computeIndirectIrradianceOrder1(texIndex, scattererIndex);
     }
     gl.glDisable(GL_BLEND);
     saveScatteringDensity(scatteringOrder,texIndex);
@@ -266,11 +262,7 @@ void computeScatteringDensityOrder2(const int texIndex)
 
 void computeScatteringDensity(const int scatteringOrder, const int texIndex)
 {
-    if(scatteringOrder==2)
-    {
-        computeScatteringDensityOrder2(texIndex);
-        return;
-    }
+    assert(scatteringOrder>2);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     setupTexture(TEX_DELTA_SCATTERING_DENSITY,scatTexWidth(),scatTexHeight(),scatTexDepth());
@@ -301,7 +293,7 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeIndirectIrradianceOrder1(const int texIndex)
+void computeIndirectIrradianceOrder1(const int texIndex, const int scattererIndex)
 {
     constexpr int scatteringOrder=2;
 
@@ -310,40 +302,35 @@ void computeIndirectIrradianceOrder1(const int texIndex)
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
-    gl.glDisablei(GL_BLEND, 0); // First scatterer overwrites delta-irradiance-texture
-    gl.glEnablei(GL_BLEND, 1); // Total irradiance is always accumulated
-    for(const auto& scatterer : scatterers)
-    {
-        allShaders.erase(PHASE_FUNCTIONS_SHADER_FILENAME);
-        virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
-            "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
-
-        allShaders.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
-        virtualSourceFiles.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
-        virtualSourceFiles.emplace(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
-                                   getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME)
-                                        .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1)));
-        std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
-                                                                           "indirect irradiance computation shader program");
-        program->bind();
-
-        const auto firstScatteringTextureSampler=1;
-        gl.glActiveTexture(GL_TEXTURE0+firstScatteringTextureSampler);
-        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_DELTA_SCATTERING]);
-        loadTexture(textureOutputDir+"/single-scattering-"+scatterer.name.toStdString()+"-"+std::to_string(texIndex)+".f32",
-                    scatTexWidth(),scatTexHeight(),scatTexDepth());
-        program->setUniformValue("firstScatteringTexture",firstScatteringTextureSampler);
-
-        program->setUniformValue("altitudeMin", altitudeMin);
-        program->setUniformValue("altitudeMax", altitudeMax);
-
-        std::cerr << indentOutput() << "Computing indirect irradiance for scatterer \"" << scatterer.name.toStdString() << "\"... ";
-        renderQuad();
-        gl.glFinish();
-        std::cerr << "done\n";
-
+    if(scattererIndex==0)
+        gl.glDisablei(GL_BLEND, 0); // First scatterer overwrites delta-irradiance-texture
+    else
         gl.glEnablei(GL_BLEND, 0); // Second and subsequent scatterers blend into delta-irradiance-texture
-    }
+    gl.glEnablei(GL_BLEND, 1); // Total irradiance is always accumulated
+
+    const auto& scatterer=scatterers[scattererIndex];
+
+    allShaders.erase(PHASE_FUNCTIONS_SHADER_FILENAME);
+    virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
+        "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
+
+    allShaders.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
+    virtualSourceFiles.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
+    virtualSourceFiles.emplace(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
+                               getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME)
+                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1)));
+    std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
+                                                                       "indirect irradiance computation shader program");
+    program->bind();
+    setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"firstScatteringTexture");
+    program->setUniformValue("altitudeMin", altitudeMin);
+    program->setUniformValue("altitudeMax", altitudeMax);
+
+    std::cerr << indentOutput() << "Computing indirect irradiance... ";
+    renderQuad();
+    gl.glFinish();
+    std::cerr << "done\n";
+
     gl.glDisable(GL_BLEND);
     saveIrradiance(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -351,11 +338,7 @@ void computeIndirectIrradianceOrder1(const int texIndex)
 
 void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
 {
-    if(scatteringOrder==2)
-    {
-        computeIndirectIrradianceOrder1(texIndex);
-        return;
-    }
+    assert(scatteringOrder>2);
     const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
@@ -372,11 +355,9 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
                                                                        "indirect irradiance computation shader program");
     program->bind();
-
+    setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"multipleScatteringTexture");
     program->setUniformValue("altitudeMin", altitudeMin);
     program->setUniformValue("altitudeMax", altitudeMax);
-
-    setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"multipleScatteringTexture");
 
     std::cerr << indentOutput() << "Computing indirect irradiance... ";
     renderQuad();
@@ -471,9 +452,18 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
 
 void computeMultipleScattering(const int texIndex)
 {
-    for(int scatteringOrder=2; scatteringOrder<=scatteringOrdersToCompute; ++scatteringOrder)
+    // Due to interleaving of calculations of first scattering for each scatterer with the
+    // second-order scattering density and irradiance we have to do this iteration separately.
     {
-        std::cerr << indentOutput() << "Computing scattering order " << scatteringOrder << "...\n";
+        std::cerr << indentOutput() << "Working on scattering orders 1 and 2:\n";
+        OutputIndentIncrease incr;
+
+        computeScatteringDensityOrder2(texIndex);
+        computeMultipleScatteringFromDensity(2,texIndex);
+    }
+    for(int scatteringOrder=3; scatteringOrder<=scatteringOrdersToCompute; ++scatteringOrder)
+    {
+        std::cerr << indentOutput() << "Working on scattering order " << scatteringOrder << ":\n";
         OutputIndentIncrease incr;
 
         computeScatteringDensity(scatteringOrder,texIndex);
@@ -547,14 +537,13 @@ int main(int argc, char** argv)
             virtualSourceFiles[TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME]=makeTotalScatteringCoefSrc();
 
             {
-                std::cerr << indentOutput() << "Computing scattering order 1...\n";
+                std::cerr << indentOutput() << "Computing parts of scattering order 1:\n";
                 OutputIndentIncrease incr;
 
                 computeTransmittance(texIndex);
                 // We'll use ground irradiance to take into account the contribution of light scattered by the ground to the
                 // sky color. Irradiance will also be needed when we want to draw the ground itself.
                 computeDirectGroundIrradiance(texIndex);
-                computeSingleScattering(texIndex);
             }
 
             computeMultipleScattering(texIndex);
