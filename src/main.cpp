@@ -377,9 +377,12 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     gl.glActiveTexture(GL_TEXTURE0);
     if(scatteringOrder>2)
     {
-        gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_MULTIPLE_SCATTERING]);
-        loadTexture(textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
-                    scatTexWidth(),scatTexHeight(),scatTexDepth());
+        if(mustSwapTexToFile)
+        {
+            gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_MULTIPLE_SCATTERING]);
+            loadTexture(textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                        scatTexWidth(),scatTexHeight(),scatTexDepth());
+        }
         gl.glEnable(GL_BLEND);
     }
     else
@@ -399,7 +402,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
     gl.glDisable(GL_BLEND);
 
-    if(dbgSaveAccumScattering)
+    if(dbgSaveAccumScattering || mustSwapTexToFile)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
                     "multiple scattering accumulator texture",
@@ -407,8 +410,11 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
-    // We won't use this texture until next scattering order, so free up the space it took
-    setupTexture(TEX_MULTIPLE_SCATTERING,1,1,1);
+    if(mustSwapTexToFile)
+    {
+        // We won't use this texture until next scattering order, so free up the space it took
+        setupTexture(TEX_MULTIPLE_SCATTERING,1,1,1);
+    }
 }
 
 void computeMultipleScatteringFromDensity(const int scatteringOrder, const int texIndex)

@@ -24,6 +24,7 @@ inline std::string indentOutput()
 }
 
 inline bool mustSaveTextureLayerByLayer=false;
+inline bool mustSwapTexToFile=false;
 inline bool dbgSaveTransmittancePng=false;
 inline bool dbgSaveGroundIrradiance=false;
 inline bool dbgSaveScatDensityOrder2FromGround=false;
