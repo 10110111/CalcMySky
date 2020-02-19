@@ -321,6 +321,7 @@ void handleCmdLine()
     parser.addPositionalArgument(atmoDescrOpt, "Atmosphere description file", "atmosphere-description.atmo");
     parser.addVersionOption();
     parser.addHelpOption();
+    const QCommandLineOption textureOutputDirOpt("out-dir","Directory for the textures computed","output directory",".");
     const QCommandLineOption mustSaveTextureLayerByLayerOpt("save-tex-layer-by-layer",
              "Save 3D/4D textures layer by layer instead of attempting to use glGetTexImage."
              " This can avoid some types of \"Out of memory\" errors from OpenGL");
@@ -331,7 +332,8 @@ void handleCmdLine()
     const QCommandLineOption dbgSaveScatDensityOpt("save-scat-density","Save scattering density textures (for debugging)");
     const QCommandLineOption dbgSaveDeltaScatteringOpt("save-delta-scattering","Save delta scattering textures for each order (for debugging)");
     const QCommandLineOption dbgSaveAccumScatteringOpt("save-accum-scattering","Save accumulated multiple scattering textures for each order (for debugging)");
-    parser.addOptions({mustSaveTextureLayerByLayerOpt,
+    parser.addOptions({textureOutputDirOpt,
+                       mustSaveTextureLayerByLayerOpt,
                        mustSwapTexToFileOpt,
                        dbgSaveTransmittancePngOpt,
                        dbgSaveGroundIrradianceOpt,
@@ -342,6 +344,8 @@ void handleCmdLine()
                       });
     parser.process(*qApp);
 
+    if(parser.isSet(textureOutputDirOpt))
+        textureOutputDir=parser.value(textureOutputDirOpt).toStdString();
     if(parser.isSet(mustSaveTextureLayerByLayerOpt))
         mustSaveTextureLayerByLayer=true;
     if(parser.isSet(mustSwapTexToFileOpt))
