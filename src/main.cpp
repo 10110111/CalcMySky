@@ -409,6 +409,13 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
                     textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
+    if(scatteringOrder==scatteringOrdersToCompute)
+    {
+        saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
+                    "multiple scattering accumulator texture",
+                    textureOutputDir+"/multiple-scattering-"+std::to_string(texIndex)+".f32",
+                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+    }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
     if(mustSwapTexToFile)
     {
