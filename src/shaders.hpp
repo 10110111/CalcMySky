@@ -5,7 +5,14 @@
 #include <QOpenGLShader>
 #include <glm/glm.hpp>
 
-QString getShaderSrc(QString const& fileName);
+struct IgnoreCache
+{
+    bool on=true;
+    explicit IgnoreCache()=default;
+    explicit IgnoreCache(bool on) : on(on) {}
+    operator bool() const { return on; }
+};
+QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache=IgnoreCache{false});
 std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type,
                                              QString source,
                                              QString const& description);

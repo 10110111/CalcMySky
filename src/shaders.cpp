@@ -196,12 +196,15 @@ vec4 totalScatteringCoefficient(float altitude, float dotViewInc)
     return src;
 }
 
-QString getShaderSrc(QString const& fileName)
+QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache)
 {
-    if(const auto it=virtualSourceFiles.find(fileName); it!=virtualSourceFiles.end())
-        return it->second;
-    if(const auto it=virtualHeaderFiles.find(fileName); it!=virtualHeaderFiles.end())
-        return it->second;
+    if(!ignoreCache)
+    {
+        if(const auto it=virtualSourceFiles.find(fileName); it!=virtualSourceFiles.end())
+            return it->second;
+        if(const auto it=virtualHeaderFiles.find(fileName); it!=virtualHeaderFiles.end())
+            return it->second;
+    }
 
     QFile file;
     bool opened=false;

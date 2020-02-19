@@ -182,10 +182,9 @@ void computeScatteringDensityOrder2(const int texIndex)
         //  1) Improve performance by statically avoiding branching
         //  2) Ease debugging by clearing the list of really-used uniforms (this can be printed by dumpActiveUniforms())
         allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
-        virtualSourceFiles.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
-        virtualSourceFiles.emplace(COMPUTE_SCATTERING_DENSITY_FILENAME,
-            getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME).replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "true")
-                                                             .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder)));
+        virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
+                                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "true")
+                                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
         // recompile the program
         program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
                                      "scattering density computation shader program", true);
@@ -234,11 +233,9 @@ void computeScatteringDensityOrder2(const int texIndex)
             virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
 
             allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
-            virtualSourceFiles.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
-            virtualSourceFiles.emplace(COMPUTE_SCATTERING_DENSITY_FILENAME,
-                                       getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME)
-                                            .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
-                                            .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder)));
+            virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
+                                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
+                                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
             // recompile the program
             program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
                                                         "scattering density computation shader program", true);
@@ -269,11 +266,9 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
 
     allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
-    virtualSourceFiles.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
-    virtualSourceFiles.emplace(COMPUTE_SCATTERING_DENSITY_FILENAME,
-                               getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME)
-                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
-                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder)));
+    virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
+                                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
+                                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
     // recompile the program
     const std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
                                                                              "scattering density computation shader program",
@@ -315,10 +310,8 @@ void computeIndirectIrradianceOrder1(const int texIndex, const int scattererInde
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
 
     allShaders.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
-    virtualSourceFiles.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
-    virtualSourceFiles.emplace(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
-                               getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME)
-                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1)));
+    virtualSourceFiles[COMPUTE_INDIRECT_IRRADIANCE_FILENAME]=getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,IgnoreCache{})
+                                                .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1));
     std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
                                                                        "indirect irradiance computation shader program");
     program->bind();
@@ -348,10 +341,8 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     gl.glEnablei(GL_BLEND, 1); // Accumulate total irradiance
 
     allShaders.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
-    virtualSourceFiles.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
-    virtualSourceFiles.emplace(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
-                               getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME)
-                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1)));
+    virtualSourceFiles[COMPUTE_INDIRECT_IRRADIANCE_FILENAME]=getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,IgnoreCache{})
+                                                .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1));
     std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
                                                                        "indirect irradiance computation shader program");
     program->bind();
