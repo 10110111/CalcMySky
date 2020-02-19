@@ -374,9 +374,9 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     // We didn't render to the accumulating texture when computing delta scattering to avoid holding
     // more than two 4D textures in VRAM at once.
     // Now it's time to do this by only holding the accumulator and delta scattering texture in VRAM.
+    gl.glActiveTexture(GL_TEXTURE0);
     if(scatteringOrder>2)
     {
-        gl.glActiveTexture(GL_TEXTURE0);
         gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_MULTIPLE_SCATTERING]);
         loadTexture(textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
                     scatTexWidth(),scatTexHeight(),scatTexDepth());
