@@ -26,7 +26,7 @@ void saveIrradiance(const int scatteringOrder, const int texIndex)
 {
     if(!dbgSaveGroundIrradiance) return;
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
-                textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
                 {float(irradianceTexW), float(irradianceTexH)});
     QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
     image.fill(Qt::magenta);
@@ -34,7 +34,7 @@ void saveIrradiance(const int scatteringOrder, const int texIndex)
     image.mirrored().save(QString("%1/irradiance-delta-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
-                textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+                textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
                 {float(irradianceTexW), float(irradianceTexH)});
     image.fill(Qt::magenta);
     gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
@@ -46,7 +46,7 @@ void saveScatteringDensity(const int scatteringOrder, const int texIndex)
     if(!dbgSaveScatDensity) return;
     saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                 "order "+std::to_string(scatteringOrder)+" scattering density",
-                textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
+                textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
                 {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
 }
 
@@ -91,7 +91,7 @@ void computeTransmittance(const int texIndex)
     std::cerr << "done\n";
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE],"transmittance texture",
-                textureOutputDir+"/transmittance-"+std::to_string(texIndex)+".f32",
+                textureOutputDir+"/transmittance-wlset"+std::to_string(texIndex)+".f32",
                 {float(transmittanceTexW), float(transmittanceTexH)});
 
     if(dbgSaveTransmittancePng)
@@ -212,7 +212,7 @@ void computeScatteringDensityOrder2(const int texIndex)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                     "order 2 scattering density from ground texture",
-                    textureOutputDir+"/scattering-density2-from-ground-"+std::to_string(texIndex)+".f32",
+                    textureOutputDir+"/scattering-density2-from-ground-wlset"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
 
@@ -371,7 +371,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
         if(mustSwapTexToFile)
         {
             gl.glBindTexture(GL_TEXTURE_3D, textures[TEX_MULTIPLE_SCATTERING]);
-            loadTexture(textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder-1)+"-"+std::to_string(texIndex)+".f32",
+            loadTexture(textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
                         scatTexWidth(),scatTexHeight(),scatTexDepth());
         }
         gl.glEnable(GL_BLEND);
@@ -397,14 +397,14 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
                     "multiple scattering accumulator texture",
-                    textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
+                    textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
     if(scatteringOrder==scatteringOrdersToCompute)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
                     "multiple scattering accumulator texture",
-                    textureOutputDir+"/multiple-scattering-"+std::to_string(texIndex)+".f32",
+                    textureOutputDir+"/multiple-scattering-wlset"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -446,7 +446,7 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
         {
             saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
                         "delta scattering texture",
-                        textureOutputDir+"/delta-scattering-order"+std::to_string(scatteringOrder)+"-"+std::to_string(texIndex)+".f32",
+                        textureOutputDir+"/delta-scattering-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
                         {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
         }
     }
