@@ -35,7 +35,11 @@ void initTexturesAndFramebuffers()
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
     }
+    setupTexture(TEX_TRANSMITTANCE,transmittanceTexW,transmittanceTexH);
+    setupTexture(TEX_DELTA_IRRADIANCE,irradianceTexW,irradianceTexH);
+    setupTexture(TEX_IRRADIANCE,irradianceTexW,irradianceTexH);
 
+    const auto width=scatTexWidth(), height=scatTexHeight(), depth=scatTexDepth();
     for(const auto tex : {TEX_DELTA_SCATTERING,TEX_DELTA_SCATTERING_DENSITY})
     {
         gl.glBindTexture(GL_TEXTURE_3D,textures[tex]);
@@ -43,7 +47,10 @@ void initTexturesAndFramebuffers()
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
+        setupTexture(tex,width,height,depth);
     }
+    if(!mustSwapTextures)
+        setupTexture(TEX_MULTIPLE_SCATTERING,width,height,depth);
 
     gl.glGenFramebuffers(FBO_COUNT,fbos);
 }

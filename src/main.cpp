@@ -80,7 +80,6 @@ void computeTransmittance(const int texIndex)
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_TRANSMITTANCE]);
     assert(fbos[FBO_TRANSMITTANCE]);
-    setupTexture(TEX_TRANSMITTANCE,transmittanceTexW,transmittanceTexH);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_TRANSMITTANCE],0);
     checkFramebufferStatus("framebuffer for transmittance texture");
 
@@ -112,9 +111,7 @@ void computeDirectGroundIrradiance(const int texIndex)
     std::cerr << indentOutput() << "Computing direct ground irradiance... ";
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
-    setupTexture(TEX_DELTA_IRRADIANCE,irradianceTexW,irradianceTexH);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_IRRADIANCE],0);
-    setupTexture(TEX_IRRADIANCE,irradianceTexW,irradianceTexH);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,textures[TEX_IRRADIANCE],0);
     checkFramebufferStatus("framebuffer for irradiance texture");
     setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
@@ -137,7 +134,6 @@ void computeDirectGroundIrradiance(const int texIndex)
 void computeSingleScattering(const int texIndex, ScattererDescription const& scatterer)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
-    setupTexture(TEX_DELTA_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_DELTA_SCATTERING],0);
     checkFramebufferStatus("framebuffer for first scattering");
 
@@ -200,7 +196,6 @@ void computeScatteringDensityOrder2(const int texIndex)
     program->setUniformValue("altitudeMax", altitudeMax);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
-    setupTexture(TEX_DELTA_SCATTERING_DENSITY,scatTexWidth(),scatTexHeight(),scatTexDepth());
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
     checkFramebufferStatus("framebuffer for scattering density");
 
@@ -382,7 +377,6 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     }
     else
     {
-        setupTexture(textureMultipleScattering,scatTexWidth(),scatTexHeight(),scatTexDepth());
         gl.glDisable(GL_BLEND);
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
@@ -424,7 +418,6 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
 void computeMultipleScatteringFromDensity(const int scatteringOrder, const int texIndex)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
-    setupTexture(TEX_DELTA_SCATTERING,scatTexWidth(),scatTexHeight(),scatTexDepth());
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_DELTA_SCATTERING],0);
     checkFramebufferStatus("framebuffer for delta multiple scattering");
 
