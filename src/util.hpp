@@ -21,6 +21,7 @@ inline QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(d
                                                                    .arg(double(v.y), 0,'g',9)
                                                                    .arg(double(v.z), 0,'g',9)
                                                                    .arg(double(v.w), 0,'g',9); }
+void setupDebugPrintCallback(QOpenGLContext& context);
 std::string openglErrorString(GLenum error);
 void setupTexture(TextureId id, unsigned width, unsigned height);
 void setupTexture(TextureId id, unsigned width, unsigned height, unsigned depth);

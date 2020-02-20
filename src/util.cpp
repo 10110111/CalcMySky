@@ -1,10 +1,16 @@
 #include "util.hpp"
 
 #include <memory>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
 #include "data.hpp"
+extern "C"
+{
+    GLAPI void APIENTRY glDebugMessageCallback (GLDEBUGPROC callback, const void *userParam);
+    GLAPI void APIENTRY glDebugMessageControl (GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled);
+}
 
 std::string openglErrorString(const GLenum error)
 {
@@ -296,4 +302,81 @@ void setupTexture(TextureId id, unsigned width, unsigned height, unsigned depth)
         std::cerr << "GL error in setupTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
         throw MustQuit{};
     }
+}
+
+// ------------------------------------ KHR_debug support ----------------------------------------
+std::string sourceToString(GLenum source)
+{
+    switch(source)
+    {
+    case GL_DEBUG_SOURCE_API:             return "OpenGL API";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER: return "Shader compiler";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   return "Window system";
+    case GL_DEBUG_SOURCE_THIRD_PARTY:     return "Third party";
+    case GL_DEBUG_SOURCE_APPLICATION:     return "Application";
+    case GL_DEBUG_SOURCE_OTHER:           return "Other";
+    }
+    return "Unknown source "+std::to_string(int(source));
+}
+
+std::string typeToString(GLenum type)
+{
+    switch(type)
+    {
+    case GL_DEBUG_TYPE_ERROR:               return "Error";
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "Deprecated behavior";
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  return "Undefined behavior";
+    case GL_DEBUG_TYPE_PERFORMANCE:         return "Performance warning";
+    case GL_DEBUG_TYPE_PORTABILITY:         return "Portability warning";
+    case GL_DEBUG_TYPE_OTHER:               return "Other";
+    case GL_DEBUG_TYPE_MARKER:              return "Stream annotation";
+    case GL_DEBUG_TYPE_PUSH_GROUP:          return "Entering a debug group";
+    case GL_DEBUG_TYPE_POP_GROUP:           return "Leaving a debug group";
+    }
+    return "Unknown type "+std::to_string(int(type));
+}
+
+std::string severityToString(GLenum severity)
+{
+    switch(severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH: return "High";
+    case GL_DEBUG_SEVERITY_MEDIUM: return "Medium";
+    case GL_DEBUG_SEVERITY_LOW: return "Low";
+    case GL_DEBUG_SEVERITY_NOTIFICATION: return "Notification";
+    }
+    return "Unknown type "+std::to_string(int(severity));
+}
+
+void debugCallback(GLenum source, GLenum type, GLuint /*id*/, GLenum severity, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/)
+{
+    if(severity==GL_DEBUG_SEVERITY_NOTIFICATION) return;
+    if(source==GL_DEBUG_SOURCE_SHADER_COMPILER) return;
+    if(severity==GL_DEBUG_SEVERITY_LOW && source==GL_DEBUG_SOURCE_API)
+    {
+        constexpr char unwantedEnding[]="is base level inconsistent. Check texture size.";
+        if(std::strstr(message, unwantedEnding)) return;
+    }
+
+    std::cerr << "debug callback called: severity " << severityToString(severity)
+                                     << ", source " << sourceToString(source)
+                                       << ", type " << typeToString(type)
+                                       << ", msg: " << message << "\n";
+}
+
+
+void setupDebugPrintCallback(QOpenGLContext& context)
+{
+    if(!context.hasExtension("GL_KHR_debug"))
+    {
+        std::cerr << "*** WARNING: debug extension is not supported, debug callback won't be set\n";
+        return;
+    }
+    static void APIENTRY (*const glDebugMessageCallback)(decltype(&debugCallback),const void*)=
+        reinterpret_cast<decltype(glDebugMessageCallback)>(context.getProcAddress("glDebugMessageCallback"));
+    static void APIENTRY (*const glDebugMessageControl)(GLenum, GLenum, GLenum,GLsizei,const GLuint*,GLboolean)=
+        reinterpret_cast<decltype(glDebugMessageControl)>(context.getProcAddress("glDebugMessageControl"));
+    glDebugMessageCallback(&debugCallback,NULL);
+    glDebugMessageControl(GL_DONT_CARE,GL_DONT_CARE,GL_DONT_CARE,0,NULL,GL_TRUE);
+    gl.glEnable(GL_DEBUG_OUTPUT);
 }
