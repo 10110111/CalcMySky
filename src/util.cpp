@@ -129,16 +129,15 @@ GLfloat* pixelsToSaveOrLoad()
     static GLfloat* pixels=new GLfloat[scatTexWidth()*scatTexHeight()*scatTexDepth()*4];
     return pixels;
 }
-void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
-                 const std::string_view path, std::vector<float> const& sizes)
+std::size_t getTexImage(const GLenum target, const GLuint texture, GLfloat* subpixels,
+                        std::vector<float> const& sizes)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
-        std::cerr << "GL error on entry to saveTexture(): " << openglErrorString(err) << "\n";
+        std::cerr << "GL error on entry to getTexImage(): " << openglErrorString(err) << "\n";
         throw MustQuit{};
     }
     OutputIndentIncrease incr;
-    std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"... ";
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(target,texture);
     int w=1,h=1,d=1;
@@ -168,7 +167,6 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     }
 
     const auto subpixelCount = 4*pixelCount;
-    const auto subpixels=pixelsToSaveOrLoad();
     if(mustSaveTextureLayerByLayer && target==GL_TEXTURE_3D)
     {
         GLint origReadFramebuffer=0, origDrawFramebuffer=0;
@@ -203,6 +201,15 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
             throw MustQuit{};
         }
     }
+    return subpixelCount;
+}
+
+void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
+                 const std::string_view path, std::vector<float> const& sizes)
+{
+    std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"... ";
+    const auto subpixels=pixelsToSaveOrLoad();
+    const auto subpixelCount=getTexImage(target,texture,subpixels,sizes);
     std::ofstream out{std::string(path)};
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
