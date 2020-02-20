@@ -39,9 +39,12 @@ inline void setDrawBuffers(std::vector<GLenum> const& bufs)
 void renderQuad();
 void checkFramebufferStatus(const char*const fboDescription);
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
+std::size_t getTexImage(const GLenum target, const GLuint texture, GLfloat* subpixels,
+                        std::vector<float> const& sizes = {});
 void saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,
                  std::vector<float> const& sizes);
 void loadTexture(std::string const& path, std::size_t width, std::size_t height, std::size_t depth);
+void loadTexture(GLfloat* data, std::size_t width, std::size_t height, std::size_t depth);
 
 // Function useful only for debugging
 void dumpActiveUniforms(const GLuint program);

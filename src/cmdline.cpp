@@ -325,7 +325,7 @@ void handleCmdLine()
     const QCommandLineOption mustSaveTextureLayerByLayerOpt("save-tex-layer-by-layer",
              "Save 3D/4D textures layer by layer instead of attempting to use glGetTexImage."
              " This can avoid some types of \"Out of memory\" errors from OpenGL");
-    const QCommandLineOption mustSwapTexToFileOpt("swap-tex-to-file", "Swap unused textures to file to reduce VRAM usage");
+    const QCommandLineOption mustSwapTexturesOpt("swap-textures", "Swap unused textures to file to reduce VRAM usage");
     const QCommandLineOption dbgSaveTransmittancePngOpt("save-xmittance-png","Save transmittance textures as PNG (for debugging)");
     const QCommandLineOption dbgSaveGroundIrradianceOpt("save-irradiance","Save ground irradiance textures as F32 and PNG (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOrder2FromGroundOpt("save-scat-density2-from-ground","Save order 2 scattering density from ground (for debugging)");
@@ -334,7 +334,7 @@ void handleCmdLine()
     const QCommandLineOption dbgSaveAccumScatteringOpt("save-accum-scattering","Save accumulated multiple scattering textures for each order (for debugging)");
     parser.addOptions({textureOutputDirOpt,
                        mustSaveTextureLayerByLayerOpt,
-                       mustSwapTexToFileOpt,
+                       mustSwapTexturesOpt,
                        dbgSaveTransmittancePngOpt,
                        dbgSaveGroundIrradianceOpt,
                        dbgSaveScatDensityOrder2FromGroundOpt,
@@ -348,8 +348,8 @@ void handleCmdLine()
         textureOutputDir=parser.value(textureOutputDirOpt).toStdString();
     if(parser.isSet(mustSaveTextureLayerByLayerOpt))
         mustSaveTextureLayerByLayer=true;
-    if(parser.isSet(mustSwapTexToFileOpt))
-        mustSwapTexToFile=true;
+    if(parser.isSet(mustSwapTexturesOpt))
+        mustSwapTextures=true;
     if(parser.isSet(dbgSaveTransmittancePngOpt))
         dbgSaveTransmittancePng=true;
     if(parser.isSet(dbgSaveGroundIrradianceOpt))

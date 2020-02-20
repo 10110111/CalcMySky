@@ -157,6 +157,7 @@ std::size_t getTexImage(const GLenum target, const GLuint texture, GLfloat* subp
         pixelCount *= s;
 
     // Sanity check
+    if(!sizes.empty())
     {
         const auto physicalSize = std::size_t(w)*h*d;
         if(physicalSize!=pixelCount)
@@ -247,6 +248,21 @@ void loadTexture(std::string const& path, const std::size_t width, const std::si
         throw MustQuit{};
     }
     std::cerr << "done\n";
+}
+
+void loadTexture(GLfloat* data, std::size_t width, std::size_t height, std::size_t depth)
+{
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error on entry to loadTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,data);
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in loadTexture(" << width << "," << height << "," << depth << ") after glTexImage3D() call: " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
 }
 
 void setupTexture(TextureId id, unsigned width, unsigned height)
