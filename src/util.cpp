@@ -204,7 +204,7 @@ void loadTexture(std::string const& path, const std::size_t width, const std::si
     if(std::uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != std::uintptr_t(width)*height*depth)
         throw std::runtime_error("Bad texture size in file "+path);
     file.read(reinterpret_cast<char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels.get());
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels.get());
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         std::cerr << "GL error in loadTexture(" << width << "," << height << "," << depth << ") after glTexImage3D() call: " << openglErrorString(err) << "\n";
@@ -220,7 +220,7 @@ void loadTexture(GLfloat* data, std::size_t width, std::size_t height, std::size
         std::cerr << "GL error on entry to loadTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
         throw MustQuit{};
     }
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,data);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_FLOAT,data);
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         std::cerr << "GL error in loadTexture(" << width << "," << height << "," << depth << ") after glTexImage3D() call: " << openglErrorString(err) << "\n";
@@ -236,7 +236,7 @@ void setupTexture(TextureId id, unsigned width, unsigned height)
         throw MustQuit{};
     }
     gl.glBindTexture(GL_TEXTURE_2D,textures[id]);
-    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F_ARB,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindTexture(GL_TEXTURE_2D,0);
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -252,7 +252,7 @@ void setupTexture(TextureId id, unsigned width, unsigned height, unsigned depth)
         throw MustQuit{};
     }
     gl.glBindTexture(GL_TEXTURE_3D,textures[id]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindTexture(GL_TEXTURE_3D,0);
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
