@@ -322,9 +322,6 @@ void handleCmdLine()
     parser.addVersionOption();
     parser.addHelpOption();
     const QCommandLineOption textureOutputDirOpt("out-dir","Directory for the textures computed","output directory",".");
-    const QCommandLineOption mustSaveTextureLayerByLayerOpt("save-tex-layer-by-layer",
-             "Save 3D/4D textures layer by layer instead of attempting to use glGetTexImage."
-             " This can avoid some types of \"Out of memory\" errors from OpenGL");
     const QCommandLineOption mustSwapTexturesOpt("swap-textures", "Swap unused textures to file to reduce VRAM usage");
     const QCommandLineOption dbgSaveTransmittancePngOpt("save-xmittance-png","Save transmittance textures as PNG (for debugging)");
     const QCommandLineOption dbgSaveGroundIrradianceOpt("save-irradiance","Save ground irradiance textures as F32 and PNG (for debugging)");
@@ -333,7 +330,6 @@ void handleCmdLine()
     const QCommandLineOption dbgSaveDeltaScatteringOpt("save-delta-scattering","Save delta scattering textures for each order (for debugging)");
     const QCommandLineOption dbgSaveAccumScatteringOpt("save-accum-scattering","Save accumulated multiple scattering textures for each order (for debugging)");
     parser.addOptions({textureOutputDirOpt,
-                       mustSaveTextureLayerByLayerOpt,
                        mustSwapTexturesOpt,
                        dbgSaveTransmittancePngOpt,
                        dbgSaveGroundIrradianceOpt,
@@ -346,8 +342,6 @@ void handleCmdLine()
 
     if(parser.isSet(textureOutputDirOpt))
         textureOutputDir=parser.value(textureOutputDirOpt).toStdString();
-    if(parser.isSet(mustSaveTextureLayerByLayerOpt))
-        mustSaveTextureLayerByLayer=true;
     if(parser.isSet(mustSwapTexturesOpt))
         mustSwapTextures=true;
     if(parser.isSet(dbgSaveTransmittancePngOpt))

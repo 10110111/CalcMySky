@@ -23,7 +23,6 @@ inline std::string indentOutput()
     return std::string(OutputIndentIncrease::outputIndent, ' ');
 }
 
-inline bool mustSaveTextureLayerByLayer=false;
 inline bool mustSwapTextures=false;
 inline bool dbgSaveTransmittancePng=false;
 inline bool dbgSaveGroundIrradiance=false;
