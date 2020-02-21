@@ -150,14 +150,14 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         throw MustQuit{};
     }
 
-    std::size_t pixelCount=1;
-    for(const std::size_t s : sizes)
+    size_t pixelCount=1;
+    for(const size_t s : sizes)
         pixelCount *= s;
 
     // Sanity check
     if(!sizes.empty())
     {
-        const auto physicalSize = std::size_t(w)*h*d;
+        const auto physicalSize = size_t(w)*h*d;
         if(physicalSize!=pixelCount)
         {
             std::cerr << "internal inconsistency detected: texture logical size " << pixelCount << " doesn't match physical size " << physicalSize << "\n";
@@ -182,7 +182,7 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     std::cerr << "done\n";
 }
 
-void loadTexture(std::string const& path, const std::size_t width, const std::size_t height, const std::size_t depth)
+void loadTexture(std::string const& path, const size_t width, const size_t height, const size_t depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -190,7 +190,7 @@ void loadTexture(std::string const& path, const std::size_t width, const std::si
         throw MustQuit{};
     }
     std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
-    const std::size_t subpixelCount = 4*width*height*depth;
+    const size_t subpixelCount = 4*width*height*depth;
     const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
     std::ifstream file(path);
     if(!file)
@@ -201,7 +201,7 @@ void loadTexture(std::string const& path, const std::size_t width, const std::si
     file.exceptions(std::ifstream::failbit);
     uint16_t sizes[4];
     file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
-    if(std::uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != std::uintptr_t(width)*height*depth)
+    if(uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != uintptr_t(width)*height*depth)
         throw std::runtime_error("Bad texture size in file "+path);
     file.read(reinterpret_cast<char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels.get());
@@ -213,7 +213,7 @@ void loadTexture(std::string const& path, const std::size_t width, const std::si
     std::cerr << "done\n";
 }
 
-void loadTexture(GLfloat* data, std::size_t width, std::size_t height, std::size_t depth)
+void loadTexture(GLfloat* data, size_t width, size_t height, size_t depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
