@@ -491,7 +491,8 @@ int main(int argc, char** argv)
             std::cerr << "Working on wavelengths " << allWavelengths[texIndex][0] << ", "
                                                    << allWavelengths[texIndex][1] << ", "
                                                    << allWavelengths[texIndex][2] << ", "
-                                                   << allWavelengths[texIndex][3] << " nm...\n";
+                                                   << allWavelengths[texIndex][3] << " nm"
+                         " (set " << texIndex+1 << " of " << allWavelengths.size() << "):\n";
             OutputIndentIncrease incr;
 
             allShaders.clear();
