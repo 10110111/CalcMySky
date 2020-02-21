@@ -322,7 +322,6 @@ void handleCmdLine()
     parser.addVersionOption();
     parser.addHelpOption();
     const QCommandLineOption textureOutputDirOpt("out-dir","Directory for the textures computed","output directory",".");
-    const QCommandLineOption mustSwapTexturesOpt("swap-textures", "Swap unused textures to file to reduce VRAM usage");
     const QCommandLineOption dbgSaveTransmittancePngOpt("save-xmittance-png","Save transmittance textures as PNG (for debugging)");
     const QCommandLineOption dbgSaveGroundIrradianceOpt("save-irradiance","Save ground irradiance textures as F32 and PNG (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOrder2FromGroundOpt("save-scat-density2-from-ground","Save order 2 scattering density from ground (for debugging)");
@@ -330,7 +329,6 @@ void handleCmdLine()
     const QCommandLineOption dbgSaveDeltaScatteringOpt("save-delta-scattering","Save delta scattering textures for each order (for debugging)");
     const QCommandLineOption dbgSaveAccumScatteringOpt("save-accum-scattering","Save accumulated multiple scattering textures for each order (for debugging)");
     parser.addOptions({textureOutputDirOpt,
-                       mustSwapTexturesOpt,
                        dbgSaveTransmittancePngOpt,
                        dbgSaveGroundIrradianceOpt,
                        dbgSaveScatDensityOrder2FromGroundOpt,
@@ -342,8 +340,6 @@ void handleCmdLine()
 
     if(parser.isSet(textureOutputDirOpt))
         textureOutputDir=parser.value(textureOutputDirOpt).toStdString();
-    if(parser.isSet(mustSwapTexturesOpt))
-        mustSwapTextures=true;
     if(parser.isSet(dbgSaveTransmittancePngOpt))
         dbgSaveTransmittancePng=true;
     if(parser.isSet(dbgSaveGroundIrradianceOpt))

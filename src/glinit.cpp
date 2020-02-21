@@ -49,8 +49,7 @@ void initTexturesAndFramebuffers()
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
         setupTexture(tex,width,height,depth);
     }
-    if(!mustSwapTextures)
-        setupTexture(TEX_MULTIPLE_SCATTERING,width,height,depth);
+    setupTexture(TEX_MULTIPLE_SCATTERING,width,height,depth);
 
     gl.glGenFramebuffers(FBO_COUNT,fbos);
 }
