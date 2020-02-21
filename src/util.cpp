@@ -125,24 +125,16 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
     }
 }
 
-GLfloat* pixelsToSaveOrLoad()
+void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
+                 const std::string_view path, std::vector<float> const& sizes)
 {
-    // Allocate this once at the beginning, so as to avoid std::bad_alloc when we have taken a fair
-    // chunk of VRAM. Dunno why, but on my nvidia cards VRAM usage somehow makes the system deny us
-    // even 1G of RAM.
-    // As the scattering texture is the largest texture we are using here, allocating this size
-    // would be enough for saving/loading any texture.
-    static GLfloat* pixels=new GLfloat[scatTexWidth()*scatTexHeight()*scatTexDepth()*4];
-    return pixels;
-}
-std::size_t getTexImage(const GLenum target, const GLuint texture, GLfloat* subpixels,
-                        std::vector<float> const& sizes)
-{
+    std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"... ";
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
-        std::cerr << "GL error on entry to getTexImage(): " << openglErrorString(err) << "\n";
+        std::cerr << "GL error on entry to saveTexture(): " << openglErrorString(err) << "\n";
         throw MustQuit{};
     }
+
     OutputIndentIncrease incr;
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(target,texture);
@@ -174,25 +166,18 @@ std::size_t getTexImage(const GLenum target, const GLuint texture, GLfloat* subp
     }
 
     const auto subpixelCount = 4*pixelCount;
-    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, subpixels);
+    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
+    gl.glGetTexImage(target, 0, GL_RGBA, GL_FLOAT, subpixels.get());
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         std::cerr << "GL error in saveTexture() after glGetTexImage() call: " << openglErrorString(err) << "\n";
         throw MustQuit{};
     }
-    return subpixelCount;
-}
 
-void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
-                 const std::string_view path, std::vector<float> const& sizes)
-{
-    std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"... ";
-    const auto subpixels=pixelsToSaveOrLoad();
-    const auto subpixelCount=getTexImage(target,texture,subpixels,sizes);
     std::ofstream out{std::string(path)};
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
-    out.write(reinterpret_cast<const char*>(subpixels), subpixelCount*sizeof subpixels[0]);
+    out.write(reinterpret_cast<const char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);
     out.close();
     std::cerr << "done\n";
 }
@@ -206,7 +191,7 @@ void loadTexture(std::string const& path, const std::size_t width, const std::si
     }
     std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
     const std::size_t subpixelCount = 4*width*height*depth;
-    const auto subpixels=pixelsToSaveOrLoad();
+    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
     std::ifstream file(path);
     if(!file)
     {
@@ -218,8 +203,8 @@ void loadTexture(std::string const& path, const std::size_t width, const std::si
     file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
     if(std::uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != std::uintptr_t(width)*height*depth)
         throw std::runtime_error("Bad texture size in file "+path);
-    file.read(reinterpret_cast<char*>(subpixels), subpixelCount*sizeof subpixels[0]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels);
+    file.read(reinterpret_cast<char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);
+    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F_ARB,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels.get());
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         std::cerr << "GL error in loadTexture(" << width << "," << height << "," << depth << ") after glTexImage3D() call: " << openglErrorString(err) << "\n";
