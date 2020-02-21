@@ -50,7 +50,7 @@ void saveScatteringDensity(const int scatteringOrder, const int texIndex)
                 {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
 }
 
-void render3DTexLayers(QOpenGLShaderProgram& program, std::string_view whatIsBeingDone)
+void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view whatIsBeingDone)
 {
     std::cerr << indentOutput() << whatIsBeingDone << "... ";
     for(unsigned layer=0; layer<scatTexDepth(); ++layer)
@@ -159,7 +159,7 @@ void computeSingleScattering(const int texIndex, ScattererDescription const& sca
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeIndirectIrradianceOrder1(const int texIndex, const int scattererIndex);
+void computeIndirectIrradianceOrder1(int texIndex, int scattererIndex);
 void computeScatteringDensityOrder2(const int texIndex)
 {
     constexpr int scatteringOrder=2;

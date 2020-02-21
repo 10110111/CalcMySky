@@ -213,7 +213,7 @@ void loadTexture(std::string const& path, const size_t width, const size_t heigh
     std::cerr << "done\n";
 }
 
-void loadTexture(GLfloat* data, size_t width, size_t height, size_t depth)
+void loadTexture(GLfloat*const data, const size_t width, const size_t height, const size_t depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -228,7 +228,7 @@ void loadTexture(GLfloat* data, size_t width, size_t height, size_t depth)
     }
 }
 
-void setupTexture(TextureId id, unsigned width, unsigned height)
+void setupTexture(TextureId id, const unsigned width, const unsigned height)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -244,7 +244,7 @@ void setupTexture(TextureId id, unsigned width, unsigned height)
         throw MustQuit{};
     }
 }
-void setupTexture(TextureId id, unsigned width, unsigned height, unsigned depth)
+void setupTexture(TextureId id, const unsigned width, const unsigned height, const unsigned depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -262,7 +262,7 @@ void setupTexture(TextureId id, unsigned width, unsigned height, unsigned depth)
 }
 
 // ------------------------------------ KHR_debug support ----------------------------------------
-std::string sourceToString(GLenum source)
+std::string sourceToString(const GLenum source)
 {
     switch(source)
     {
@@ -276,7 +276,7 @@ std::string sourceToString(GLenum source)
     return "Unknown source "+std::to_string(int(source));
 }
 
-std::string typeToString(GLenum type)
+std::string typeToString(const GLenum type)
 {
     switch(type)
     {
@@ -293,7 +293,7 @@ std::string typeToString(GLenum type)
     return "Unknown type "+std::to_string(int(type));
 }
 
-std::string severityToString(GLenum severity)
+std::string severityToString(const GLenum severity)
 {
     switch(severity)
     {
@@ -305,7 +305,8 @@ std::string severityToString(GLenum severity)
     return "Unknown type "+std::to_string(int(severity));
 }
 
-void debugCallback(GLenum source, GLenum type, GLuint /*id*/, GLenum severity, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/)
+void debugCallback(const GLenum source, const GLenum type, const GLuint /*id*/, const GLenum severity,
+                   const GLsizei /*length*/, const GLchar*const message, const void*const /*userParam*/)
 {
     if(severity==GL_DEBUG_SEVERITY_NOTIFICATION) return;
     if(source==GL_DEBUG_SOURCE_SHADER_COMPILER) return;

@@ -7,7 +7,8 @@
 #include "data.hpp"
 #include "util.hpp"
 
-unsigned long long getUInt(QString const& value, unsigned long long min, unsigned long long max, QString const& filename, int lineNumber)
+unsigned long long getUInt(QString const& value, const unsigned long long min, const unsigned long long max,
+                           QString const& filename, int lineNumber)
 {
     bool ok;
     const auto x=value.toULongLong(&ok);
@@ -91,7 +92,8 @@ struct AreaQuantity : Quantity
 
 struct DimensionlessQuantity {};
 
-double getQuantity(QString const& value, double min, double max, DimensionlessQuantity const&, QString const& filename, int lineNumber)
+double getQuantity(QString const& value, const double min, const double max, DimensionlessQuantity const&,
+                   QString const& filename, int lineNumber)
 {
     bool ok;
     const auto x=value.toDouble(&ok);
@@ -108,7 +110,7 @@ double getQuantity(QString const& value, double min, double max, DimensionlessQu
     return x;
 }
 
-double getQuantity(QString const& value, double min, double max, Quantity const& quantity, QString const& filename, int lineNumber)
+double getQuantity(QString const& value, const double min, const double max, Quantity const& quantity, QString const& filename, const int lineNumber)
 {
     auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z^-0-9]*)");
     if(!regex.exactMatch(value))
@@ -174,7 +176,7 @@ QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& l
 }
 
 std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const GLfloat max,
-                                 QString const& filename, const int lineNumber, bool checkSize=true)
+                                 QString const& filename, const int lineNumber, const bool checkSize=true)
 {
     const auto items=line.split(',');
     if(checkSize && size_t(items.size()) != allWavelengths.size()*pointsPerWavelengthItem)
