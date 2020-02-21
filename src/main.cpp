@@ -28,17 +28,10 @@ void saveIrradiance(const int scatteringOrder, const int texIndex)
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                 textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
                 {float(irradianceTexW), float(irradianceTexH)});
-    QImage image(irradianceTexW, irradianceTexH, QImage::Format_RGBA8888);
-    image.fill(Qt::magenta);
-    gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-    image.mirrored().save(QString("%1/irradiance-delta-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                 textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
                 {float(irradianceTexW), float(irradianceTexH)});
-    image.fill(Qt::magenta);
-    gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-    image.mirrored().save(QString("%1/irradiance-accum-order%2-%3.png").arg(textureOutputDir.c_str()).arg(scatteringOrder-1).arg(texIndex));
 }
 
 void saveScatteringDensity(const int scatteringOrder, const int texIndex)
@@ -93,13 +86,6 @@ void computeTransmittance(const int texIndex)
                 textureOutputDir+"/transmittance-wlset"+std::to_string(texIndex)+".f32",
                 {float(transmittanceTexW), float(transmittanceTexH)});
 
-    if(dbgSaveTransmittancePng)
-    {
-        QImage image(transmittanceTexW, transmittanceTexH, QImage::Format_RGBA8888);
-        image.fill(Qt::magenta);
-        gl.glReadPixels(0,0,transmittanceTexW,transmittanceTexH,GL_RGBA,GL_UNSIGNED_BYTE,image.bits());
-        image.mirrored().save(QString("%1/transmittance-png-%2.png").arg(textureOutputDir.c_str()).arg(texIndex));
-    }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
