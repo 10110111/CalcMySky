@@ -11,33 +11,15 @@ std::string openglErrorString(const GLenum error)
 {
     switch(error)
     {
-#ifdef GL_NO_ERROR
     case GL_NO_ERROR: return "No error";
-#endif
-#ifdef GL_INVALID_ENUM
     case GL_INVALID_ENUM: return "Invalid enumerator";
-#endif
-#ifdef GL_INVALID_VALUE
     case GL_INVALID_VALUE: return "Invalid value";
-#endif
-#ifdef GL_INVALID_OPERATION
     case GL_INVALID_OPERATION: return "Invalid operation";
-#endif
-#ifdef GL_STACK_OVERFLOW
     case GL_STACK_OVERFLOW: return "Stack overflow";
-#endif
-#ifdef GL_STACK_UNDERFLOW
     case GL_STACK_UNDERFLOW: return "Stack underflow";
-#endif
-#ifdef GL_OUT_OF_MEMORY
     case GL_OUT_OF_MEMORY: return "Out of memory";
-#endif
-#ifdef GL_TABLE_TOO_LARGE
     case GL_TABLE_TOO_LARGE: return "Table too large";
-#endif
-#ifdef GL_INVALID_FRAMEBUFFER_OPERATION
     case GL_INVALID_FRAMEBUFFER_OPERATION: return "Invalid framebuffer operation";
-#endif
     }
     return "Error code " + std::to_string(error);
 }
