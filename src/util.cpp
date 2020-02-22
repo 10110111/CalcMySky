@@ -6,11 +6,6 @@
 #include <iostream>
 
 #include "data.hpp"
-extern "C"
-{
-    GLAPI void APIENTRY glDebugMessageCallback (GLDEBUGPROC callback, const void *userParam);
-    GLAPI void APIENTRY glDebugMessageControl (GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled);
-}
 
 std::string openglErrorString(const GLenum error)
 {
