@@ -330,10 +330,15 @@ void setupDebugPrintCallback(QOpenGLContext& context)
         std::cerr << "*** WARNING: debug extension is not supported, debug callback won't be set\n";
         return;
     }
-    static void APIENTRY (*const glDebugMessageCallback)(decltype(&debugCallback),const void*)=
-        reinterpret_cast<decltype(glDebugMessageCallback)>(context.getProcAddress("glDebugMessageCallback"));
-    static void APIENTRY (*const glDebugMessageControl)(GLenum, GLenum, GLenum,GLsizei,const GLuint*,GLboolean)=
-        reinterpret_cast<decltype(glDebugMessageControl)>(context.getProcAddress("glDebugMessageControl"));
+
+    static const auto glDebugMessageCallback=reinterpret_cast
+        <void APIENTRY(*)(decltype(&debugCallback),const void*)>
+            (context.getProcAddress("glDebugMessageCallback"));
+
+    static const auto glDebugMessageControl=reinterpret_cast
+        <void APIENTRY (*)(GLenum, GLenum, GLenum,GLsizei,const GLuint*,GLboolean)>
+            (context.getProcAddress("glDebugMessageControl"));
+
     glDebugMessageCallback(&debugCallback,NULL);
     glDebugMessageControl(GL_DONT_CARE,GL_DONT_CARE,GL_DONT_CARE,0,NULL,GL_TRUE);
     gl.glEnable(GL_DEBUG_OUTPUT);
