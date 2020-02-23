@@ -23,6 +23,7 @@ inline std::string indentOutput()
     return std::string(OutputIndentIncrease::outputIndent, ' ');
 }
 
+inline bool saveResultAsRadiance=false;
 inline bool dbgSaveGroundIrradiance=false;
 inline bool dbgSaveScatDensityOrder2FromGround=false;
 inline bool dbgSaveScatDensity=false;

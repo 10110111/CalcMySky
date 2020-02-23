@@ -19,6 +19,7 @@
 #include "glinit.hpp"
 #include "cmdline.hpp"
 #include "shaders.hpp"
+#include "../cie-xyzw-functions.hpp"
 
 QOpenGLFunctions_3_3_Core gl;
 
@@ -346,7 +347,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     // more than two 4D textures in VRAM at once.
     // Now it's time to do this by only holding the accumulator and delta scattering texture in VRAM.
     gl.glActiveTexture(GL_TEXTURE0);
-    if(scatteringOrder>2)
+    if(scatteringOrder>2 || (texIndex>0 && !saveResultAsRadiance))
         gl.glEnable(GL_BLEND);
     else
         gl.glDisable(GL_BLEND);
@@ -358,6 +359,30 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
                                             "scattering texture copy-blend shader program",
                                             true);
     program->bind();
+    if(!saveResultAsRadiance)
+    {
+        using glm::mat4;
+        const auto diag=[](GLfloat x, GLfloat y, GLfloat z, GLfloat w) { return mat4(x,0,0,0,
+                                                                                     0,y,0,0,
+                                                                                     0,0,z,0,
+                                                                                     0,0,0,w); };
+        const int wlCount = 4*allWavelengths.size();
+        // Weights for the trapezoidal quadrature rule
+        const mat4 weights = wlCount==4            ? diag(0.5,1,1,0.5) :
+                             texIndex==0           ? diag(0.5,1,1,1  ) :
+                             texIndex+1==wlCount/4 ? diag(  1,1,1,0.5) :
+                                                     diag(  1,1,1,1);
+        const mat4 dlambda = weights * abs(allWavelengths.back()[3]-allWavelengths.front()[0]) / (wlCount-1.f);
+        // Ref: Rapport BIPM-2019/05. Principles Governing Photometry, 2nd edition. Sections 6.2, 6.3.
+        const mat4 maxLuminousEfficacy=diag(683.002,683.002,683.002,1700.13); // lm/W
+        const mat4 radianceToLuminance=maxLuminousEfficacy * mat4(wavelengthToXYZW(allWavelengths[texIndex][0]),
+                                                                  wavelengthToXYZW(allWavelengths[texIndex][1]),
+                                                                  wavelengthToXYZW(allWavelengths[texIndex][2]),
+                                                                  wavelengthToXYZW(allWavelengths[texIndex][3])) * dlambda;
+        // radianceToLuminance wouldn't need to be transposed, if QMatrix4x4 was column-major as glm::mat4.
+        // But alas, it's not, so we do need to transpose.
+        program->setUniformValue("radianceToLuminance", QMatrix4x4(&radianceToLuminance[0][0]).transposed());
+    }
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
     render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
     gl.glDisable(GL_BLEND);
@@ -371,11 +396,13 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
                     textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
-    if(scatteringOrder==scatteringOrdersToCompute)
+    if(scatteringOrder==scatteringOrdersToCompute && (texIndex+1u==allWavelengths.size() || saveResultAsRadiance))
     {
+        const auto filename = saveResultAsRadiance ?
+            textureOutputDir+"/multiple-scattering-wlset"+std::to_string(texIndex)+".f32" :
+            textureOutputDir+"/multiple-scattering-xyzw.f32";
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
-                    "multiple scattering accumulator texture",
-                    textureOutputDir+"/multiple-scattering-wlset"+std::to_string(texIndex)+".f32",
+                    "multiple scattering accumulator texture", filename,
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
 }
