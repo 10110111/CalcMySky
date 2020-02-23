@@ -21,11 +21,5 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt5 5.9 REQUIRED Core OpenGL)
 configure_file(config.h.in config.h)
 include_directories(${CMAKE_BINARY_DIR})
-add_executable(atmosphere-textures-generator
-                src/main.cpp
-                src/util.cpp
-                src/glinit.cpp
-                src/cmdline.cpp
-                src/shaders.cpp
-                config.h)
-target_link_libraries(atmosphere-textures-generator Qt5::Core Qt5::OpenGL)
+
+add_subdirectory(generator)
