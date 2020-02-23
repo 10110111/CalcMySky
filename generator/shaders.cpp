@@ -214,7 +214,7 @@ QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache)
         file.setFileName(DATA_ROOT_DIR "shaders/" + fileName);
         opened=file.open(QIODevice::ReadOnly);
     }
-    else if(appBinDir==QDir(BUILD_BINDIR).canonicalPath())
+    else if(appBinDir==QDir(BUILD_BINDIR "generator/").canonicalPath())
     {
         file.setFileName(SOURCE_DIR "shaders/" + fileName);
         opened = file.open(QIODevice::ReadOnly);
