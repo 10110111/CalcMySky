@@ -2,6 +2,7 @@
 #define INCLUDE_ONCE_C49956E1_F7B6_4759_8745_711BBDFE6FE7
 
 #include <string>
+#include <iostream>
 #include <QVector4D>
 #include <QOpenGLFunctions_3_3_Core>
 #include <glm/glm.hpp>
@@ -10,6 +11,12 @@
 extern QOpenGLFunctions_3_3_Core gl;
 
 struct MustQuit{};
+
+inline std::ostream& operator<<(std::ostream& os, QString const& s)
+{
+    os << s.toStdString();
+    return os;
+}
 
 inline QVector4D QVec(glm::vec4 v) { return QVector4D(v.x, v.y, v.z, v.w); }
 inline QString toString(int x) { return QString::number(x); }

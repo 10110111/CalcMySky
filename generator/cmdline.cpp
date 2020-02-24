@@ -14,11 +14,11 @@ unsigned long long getUInt(QString const& value, const unsigned long long min, c
     const auto x=value.toULongLong(&ok);
     if(!ok)
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": can't parse integer\n";
+        std::cerr << filename << ":" << lineNumber << ": can't parse integer\n";
     }
     if(x<min || x>max)
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": integer out of range. Valid range is [" << min << ".." << max << "]\n";
+        std::cerr << filename << ":" << lineNumber << ": integer out of range. Valid range is [" << min << ".." << max << "]\n";
         throw MustQuit{};
     }
     return x;
@@ -99,12 +99,12 @@ double getQuantity(QString const& value, const double min, const double max, Dim
     const auto x=value.toDouble(&ok);
     if(!ok)
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": failed to parse number\n";
+        std::cerr << filename << ":" << lineNumber << ": failed to parse number\n";
         throw MustQuit{};
     }
     if(x<min || x>max)
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": value " << x << " is out of range. Valid range is [" << min << ".." << max << "].\n";
+        std::cerr << filename << ":" << lineNumber << ": value " << x << " is out of range. Valid range is [" << min << ".." << max << "].\n";
         throw MustQuit{};
     }
     return x;
@@ -115,14 +115,14 @@ double getQuantity(QString const& value, const double min, const double max, Qua
     auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z^-0-9]*)");
     if(!regex.exactMatch(value))
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": bad format of " << quantity.name() << " quantity. Must be `NUMBER UNIT', e.g. `30.2 " << quantity.basicUnit().toStdString() << "' (without the quotes).\n";
+        std::cerr << filename << ":" << lineNumber << ": bad format of " << quantity.name() << " quantity. Must be `NUMBER UNIT', e.g. `30.2 " << quantity.basicUnit() << "' (without the quotes).\n";
         throw MustQuit{};
     }
     bool ok;
     const auto x=regex.cap(1).toDouble(&ok);
     if(!ok)
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": failed to parse numeric part of the quantity\n";
+        std::cerr << filename << ":" << lineNumber << ": failed to parse numeric part of the quantity\n";
         throw MustQuit{};
     }
     const auto units=quantity.units();
@@ -130,11 +130,11 @@ double getQuantity(QString const& value, const double min, const double max, Qua
     const auto scaleIt=units.find(unit);
     if(scaleIt==units.end())
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": unrecognized " << quantity.name() << " unit " << unit.toStdString() << ". Can be one of ";
+        std::cerr << filename << ":" << lineNumber << ": unrecognized " << quantity.name() << " unit " << unit << ". Can be one of ";
         for(auto it=units.begin(); it!=units.end(); ++it)
         {
             if(it!=units.begin()) std::cerr << ',';
-            std::cerr << it->first.toStdString();
+            std::cerr << it->first;
         }
         std::cerr << ".\n";
         throw MustQuit{};
@@ -142,8 +142,8 @@ double getQuantity(QString const& value, const double min, const double max, Qua
     const auto finalX = x * scaleIt->second;
     if(finalX<min || finalX>max)
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": value " << finalX << " " << quantity.basicUnit().toStdString()
-                  << " is out of range. Valid range is [" << min << ".." << max << "] " << quantity.basicUnit().toStdString() << ".\n";
+        std::cerr << filename << ":" << lineNumber << ": value " << finalX << " " << quantity.basicUnit()
+                  << " is out of range. Valid range is [" << min << ".." << max << "] " << quantity.basicUnit() << ".\n";
         throw MustQuit{};
     }
     return finalX;
@@ -160,7 +160,7 @@ QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& l
         {
             if(!startEndMarker.exactMatch(line))
             {
-                std::cerr << filename.toStdString() << ":" << lineNumber << ": function body must start and end with triple backtick placed on a separate line.\n";
+                std::cerr << filename << ":" << lineNumber << ": function body must start and end with triple backtick placed on a separate line.\n";
                 throw MustQuit{};
             }
             begun=true;
@@ -181,12 +181,12 @@ std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const
     const auto items=line.split(',');
     if(checkSize && size_t(items.size()) != allWavelengths.size()*pointsPerWavelengthItem)
     {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are " << allWavelengths.size()*pointsPerWavelengthItem << " wavelengths\n";
+            std::cerr << filename << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are " << allWavelengths.size()*pointsPerWavelengthItem << " wavelengths\n";
             throw MustQuit{};
     }
     if(items.size()%4)
     {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum length must be a multiple of 4\n";
+            std::cerr << filename << ":" << lineNumber << ": spectrum length must be a multiple of 4\n";
             throw MustQuit{};
     }
     std::vector<GLfloat> values;
@@ -196,17 +196,17 @@ std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const
         const auto value=items[i].toFloat(&ok);
         if(!ok)
         {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": failed to parse entry #" << i+1 << "\n";
+            std::cerr << filename << ":" << lineNumber << ": failed to parse entry #" << i+1 << "\n";
             throw MustQuit{};
         }
         if(value<min)
         {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum point #" << i+1 << " is less than minimally allowed: " << value << " < " << min << "\n";
+            std::cerr << filename << ":" << lineNumber << ": spectrum point #" << i+1 << " is less than minimally allowed: " << value << " < " << min << "\n";
             throw MustQuit{};
         }
         if(value>max)
         {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": spectrum point #" << i+1 << " is greater than maximally allowed: " << value << " > " << max << "\n";
+            std::cerr << filename << ":" << lineNumber << ": spectrum point #" << i+1 << " is greater than maximally allowed: " << value << " > " << max << "\n";
             throw MustQuit{};
         }
         values.emplace_back(value);
@@ -233,7 +233,7 @@ ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QS
         {
             if(keyValue.size()!=1 || keyValue[0] != "{")
             {
-                std::cerr << filename.toStdString() << ":" << lineNumber << ": scatterer description must begin with a '{'\n";
+                std::cerr << filename << ":" << lineNumber << ": scatterer description must begin with a '{'\n";
                 throw MustQuit{};
             }
             begun=true;
@@ -244,7 +244,7 @@ ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QS
 
         if(keyValue.size()!=2)
         {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": error: not a key:value pair\n";
+            std::cerr << filename << ":" << lineNumber << ": error: not a key:value pair\n";
             throw MustQuit{};
         }
         const auto key=keyValue[0].simplified().toLower();
@@ -261,7 +261,7 @@ ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QS
     }
     if(!description.valid())
     {
-        std::cerr << "Description of scatterer \"" << name.toStdString() << "\" is incomplete\n";
+        std::cerr << "Description of scatterer \"" << name << "\" is incomplete\n";
         throw MustQuit{};
     }
 
@@ -285,7 +285,7 @@ AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QStr
         {
             if(keyValue.size()!=1 || keyValue[0] != "{")
             {
-                std::cerr << filename.toStdString() << ":" << lineNumber << ": absorber description must begin with a '{'\n";
+                std::cerr << filename << ":" << lineNumber << ": absorber description must begin with a '{'\n";
                 throw MustQuit{};
             }
             begun=true;
@@ -296,7 +296,7 @@ AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QStr
 
         if(keyValue.size()!=2)
         {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": error: not a key:value pair\n";
+            std::cerr << filename << ":" << lineNumber << ": error: not a key:value pair\n";
             throw MustQuit{};
         }
         const auto key=keyValue[0].simplified().toLower();
@@ -309,7 +309,7 @@ AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QStr
     }
     if(!description.valid())
     {
-        std::cerr << "Description of absorber \"" << name.toStdString() << "\" is incomplete\n";
+        std::cerr << "Description of absorber \"" << name << "\" is incomplete\n";
         throw MustQuit{};
     }
 
@@ -359,7 +359,7 @@ void handleCmdLine()
     }
     if(posArgs.isEmpty())
     {
-        std::cerr << parser.helpText().toStdString();
+        std::cerr << parser.helpText();
         throw MustQuit{};
     }
 
@@ -367,7 +367,7 @@ void handleCmdLine()
     QFile atmoDescr(atmoDescrFileName);
     if(!atmoDescr.open(QIODevice::ReadOnly))
     {
-        std::cerr << "Failed to open atmosphere description file: " << atmoDescr.errorString().toStdString() << '\n';
+        std::cerr << "Failed to open atmosphere description file: " << atmoDescr.errorString() << '\n';
         throw MustQuit{};
     }
     QTextStream stream(&atmoDescr);
@@ -383,7 +383,7 @@ void handleCmdLine()
         const auto keyValue=codeAndComment[0].split(':');
         if(keyValue.size()!=2)
         {
-            std::cerr << atmoDescrFileName.toStdString() << ":" << lineNumber << ": error: not a key:value pair\n";
+            std::cerr << atmoDescrFileName << ":" << lineNumber << ": error: not a key:value pair\n";
             throw MustQuit{};
         }
         const auto key=keyValue[0].simplified().toLower();
@@ -407,7 +407,7 @@ void handleCmdLine()
             const auto integer=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
             if(integer%2)
             {
-                std::cerr << atmoDescrFileName.toStdString() << ":" << lineNumber << ": value for \"" << key.toStdString() << "\" must be even (shaders rely on this)\n";
+                std::cerr << atmoDescrFileName << ":" << lineNumber << ": value for \"" << key << "\" must be even (shaders rely on this)\n";
                 throw MustQuit{};
             }
             scatteringTextureSize[0]=integer;
@@ -445,11 +445,11 @@ void handleCmdLine()
             groundAlbedo=getSpectrum(value, 0, 1, atmoDescrFileName, lineNumber);
         }
         else
-            std::cerr << "WARNING: Unknown key: " << key.toStdString() << "\n";
+            std::cerr << "WARNING: Unknown key: " << key << "\n";
     }
     if(!stream.atEnd())
     {
-        std::cerr << atmoDescrFileName.toStdString() << ":" << lineNumber << ": error: failed to read file\n";
+        std::cerr << atmoDescrFileName << ":" << lineNumber << ": error: failed to read file\n";
         throw MustQuit{};
     }
     if(allWavelengths.empty())
