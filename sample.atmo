@@ -18,7 +18,7 @@ Earth-Sun distance: 1 AU
 Earth radius: 6371 km # FIXME: at R=6371km and h=120km highest altitude layer appears to have some artifacts in first scattering from near horizon
 atmosphere height: 120 km
 
-wavelengths: 360,391.33333333333333333333,422.66666666666666666667,454,485.33333333333333333333,516.66666666666666666667,548,579.33333333333333333333,610.66666666666666666667,642,673.33333333333333333333,704.66666666666666666667,736,767.33333333333333333333,798.66666666666666666667,830
+wavelengths: min=360nm,max=830nm,count=16
 # Data for solar irradiance were taken from
 # https://www.nrel.gov/grid/solar-resource/assets/data/astmg173.zip
 # which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html

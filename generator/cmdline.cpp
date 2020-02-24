@@ -50,6 +50,11 @@ struct LengthQuantity : Quantity
     QString basicUnit() const override { return "m"; }
 };
 
+struct WavelengthQuantity : LengthQuantity
+{
+    QString basicUnit() const override { return "nm"; }
+};
+
 struct ReciprocalLengthQuantity : Quantity
 {
     std::string name() const override { return "reciprocal length"; }
@@ -110,12 +115,13 @@ double getQuantity(QString const& value, const double min, const double max, Dim
     return x;
 }
 
-double getQuantity(QString const& value, const double min, const double max, Quantity const& quantity, QString const& filename, const int lineNumber)
+double getQuantity(QString const& value, const double min, const double max, Quantity const& quantity, QString const& filename, const int lineNumber, QString const& errorMessagePrefix="")
 {
     auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z^-0-9]*)");
     if(!regex.exactMatch(value))
     {
-        std::cerr << filename << ":" << lineNumber << ": bad format of " << quantity.name() << " quantity. Must be `NUMBER UNIT', e.g. `30.2 " << quantity.basicUnit() << "' (without the quotes).\n";
+        std::cerr << filename << ":" << lineNumber << ": " << errorMessagePrefix << "bad format of " << quantity.name()
+                  << " quantity. Must be `NUMBER UNIT', e.g. `30.2 " << quantity.basicUnit() << "' (without the quotes).\n";
         throw MustQuit{};
     }
     bool ok;
@@ -215,6 +221,91 @@ std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const
     for(unsigned i=0; i<values.size(); i+=4)
         spectrum.emplace_back(values[i+0], values[i+1], values[i+2], values[i+3]);
     return spectrum;
+}
+
+std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat minWL_nm, const GLfloat maxWL_nm,
+                                          QString const& filename, const int lineNumber)
+{
+    constexpr GLfloat nm=1e-9;
+    const auto items=line.split(',');
+    std::optional<GLfloat> minOpt;
+    std::optional<GLfloat> maxOpt;
+    std::optional<int> countOpt;
+    for(const auto& item : items)
+    {
+        if(QRegExp minRX("\\s*min\\s*=\\s*(.+)\\s*"); minRX.exactMatch(item))
+        {
+            if(minOpt)
+            {
+                std::cerr << filename << ":" << lineNumber << ": bad wavelength range: extra `min' key\n";
+                throw MustQuit{};
+            }
+            minOpt=getQuantity(minRX.capturedTexts()[1], minWL_nm*nm, maxWL_nm*nm, WavelengthQuantity{},
+                               filename, lineNumber, "wavelength range minimum: ");
+        }
+        else if(QRegExp maxRX("\\s*max\\s*=\\s*(.+)\\s*"); maxRX.exactMatch(item))
+        {
+            if(maxOpt)
+            {
+                std::cerr << filename << ":" << lineNumber << ": bad wavelength range: extra `max' key\n";
+                throw MustQuit{};
+            }
+            maxOpt=getQuantity(maxRX.capturedTexts()[1], minWL_nm*nm, maxWL_nm*nm, WavelengthQuantity{},
+                               filename, lineNumber, "wavelength range maximum: ");
+        }
+        else if(QRegExp countRX("\\s*count\\s*=\\s*([0-9]+)\\s*"); countRX.exactMatch(item))
+        {
+            if(countOpt)
+            {
+                std::cerr << filename << ":" << lineNumber << ": bad wavelength range: extra `count' key\n";
+                throw MustQuit{};
+            }
+            bool ok=false;
+            countOpt=countRX.capturedTexts()[1].toInt(&ok);
+            if(!ok)
+            {
+                std::cerr << filename << ":" << lineNumber << ": wavelength range: failed to parse range count.\n";
+                throw MustQuit{};
+            }
+        }
+    }
+    if(!minOpt)
+    {
+        std::cerr << filename << ":" << lineNumber << ": invalid range: missing `min' key\n";
+        throw MustQuit{};
+    }
+    if(!maxOpt)
+    {
+        std::cerr << filename << ":" << lineNumber << ": invalid range: missing `max' key\n";
+        throw MustQuit{};
+    }
+    if(!countOpt)
+    {
+        std::cerr << filename << ":" << lineNumber << ": invalid range: missing `count' key\n";
+        throw MustQuit{};
+    }
+    const auto min=*minOpt/nm, max=*maxOpt/nm;
+    const int count=*countOpt;
+    if(count<=0 || count%4)
+    {
+        std::cerr << filename << ":" << lineNumber << ": range element count must be a positive multple of 4.\n";
+        throw MustQuit{};
+    }
+    if(min>=max)
+    {
+        std::cerr << filename << ":" << lineNumber << ": invalid wavelength range: min must be less than max.\n";
+        throw MustQuit{};
+    }
+    std::vector<glm::vec4> values;
+    const auto range=max-min;
+    for(int i=0;i<count;i+=4)
+    {
+        values.push_back(glm::vec4(min+range*double(i+0)/(count-1),
+                                   min+range*double(i+1)/(count-1),
+                                   min+range*double(i+2)/(count-1),
+                                   min+range*double(i+3)/(count-1)));
+    }
+    return values;
 }
 
 ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
@@ -431,7 +522,7 @@ void handleCmdLine()
             sunAngularRadius=sunRadius/earthSunDistance;
         }
         else if(key=="wavelengths")
-            allWavelengths=getSpectrum(value,1e2,1e5,atmoDescrFileName,lineNumber,false);
+            allWavelengths=getWavelengthRange(value,100,100'000,atmoDescrFileName,lineNumber);
         else if(key=="solar irradiance at toa")
             solarIrradianceAtTOA=getSpectrum(value,0,1e3,atmoDescrFileName,lineNumber);
         else if(key.contains(scattererDescriptionKey))
