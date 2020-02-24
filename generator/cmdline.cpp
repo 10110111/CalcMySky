@@ -291,11 +291,6 @@ std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat min
         std::cerr << filename << ":" << lineNumber << ": range element count must be a positive multple of 4.\n";
         throw MustQuit{};
     }
-    if(min>=max)
-    {
-        std::cerr << filename << ":" << lineNumber << ": invalid wavelength range: min must be less than max.\n";
-        throw MustQuit{};
-    }
     std::vector<glm::vec4> values;
     const auto range=max-min;
     for(int i=0;i<count;i+=4)
