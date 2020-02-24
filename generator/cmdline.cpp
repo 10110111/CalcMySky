@@ -115,7 +115,7 @@ double getQuantity(QString const& value, const double min, const double max, Qua
     auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z^-0-9]*)");
     if(!regex.exactMatch(value))
     {
-        std::cerr << filename.toStdString() << ":" << lineNumber << ": bad format of " << quantity.name() << " quantity. Must be `NUMBER UNIT', e.g. `30.2 km' (without the quotes).\n";
+        std::cerr << filename.toStdString() << ":" << lineNumber << ": bad format of " << quantity.name() << " quantity. Must be `NUMBER UNIT', e.g. `30.2 " << quantity.basicUnit().toStdString() << "' (without the quotes).\n";
         throw MustQuit{};
     }
     bool ok;
