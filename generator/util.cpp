@@ -308,12 +308,10 @@ void setupDebugPrintCallback(QOpenGLContext& context)
         return;
     }
 
-    static const auto glDebugMessageCallback=reinterpret_cast
-        <void APIENTRY(*)(decltype(&debugCallback),const void*)>
+    static const auto glDebugMessageCallback=reinterpret_cast<PFNGLDEBUGMESSAGECALLBACKPROC>
             (context.getProcAddress("glDebugMessageCallback"));
 
-    static const auto glDebugMessageControl=reinterpret_cast
-        <void APIENTRY (*)(GLenum, GLenum, GLenum,GLsizei,const GLuint*,GLboolean)>
+    static const auto glDebugMessageControl=reinterpret_cast<PFNGLDEBUGMESSAGECONTROLPROC>
             (context.getProcAddress("glDebugMessageControl"));
 
     glDebugMessageCallback(&debugCallback,NULL);
