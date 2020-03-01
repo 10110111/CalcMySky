@@ -282,8 +282,8 @@ std::string severityToString(const GLenum severity)
     return "Unknown type "+std::to_string(int(severity));
 }
 
-void debugCallback(const GLenum source, const GLenum type, const GLuint /*id*/, const GLenum severity,
-                   const GLsizei /*length*/, const GLchar*const message, const void*const /*userParam*/)
+void APIENTRY debugCallback(const GLenum source, const GLenum type, const GLuint /*id*/, const GLenum severity,
+                            const GLsizei /*length*/, const GLchar*const message, const void*const /*userParam*/)
 {
     if(severity==GL_DEBUG_SEVERITY_NOTIFICATION) return;
     if(source==GL_DEBUG_SOURCE_SHADER_COMPILER) return;
