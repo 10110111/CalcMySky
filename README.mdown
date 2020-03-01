@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/vtrtpjxk08xp6ba6?svg=true)](https://ci.appveyor.com/project/10110111/atmosphere-textures-generator)
+
 # Atmosphere textures generator
 
 This set of programs will let the users of the [future precomputed atmospheric scattering model](https://github.com/Stellarium/stellarium/issues/624) for [Stellarium](https://github.com/Stellarium/stellarium) generate the textures for the particular parameters of the atmosphere.
