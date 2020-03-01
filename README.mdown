@@ -22,3 +22,15 @@ The planned implementation steps are as follows:
 # Generator interface
 
 After building the package using the usual steps of building CMake-based projects, the binary `atmosphere-textures-generator` appears in `generator` subdirectory of the build directory. It should be feeded with a file containing description of the parameters of atmosphere, as well as computation settings. A sample of such file resides in the root of source tree, with the name `sample.atmo`.
+
+So, to try it out, you can do something like the following on a Linux-based system:
+
+```
+git clone https://github.com/10110111/atmosphere-textures-generator
+cd atmosphere-textures-generator
+mkdir build
+cd build
+cmake ..
+make
+./generator/atmosphere-textures-generator ../sample.atmo --out-dir /tmp
+```
