@@ -1,5 +1,6 @@
 #include "cmdline.hpp"
 
+#include <optional>
 #include <iostream>
 #include <QCommandLineParser>
 #include <QFile>
