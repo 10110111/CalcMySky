@@ -1,0 +1,25 @@
+version: "{build}"
+
+environment:
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      QT_BASEDIR: C:/Qt/5.9/msvc2017_64
+
+configuration:
+  - Debug
+#  - Release
+
+install:
+  - ps: new-item -itemtype directory -path C:\glm | out-null
+  - ps: (new-object net.webclient).DownloadFile("https://github.com/g-truc/glm/releases/download/0.9.9.7/glm-0.9.9.7.zip", 'C:/glm.zip')
+  - ps: expand-archive 'C:/glm.zip' -destinationpath 'C:\'
+
+before_build:
+  - cmd: cd C:/projects
+  - cmd: md build
+  - cmd: cd build
+  - cmd: cmake -G "%CMAKE_GENERATOR%" -DCMAKE_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH=%QT_BASEDIR%/lib/cmake/Qt5 ../atmosphere-textures-generator
+
+build_script:
+    - cmd: msbuild C:\projects\build\atmosphere-textures-generator.sln /p:Configuration=%configuration% /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
