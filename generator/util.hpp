@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <string_view>
 #include <QVector4D>
 #include <QOpenGLFunctions_3_3_Core>
 #include <glm/glm.hpp>
