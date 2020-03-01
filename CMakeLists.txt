@@ -8,13 +8,7 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU|Clang")
 endif()
 
 include(GNUInstallDirs)
-
-include(CheckIncludeFileCXX)
-check_include_file_cxx("glm/glm.hpp" HAVE_GLM)
-if(NOT HAVE_GLM)
-    unset(HAVE_GLM CACHE)
-    message(FATAL_ERROR "GLM was not found")
-endif()
+include(cmake/CheckGLM.cmake)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
