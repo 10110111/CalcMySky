@@ -542,9 +542,9 @@ int main(int argc, char** argv)
             computeMultipleScattering(texIndex);
         }
     }
-    catch(MustQuit&)
+    catch(MustQuit& ex)
     {
-        return 1;
+        return ex.exitCode;
     }
     catch(std::exception const& ex)
     {

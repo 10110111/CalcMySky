@@ -1,5 +1,6 @@
 #include "cmdline.hpp"
 
+#include <iomanip>
 #include <optional>
 #include <iostream>
 #include <QCommandLineParser>
@@ -403,13 +404,44 @@ AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QStr
     return description;
 }
 
+void showHelp(std::ostream& s, QList<QCommandLineOption> const& options, QString const& positionalArgSyntax)
+{
+    s << "Usage: " << qApp->arguments()[0] << " [options] " << positionalArgSyntax << "\n";
+    s << "\nOptions:\n";
+
+    std::vector<std::pair<QString,QString>> allOptionsFormatted;
+    int maxNameLen=0;
+    for(const auto& option : options)
+    {
+        if(option.flags() & QCommandLineOption::HiddenFromHelp)
+            continue;
+        QString namesFormatted="  ";
+        for(const auto& name : option.names())
+        {
+            const int numDashes = name.size()==1 ? 1 : 2;
+            namesFormatted += QLatin1String("--", numDashes) + name + ", ";
+        }
+        if(!namesFormatted.isEmpty())
+            namesFormatted.chop(2); // remove trailing ", "
+        const auto valueName=option.valueName();
+        if(!valueName.isEmpty())
+            namesFormatted += " <" + valueName + ">";
+        if(namesFormatted.size() > maxNameLen)
+            maxNameLen=namesFormatted.size();
+        allOptionsFormatted.emplace_back(std::make_pair(namesFormatted, option.description()));
+    }
+
+    for(const auto& option : allOptionsFormatted)
+        s << std::setw(maxNameLen+2) << std::left << option.first << option.second << "\n";
+}
+
 void handleCmdLine()
 {
     QCommandLineParser parser;
-    const auto atmoDescrOpt="atmo-descr";
-    parser.addPositionalArgument(atmoDescrOpt, "Atmosphere description file", "atmosphere-description.atmo");
-    parser.addVersionOption();
-    parser.addHelpOption();
+    // QCommandLineParser::addHelpOption() results in ugly help wrapped at 79 columns, so not using it.
+    const QCommandLineOption helpOpt({"h","help"}, "Display this help and exit");
+    // We do it a bit differently from QCommandLineParser, so not using addVersionOption()
+    const QCommandLineOption versionOpt({"v","version"}, "Display version and exit");
     const QCommandLineOption textureOutputDirOpt("out-dir","Directory for the textures computed","output directory",".");
     const QCommandLineOption saveResultAsRadianceOpt("radiance","Save result as radiance instead of XYZW components");
     const QCommandLineOption dbgSaveGroundIrradianceOpt("save-irradiance","Save ground irradiance textures (for debugging)");
@@ -417,16 +449,33 @@ void handleCmdLine()
     const QCommandLineOption dbgSaveScatDensityOpt("save-scat-density","Save scattering density textures (for debugging)");
     const QCommandLineOption dbgSaveDeltaScatteringOpt("save-delta-scattering","Save delta scattering textures for each order (for debugging)");
     const QCommandLineOption dbgSaveAccumScatteringOpt("save-accum-scattering","Save accumulated multiple scattering textures for each order (for debugging)");
-    parser.addOptions({textureOutputDirOpt,
-                       saveResultAsRadianceOpt,
-                       dbgSaveGroundIrradianceOpt,
-                       dbgSaveScatDensityOrder2FromGroundOpt,
-                       dbgSaveScatDensityOpt,
-                       dbgSaveDeltaScatteringOpt,
-                       dbgSaveAccumScatteringOpt,
-                      });
+    const QList options{
+                        helpOpt,
+                        versionOpt,
+                        textureOutputDirOpt,
+                        saveResultAsRadianceOpt,
+                        dbgSaveGroundIrradianceOpt,
+                        dbgSaveScatDensityOrder2FromGroundOpt,
+                        dbgSaveScatDensityOpt,
+                        dbgSaveDeltaScatteringOpt,
+                        dbgSaveAccumScatteringOpt,
+                       };
+    parser.addOptions(options);
+    const std::pair<QString, QString> positionalArgument("atmosphere-description.atmo",
+                                                         "Atmosphere description file");
+    parser.addPositionalArgument("atmo-descr", positionalArgument.second, positionalArgument.first);
     parser.process(*qApp);
 
+    if(parser.isSet(helpOpt))
+    {
+        showHelp(std::cout, options, positionalArgument.first);
+        throw MustQuit{0};
+    }
+    if(parser.isSet(versionOpt))
+    {
+        std::cout << qApp->applicationName() << ' ' << qApp->applicationVersion() << '\n';
+        throw MustQuit{0};
+    }
     if(parser.isSet(textureOutputDirOpt))
         textureOutputDir=parser.value(textureOutputDirOpt).toStdString();
     if(parser.isSet(saveResultAsRadianceOpt))
@@ -450,7 +499,7 @@ void handleCmdLine()
     }
     if(posArgs.isEmpty())
     {
-        std::cerr << parser.helpText();
+        showHelp(std::cerr, options, positionalArgument.first);
         throw MustQuit{};
     }
 

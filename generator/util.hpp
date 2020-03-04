@@ -11,7 +11,7 @@
 
 extern QOpenGLFunctions_3_3_Core gl;
 
-struct MustQuit{};
+struct MustQuit{ int exitCode=1; };
 
 inline std::ostream& operator<<(std::ostream& os, QString const& s)
 {
