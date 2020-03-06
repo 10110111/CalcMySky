@@ -134,10 +134,7 @@ void computeSingleScattering(const int texIndex, ScattererDescription const& sca
                                             "single scattering computation shader program",
                                             true);
     program->bind();
-    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
     program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
-    program->setUniformValue("altitudeMin", altitudeMin);
-    program->setUniformValue("altitudeMax", altitudeMax);
 
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
 
@@ -176,10 +173,6 @@ void computeScatteringDensityOrder2(const int texIndex)
     gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
 
     program->bind();
-
-    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
-    program->setUniformValue("altitudeMin", altitudeMin);
-    program->setUniformValue("altitudeMax", altitudeMax);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
@@ -226,9 +219,6 @@ void computeScatteringDensityOrder2(const int texIndex)
 
         setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,1,"firstScatteringTexture");
 
-        program->setUniformValue("altitudeMin", altitudeMin);
-        program->setUniformValue("altitudeMax", altitudeMax);
-
         gl.glEnable(GL_BLEND);
         render3DTexLayers(*program, "Computing scattering density layers");
 
@@ -260,10 +250,6 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_DELTA_IRRADIANCE,1,"irradianceTexture");
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,2,"multipleScatteringTexture");
 
-    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
-    program->setUniformValue("altitudeMin", altitudeMin);
-    program->setUniformValue("altitudeMax", altitudeMax);
-
     render3DTexLayers(*program, "Computing scattering density layers");
     saveScatteringDensity(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -272,8 +258,6 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
 void computeIndirectIrradianceOrder1(const int texIndex, const int scattererIndex)
 {
     constexpr int scatteringOrder=2;
-
-    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
 
@@ -297,8 +281,6 @@ void computeIndirectIrradianceOrder1(const int texIndex, const int scattererInde
                                                                        "indirect irradiance computation shader program");
     program->bind();
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"firstScatteringTexture");
-    program->setUniformValue("altitudeMin", altitudeMin);
-    program->setUniformValue("altitudeMax", altitudeMax);
 
     std::cerr << indentOutput() << "Computing indirect irradiance... ";
     renderQuad();
@@ -313,8 +295,6 @@ void computeIndirectIrradianceOrder1(const int texIndex, const int scattererInde
 void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
 {
     assert(scatteringOrder>2);
-    const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
-
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
@@ -328,8 +308,6 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
                                                                        "indirect irradiance computation shader program");
     program->bind();
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"multipleScatteringTexture");
-    program->setUniformValue("altitudeMin", altitudeMin);
-    program->setUniformValue("altitudeMax", altitudeMax);
 
     std::cerr << indentOutput() << "Computing indirect irradiance... ";
     renderQuad();
@@ -420,10 +398,6 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
                                                 "multiple scattering computation shader program",
                                                 true);
         program->bind();
-
-        const GLfloat altitudeMin=0, altitudeMax=atmosphereHeight; // TODO: implement splitting of calculations over altitude blocks
-        program->setUniformValue("altitudeMin", altitudeMin);
-        program->setUniformValue("altitudeMax", altitudeMax);
 
         setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
         setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING_DENSITY,1,"scatteringDensityTexture");

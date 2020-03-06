@@ -12,7 +12,7 @@ struct Scattering4DCoords
     float cosSunZenithAngle;
     float cosViewZenithAngle;
     float dotViewSun;
-    float altInTexSlice;
+    float altitude;
     bool viewRayIntersectsGround;
 };
 struct TexCoordPair
@@ -22,10 +22,6 @@ struct TexCoordPair
     vec3 upper;
     float alphaUpper;
 };
-
-// These two uniforms select the range of altitudes represented in the current block of the full texture.
-// When sampling the texture, we need to map altMin -> texCoord==0 and altMax -> texCoord==1.
-uniform float altitudeMin, altitudeMax;
 
 float texCoordToUnitRange(const float texCoord, const float texSize)
 {
@@ -117,15 +113,8 @@ Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, co
     const float r=R+altitude;
 
     const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
-    const float distToHorizonMin = sqrt(sqr(altitudeMin)+2*altitudeMin*R);
-    const float distToHorizonMax = sqrt(sqr(altitudeMax)+2*altitudeMax*R);
     const float distToHorizon    = sqrt(sqr(altitude)+2*altitude*R);
-    const float altMinCoordInFullTexture = distToHorizonMin / lengthOfHorizRayFromGroundToBorderOfAtmo;
-    const float altMaxCoordInFullTexture = distToHorizonMax / lengthOfHorizRayFromGroundToBorderOfAtmo;
-    const float altCoordInFullTexture    = distToHorizon    / lengthOfHorizRayFromGroundToBorderOfAtmo;
-    const float altCoordInTexSlice = (altCoordInFullTexture-altMinCoordInFullTexture)
-                                                              /
-                                      (altMaxCoordInFullTexture-altMinCoordInFullTexture);
+    const float altCoord = distToHorizon / lengthOfHorizRayFromGroundToBorderOfAtmo;
 
     // ------------------------------------
     float cosVZACoord; // Coordinate for cos(viewZenithAngle)
@@ -167,7 +156,7 @@ Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, co
     const float A=R/(distMax-distMin);
     const float cosSZACoord=max(0.,1-a/A)/(a+1);
 
-    return Scattering4DCoords(cosSZACoord, cosVZACoord, dotVSCoord, altCoordInTexSlice, viewRayIntersectsGround);
+    return Scattering4DCoords(cosSZACoord, cosVZACoord, dotVSCoord, altCoord, viewRayIntersectsGround);
 }
 
 TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords)
@@ -186,7 +175,7 @@ TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords)
                                         ceil (cosSZAIndex)*texW+coords.dotViewSun*(texW-1)) / (texW*texH-1);
     const vec2 combinedCoord=unitRangeToTexCoord(combiCoordUnitRange, texW*texH);
 
-    const float altitude=unitRangeToTexCoord(coords.altInTexSlice, scatteringTextureSize[3]);
+    const float altitude=unitRangeToTexCoord(coords.altitude, scatteringTextureSize[3]);
 
     const float alphaUpper=fract(cosSZAIndex);
     return TexCoordPair(vec3(cosVZAtc, combinedCoord.x, altitude), float(1-alphaUpper),
@@ -197,11 +186,8 @@ TexCoordPair texVarsToScatteringTexCoords(const float cosSunZenithAngle, const f
                                           const float dotViewSun, const float altitude,
                                           const bool viewRayIntersectsGround)
 {
-    // Make sure altitude fits in the texture slice provided. This is the best we can do here.
-    const float clampedAlt=clamp(altitude,altitudeMin,altitudeMax);
-
     const Scattering4DCoords coords=scatteringTexVarsTo4DCoords(cosSunZenithAngle,cosViewZenithAngle,
-                                                                dotViewSun,clampedAlt,viewRayIntersectsGround);
+                                                                dotViewSun,altitude,viewRayIntersectsGround);
     return scattering4DCoordsToTexCoords(coords);
 }
 
@@ -220,12 +206,7 @@ ScatteringTexVars scatteringTex4DCoordsToTexVars(const Scattering4DCoords coords
     const float R=earthRadius;
 
     const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
-    const float distToHorizonMin = sqrt(sqr(altitudeMin)+2*altitudeMin*R);
-    const float distToHorizonMax = sqrt(sqr(altitudeMax)+2*altitudeMax*R);
-    const float altMinCoordInFullTexture = distToHorizonMin / lengthOfHorizRayFromGroundToBorderOfAtmo;
-    const float altMaxCoordInFullTexture = distToHorizonMax / lengthOfHorizRayFromGroundToBorderOfAtmo;
-    const float altCoordInFullTexture = coords.altInTexSlice*(altMaxCoordInFullTexture-altMinCoordInFullTexture)+altMinCoordInFullTexture;
-    const float distToHorizon = altCoordInFullTexture*lengthOfHorizRayFromGroundToBorderOfAtmo;
+    const float distToHorizon = coords.altitude*lengthOfHorizRayFromGroundToBorderOfAtmo;
     // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
     const float altitude=clamp(sqrt(sqr(distToHorizon)+sqr(R))-R, 0., altMax);
 
@@ -286,7 +267,7 @@ Scattering4DCoords scatteringTexIndicesTo4DCoords(const vec3 texIndices)
     // NOTE: Third texture coordinate must correspond to only one 4D coordinate, because GL_MAX_3D_TEXTURE_SIZE is
     // usually much smaller than GL_MAX_TEXTURE_SIZE. So we can safely pack two of the 4D coordinates into width or
     // height, but not into depth.
-    coords4d.altInTexSlice=texIndices[2]/indexMax[3];
+    coords4d.altitude=texIndices[2]/indexMax[3];
 
     return coords4d;
 }
