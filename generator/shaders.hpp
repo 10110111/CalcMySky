@@ -5,24 +5,21 @@
 #include <QOpenGLShader>
 #include <glm/glm.hpp>
 
-struct IgnoreCache
-{
-    bool on=true;
-    explicit IgnoreCache()=default;
-    explicit IgnoreCache(bool on) : on(on) {}
-    operator bool() const { return on; }
-};
+#define DEFINE_EXPLICIT_BOOL(Type)          \
+struct Type                                 \
+{                                           \
+    bool on=true;                           \
+    explicit Type()=default;                \
+    explicit Type(bool on) : on(on) {}      \
+    operator bool() const { return on; }    \
+}
+
+DEFINE_EXPLICIT_BOOL(IgnoreCache);
 QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache=IgnoreCache{false});
 std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type,
                                              QString source,
                                              QString const& description);
-struct UseGeomShader
-{
-    bool on=true;
-    explicit UseGeomShader()=default;
-    explicit UseGeomShader(bool on) : on(on) {}
-    operator bool() const { return on; }
-};
+DEFINE_EXPLICIT_BOOL(UseGeomShader);
 std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName,
                                                            const char* description,
                                                            UseGeomShader useGeomShader=UseGeomShader{false});
