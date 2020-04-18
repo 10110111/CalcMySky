@@ -334,7 +334,7 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
 }
 
 std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName,
-                                                           const char* description, const bool useGeomShader)
+                                                           const char* description, const UseGeomShader useGeomShader)
 {
     auto program=std::make_unique<QOpenGLShaderProgram>();
 

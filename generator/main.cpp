@@ -132,7 +132,7 @@ void computeSingleScattering(const int texIndex, ScattererDescription const& sca
     virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
     const auto program=compileShaderProgram("compute-single-scattering.frag",
                                             "single scattering computation shader program",
-                                            true);
+                                            UseGeomShader{});
     program->bind();
     program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
 
@@ -167,7 +167,7 @@ void computeScatteringDensityOrder2(const int texIndex)
                                                     .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
         // recompile the program
         program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
-                                     "scattering density computation shader program", true);
+                                     "scattering density computation shader program", UseGeomShader{});
     }
 
     gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
@@ -213,7 +213,7 @@ void computeScatteringDensityOrder2(const int texIndex)
                                                     .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
             // recompile the program
             program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
-                                                        "scattering density computation shader program", true);
+                                                        "scattering density computation shader program", UseGeomShader{});
         }
         program->bind();
 
@@ -243,7 +243,7 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
     // recompile the program
     const std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
                                                                              "scattering density computation shader program",
-                                                                             true);
+                                                                             UseGeomShader{});
     program->bind();
 
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE   ,0,"transmittanceTexture");
@@ -335,7 +335,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
 
     const auto program=compileShaderProgram("copy-scattering-texture.frag",
                                             "scattering texture copy-blend shader program",
-                                            true);
+                                            UseGeomShader{});
     program->bind();
     if(!saveResultAsRadiance)
     {
@@ -396,7 +396,7 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
     {
         const auto program=compileShaderProgram("compute-multiple-scattering.frag",
                                                 "multiple scattering computation shader program",
-                                                true);
+                                                UseGeomShader{});
         program->bind();
 
         setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
