@@ -152,10 +152,20 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     }
 
     std::ofstream out{std::string(path)};
+    if(!out)
+    {
+        perror("failed to open file");
+        throw MustQuit{};
+    }
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
     out.write(reinterpret_cast<const char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);
     out.close();
+    if(!out)
+    {
+        perror("failed to write file");
+        throw MustQuit{};
+    }
     std::cerr << "done\n";
 }
 
