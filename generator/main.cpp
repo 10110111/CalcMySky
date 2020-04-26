@@ -24,6 +24,28 @@
 
 QOpenGLFunctions_3_3_Core gl;
 
+glm::mat4 radianceToLuminance(const int texIndex)
+{
+    using glm::mat4;
+    const auto diag=[](GLfloat x, GLfloat y, GLfloat z, GLfloat w) { return mat4(x,0,0,0,
+                                                                                 0,y,0,0,
+                                                                                 0,0,z,0,
+                                                                                 0,0,0,w); };
+    const int wlCount = 4*allWavelengths.size();
+    // Weights for the trapezoidal quadrature rule
+    const mat4 weights = wlCount==4            ? diag(0.5,1,1,0.5) :
+                         texIndex==0           ? diag(0.5,1,1,1  ) :
+                         texIndex+1==wlCount/4 ? diag(  1,1,1,0.5) :
+                                                 diag(  1,1,1,1);
+    const mat4 dlambda = weights * abs(allWavelengths.back()[3]-allWavelengths.front()[0]) / (wlCount-1.f);
+    // Ref: Rapport BIPM-2019/05. Principles Governing Photometry, 2nd edition. Sections 6.2, 6.3.
+    const mat4 maxLuminousEfficacy=diag(683.002,683.002,683.002,1700.13); // lm/W
+    return maxLuminousEfficacy * mat4(wavelengthToXYZW(allWavelengths[texIndex][0]),
+                                      wavelengthToXYZW(allWavelengths[texIndex][1]),
+                                      wavelengthToXYZW(allWavelengths[texIndex][2]),
+                                      wavelengthToXYZW(allWavelengths[texIndex][3])) * dlambda;
+}
+
 void saveIrradiance(const int scatteringOrder, const int texIndex)
 {
     if(!dbgSaveGroundIrradiance) return;
@@ -340,27 +362,9 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     program->bind();
     if(!saveResultAsRadiance)
     {
-        using glm::mat4;
-        const auto diag=[](GLfloat x, GLfloat y, GLfloat z, GLfloat w) { return mat4(x,0,0,0,
-                                                                                     0,y,0,0,
-                                                                                     0,0,z,0,
-                                                                                     0,0,0,w); };
-        const int wlCount = 4*allWavelengths.size();
-        // Weights for the trapezoidal quadrature rule
-        const mat4 weights = wlCount==4            ? diag(0.5,1,1,0.5) :
-                             texIndex==0           ? diag(0.5,1,1,1  ) :
-                             texIndex+1==wlCount/4 ? diag(  1,1,1,0.5) :
-                                                     diag(  1,1,1,1);
-        const mat4 dlambda = weights * abs(allWavelengths.back()[3]-allWavelengths.front()[0]) / (wlCount-1.f);
-        // Ref: Rapport BIPM-2019/05. Principles Governing Photometry, 2nd edition. Sections 6.2, 6.3.
-        const mat4 maxLuminousEfficacy=diag(683.002,683.002,683.002,1700.13); // lm/W
-        const mat4 radianceToLuminance=maxLuminousEfficacy * mat4(wavelengthToXYZW(allWavelengths[texIndex][0]),
-                                                                  wavelengthToXYZW(allWavelengths[texIndex][1]),
-                                                                  wavelengthToXYZW(allWavelengths[texIndex][2]),
-                                                                  wavelengthToXYZW(allWavelengths[texIndex][3])) * dlambda;
         // radianceToLuminance wouldn't need to be transposed, if QMatrix4x4 was column-major as glm::mat4.
         // But alas, it's not, so we do need to transpose.
-        program->setUniformValue("radianceToLuminance", QMatrix4x4(&radianceToLuminance[0][0]).transposed());
+        program->setUniformValue("radianceToLuminance", QMatrix4x4(&radianceToLuminance(texIndex)[0][0]).transposed());
     }
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
     render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
