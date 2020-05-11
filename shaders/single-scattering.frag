@@ -7,8 +7,6 @@
 #include "single-scattering.h.glsl"
 #include "texture-sampling-functions.h.glsl"
 
-uniform vec4 solarIrradianceAtTOA;
-
 // This function omits phase function and solar irradiance: these are to be applied somewhere in the calling code.
 vec4 computeSingleScatteringIntegrand(const float cosSunZenithAngle, const float cosViewZenithAngle,
                                       const float dotViewSun, const float altitude,

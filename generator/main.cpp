@@ -128,7 +128,6 @@ void computeDirectGroundIrradiance(const int texIndex)
     program->bind();
 
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
-    program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
     renderQuad();
@@ -157,8 +156,6 @@ void computeSingleScattering(const int texIndex, ScattererDescription const& sca
                                             "single scattering computation shader program",
                                             UseGeomShader{});
     program->bind();
-    program->setUniformValue("solarIrradianceAtTOA",QVec(solarIrradianceAtTOA[texIndex]));
-
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
 
     render3DTexLayers(*program, "Computing single scattering layers");

@@ -41,6 +41,7 @@ const int numTransmittanceIntegrationPoints=)" + toString(numTransmittanceIntegr
         header += "const vec4 scatteringCrossSection_"+scatterer.name+"="+toString(scatterer.crossSection(wavelengths))+";\n";
     const auto wlI=wavelengthsIndex(wavelengths);
     header += "const vec4 groundAlbedo="+toString(groundAlbedo[wlI])+";\n";
+    header += "const vec4 solarIrradianceAtTOA="+toString(solarIrradianceAtTOA[wlI])+";\n";
 
     header+="#endif\n"; // close the include guard
     virtualHeaderFiles[CONSTANTS_HEADER_FILENAME]=header;

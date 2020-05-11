@@ -9,8 +9,6 @@ in vec3 position;
 layout(location=0) out vec4 deltaIrradianceOutput;
 layout(location=1) out vec4 irradianceOutput;
 
-uniform vec4 solarIrradianceAtTOA;
-
 vec4 computeDirectGroundIrradiance(const float cosSunZenithAngle, const float altitude)
 {
     // Several approximations are used:
