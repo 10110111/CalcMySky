@@ -19,7 +19,7 @@ before_build:
   - cmd: cd C:/projects
   - cmd: md build
   - cmd: cd build
-  - cmd: cmake -G "%CMAKE_GENERATOR%" -DCMAKE_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH=%QT_BASEDIR%/lib/cmake/Qt5 ../atmosphere-textures-generator
+  - cmd: cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH=%QT_BASEDIR%/lib/cmake/Qt5 ../atmosphere-textures-generator
 
 build_script:
     - cmd: msbuild C:\projects\build\atmosphere-textures-generator.sln /p:Configuration=%configuration% /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"

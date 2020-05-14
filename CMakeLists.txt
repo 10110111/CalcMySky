@@ -8,6 +8,9 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU|Clang")
 endif()
 
 include(GNUInstallDirs)
+if(ADD_CXX_FLAGS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ADD_CXX_FLAGS}")
+endif()
 include(cmake/CheckGLM.cmake)
 
 set(CMAKE_AUTOMOC ON)
