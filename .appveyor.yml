@@ -38,3 +38,15 @@ for:
     - cmd: copy C:\Qt\5.9\msvc2017_64\plugins\platforms\qwindows.dll atmosphere-textures-generator\platforms
     - cmd: 7z a atg.zip atmosphere-textures-generator
     - cmd: appveyor PushArtifact atg.zip
+-
+  matrix:
+    only:
+      - configuration: Debug
+  after_build:
+    - cmd: md atmosphere-textures-generator
+    - cmd: copy c:\projects\build\generator\Debug\atmosphere-textures-generator.exe atmosphere-textures-generator
+    - cmd: for %%I in (Core Widgets Gui) do copy C:\Qt\5.9\msvc2017_64\bin\Qt5%%Id.dll atmosphere-textures-generator
+    - cmd: md atmosphere-textures-generator\platforms
+    - cmd: copy C:\Qt\5.9\msvc2017_64\plugins\platforms\qwindows.dll atmosphere-textures-generator\platforms
+    - cmd: set PATH=%PATH%;"C:\Program Files (x86)\Windows Kits\10\Debuggers\X64"
+    - cmd: cdb -c "g;kv;q" -o atmosphere-textures-generator\atmosphere-textures-generator.exe
