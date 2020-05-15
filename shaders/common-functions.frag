@@ -8,7 +8,7 @@ bool debugDataPresent()
 {
     return dbgDataPresent;
 }
-vec4 dbgData;
+vec4 dbgData=vec4(0);
 vec4 debugData()
 {
     return dbgData;
