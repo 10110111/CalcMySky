@@ -51,11 +51,11 @@ void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
     if(!dbgSaveGroundIrradiance) return;
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                 textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
-                {float(irradianceTexW), float(irradianceTexH)});
+                {irradianceTexW, irradianceTexH});
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                 textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
-                {float(irradianceTexW), float(irradianceTexH)});
+                {irradianceTexW, irradianceTexH});
 }
 
 void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texIndex)
@@ -108,7 +108,7 @@ void computeTransmittance(const unsigned texIndex)
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE],"transmittance texture",
                 textureOutputDir+"/transmittance-wlset"+std::to_string(texIndex)+".f32",
-                {float(transmittanceTexW), float(transmittanceTexH)});
+                {transmittanceTexW, transmittanceTexH});
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }

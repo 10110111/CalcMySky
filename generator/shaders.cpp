@@ -30,7 +30,7 @@ const float km=1000;
 #define sqr(x) ((x)*(x))
 
 const float sunAngularRadius=)" + toString(sunAngularRadius) + R"(;
-const vec4 scatteringTextureSize=)" + toString(scatteringTextureSize) + R"(;
+const vec4 scatteringTextureSize=)" + toString(glm::vec4(scatteringTextureSize)) + R"(;
 const vec2 irradianceTextureSize=)" + toString(glm::vec2(irradianceTexW, irradianceTexH)) + R"(;
 const vec2 transmittanceTextureSize=)" + toString(glm::vec2(transmittanceTexW,transmittanceTexH)) + R"(;
 const int radialIntegrationPoints=)" + toString(radialIntegrationPoints) + R"(;

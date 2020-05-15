@@ -103,7 +103,7 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
 }
 
 void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
-                 const std::string_view path, std::vector<float> const& sizes)
+                 const std::string_view path, std::vector<GLsizei> const& sizes)
 {
     std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"... ";
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
@@ -188,7 +188,7 @@ void loadTexture(std::string const& path, const GLsizei width, const GLsizei hei
     file.exceptions(std::ifstream::failbit);
     uint16_t sizes[4];
     file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
-    if(uintptr_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != uintptr_t(width)*height*depth)
+    if(size_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != size_t(width)*height*depth)
         throw std::runtime_error("Bad texture size in file "+path);
     file.read(reinterpret_cast<char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels.get());
@@ -215,7 +215,7 @@ void loadTexture(GLfloat*const data, const GLsizei width, const GLsizei height, 
     }
 }
 
-void setupTexture(TextureId id, const unsigned width, const unsigned height)
+void setupTexture(TextureId id, const GLsizei width, const GLsizei height)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -231,7 +231,7 @@ void setupTexture(TextureId id, const unsigned width, const unsigned height)
         throw MustQuit{};
     }
 }
-void setupTexture(TextureId id, const unsigned width, const unsigned height, const unsigned depth)
+void setupTexture(TextureId id, const GLsizei width, const GLsizei height, const GLsizei depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {

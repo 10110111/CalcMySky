@@ -31,8 +31,8 @@ inline QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(d
                                                                    .arg(double(v.w), 0,'g',9); }
 void setupDebugPrintCallback(QOpenGLContext& context);
 std::string openglErrorString(GLenum error);
-void setupTexture(TextureId id, unsigned width, unsigned height);
-void setupTexture(TextureId id, unsigned width, unsigned height, unsigned depth);
+void setupTexture(TextureId id, GLsizei width, GLsizei height);
+void setupTexture(TextureId id, GLsizei width, GLsizei height, GLsizei depth);
 inline void setUniformTexture(QOpenGLShaderProgram& program, GLenum target, TextureId id, GLint sampler, const char* uniformName)
 {
     gl.glActiveTexture(GL_TEXTURE0+sampler);
@@ -49,7 +49,7 @@ void renderQuad();
 void checkFramebufferStatus(const char*const fboDescription);
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
 void saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,
-                 std::vector<float> const& sizes);
+                 std::vector<GLsizei> const& sizes);
 void loadTexture(std::string const& path, GLsizei width, GLsizei height, GLsizei depth);
 void loadTexture(GLfloat* data, GLsizei width, GLsizei height, GLsizei depth);
 
