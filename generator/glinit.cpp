@@ -67,6 +67,8 @@ void checkLimits()
 
 void init()
 {
+    std::cerr << "OpenGL vendor  : " << gl.glGetString(GL_VENDOR) << "\n";
+    std::cerr << "OpenGL renderer: " << gl.glGetString(GL_RENDERER) << "\n";
     initBuffers();
     initTexturesAndFramebuffers();
     checkLimits();
