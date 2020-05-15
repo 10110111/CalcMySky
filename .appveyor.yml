@@ -32,6 +32,7 @@ for:
   after_build:
     - cmd: md atmosphere-textures-generator
     - cmd: copy c:\projects\build\generator\Release\atmosphere-textures-generator.exe atmosphere-textures-generator
+    - cmd: xcopy /s/i c:\projects\atmosphere-textures-generator\shaders atmosphere-textures-generator\shaders
     - cmd: for %%I in (Core Widgets Gui) do copy C:\Qt\5.9\msvc2017_64\bin\Qt5%%I.dll atmosphere-textures-generator
     - cmd: md atmosphere-textures-generator\platforms
     - cmd: copy C:\Qt\5.9\msvc2017_64\plugins\platforms\qwindows.dll atmosphere-textures-generator\platforms
