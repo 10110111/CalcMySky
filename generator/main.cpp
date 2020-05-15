@@ -24,14 +24,14 @@
 
 QOpenGLFunctions_3_3_Core gl;
 
-glm::mat4 radianceToLuminance(const int texIndex)
+glm::mat4 radianceToLuminance(const unsigned texIndex)
 {
     using glm::mat4;
     const auto diag=[](GLfloat x, GLfloat y, GLfloat z, GLfloat w) { return mat4(x,0,0,0,
                                                                                  0,y,0,0,
                                                                                  0,0,z,0,
                                                                                  0,0,0,w); };
-    const int wlCount = 4*allWavelengths.size();
+    const auto wlCount = 4*allWavelengths.size();
     // Weights for the trapezoidal quadrature rule
     const mat4 weights = wlCount==4            ? diag(0.5,1,1,0.5) :
                          texIndex==0           ? diag(0.5,1,1,1  ) :
@@ -46,7 +46,7 @@ glm::mat4 radianceToLuminance(const int texIndex)
                                       wavelengthToXYZW(allWavelengths[texIndex][3])) * dlambda;
 }
 
-void saveIrradiance(const int scatteringOrder, const int texIndex)
+void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 {
     if(!dbgSaveGroundIrradiance) return;
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
@@ -58,7 +58,7 @@ void saveIrradiance(const int scatteringOrder, const int texIndex)
                 {float(irradianceTexW), float(irradianceTexH)});
 }
 
-void saveScatteringDensity(const int scatteringOrder, const int texIndex)
+void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texIndex)
 {
     if(!dbgSaveScatDensity) return;
     saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
@@ -88,7 +88,7 @@ void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view wha
     std::cerr << "done\n";
 }
 
-void computeTransmittance(const int texIndex)
+void computeTransmittance(const unsigned texIndex)
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
 
@@ -113,7 +113,7 @@ void computeTransmittance(const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeDirectGroundIrradiance(const int texIndex)
+void computeDirectGroundIrradiance(const unsigned texIndex)
 {
     const auto program=compileShaderProgram("compute-direct-irradiance.frag", "direct ground irradiance computation shader program");
 
@@ -139,7 +139,7 @@ void computeDirectGroundIrradiance(const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeSingleScattering(const int texIndex, ScattererDescription const& scatterer)
+void computeSingleScattering(const unsigned texIndex, ScattererDescription const& scatterer)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_DELTA_SCATTERING],0);
@@ -163,10 +163,10 @@ void computeSingleScattering(const int texIndex, ScattererDescription const& sca
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeIndirectIrradianceOrder1(int texIndex, int scattererIndex);
-void computeScatteringDensityOrder2(const int texIndex)
+void computeIndirectIrradianceOrder1(unsigned texIndex, unsigned scattererIndex);
+void computeScatteringDensityOrder2(const unsigned texIndex)
 {
-    constexpr int scatteringOrder=2;
+    constexpr unsigned scatteringOrder=2;
 
     allShaders.erase(DENSITIES_SHADER_FILENAME);
     virtualSourceFiles[DENSITIES_SHADER_FILENAME]=makeScattererDensityFunctionsSrc();
@@ -249,7 +249,7 @@ void computeScatteringDensityOrder2(const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeScatteringDensity(const int scatteringOrder, const int texIndex)
+void computeScatteringDensity(const unsigned scatteringOrder, const unsigned texIndex)
 {
     assert(scatteringOrder>2);
 
@@ -275,9 +275,9 @@ void computeScatteringDensity(const int scatteringOrder, const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeIndirectIrradianceOrder1(const int texIndex, const int scattererIndex)
+void computeIndirectIrradianceOrder1(const unsigned texIndex, const unsigned scattererIndex)
 {
-    constexpr int scatteringOrder=2;
+    constexpr unsigned scatteringOrder=2;
 
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
 
@@ -312,7 +312,7 @@ void computeIndirectIrradianceOrder1(const int texIndex, const int scattererInde
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
+void computeIndirectIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 {
     assert(scatteringOrder>2);
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
@@ -339,7 +339,7 @@ void computeIndirectIrradiance(const int scatteringOrder, const int texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
+void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned texIndex)
 {
     // We didn't render to the accumulating texture when computing delta scattering to avoid holding
     // more than two 4D textures in VRAM at once.
@@ -376,7 +376,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
                     textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
                     {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
     }
-    if(scatteringOrder==scatteringOrdersToCompute && (texIndex+1u==allWavelengths.size() || saveResultAsRadiance))
+    if(scatteringOrder==scatteringOrdersToCompute && (texIndex+1==allWavelengths.size() || saveResultAsRadiance))
     {
         const auto filename = saveResultAsRadiance ?
             textureOutputDir+"/multiple-scattering-wlset"+std::to_string(texIndex)+".f32" :
@@ -387,7 +387,7 @@ void accumulateMultipleScattering(const int scatteringOrder, const int texIndex)
     }
 }
 
-void computeMultipleScatteringFromDensity(const int scatteringOrder, const int texIndex)
+void computeMultipleScatteringFromDensity(const unsigned scatteringOrder, const unsigned texIndex)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_DELTA_SCATTERING],0);
@@ -418,7 +418,7 @@ void computeMultipleScatteringFromDensity(const int scatteringOrder, const int t
     accumulateMultipleScattering(scatteringOrder, texIndex);
 }
 
-void computeMultipleScattering(const int texIndex)
+void computeMultipleScattering(const unsigned texIndex)
 {
     // Due to interleaving of calculations of first scattering for each scatterer with the
     // second-order scattering density and irradiance we have to do this iteration separately.
@@ -429,7 +429,7 @@ void computeMultipleScattering(const int texIndex)
         computeScatteringDensityOrder2(texIndex);
         computeMultipleScatteringFromDensity(2,texIndex);
     }
-    for(int scatteringOrder=3; scatteringOrder<=scatteringOrdersToCompute; ++scatteringOrder)
+    for(unsigned scatteringOrder=3; scatteringOrder<=scatteringOrdersToCompute; ++scatteringOrder)
     {
         std::cerr << indentOutput() << "Working on scattering order " << scatteringOrder << ":\n";
         OutputIndentIncrease incr;

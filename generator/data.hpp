@@ -70,7 +70,7 @@ inline glm::vec4 scatteringTextureSize;
 inline size_t scatTexWidth() { return scatteringTextureSize[0]; }
 inline size_t scatTexHeight() { return scatteringTextureSize[1]*scatteringTextureSize[2]; }
 inline size_t scatTexDepth() { return scatteringTextureSize[3]; }
-inline GLint scatteringOrdersToCompute;
+inline unsigned scatteringOrdersToCompute;
 inline GLint numTransmittanceIntegrationPoints;
 inline GLint radialIntegrationPoints;
 inline GLint angularIntegrationPointsPerHalfRevolution;
