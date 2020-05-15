@@ -207,23 +207,20 @@ QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache)
             return it->second;
     }
 
-    QFile file;
-    bool opened=false;
     const auto appBinDir=QDir(qApp->applicationDirPath()+"/").canonicalPath();
+    QString filePath=appBinDir + "/shaders/" + fileName;
     if(appBinDir==QDir(INSTALL_BINDIR).canonicalPath())
     {
-        file.setFileName(DATA_ROOT_DIR "shaders/" + fileName);
-        opened=file.open(QIODevice::ReadOnly);
+        filePath=DATA_ROOT_DIR "shaders/" + fileName;
     }
     else if(appBinDir==QDir(BUILD_BINDIR "generator/").canonicalPath())
     {
-        file.setFileName(SOURCE_DIR "shaders/" + fileName);
-        opened = file.open(QIODevice::ReadOnly);
+        filePath=SOURCE_DIR "shaders/" + fileName;
     }
-
-    if(!opened)
+    QFile file(filePath);
+    if(!file.open(QIODevice::ReadOnly))
     {
-        std::cerr << "Error opening shader \"" << fileName.toStdString() << "\"\n";
+        std::cerr << "Error opening shader file \"" << filePath.toStdString() << "\"\n";
         throw MustQuit{};
     }
     return file.readAll();
