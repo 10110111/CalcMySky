@@ -169,7 +169,7 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     std::cerr << "done\n";
 }
 
-void loadTexture(std::string const& path, const size_t width, const size_t height, const size_t depth)
+void loadTexture(std::string const& path, const GLsizei width, const GLsizei height, const GLsizei depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -177,7 +177,7 @@ void loadTexture(std::string const& path, const size_t width, const size_t heigh
         throw MustQuit{};
     }
     std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
-    const size_t subpixelCount = 4*width*height*depth;
+    const auto subpixelCount = 4*width*height*depth;
     const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
     std::ifstream file(path);
     if(!file)
@@ -200,7 +200,7 @@ void loadTexture(std::string const& path, const size_t width, const size_t heigh
     std::cerr << "done\n";
 }
 
-void loadTexture(GLfloat*const data, const size_t width, const size_t height, const size_t depth)
+void loadTexture(GLfloat*const data, const GLsizei width, const GLsizei height, const GLsizei depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {

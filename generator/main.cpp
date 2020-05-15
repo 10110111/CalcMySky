@@ -39,7 +39,7 @@ glm::mat4 radianceToLuminance(const unsigned texIndex)
                                                  diag(  1,1,1,1);
     const mat4 dlambda = weights * abs(allWavelengths.back()[3]-allWavelengths.front()[0]) / (wlCount-1.f);
     // Ref: Rapport BIPM-2019/05. Principles Governing Photometry, 2nd edition. Sections 6.2, 6.3.
-    const mat4 maxLuminousEfficacy=diag(683.002,683.002,683.002,1700.13); // lm/W
+    const mat4 maxLuminousEfficacy=diag(683.002f,683.002f,683.002f,1700.13f); // lm/W
     return maxLuminousEfficacy * mat4(wavelengthToXYZW(allWavelengths[texIndex][0]),
                                       wavelengthToXYZW(allWavelengths[texIndex][1]),
                                       wavelengthToXYZW(allWavelengths[texIndex][2]),
@@ -70,7 +70,7 @@ void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texInd
 void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view whatIsBeingDone)
 {
     std::cerr << indentOutput() << whatIsBeingDone << "... ";
-    for(unsigned layer=0; layer<scatTexDepth(); ++layer)
+    for(GLsizei layer=0; layer<scatTexDepth(); ++layer)
     {
         std::ostringstream ss;
         ss << layer << " of " << scatTexDepth() << " layers done";

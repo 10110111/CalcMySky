@@ -228,7 +228,7 @@ std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const
 std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat minWL_nm, const GLfloat maxWL_nm,
                                           QString const& filename, const int lineNumber)
 {
-    constexpr GLfloat nm=1e-9;
+    constexpr GLfloat nm=1e-9f;
     const auto items=line.split(',');
     std::optional<GLfloat> minOpt;
     std::optional<GLfloat> maxOpt;
