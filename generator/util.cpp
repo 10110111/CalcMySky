@@ -151,7 +151,7 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         throw MustQuit{};
     }
 
-    std::ofstream out{std::string(path)};
+    std::ofstream out{std::string(path), std::ios_base::binary};
     if(!out)
     {
         perror("failed to open file");
@@ -179,7 +179,7 @@ void loadTexture(std::string const& path, const GLsizei width, const GLsizei hei
     std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
     const auto subpixelCount = 4*width*height*depth;
     const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
-    std::ifstream file(path);
+    std::ifstream file(path, std::ios_base::binary);
     if(!file)
     {
         std::cerr << "failed to open file\n";
