@@ -451,7 +451,8 @@ int main(int argc, char** argv)
     try
     {
         handleCmdLine();
-        if(std::error_code err; !std::filesystem::create_directories(textureOutputDir, err) && err)
+        namespace fs=std::filesystem;
+        if(std::error_code err; !fs::create_directories(fs::u8path(textureOutputDir), err) && err)
         {
             std::cerr << "Failed to create output directory: " << err.message() << "\n";
             return 1;
