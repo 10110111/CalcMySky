@@ -454,7 +454,8 @@ int main(int argc, char** argv)
         namespace fs=std::filesystem;
         if(std::error_code err; !fs::create_directories(fs::u8path(textureOutputDir), err) && err)
         {
-            std::cerr << "Failed to create output directory: " << err.message() << "\n";
+            std::cerr << "Failed to create output directory: "
+                      << QString::fromLocal8Bit(err.message().c_str()).toStdString() << "\n";
             return 1;
         }
 
@@ -531,12 +532,7 @@ int main(int argc, char** argv)
     }
     catch(std::exception const& ex)
     {
-#if defined Q_OS_WIN && !defined __GNUC__
-        // MSVCRT-generated exceptions can contain localized messages
-        // in OEM codepage, so restore CP before printing them.
-        utf8console.restore();
-#endif
-        std::cerr << "Fatal error: " << ex.what() << '\n';
+        std::cerr << "Fatal error: " << QString::fromLocal8Bit(ex.what()).toStdString() << '\n';
         return 111;
     }
 }
