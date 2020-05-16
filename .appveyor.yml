@@ -8,7 +8,7 @@ environment:
 
 configuration:
   - Release
-  - Debug
+#  - Debug
 
 install:
   - ps: new-item -itemtype directory -path C:\glm | out-null
