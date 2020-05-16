@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <cstring>
-#include <fstream>
 #include <iostream>
+#include <QFile>
 
 #include "data.hpp"
 
@@ -151,19 +151,19 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         throw MustQuit{};
     }
 
-    std::ofstream out{std::string(path), std::ios_base::binary};
-    if(!out)
+    QFile out(QByteArray::fromRawData(path.data(), path.size()));
+    if(!out.open(QFile::WriteOnly))
     {
-        perror("failed to open file");
+        std::cerr << "failed to open file: " << out.errorString().toStdString() << "\n";
         throw MustQuit{};
     }
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
     out.write(reinterpret_cast<const char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);
     out.close();
-    if(!out)
+    if(out.error())
     {
-        perror("failed to write file");
+        std::cerr << "failed to write file: " << out.errorString().toStdString() << "\n";
         throw MustQuit{};
     }
     std::cerr << "done\n";
@@ -179,18 +179,31 @@ void loadTexture(std::string const& path, const GLsizei width, const GLsizei hei
     std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
     const auto subpixelCount = 4*width*height*depth;
     const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
-    std::ifstream file(path, std::ios_base::binary);
-    if(!file)
+    QFile file(path.c_str());
+    if(!file.open(QFile::ReadOnly))
     {
-        std::cerr << "failed to open file\n";
+        std::cerr << "failed to open file: " << file.errorString().toStdString() << "\n";
         throw MustQuit{};
     }
-    file.exceptions(std::ifstream::failbit);
     uint16_t sizes[4];
-    file.read(reinterpret_cast<char*>(sizes), sizeof sizes);
+    {
+        const qint64 sizeToRead=sizeof sizes;
+        if(file.read(reinterpret_cast<char*>(sizes), sizeToRead) != sizeToRead)
+        {
+            std::cerr << "Failed to read file header: " << file.errorString().toStdString() << "\n";
+            throw MustQuit{};
+        }
+    }
     if(size_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != size_t(width)*height*depth)
         throw std::runtime_error("Bad texture size in file "+path);
-    file.read(reinterpret_cast<char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);
+    {
+        const qint64 sizeToRead=subpixelCount*sizeof subpixels[0];
+        if(file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead) != sizeToRead)
+        {
+            std::cerr << "Failed to read texture data: " << file.errorString().toStdString() << "\n";
+            throw MustQuit{};
+        }
+    }
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels.get());
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
