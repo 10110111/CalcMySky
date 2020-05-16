@@ -56,4 +56,27 @@ void loadTexture(GLfloat* data, GLsizei width, GLsizei height, GLsizei depth);
 // Function useful only for debugging
 void dumpActiveUniforms(const GLuint program);
 
+class UTF8Console
+{
+#ifdef Q_OS_WIN
+    UINT oldConsoleCP;
+public:
+    UTF8Console()
+        : oldConsoleCP(GetConsoleOutputCP())
+    {
+        SetConsoleOutputCP(65001); // UTF-8 console
+    }
+    ~UTF8Console()
+    {
+        restore();
+    }
+    void restore()
+    {
+        SetConsoleOutputCP(oldConsoleCP);
+    }
+#else
+    void restore() {}
+#endif
+};
+
 #endif

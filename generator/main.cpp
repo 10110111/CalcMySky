@@ -441,6 +441,8 @@ void computeMultipleScattering(const unsigned texIndex)
 
 int main(int argc, char** argv)
 {
+    [[maybe_unused]] UTF8Console utf8console;
+
     qInstallMessageHandler(qtMessageHandler);
     QApplication app(argc, argv);
     app.setApplicationName("Atmosphere textures generator");
@@ -528,6 +530,11 @@ int main(int argc, char** argv)
     }
     catch(std::exception const& ex)
     {
+#if defined Q_OS_WIN && !defined __GNUC__
+        // MSVCRT-generated exceptions can contain localized messages
+        // in OEM codepage, so restore CP before printing them.
+        utf8console.restore();
+#endif
         std::cerr << "Fatal error: " << ex.what() << '\n';
         return 111;
     }
