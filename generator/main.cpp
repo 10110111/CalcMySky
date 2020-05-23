@@ -3,6 +3,7 @@
 #include <sstream>
 #include <memory>
 #include <random>
+#include <chrono>
 #include <map>
 #include <set>
 
@@ -497,6 +498,9 @@ int main(int argc, char** argv)
         }
 
         init();
+
+        const auto timeBegin=std::chrono::steady_clock::now();
+
         for(unsigned texIndex=0;texIndex<allWavelengths.size();++texIndex)
         {
             std::cerr << "Working on wavelengths " << allWavelengths[texIndex][0] << ", "
@@ -524,6 +528,35 @@ int main(int argc, char** argv)
             }
 
             computeMultipleScattering(texIndex);
+        }
+
+        {
+            const auto timeEnd=std::chrono::steady_clock::now();
+            const auto microsecTaken=std::chrono::duration_cast<std::chrono::microseconds>(timeEnd-timeBegin).count();
+            const auto secondsTaken=1e-6*microsecTaken;
+            if(secondsTaken<60)
+            {
+                std::cerr << "Finished in " << secondsTaken << " s\n";
+            }
+            else
+            {
+                auto remainder=secondsTaken;
+                const auto d = int(remainder/(24*3600));
+                remainder -= d*(24*3600);
+                const auto h = int(remainder/3600);
+                remainder -= h*3600;
+                const auto m = int(remainder/60);
+                remainder -= m*60;
+                const auto s = std::lround(remainder);
+                std::cerr << "Finished in ";
+                if(d)
+                    std::cerr << d << "d";
+                if(d || h)
+                    std::cerr << h << "h";
+                if(d || h || m)
+                    std::cerr << m << "m";
+                std::cerr << s << "s\n";
+            }
         }
     }
     catch(MustQuit& ex)
