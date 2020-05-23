@@ -15,6 +15,30 @@ static constexpr double lengthUnitInMeters=1000;
 static constexpr double earthRadius=6.36e6/lengthUnitInMeters;
 static constexpr double sunAngularRadius=0.00935/2;
 
+void replace(std::string& str, std::string const& what, std::string const& withWhat)
+{
+    for(auto pos=str.find(what); pos!=str.npos; pos=str.find(what))
+        str.replace(pos, what.size(), withWhat);
+}
+
+void hackShaders(std::string& shader)
+{
+    // For fragment shader
+    replace(shader, "in vec3 view_ray;", "in vec4 position;");
+    replace(shader, "vec3 view_direction = normalize(view_ray);", 1+R"(
+vec3 view_direction = vec3(cos(position.x*PI)*cos(position.y*(PI/2)),
+                           sin(position.x*PI)*cos(position.y*(PI/2)),
+                           sin(position.y*(PI/2)));)");
+    replace(shader, "float fragment_angular_size =\n      length(dFdx(view_ray) + dFdy(view_ray)) / length(view_ray);",
+            "float fragment_angular_size=1e6;");
+    replace(shader, "vec3(1.0) - exp(-radiance / white_point * exposure)", "radiance*exposure");
+
+    // For vertex shader
+    replace(shader, "out vec3 view_ray;", "out vec4 position;");
+    replace(shader, "view_ray =\n          (model_from_view * vec4((view_from_clip * vertex).xyz, 0.0)).xyz;",
+            "position=vertex;");
+}
+
 template<typename OutType=std::vector<char>>
 OutType readFileData(std::string const& path)
 {
@@ -182,6 +206,7 @@ GLuint AtmosphereRenderer::makeShader(const GLenum type, std::string const& srcF
     while(gl.glGetError()!=GL_NO_ERROR);
     const auto shader=gl.glCreateShader(type);
     auto fileData=readFileData<std::string>(srcFilePath);
+    hackShaders(fileData);
     replaceConstant(fileData, "TRANSMITTANCE_TEXTURE_WIDTH",  transmittanceTextureSize.width());
     replaceConstant(fileData, "TRANSMITTANCE_TEXTURE_HEIGHT", transmittanceTextureSize.height());
     replaceConstant(fileData, "IRRADIANCE_TEXTURE_WIDTH",  irradianceTextureSize.width());
@@ -313,28 +338,7 @@ void AtmosphereRenderer::draw()
     gl.glBindVertexArray(vao);
     gl.glUseProgram(program);
 
-    {
-        const GLfloat tanFovY=std::tan(fovY/2);
-        const auto aspect=GLfloat(width)/height;
-        const GLfloat viewFromClip[]={tanFovY*aspect,  0,   0, 0,
-                                           0,      tanFovY, 0, 0,
-                                           0,          0,   0,-1,
-                                           0,          0,   1, 1};
-        gl.glUniformMatrix4fv(gl.glGetUniformLocation(program,"view_from_clip"), 1, true, viewFromClip);
-    }
-    {
-        const GLfloat cosZ=std::cos(viewZenithAngle_);
-        const GLfloat sinZ=std::sin(viewZenithAngle_);
-        const GLfloat cosA=std::cos(viewAzimuth_);
-        const GLfloat sinA=std::sin(viewAzimuth_);
-        const GLfloat altitude=altitudeInMeters/lengthUnitInMeters;
-        const GLfloat modelFromView[]={-sinA, -cosZ*cosA, sinZ*cosA, 0,
-                                        cosA, -cosZ*sinA, sinZ*sinA, 0,
-                                          0,      sinZ,     cosZ, altitude,
-                                          0,        0,       0,      1};
-        gl.glUniformMatrix4fv(gl.glGetUniformLocation(program,"model_from_view"), 1, true, modelFromView);
-        gl.glUniform3f (gl.glGetUniformLocation(program,"camera"), modelFromView[3],modelFromView[7],modelFromView[11]);
-    }
+    gl.glUniform3f (gl.glGetUniformLocation(program,"camera"), 0,0,altitudeInMeters/lengthUnitInMeters);
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(GL_TEXTURE_2D, textures[TRANSMITTANCE_TEXTURE]);
     gl.glUniform1i(gl.glGetUniformLocation(program,"transmittance_texture"), 0);
@@ -422,18 +426,13 @@ void AtmosphereRenderer::mouseMove(const int x, const int y)
         const auto oldZA=sunZenithAngle_, oldAz=sunAzimuth_;
         sunZenithAngle_ -= (prevMouseY-y)/scale;
         sunZenithAngle_ = std::max(0.,std::min(M_PI, sunZenithAngle_));
-        sunAzimuth_ += (prevMouseX-x)/scale;
+        sunAzimuth_ -= (prevMouseX-x)/scale;
         if(oldZA!=sunZenithAngle_)
             emit sunElevationChanged(M_PI/2-sunZenithAngle_);
         if(oldAz!=sunAzimuth_)
             emit sunAzimuthChanged(sunAzimuth_);
         break;
     }
-    case DragMode::Camera:
-        viewZenithAngle_ -= (prevMouseY-y)/scale;
-        viewZenithAngle_ = std::clamp(viewZenithAngle_, 0., M_PI);
-        viewAzimuth_ -= (prevMouseX-x)/scale;
-        break;
     default:
         break;
     }
@@ -469,9 +468,4 @@ void AtmosphereRenderer::setAltitude(const double altitude)
 void AtmosphereRenderer::setExposure(const double exposure)
 {
     this->exposure=exposure;
-}
-
-void AtmosphereRenderer::setFovY(const double fovY)
-{
-    this->fovY=fovY*degree;
 }

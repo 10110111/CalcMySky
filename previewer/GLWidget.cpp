@@ -72,12 +72,6 @@ void GLWidget::setExposureLog(const double exposureLog)
     update();
 }
 
-void GLWidget::setFovY(const double fovY)
-{
-    renderer->setFovY(fovY);
-    update();
-}
-
 void GLWidget::setSunElevation(double elevationDeg)
 {
     renderer->setSunElevation(elevationDeg*(M_PI/180));

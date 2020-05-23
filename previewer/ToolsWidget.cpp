@@ -31,7 +31,6 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
 
     addManipulator(layout, this, &ToolsWidget::altitudeChanged, tr("Altitude"), 0, maxAltitude, 50, 2, " m");
     addManipulator(layout, this, &ToolsWidget::exposureLogChanged, tr("log<sub>10</sub>(exposure)"), -5, 10, -4, 2);
-    addManipulator(layout, this, &ToolsWidget::fovYChanged, tr("FOV<sub>Y</sub>"), 0.01, 180, 50, 2);
     sunElevation=addManipulator(layout, this, &ToolsWidget::sunElevationChanged, tr("Sun elevation"),  -90,  90, 45, 2, QChar(0x00b0));
     sunAzimuth  =addManipulator(layout, this, &ToolsWidget::sunAzimuthChanged,   tr("Sun azimuth"),   -180, 180,  0, 2, QChar(0x00b0));
     {

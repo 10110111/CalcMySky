@@ -29,7 +29,6 @@ public:
     void mouseMove(int x, int y);
     void setAltitude(double altitude);
     void setExposure(double exposure);
-    void setFovY(double fovY);
     void resizeEvent(int width, int height);
     double sunElevation() const;
     void setSunElevation(float elevation);
@@ -54,11 +53,9 @@ private:
     GLuint program;
     GLuint fbo;
 
-    double viewZenithAngle_=M_PI/2, viewAzimuth_=0;
     double sunZenithAngle_=M_PI/4, sunAzimuth_=M_PI/7;
     double altitudeInMeters=50;
     double exposure=1e-4;
-    double fovY=50*M_PI/180;
     DragMode dragMode=DragMode::None;
     int prevMouseX, prevMouseY;
     Vec4 meanPixelValue_;

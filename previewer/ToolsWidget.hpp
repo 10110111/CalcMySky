@@ -20,7 +20,6 @@ public:
 signals:
     void altitudeChanged(double altitude);
     void exposureLogChanged(double exposureLog);
-    void fovYChanged(double fovY);
     void sunElevationChanged(double elevationDeg);
     void sunAzimuthChanged(double azimuthDeg);
 };

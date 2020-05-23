@@ -23,7 +23,6 @@ public:
 
     void setAltitude(double altitude);
     void setExposureLog(double exposureLog);
-    void setFovY(double fovY);
     void setSunElevation(double elevationDeg);
     void setSunAzimuth(double azimuthDeg);
 

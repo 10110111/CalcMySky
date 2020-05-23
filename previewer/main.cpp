@@ -61,7 +61,6 @@ int main(int argc, char** argv)
 
         QObject::connect(tools, &ToolsWidget::altitudeChanged, glWidget, &GLWidget::setAltitude);
         QObject::connect(tools, &ToolsWidget::exposureLogChanged, glWidget, &GLWidget::setExposureLog);
-        QObject::connect(tools, &ToolsWidget::fovYChanged, glWidget, &GLWidget::setFovY);
         QObject::connect(tools, &ToolsWidget::sunElevationChanged, glWidget, &GLWidget::setSunElevation);
         QObject::connect(tools, &ToolsWidget::sunAzimuthChanged, glWidget, &GLWidget::setSunAzimuth);
         QObject::connect(glWidget, &GLWidget::sunElevationChanged, tools, &ToolsWidget::showSunElevation);
