@@ -559,6 +559,10 @@ int main(int argc, char** argv)
             }
         }
     }
+    catch(Error const& ex)
+    {
+        std::cerr << QObject::tr("Error: %1\n").arg(ex.what());
+    }
     catch(MustQuit& ex)
     {
         return ex.exitCode;
