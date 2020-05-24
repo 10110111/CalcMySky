@@ -565,7 +565,7 @@ int main(int argc, char** argv)
     }
     catch(std::exception const& ex)
     {
-        std::cerr << "Fatal error: " << QString::fromLocal8Bit(ex.what()).toStdString() << '\n';
+        std::cerr << "Fatal error: " << QString::fromLocal8Bit(ex.what()) << '\n';
         return 111;
     }
 }
