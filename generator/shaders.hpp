@@ -16,9 +16,6 @@ struct Type                                 \
 
 DEFINE_EXPLICIT_BOOL(IgnoreCache);
 QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache=IgnoreCache{false});
-std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type,
-                                             QString source,
-                                             QString const& description);
 DEFINE_EXPLICIT_BOOL(UseGeomShader);
 std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName,
                                                            const char* description,

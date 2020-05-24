@@ -34,7 +34,6 @@ constexpr unsigned pointsPerWavelengthItem=4;
 inline std::vector<glm::vec4> allWavelengths;
 inline std::vector<glm::vec4> solarIrradianceAtTOA;
 
-inline std::map<QString, std::unique_ptr<QOpenGLShader>> allShaders;
 inline std::map<QString, QString> virtualSourceFiles;
 inline std::map<QString, QString> virtualHeaderFiles;
 

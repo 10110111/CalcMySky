@@ -150,7 +150,6 @@ void computeSingleScattering(const unsigned texIndex, ScattererDescription const
     const auto src=makeScattererDensityFunctionsSrc()+
                     "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
                     "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(allWavelengths[texIndex]))+"; }\n";
-    allShaders.erase(DENSITIES_SHADER_FILENAME);
     virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
     const auto program=compileShaderProgram("compute-single-scattering.frag",
                                             "single scattering computation shader program",
@@ -168,20 +167,17 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
 {
     constexpr unsigned scatteringOrder=2;
 
-    allShaders.erase(DENSITIES_SHADER_FILENAME);
     virtualSourceFiles[DENSITIES_SHADER_FILENAME]=makeScattererDensityFunctionsSrc();
     std::unique_ptr<QOpenGLShaderProgram> program;
     {
         // Make a stub for current phase function. It's not used for ground radiance, but we need it to avoid linking errors.
         const auto src=makePhaseFunctionsSrc()+
             "vec4 currentPhaseFunction(float dotViewSun) { return vec4(3.4028235e38); }\n";
-        allShaders.erase(PHASE_FUNCTIONS_SHADER_FILENAME);
         virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
 
         // Doing replacements instead of using uniforms is meant to
         //  1) Improve performance by statically avoiding branching
         //  2) Ease debugging by clearing the list of really-used uniforms (this can be printed by dumpActiveUniforms())
-        allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
         virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
                                                     .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "true")
                                                     .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
@@ -224,10 +220,8 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
         {
             const auto src=makePhaseFunctionsSrc()+
                 "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
-            allShaders.erase(PHASE_FUNCTIONS_SHADER_FILENAME);
             virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
 
-            allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
             virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
                                                     .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
                                                     .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
@@ -256,7 +250,6 @@ void computeScatteringDensity(const unsigned scatteringOrder, const unsigned tex
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
 
-    allShaders.erase(COMPUTE_SCATTERING_DENSITY_FILENAME);
     virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
                                                     .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
                                                     .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
@@ -290,11 +283,9 @@ void computeIndirectIrradianceOrder1(const unsigned texIndex, const unsigned sca
 
     const auto& scatterer=scatterers[scattererIndex];
 
-    allShaders.erase(PHASE_FUNCTIONS_SHADER_FILENAME);
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
 
-    allShaders.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
     virtualSourceFiles[COMPUTE_INDIRECT_IRRADIANCE_FILENAME]=getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,IgnoreCache{})
                                                 .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1));
     std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
@@ -321,7 +312,6 @@ void computeIndirectIrradiance(const unsigned scatteringOrder, const unsigned te
     gl.glDisablei(GL_BLEND, 0); // Overwrite delta-irradiance-texture
     gl.glEnablei(GL_BLEND, 1); // Accumulate total irradiance
 
-    allShaders.erase(COMPUTE_INDIRECT_IRRADIANCE_FILENAME);
     virtualSourceFiles[COMPUTE_INDIRECT_IRRADIANCE_FILENAME]=getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,IgnoreCache{})
                                                 .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1));
     std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
@@ -510,7 +500,6 @@ int main(int argc, char** argv)
                          " (set " << texIndex+1 << " of " << allWavelengths.size() << "):\n";
             OutputIndentIncrease incr;
 
-            allShaders.clear();
             initConstHeader(allWavelengths[texIndex]);
             virtualSourceFiles[COMPUTE_TRANSMITTANCE_SHADER_FILENAME]=
                 makeTransmittanceComputeFunctionsSrc(allWavelengths[texIndex]);

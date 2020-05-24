@@ -259,12 +259,8 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     return shader;
 }
 
-QOpenGLShader& getOrCompileShader(QOpenGLShader::ShaderType type, QString const& filename)
-{
-    const auto it=allShaders.find(filename);
-    if(it!=allShaders.end()) return *it->second;
-    return *allShaders.emplace(filename, compileShader(type, getShaderSrc(filename), filename)).first->second;
-}
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString const& filename)
+{ return compileShader(type, getShaderSrc(filename), filename); }
 
 QString withHeadersIncluded(QString src, QString const& filename)
 {
@@ -339,12 +335,20 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     auto shaderFileNames=getShaderFileNamesToLinkWith(mainSrcFileName);
     shaderFileNames.insert(mainSrcFileName);
 
+    std::vector<std::unique_ptr<QOpenGLShader>> shaders;
     for(const auto filename : shaderFileNames)
-        program->addShader(&getOrCompileShader(QOpenGLShader::Fragment, filename));
+    {
+        shaders.emplace_back(compileShader(QOpenGLShader::Fragment, filename));
+        program->addShader(shaders.back().get());
+    }
 
-    program->addShader(&getOrCompileShader(QOpenGLShader::Vertex, "shader.vert"));
+    shaders.emplace_back(compileShader(QOpenGLShader::Vertex, "shader.vert"));
+    program->addShader(shaders.back().get());
     if(useGeomShader)
-        program->addShader(&getOrCompileShader(QOpenGLShader::Geometry, "shader.geom"));
+    {
+        shaders.emplace_back(compileShader(QOpenGLShader::Geometry, "shader.geom"));
+        program->addShader(shaders.back().get());
+    }
 
     if(!program->link())
     {
