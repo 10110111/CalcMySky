@@ -14,12 +14,39 @@ public:
     virtual QString what() const = 0;
 };
 
+class InitializationError : public Error
+{
+    QString message;
+public:
+    InitializationError(QString const& message) : message(message) {}
+    QString errorType() const override { return QObject::tr("Initialization error"); }
+    QString what() const override { return message; }
+};
+
 class OpenGLError : public Error
 {
     QString message;
 public:
     OpenGLError(QString const& message) : message(message) {}
     QString errorType() const override { return QObject::tr("OpenGL error"); }
+    QString what() const override { return message; }
+};
+
+class DataLoadError : public Error
+{
+    QString message;
+public:
+    DataLoadError(QString const& message) : message(message) {}
+    QString errorType() const override { return QObject::tr("Error loading data"); }
+    QString what() const override { return message; }
+};
+
+class BadCommandLine : public Error
+{
+    QString message;
+public:
+    BadCommandLine(QString const& message) : message(message) {}
+    QString errorType() const override { return QObject::tr("Bad command line"); }
     QString what() const override { return message; }
 };
 

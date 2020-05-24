@@ -16,6 +16,7 @@ constexpr char TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME[]="total-scattering-
 constexpr char COMPUTE_TRANSMITTANCE_SHADER_FILENAME[]="compute-transmittance-functions.frag";
 constexpr char CONSTANTS_HEADER_FILENAME[]="const.h.glsl";
 constexpr char DENSITIES_HEADER_FILENAME[]="densities.h.glsl";
+constexpr char RADIANCE_TO_LUMINANCE_HEADER_FILENAME[]="radiance-to-luminance.h.glsl";
 constexpr char PHASE_FUNCTIONS_HEADER_FILENAME[]="phase-functions.h.glsl";
 constexpr char TOTAL_SCATTERING_COEFFICIENT_HEADER_FILENAME[]="total-scattering-coefficient.h.glsl";
 constexpr char COMPUTE_SCATTERING_DENSITY_FILENAME[]="compute-scattering-density.frag";

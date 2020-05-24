@@ -3,9 +3,21 @@
 #include <memory>
 #include <cstring>
 #include <iostream>
+#include <filesystem>
 #include <QFile>
 
 #include "data.hpp"
+
+void createDirs(std::string const& path)
+{
+    namespace fs=std::filesystem;
+    if(std::error_code err; !fs::create_directories(fs::u8path(path), err) && err)
+    {
+        std::cerr << "Failed to create directory \"" << path << "\": "
+                  << QString::fromLocal8Bit(err.message().c_str()) << "\n";
+        throw MustQuit{};
+    }
+}
 
 void renderQuad()
 {
@@ -43,6 +55,12 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
 void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
                  const std::string_view path, std::vector<GLsizei> const& sizes)
 {
+    if(dbgNoSaveTextures)
+    {
+        std::cerr << indentOutput() << "Would save " << name << ", but only shaders are to be saved.\n";
+        return;
+    }
+
     std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"... ";
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {

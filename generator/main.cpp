@@ -1,4 +1,3 @@
-#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <memory>
@@ -48,7 +47,15 @@ glm::mat4 radianceToLuminance(const unsigned texIndex)
 
 void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 {
+    if(scatteringOrder==scatteringOrdersToCompute)
+    {
+        saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
+                    textureOutputDir+"/irradiance-wlset"+std::to_string(texIndex)+".f32",
+                    {irradianceTexW, irradianceTexH});
+    }
+
     if(!dbgSaveGroundIrradiance) return;
+
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                 textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
                 {irradianceTexW, irradianceTexH});
@@ -69,6 +76,8 @@ void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texInd
 
 void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view whatIsBeingDone)
 {
+    if(dbgNoSaveTextures) return; // don't take time to do useless computations
+
     std::cerr << indentOutput() << whatIsBeingDone << "... ";
     for(GLsizei layer=0; layer<scatTexDepth(); ++layer)
     {
@@ -139,6 +148,109 @@ void computeDirectGroundIrradiance(const unsigned texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
+void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
+{
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    static constexpr char renderShaderFileName[]="render.frag";
+    virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +
+                                                                toString(radianceToLuminance(texIndex)) + ";\n";
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+            .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 // \\1")
+            .replace(QRegExp("#include \"(phase-functions|single-scattering)\\.h\\.glsl\""), "");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "single scattering rendering shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& src : sourcesToSave)
+    {
+        const auto filename=QString("%1/shaders/zero-order-scattering/%2/%3")
+                                .arg(textureOutputDir.c_str()).arg(texIndex).arg(src.first);
+        std::cerr << indentOutput() << "Saving shader \"" << filename.toStdString() << "\"...";
+        QFile file(filename);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.second.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
+void saveMultipleScatteringRenderingShader()
+{
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    static constexpr char renderShaderFileName[]="render.frag";
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+            .replace(QRegExp("\\b(RENDERING_MULTIPLE_SCATTERING)\\b"), "1 // \\1")
+            .replace(QRegExp("#include \"(phase-functions|common-functions|texture-sampling-functions|single-scattering|radiance-to-luminance)\\.h\\.glsl\""), "");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "single scattering rendering shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& src : sourcesToSave)
+    {
+        const auto filename=QString("%1/shaders/multiple-scattering/%2").arg(textureOutputDir.c_str()).arg(src.first);
+        std::cerr << indentOutput() << "Saving shader \"" << filename.toStdString() << "\"...";
+        QFile file(filename);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.second.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
+void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescription const& scatterer, const char* renderType, const char* renderTypeDefine)
+{
+    const auto src=makePhaseFunctionsSrc()+
+        "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
+    virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
+
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    static constexpr char renderShaderFileName[]="render.frag";
+    virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +
+                                                                toString(radianceToLuminance(texIndex)) + ";\n";
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderTypeDefine)), "1 // \\1")
+                                                .replace(QRegExp("#include \"(common-functions|texture-sampling-functions)\\.h\\.glsl\""), "");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "single scattering rendering shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& src : sourcesToSave)
+    {
+        const auto filename=QString("%1/shaders/single-scattering/%2/%3/%4/%5")
+                                .arg(textureOutputDir.c_str()).arg(renderType).arg(texIndex).arg(scatterer.name).arg(src.first);
+        std::cerr << indentOutput() << "Saving shader \"" << filename.toStdString() << "\"...";
+        QFile file(filename);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.second.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
 void computeSingleScattering(const unsigned texIndex, ScattererDescription const& scatterer)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
@@ -160,6 +272,13 @@ void computeSingleScattering(const unsigned texIndex, ScattererDescription const
     render3DTexLayers(*program, "Computing single scattering layers");
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+
+    saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
+                "single scattering texture", textureOutputDir+"/single-scattering/"+std::to_string(texIndex)+"/"+scatterer.name.toStdString()+".f32",
+                {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+
+    saveSingleScatteringRenderingShader(texIndex, scatterer, "on-the-fly", "RENDERING_SINGLE_SCATTERING_ON_THE_FLY");
+    saveSingleScatteringRenderingShader(texIndex, scatterer, "precomputed", "RENDERING_SINGLE_SCATTERING_PRECOMPUTED");
 }
 
 void computeIndirectIrradianceOrder1(unsigned texIndex, unsigned scattererIndex);
@@ -214,14 +333,12 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
         std::cerr << indentOutput() << "Processing scatterer \""+scatterer.name.toStdString()+"\":\n";
         OutputIndentIncrease incr;
 
+        // Current phase function is updated in the single scattering computation while saving the rendering shader
         computeSingleScattering(texIndex, scatterer);
+
         gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
 
         {
-            const auto src=makePhaseFunctionsSrc()+
-                "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
-            virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
-
             virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
                                                     .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
                                                     .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
@@ -442,12 +559,48 @@ int main(int argc, char** argv)
     try
     {
         handleCmdLine();
-        namespace fs=std::filesystem;
-        if(std::error_code err; !fs::create_directories(fs::u8path(textureOutputDir), err) && err)
+
+        if(textureOutputDir.length() && textureOutputDir.back()=='/')
+            textureOutputDir.pop_back(); // Make the paths a bit nicer (without double slashes)
+        for(unsigned texIndex=0; texIndex<allWavelengths.size(); ++texIndex)
         {
-            std::cerr << "Failed to create output directory: "
-                      << QString::fromLocal8Bit(err.message().c_str()).toStdString() << "\n";
-            return 1;
+            for(const auto& scatterer : scatterers)
+            {
+                createDirs(textureOutputDir+"/shaders/single-scattering/on-the-fly/"+std::to_string(texIndex)+"/"+scatterer.name.toStdString());
+                createDirs(textureOutputDir+"/shaders/single-scattering/precomputed/"+std::to_string(texIndex)+"/"+scatterer.name.toStdString());
+            }
+        }
+        for(unsigned texIndex=0; texIndex<allWavelengths.size(); ++texIndex)
+        {
+            createDirs(textureOutputDir+"/shaders/zero-order-scattering/"+std::to_string(texIndex));
+            createDirs(textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
+        }
+        createDirs(textureOutputDir+"/shaders/multiple-scattering/");
+
+        {
+            std::cerr << "Writing parameters to output description file...";
+            QFile file((textureOutputDir+"/params.txt").c_str());
+            if(!file.open(QFile::WriteOnly))
+            {
+                std::cerr << " FAILED to open file: " << file.errorString().toStdString() << "\n";
+                throw MustQuit{};
+            }
+            QTextStream out(&file);
+            out << "wavelengths: ";
+            for(unsigned i=0; i<allWavelengths.size(); ++i)
+            {
+                const auto& wlset=allWavelengths[i];
+                out << wlset[0] << "," << wlset[1] << "," << wlset[2] << "," << wlset[3] << (i+1==allWavelengths.size() ? "\n" : ",");
+            }
+            out << "atmosphere height: " << atmosphereHeight << "\n";
+            out.flush();
+            file.close();
+            if(file.error())
+            {
+                std::cerr << " FAILED to write: " << file.errorString().toStdString() << "\n";
+                return 1;
+            }
+            std::cerr << " done\n";
         }
 
         QSurfaceFormat format;
@@ -506,6 +659,8 @@ int main(int argc, char** argv)
             virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc();
             virtualSourceFiles[TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME]=makeTotalScatteringCoefSrc();
 
+            saveZeroOrderScatteringRenderingShader(texIndex);
+
             {
                 std::cerr << indentOutput() << "Computing parts of scattering order 1:\n";
                 OutputIndentIncrease incr;
@@ -518,6 +673,7 @@ int main(int argc, char** argv)
 
             computeMultipleScattering(texIndex);
         }
+        saveMultipleScatteringRenderingShader();
 
         {
             const auto timeEnd=std::chrono::steady_clock::now();

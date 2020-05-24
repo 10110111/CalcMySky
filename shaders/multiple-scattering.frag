@@ -57,6 +57,9 @@ vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosView
             // Only for scatteringOrder==2 we consider radiation from ground in a separate run
             if(radiationIsFromGroundOnly || scatteringOrder>2)
             {
+                // XXX: keep in sync with the same code in zeroth order rendering shader, but don't
+                //      forget about the difference in the usage of viewDir vs incDir.
+
                 // Normal to ground at the point where incident light originates on the ground, with current incDir
                 const vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+incDir*distToGround);
                 const vec4 groundIrradiance = irradiance(dot(groundNormal, sunDir), 0);

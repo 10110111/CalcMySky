@@ -24,6 +24,7 @@ inline std::string indentOutput()
 }
 
 inline bool saveResultAsRadiance=false;
+inline bool dbgNoSaveTextures=false;
 inline bool dbgSaveGroundIrradiance=false;
 inline bool dbgSaveScatDensityOrder2FromGround=false;
 inline bool dbgSaveScatDensity=false;
@@ -66,6 +67,7 @@ inline std::string textureOutputDir=".";
 inline GLint transmittanceTexW, transmittanceTexH;
 inline GLint irradianceTexW, irradianceTexH;
 inline glm::ivec4 scatteringTextureSize;
+// XXX: keep in sync with those in previewer and renderer
 inline auto scatTexWidth()  { return GLsizei(scatteringTextureSize[0]); }
 inline auto scatTexHeight() { return GLsizei(scatteringTextureSize[1]*scatteringTextureSize[2]); }
 inline auto scatTexDepth()  { return GLsizei(scatteringTextureSize[3]); }

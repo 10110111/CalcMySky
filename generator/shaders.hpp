@@ -19,7 +19,8 @@ QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache=IgnoreCach
 DEFINE_EXPLICIT_BOOL(UseGeomShader);
 std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName,
                                                            const char* description,
-                                                           UseGeomShader useGeomShader=UseGeomShader{false});
+                                                           UseGeomShader useGeomShader=UseGeomShader{false},
+                                                           std::vector<std::pair<QString, QString>>* sourcesToSave=nullptr);
 void initConstHeader(glm::vec4 const& wavelengths);
 QString makeScattererDensityFunctionsSrc();
 QString makeTransmittanceComputeFunctionsSrc(glm::vec4 const& wavelengths);

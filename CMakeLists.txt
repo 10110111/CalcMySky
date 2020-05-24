@@ -37,3 +37,4 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}"
 
 configure_file(config.h.in config.h)
 add_subdirectory(generator)
+add_subdirectory(previewer)

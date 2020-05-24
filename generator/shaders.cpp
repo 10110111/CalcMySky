@@ -314,7 +314,10 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
         if(!includePattern.exactMatch(line))
             continue;
         const auto includeFileBaseName=includePattern.cap(1);
-        if(includeFileBaseName+includePattern.cap(2) == CONSTANTS_HEADER_FILENAME) // no companion source for constants header
+        const auto headerFileName=includeFileBaseName+includePattern.cap(2);
+        if(headerFileName == CONSTANTS_HEADER_FILENAME) // no companion source for constants header
+            continue;
+        if(headerFileName == RADIANCE_TO_LUMINANCE_HEADER_FILENAME) // no companion source for radiance-to-luminance conversion header
             continue;
         const auto shaderFileNameToLinkWith=includeFileBaseName+".frag";
         filenames.insert(shaderFileNameToLinkWith);
@@ -328,7 +331,8 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
 }
 
 std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSrcFileName,
-                                                           const char* description, const UseGeomShader useGeomShader)
+                                                           const char* description, const UseGeomShader useGeomShader,
+                                                           std::vector<std::pair<QString, QString>>* sourcesToSave)
 {
     auto program=std::make_unique<QOpenGLShaderProgram>();
 
@@ -340,10 +344,13 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     {
         shaders.emplace_back(compileShader(QOpenGLShader::Fragment, filename));
         program->addShader(shaders.back().get());
+        if(sourcesToSave)
+            sourcesToSave->push_back({filename, withHeadersIncluded(getShaderSrc(filename), filename)});
     }
 
     shaders.emplace_back(compileShader(QOpenGLShader::Vertex, "shader.vert"));
     program->addShader(shaders.back().get());
+
     if(useGeomShader)
     {
         shaders.emplace_back(compileShader(QOpenGLShader::Geometry, "shader.geom"));

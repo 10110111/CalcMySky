@@ -22,6 +22,11 @@ inline QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(d
                                                                    .arg(double(v.y), 0,'g',9)
                                                                    .arg(double(v.z), 0,'g',9)
                                                                    .arg(double(v.w), 0,'g',9); }
+inline QString toString(glm::mat4 const& m) { return QString("mat4(%1,%2,%3,%4,  %5,%6,%7,%8,  %9,%10,%11,%12,  %13,%14,%15,%16)")
+          .arg(double(m[0][0]),0,'g',9).arg(double(m[0][1]),0,'g',9).arg(double(m[0][2]),0,'g',9).arg(double(m[0][3]),0,'g',9)
+          .arg(double(m[1][0]),0,'g',9).arg(double(m[1][1]),0,'g',9).arg(double(m[1][2]),0,'g',9).arg(double(m[1][3]),0,'g',9)
+          .arg(double(m[2][0]),0,'g',9).arg(double(m[2][1]),0,'g',9).arg(double(m[2][2]),0,'g',9).arg(double(m[2][3]),0,'g',9)
+          .arg(double(m[3][0]),0,'g',9).arg(double(m[3][1]),0,'g',9).arg(double(m[3][2]),0,'g',9).arg(double(m[3][3]),0,'g',9); }
 void setupDebugPrintCallback(QOpenGLContext& context);
 void setupTexture(TextureId id, GLsizei width, GLsizei height);
 void setupTexture(TextureId id, GLsizei width, GLsizei height, GLsizei depth);
@@ -42,5 +47,6 @@ inline void checkFramebufferStatus(const char*const fboDescription) { return che
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
 void saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,
                  std::vector<GLsizei> const& sizes);
+void createDirs(std::string const& path);
 
 #endif
