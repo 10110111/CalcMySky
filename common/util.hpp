@@ -7,6 +7,22 @@
 
 struct MustQuit{ int exitCode=1; };
 
+class Error
+{
+public:
+    virtual QString errorType() const = 0;
+    virtual QString what() const = 0;
+};
+
+class OpenGLError : public Error
+{
+    QString message;
+public:
+    OpenGLError(QString const& message) : message(message) {}
+    QString errorType() const override { return QObject::tr("OpenGL error"); }
+    QString what() const override { return message; }
+};
+
 inline std::ostream& operator<<(std::ostream& os, QString const& s)
 {
     os << s.toStdString();

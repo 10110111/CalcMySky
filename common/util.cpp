@@ -20,31 +20,29 @@ std::string openglErrorString(const GLenum error)
 
 void checkFramebufferStatus(QOpenGLFunctions_3_3_Core& gl, const char*const fboDescription)
 {
-    GLenum status=gl.glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if(status!=GL_FRAMEBUFFER_COMPLETE)
+    const auto status=gl.glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if(status==GL_FRAMEBUFFER_COMPLETE) return;
+
+    QString errorDescription;
+    switch(status)
     {
-        std::string errorDescription;
-        switch(status)
-        {
-        case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-            errorDescription="incomplete attachment";
-            break;
-        case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-            errorDescription="missing attachment";
-            break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION:
-            errorDescription="invalid framebuffer operation";
-            break;
-        case GL_FRAMEBUFFER_UNSUPPORTED:
-            errorDescription="framebuffer unsupported";
-            break;
-        default:
-            errorDescription="Unknown error "+std::to_string(status);
-            break;
-        }
-        std::cerr << "Error: " << fboDescription << " is incomplete: " << errorDescription << "\n";
-        throw MustQuit{};
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        errorDescription=QObject::tr("incomplete attachment");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        errorDescription=QObject::tr("missing attachment");
+        break;
+    case GL_INVALID_FRAMEBUFFER_OPERATION:
+        errorDescription=QObject::tr("invalid framebuffer operation");
+        break;
+    case GL_FRAMEBUFFER_UNSUPPORTED:
+        errorDescription=QObject::tr("framebuffer unsupported");
+        break;
+    default:
+        errorDescription=QObject::tr("unknown error 0x%1").arg(status, 0, 16);
+        break;
     }
+    throw OpenGLError{QObject::tr("%1 is incomplete: %2").arg(fboDescription).arg(errorDescription)};
 }
 
 void dumpActiveUniforms(QOpenGLFunctions_3_3_Core& gl, const GLuint program)
