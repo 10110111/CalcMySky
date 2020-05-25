@@ -42,7 +42,5 @@ inline void checkFramebufferStatus(const char*const fboDescription) { return che
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
 void saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,
                  std::vector<GLsizei> const& sizes);
-void loadTexture(std::string const& path, GLsizei width, GLsizei height, GLsizei depth);
-void loadTexture(GLfloat* data, GLsizei width, GLsizei height, GLsizei depth);
 
 #endif

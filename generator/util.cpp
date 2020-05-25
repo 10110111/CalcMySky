@@ -107,65 +107,6 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
     std::cerr << "done\n";
 }
 
-void loadTexture(std::string const& path, const GLsizei width, const GLsizei height, const GLsizei depth)
-{
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
-    {
-        std::cerr << "GL error on entry to loadTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
-        throw MustQuit{};
-    }
-    std::cerr << indentOutput() << "Loading texture from \"" << path << "\"... ";
-    const auto subpixelCount = 4*width*height*depth;
-    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
-    QFile file(path.c_str());
-    if(!file.open(QFile::ReadOnly))
-    {
-        std::cerr << "failed to open file: " << file.errorString().toStdString() << "\n";
-        throw MustQuit{};
-    }
-    uint16_t sizes[4];
-    {
-        const qint64 sizeToRead=sizeof sizes;
-        if(file.read(reinterpret_cast<char*>(sizes), sizeToRead) != sizeToRead)
-        {
-            std::cerr << "Failed to read file header: " << file.errorString().toStdString() << "\n";
-            throw MustQuit{};
-        }
-    }
-    if(size_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] != size_t(width)*height*depth)
-        throw std::runtime_error("Bad texture size in file "+path);
-    {
-        const qint64 sizeToRead=subpixelCount*sizeof subpixels[0];
-        if(file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead) != sizeToRead)
-        {
-            std::cerr << "Failed to read texture data: " << file.errorString().toStdString() << "\n";
-            throw MustQuit{};
-        }
-    }
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_FLOAT,subpixels.get());
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
-    {
-        std::cerr << "GL error in loadTexture(" << width << "," << height << "," << depth << ") after glTexImage3D() call: " << openglErrorString(err) << "\n";
-        throw MustQuit{};
-    }
-    std::cerr << "done\n";
-}
-
-void loadTexture(GLfloat*const data, const GLsizei width, const GLsizei height, const GLsizei depth)
-{
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
-    {
-        std::cerr << "GL error on entry to loadTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
-        throw MustQuit{};
-    }
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_FLOAT,data);
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
-    {
-        std::cerr << "GL error in loadTexture(" << width << "," << height << "," << depth << ") after glTexImage3D() call: " << openglErrorString(err) << "\n";
-        throw MustQuit{};
-    }
-}
-
 void setupTexture(TextureId id, const GLsizei width, const GLsizei height)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
