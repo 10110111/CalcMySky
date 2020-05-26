@@ -22,7 +22,7 @@ before_build:
   - cmd: cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH=%QT_BASEDIR%/lib/cmake/Qt5 -DCMAKE_INSTALL_PREFIX=. ../atmosphere-textures-generator
 
 build_script:
-    - cmd: cmake --build . --config %configuration%
+    - cmd: cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 for:
 -
