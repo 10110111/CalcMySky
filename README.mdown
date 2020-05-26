@@ -13,8 +13,8 @@ It's currently in pre-alpha stage, so it's not of much interest to general users
 The planned implementation steps are as follows:
 
  - [x] Generator of textures for normally-lit atmosphere (by unoccluded Sun)
- - [ ] Generator of shaders to render normally-lit atmosphere
- - [ ] Previewer for the textures generated
+ - [x] Generator of shaders to render normally-lit atmosphere
+ - [x] Previewer for the textures generated
  - [ ] Generator of textures for eclipsed atmosphere
  - [ ] Generator of shaders to render eclipsed atmosphere
  - [ ] Generator of air pollution textures
