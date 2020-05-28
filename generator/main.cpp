@@ -213,7 +213,7 @@ void saveMultipleScatteringRenderingShader()
     }
 }
 
-void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescription const& scatterer, const char* renderType, const char* renderTypeDefine)
+void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescription const& scatterer, const char* renderMode, const char* renderModeDefine)
 {
     const auto src=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
@@ -224,7 +224,7 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
     virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +
                                                                 toString(radianceToLuminance(texIndex)) + ";\n";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderTypeDefine)), "1 // \\1")
+                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 // \\1")
                                                 .replace(QRegExp("#include \"(common-functions|texture-sampling-functions)\\.h\\.glsl\""), "");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
@@ -232,7 +232,7 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
     for(const auto& src : sourcesToSave)
     {
         const auto filename=QString("%1/shaders/single-scattering/%2/%3/%4/%5")
-                                .arg(textureOutputDir.c_str()).arg(renderType).arg(texIndex).arg(scatterer.name).arg(src.first);
+                                .arg(textureOutputDir.c_str()).arg(renderMode).arg(texIndex).arg(scatterer.name).arg(src.first);
         std::cerr << indentOutput() << "Saving shader \"" << filename.toStdString() << "\"...";
         QFile file(filename);
         if(!file.open(QFile::WriteOnly))
