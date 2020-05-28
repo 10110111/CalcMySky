@@ -580,7 +580,16 @@ void handleCmdLine()
         else if(key=="solar irradiance at toa")
             solarIrradianceAtTOA=getSpectrum(value,0,1e3,atmoDescrFileName,lineNumber);
         else if(key.contains(scattererDescriptionKey))
-            scatterers.emplace_back(parseScatterer(stream, scattererDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
+        {
+            const auto& name=scattererDescriptionKey.cap(1);
+            if(std::find_if(scatterers.begin(), scatterers.end(),
+                            [&](const auto& existing) { return existing.name==name; }) != scatterers.end())
+            {
+                std::cerr << atmoDescrFileName << ":" << lineNumber << ": duplicate scatterer \"" << name << "\"\n";
+                throw MustQuit{};
+            }
+            scatterers.emplace_back(parseScatterer(stream, name, atmoDescrFileName,++lineNumber));
+        }
         else if(key.contains(absorberDescriptionKey))
             absorbers.emplace_back(parseAbsorber(stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
         else if(key=="scattering orders")
