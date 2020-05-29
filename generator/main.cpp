@@ -392,6 +392,7 @@ void computeIndirectIrradianceOrder1(const unsigned texIndex, const unsigned sca
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
+    gl.glBlendFunc(GL_ONE, GL_ONE);
     if(scattererIndex==0)
         gl.glDisablei(GL_BLEND, 0); // First scatterer overwrites delta-irradiance-texture
     else
@@ -426,6 +427,7 @@ void computeIndirectIrradiance(const unsigned scatteringOrder, const unsigned te
     gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
+    gl.glBlendFunc(GL_ONE, GL_ONE);
     gl.glDisablei(GL_BLEND, 0); // Overwrite delta-irradiance-texture
     gl.glEnablei(GL_BLEND, 1); // Accumulate total irradiance
 
@@ -452,6 +454,7 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
     // more than two 4D textures in VRAM at once.
     // Now it's time to do this by only holding the accumulator and delta scattering texture in VRAM.
     gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBlendFunc(GL_ONE, GL_ONE);
     if(scatteringOrder>2 || (texIndex>0 && !saveResultAsRadiance))
         gl.glEnable(GL_BLEND);
     else
