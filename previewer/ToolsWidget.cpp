@@ -65,7 +65,7 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
         ditheringMode_->setCurrentIndex(static_cast<int>(AtmosphereRenderer::DitheringMode::Color888));
         connect(ditheringMode_, qOverload<int>(&QComboBox::currentIndexChanged), this, &ToolsWidget::settingChanged);
         const auto hbox=new QHBoxLayout;
-        const auto label=new QLabel(tr("&Dithering:"));
+        const auto label=new QLabel(tr("&Dithering"));
         label->setBuddy(ditheringMode_);
         hbox->addWidget(label);
         hbox->addWidget(ditheringMode_);
