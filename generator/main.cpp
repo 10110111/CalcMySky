@@ -157,8 +157,6 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
 {
     std::vector<std::pair<QString, QString>> sourcesToSave;
     static constexpr char renderShaderFileName[]="render.frag";
-    virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +
-                                                                toString(radianceToLuminance(texIndex)) + ";\n";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
             .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 // \\1")
             .replace(QRegExp("#include \"(phase-functions|single-scattering)\\.h\\.glsl\""), "");
@@ -226,8 +224,6 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
 
     std::vector<std::pair<QString, QString>> sourcesToSave;
     static constexpr char renderShaderFileName[]="render.frag";
-    virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +
-                                                                toString(radianceToLuminance(texIndex)) + ";\n";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
                                                 .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 // \\1")
                                                 .replace(QRegExp("#include \"(common-functions|texture-sampling-functions)\\.h\\.glsl\""), "");
@@ -666,6 +662,8 @@ int main(int argc, char** argv)
                 makeTransmittanceComputeFunctionsSrc(allWavelengths[texIndex]);
             virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc();
             virtualSourceFiles[TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME]=makeTotalScatteringCoefSrc();
+            virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +
+                                                                        toString(radianceToLuminance(texIndex)) + ";\n";
 
             saveZeroOrderScatteringRenderingShader(texIndex);
 
