@@ -43,7 +43,7 @@ public:
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);
     void showFrameRate(long long frameTimeInUS);
-    void updateScattererSet(QVector<QString> names);
+    void updateScattererSet(QVector<QString> const& names);
 signals:
     void settingChanged();
     void setScattererEnabled(int scattererIndex, bool enable);

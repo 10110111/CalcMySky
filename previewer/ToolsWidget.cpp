@@ -109,7 +109,7 @@ void ToolsWidget::showFrameRate(const long long frameTimeInUS)
                                                     .arg(frameTimeInUS/1e6, 0, 'g', 3));
 }
 
-void ToolsWidget::updateScattererSet(QVector<QString> names)
+void ToolsWidget::updateScattererSet(QVector<QString> const& names)
 {
     for(QCheckBox*const checkbox : scatterers)
         delete checkbox;
