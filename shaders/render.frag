@@ -80,7 +80,8 @@ void main()
     }
     else if(dotViewSun>cos(sunAngularRadius))
     {
-        radiance=transmittanceToSun(sunDirection.z, altitude)*solarRadiance();
+        // NOTE: Not transmittanceToSun()! We don't want to modulate Sun color with solar disk's visibility!
+        radiance=transmittanceToAtmosphereBorder(viewDir.z, altitude)*solarRadiance();
     }
     else
     {
