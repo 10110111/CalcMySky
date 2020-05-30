@@ -72,6 +72,7 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
                 { frame->setEnabled(state==Qt::Checked); });
     }
     multipleScatteringEnabled_  = addCheckBox(layout, this, tr("Draw &multiple scattering layer"), true);
+    textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
     {
         const auto button=new QPushButton(tr("&Reload shaders"));

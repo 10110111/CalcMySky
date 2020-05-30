@@ -25,6 +25,7 @@ class ToolsWidget : public QDockWidget
     QCheckBox* zeroOrderScatteringEnabled_=nullptr;
     QCheckBox* singleScatteringEnabled_=nullptr;
     QCheckBox* multipleScatteringEnabled_=nullptr;
+    QCheckBox* textureFilteringEnabled_=nullptr;
     QLabel*const frameRate=new QLabel("N/A");
     QVector<QCheckBox*> scatterers;
 public:
@@ -38,6 +39,7 @@ public:
     bool zeroOrderScatteringEnabled() const { return zeroOrderScatteringEnabled_->isChecked(); }
     bool singleScatteringEnabled() const { return singleScatteringEnabled_->isChecked(); }
     bool multipleScatteringEnabled() const { return multipleScatteringEnabled_->isChecked(); }
+    bool textureFilteringEnabled() const { return textureFilteringEnabled_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }
 
     void setSunAzimuth(double azimuth);

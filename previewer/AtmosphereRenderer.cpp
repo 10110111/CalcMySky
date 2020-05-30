@@ -176,7 +176,9 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
         loadTexture2D(QString("%1/irradiance-wlset%2.f32").arg(pathToData).arg(wlSetIndex));
     }
 
-    multipleScatteringTexture.setMinificationFilter(QOpenGLTexture::Linear);
+    const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+    multipleScatteringTexture.setMinificationFilter(texFilter);
+    multipleScatteringTexture.setMagnificationFilter(texFilter);
     multipleScatteringTexture.setWrapMode(QOpenGLTexture::ClampToEdge);
     multipleScatteringTexture.bind();
     loadTexture4D(pathToData+"/multiple-scattering-xyzw.f32");
@@ -192,7 +194,8 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
             for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
             {
                 auto& texture=*texturesPerWLSet.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target3D));
-                texture.setMinificationFilter(QOpenGLTexture::Linear);
+                texture.setMinificationFilter(texFilter);
+                texture.setMagnificationFilter(texFilter);
                 texture.setWrapMode(QOpenGLTexture::ClampToEdge);
                 texture.bind();
                 loadTexture4D(QString("%1/single-scattering/%2/%3.f32").arg(pathToData).arg(wlSetIndex).arg(scattererName));
@@ -201,7 +204,8 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
         case PhaseFunctionType::Achromatic:
         {
             auto& texture=*texturesPerWLSet.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target3D));
-            texture.setMinificationFilter(QOpenGLTexture::Linear);
+            texture.setMinificationFilter(texFilter);
+            texture.setMagnificationFilter(texFilter);
             texture.setWrapMode(QOpenGLTexture::ClampToEdge);
             texture.bind();
             loadTexture4D(QString("%1/single-scattering/%2-xyzw.f32").arg(pathToData).arg(scattererName));
@@ -419,8 +423,14 @@ void AtmosphereRenderer::renderSingleScattering()
                             std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                             std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                             std::cos(tools->sunZenithAngle())));
-                singleScatteringTextures.at(scattererName)[wlSetIndex]->bind(0);
-                prog->setUniformValue("scatteringTexture", 0);
+                {
+                    auto& tex=*singleScatteringTextures.at(scattererName)[wlSetIndex];
+                    const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+                    tex.setMinificationFilter(texFilter);
+                    tex.setMagnificationFilter(texFilter);
+                    tex.bind(0);
+                    prog->setUniformValue("scatteringTexture", 0);
+                }
 
                 gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
@@ -434,7 +444,13 @@ void AtmosphereRenderer::renderSingleScattering()
                         std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                         std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                         std::cos(tools->sunZenithAngle())));
-            singleScatteringTextures.at(scattererName).front()->bind(0);
+            {
+                auto& tex=*singleScatteringTextures.at(scattererName).front();
+                const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+                tex.setMinificationFilter(texFilter);
+                tex.setMagnificationFilter(texFilter);
+                tex.bind(0);
+            }
             prog->setUniformValue("scatteringTexture", 0);
 
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -451,6 +467,11 @@ void AtmosphereRenderer::renderMultipleScattering()
                 std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                 std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                 std::cos(tools->sunZenithAngle())));
+    {
+        const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+        multipleScatteringTexture.setMinificationFilter(texFilter);
+        multipleScatteringTexture.setMagnificationFilter(texFilter);
+    }
     multipleScatteringTexture.bind(0);
     prog->setUniformValue("scatteringTexture", 0);
 
