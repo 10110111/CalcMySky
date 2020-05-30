@@ -371,6 +371,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
         const auto& prog=zeroOrderScatteringPrograms[wlSetIndex];
         prog->bind();
         prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+        prog->setUniformValue("zoomFactor", tools->zoomFactor());
         prog->setUniformValue("sunDirection", QVector3D(
                     std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                     std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
@@ -402,6 +403,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
                 prog->bind();
                 prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+                prog->setUniformValue("zoomFactor", tools->zoomFactor());
                 prog->setUniformValue("sunDirection", QVector3D(
                             std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                             std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
@@ -419,6 +421,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
                 prog->bind();
                 prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+                prog->setUniformValue("zoomFactor", tools->zoomFactor());
                 prog->setUniformValue("sunDirection", QVector3D(
                             std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                             std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
@@ -440,6 +443,7 @@ void AtmosphereRenderer::renderSingleScattering()
             const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName).front();
             prog->bind();
             prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+            prog->setUniformValue("zoomFactor", tools->zoomFactor());
             prog->setUniformValue("sunDirection", QVector3D(
                         std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                         std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
@@ -463,6 +467,7 @@ void AtmosphereRenderer::renderMultipleScattering()
     const auto& prog=multipleScatteringProgram;
     prog->bind();
     prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+    prog->setUniformValue("zoomFactor", tools->zoomFactor());
     prog->setUniformValue("sunDirection", QVector3D(
                 std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                 std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),

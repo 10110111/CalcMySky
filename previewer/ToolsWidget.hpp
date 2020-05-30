@@ -21,6 +21,7 @@ class ToolsWidget : public QDockWidget
     Manipulator* exposure_=nullptr;
     Manipulator* sunElevation_=nullptr;
     Manipulator* sunAzimuth_=nullptr;
+    Manipulator* zoomFactor_=nullptr;
     QCheckBox* onTheFlySingleScatteringEnabled_=nullptr;
     QCheckBox* zeroOrderScatteringEnabled_=nullptr;
     QCheckBox* singleScatteringEnabled_=nullptr;
@@ -35,6 +36,7 @@ public:
     float altitude()       const { return altitude_->value(); }
     float sunAzimuth()     const { return degree*sunAzimuth_->value(); }
     float sunZenithAngle() const { return degree*(90-sunElevation_->value()); }
+    float zoomFactor() const { return zoomFactor_->value(); }
     bool onTheFlySingleScatteringEnabled() const { return onTheFlySingleScatteringEnabled_->isChecked(); }
     bool zeroOrderScatteringEnabled() const { return zeroOrderScatteringEnabled_->isChecked(); }
     bool singleScatteringEnabled() const { return singleScatteringEnabled_->isChecked(); }

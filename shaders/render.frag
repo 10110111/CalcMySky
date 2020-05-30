@@ -12,6 +12,7 @@
 uniform sampler3D scatteringTexture;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
+uniform float zoomFactor;
 in vec3 position;
 out vec4 luminance;
 
@@ -29,9 +30,10 @@ vec4 solarRadiance()
 
 void main()
 {
-    vec3 viewDir=vec3(cos(position.x*PI)*cos(position.y*(PI/2)),
-                      sin(position.x*PI)*cos(position.y*(PI/2)),
-                      sin(position.y*(PI/2)));
+    const vec2 pos=position.xy/zoomFactor;
+    vec3 viewDir=vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
+                      sin(pos.x*PI)*cos(pos.y*(PI/2)),
+                      sin(pos.y*(PI/2)));
 
 
     // NOTE: we simply clamp negative altitudes to zero (otherwise the model will break down). This is not

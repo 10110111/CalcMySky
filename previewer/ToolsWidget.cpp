@@ -43,6 +43,7 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
     sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, 45, 2, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 2, QChar(0x00b0));
+    zoomFactor_   = addManipulator(layout, this, tr("&Zoom"), 1, 100, 1, 1);
     {
         ditheringMode_->addItem(tr("Disabled"));
         ditheringMode_->addItem(tr("5/6/5-bit"));
