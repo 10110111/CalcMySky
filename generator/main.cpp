@@ -218,9 +218,8 @@ void saveMultipleScatteringRenderingShader()
 
 void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescription const& scatterer, const char* renderMode, const char* renderModeDefine)
 {
-    const auto src=makePhaseFunctionsSrc()+
+    virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
-    virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
 
     std::vector<std::pair<QString, QString>> sourcesToSave;
     static constexpr char renderShaderFileName[]="render.frag";
@@ -291,9 +290,8 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
     std::unique_ptr<QOpenGLShaderProgram> program;
     {
         // Make a stub for current phase function. It's not used for ground radiance, but we need it to avoid linking errors.
-        const auto src=makePhaseFunctionsSrc()+
+        virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
             "vec4 currentPhaseFunction(float dotViewSun) { return vec4(3.4028235e38); }\n";
-        virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=src;
 
         // Doing replacements instead of using uniforms is meant to
         //  1) Improve performance by statically avoiding branching
