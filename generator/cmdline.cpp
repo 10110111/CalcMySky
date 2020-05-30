@@ -4,7 +4,13 @@
 #include <optional>
 #include <iostream>
 #include <QCommandLineParser>
+#include <QRegularExpression>
 #include <QFile>
+#ifdef Q_OS_UNIX
+#   include <sys/ioctl.h>
+#   include <unistd.h>
+#   include <stdio.h>
+#endif
 
 #include "data.hpp"
 #include "util.hpp"
@@ -406,6 +412,88 @@ AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QStr
     return description;
 }
 
+QStringList wordWrap(QString const& longLine, const int maxWidth)
+{
+    const auto words=longLine.split(' ');
+    QStringList lines;
+    int col=0;
+    QString currentLine;
+    const auto endCurrentLine=[&lines, &currentLine, &col, maxWidth]
+    {
+        currentLine.remove(QRegularExpression(" +$"));
+        if(currentLine.length() < maxWidth)
+            currentLine += '\n';
+        lines << std::move(currentLine);
+        currentLine.clear();
+        col=0;
+    };
+    for(const auto& word : words)
+    {
+        if(col+word.length()+1 < maxWidth)
+        {
+            currentLine += word;
+            currentLine += ' ';
+            col += word.length()+1;
+        }
+        else if(col+word.length()+1 == maxWidth)
+        {
+            currentLine += word;
+            endCurrentLine();
+        }
+        else if(col+word.length() == maxWidth)
+        {
+            currentLine += word;
+            endCurrentLine();
+        }
+        else if(word.length()+1 < maxWidth)
+        {
+            if(!currentLine.isEmpty())
+                endCurrentLine();
+            currentLine = word+' ';
+            col = word.length()+1;
+        }
+        else if(word.length()+1 == maxWidth)
+        {
+            if(!currentLine.isEmpty())
+                endCurrentLine();
+            lines << word+'\n';
+        }
+        else if(word.length() == maxWidth)
+        {
+            if(!currentLine.isEmpty())
+                endCurrentLine();
+            lines << word;
+        }
+        else
+        {
+            if(!currentLine.isEmpty())
+                endCurrentLine();
+            for(int i=0; i<word.length(); i+=maxWidth)
+                lines << word.mid(i, maxWidth);
+            if(lines.back().length() < maxWidth)
+            {
+                currentLine = lines.takeLast()+' ';
+                col=currentLine.length();
+            }
+        }
+    }
+    if(!currentLine.isEmpty())
+        endCurrentLine();
+    return lines;
+}
+
+int getConsoleWidth(std::ostream& s)
+{
+    int width=INT_MAX; // fallback is to not wrap any output
+#ifdef Q_OS_UNIX
+    struct winsize w;
+    if(ioctl(&s==&std::cout ? STDOUT_FILENO : STDERR_FILENO, TIOCGWINSZ, &w)<0)
+        return width;
+    width=w.ws_col;
+#endif
+    return width;
+}
+
 void showHelp(std::ostream& s, QList<QCommandLineOption> const& options, QString const& positionalArgSyntax)
 {
     s << "Usage: " << qApp->arguments()[0] << " [options] " << positionalArgSyntax << "\n";
@@ -433,8 +521,26 @@ void showHelp(std::ostream& s, QList<QCommandLineOption> const& options, QString
         allOptionsFormatted.emplace_back(std::make_pair(namesFormatted, option.description()));
     }
 
-    for(const auto& option : allOptionsFormatted)
-        s << std::setw(maxNameLen+2) << std::left << option.first << option.second << "\n";
+    const auto consoleWidth=getConsoleWidth(s);
+    for(const auto& [name, explanation] : allOptionsFormatted)
+    {
+        const auto namesColumnWidth=maxNameLen+2;
+        if(consoleWidth <= namesColumnWidth*3/2) // Attempts to wrap are useless in this case
+        {
+            s << name.mid(1) << "\n    " << explanation << '\n';
+            continue;
+        }
+        s << std::setw(namesColumnWidth) << std::left << name;
+        // We'll indent wrapped lines to make it easy to spot where the next option begins
+        s << explanation.left(1);
+        const auto wrappedExplanation=wordWrap(explanation.mid(1), consoleWidth-namesColumnWidth-1);
+        for(const auto& line : wrappedExplanation)
+        {
+            s << line;
+            if(&line != &wrappedExplanation.back())
+                s << std::string(namesColumnWidth+1, ' ');
+        }
+    }
 }
 
 void handleCmdLine()
