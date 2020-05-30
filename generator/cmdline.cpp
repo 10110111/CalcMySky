@@ -10,6 +10,8 @@
 #   include <sys/ioctl.h>
 #   include <unistd.h>
 #   include <stdio.h>
+#elif defined Q_OS_WIN
+#   include <windows.h>
 #endif
 
 #include "data.hpp"
@@ -490,6 +492,10 @@ int getConsoleWidth(std::ostream& s)
     if(ioctl(&s==&std::cout ? STDOUT_FILENO : STDERR_FILENO, TIOCGWINSZ, &w)<0)
         return width;
     width=w.ws_col;
+#elif defined Q_OS_WIN
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(&s==&std::cout ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE), &csbi);
+    width=csbi.dwSize.X;
 #endif
     return width;
 }
