@@ -161,7 +161,7 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
             .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 // \\1")
             .replace(QRegExp("#include \"(phase-functions|single-scattering)\\.h\\.glsl\""), "");
     const auto program=compileShaderProgram(renderShaderFileName,
-                                            "single scattering rendering shader program",
+                                            "zero-order scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
     for(const auto& src : sourcesToSave)
     {
@@ -193,7 +193,7 @@ void saveMultipleScatteringRenderingShader()
             .replace(QRegExp("\\b(RENDERING_MULTIPLE_SCATTERING)\\b"), "1 // \\1")
             .replace(QRegExp("#include \"(phase-functions|common-functions|texture-sampling-functions|single-scattering|radiance-to-luminance)\\.h\\.glsl\""), "");
     const auto program=compileShaderProgram(renderShaderFileName,
-                                            "single scattering rendering shader program",
+                                            "multiple scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
     for(const auto& src : sourcesToSave)
     {
