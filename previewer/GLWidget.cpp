@@ -31,6 +31,7 @@ void GLWidget::initializeGL()
     }
 
     renderer.reset(new AtmosphereRenderer(*this,pathToData,params,tools));
+    tools->updateParameters(params);
     const auto update=qOverload<>(&GLWidget::update);
     connect(renderer.get(), &AtmosphereRenderer::needRedraw, this, update);
     connect(tools, &ToolsWidget::settingChanged, this, update);

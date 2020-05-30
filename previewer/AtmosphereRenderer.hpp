@@ -10,12 +10,15 @@
 #include <QOpenGLTexture>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLFunctions_3_3_Core>
+#include "../common/types.hpp"
 
 class ToolsWidget;
 class AtmosphereRenderer : public QObject
 {
     Q_OBJECT
 
+    using ShaderProgPtr=std::unique_ptr<QOpenGLShaderProgram>;
+    using TexturePtr=std::unique_ptr<QOpenGLTexture>;
     QOpenGLFunctions_3_3_Core& gl;
 public:
     enum class DitheringMode
@@ -37,6 +40,7 @@ public:
     {
         unsigned wavelengthSetCount=0;
         float atmosphereHeight=NAN;
+        std::map<QString/*scatterer name*/,PhaseFunctionType> scatterers;
     };
 
     AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, Parameters const& params, ToolsWidget* tools);
@@ -48,40 +52,28 @@ public:
     void setDragMode(DragMode mode, int x=0, int y=0) { dragMode=mode; prevMouseX=x; prevMouseY=y; }
     void mouseMove(int x, int y);
     void resizeEvent(int width, int height);
-    void setScattererEnabled(int scattererIndex, bool enable);
+    void setScattererEnabled(QString const& name, bool enable);
     void reloadShaders(QString const& pathToData);
-    QVector<QString> const& scattererNames() const { return scattererNames_; }
 
 private:
-    enum SingleScatteringRenderMode
-    {
-        SSRM_ON_THE_FLY,
-        SSRM_PRECOMPUTED,
-
-        SSRM_COUNT
-    };
-    static constexpr const char* singleScatteringRenderModeNames[SSRM_COUNT]={"on-the-fly", "precomputed"};
-
     ToolsWidget* tools;
-    unsigned wavelengthSetCount;
+    Parameters const& params;
 
     GLuint vao=0, vbo=0, fbo=0;
-    std::vector<std::unique_ptr<QOpenGLTexture>> transmittanceTextures;
-    std::vector<std::unique_ptr<QOpenGLTexture>> irradianceTextures;
-    // Indexed as singleScatteringTextures[wavelengthSetIndex][scattererIndex]
-    std::vector<std::vector<std::unique_ptr<QOpenGLTexture>>> singleScatteringTextures;
+    std::vector<TexturePtr> transmittanceTextures;
+    std::vector<TexturePtr> irradianceTextures;
+    // Indexed as singleScatteringTextures[scattererName][wavelengthSetIndex]
+    std::map<QString/*scattererName*/,std::vector<TexturePtr>> singleScatteringTextures;
     QOpenGLTexture multipleScatteringTexture;
     QOpenGLTexture bayerPatternTexture;
     QOpenGLTexture texFBO;
 
-    std::vector<std::unique_ptr<QOpenGLShaderProgram>> zeroOrderScatteringPrograms;
-    // Indexed as singleScatteringPrograms[renderMode][wavelengthSetIndex][scattererIndex]
-    std::vector<std::vector<std::vector<std::unique_ptr<QOpenGLShaderProgram>>>> singleScatteringPrograms;
-    std::unique_ptr<QOpenGLShaderProgram> multipleScatteringProgram;
-    std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB;
-    // Indexed as scatterersEnabledStates[scattererIndex]
-    QVector<bool> scatterersEnabledStates;
-    QVector<QString> scattererNames_;
+    std::vector<ShaderProgPtr> zeroOrderScatteringPrograms;
+    // Indexed as singleScatteringPrograms[renderMode][scattererName][wavelengthSetIndex]
+    std::vector<std::unique_ptr<std::map<QString/*scattererName*/,std::vector<ShaderProgPtr>>>> singleScatteringPrograms;
+    ShaderProgPtr multipleScatteringProgram;
+    ShaderProgPtr luminanceToScreenRGB;
+    std::map<QString/*scattererName*/,bool> scatterersEnabledStates;
 
     DragMode dragMode=DragMode::None;
     int prevMouseX, prevMouseY;

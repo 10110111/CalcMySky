@@ -50,6 +50,18 @@ public:
     QString what() const override { return message; }
 };
 
+class ParsingError : public Error
+{
+    QString message;
+    QString filename;
+    int lineNumber;
+public:
+    ParsingError(QString const& message, QString const& filename, int lineNumber)
+        : message(message), filename(filename), lineNumber(lineNumber) {}
+    QString errorType() const override { return QObject::tr("Parsing error"); }
+    QString what() const override { return QString("%1:%2: %3)").arg(filename).arg(lineNumber).arg(message); }
+};
+
 inline std::ostream& operator<<(std::ostream& os, QString const& s)
 {
     os << s.toStdString();

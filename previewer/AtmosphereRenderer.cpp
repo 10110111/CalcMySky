@@ -158,7 +158,7 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
 
     gl.glActiveTexture(GL_TEXTURE0);
 
-    for(unsigned wlSetIndex=0; wlSetIndex<wavelengthSetCount; ++wlSetIndex)
+    for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
         auto& tex=*transmittanceTextures.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D));
         tex.setMinificationFilter(QOpenGLTexture::Linear);
@@ -167,7 +167,7 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
         loadTexture2D(QString("%1/transmittance-wlset%2.f32").arg(pathToData).arg(wlSetIndex));
     }
 
-    for(unsigned wlSetIndex=0; wlSetIndex<wavelengthSetCount; ++wlSetIndex)
+    for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
         auto& tex=*irradianceTextures.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D));
         tex.setMinificationFilter(QOpenGLTexture::Linear);
@@ -181,18 +181,34 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
     multipleScatteringTexture.bind();
     loadTexture4D(pathToData+"/multiple-scattering-xyzw.f32");
 
-    singleScatteringTextures.resize(wavelengthSetCount);
-    for(unsigned wlSetIndex=0; wlSetIndex<wavelengthSetCount; ++wlSetIndex)
+    singleScatteringTextures.clear();
+    for(const auto& scatterer : params.scatterers)
     {
-        auto& texturesPerScatterer=singleScatteringTextures[wlSetIndex];
-        for(const auto& scatterer : scattererNames_)
+        const auto& scattererName=scatterer.first;
+        auto& texturesPerWLSet=singleScatteringTextures[scattererName];
+        switch(scatterer.second)
         {
-            texturesPerScatterer.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target3D));
-            auto& texture=*texturesPerScatterer.back();
+        case PhaseFunctionType::General:
+            for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+            {
+                auto& texture=*texturesPerWLSet.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target3D));
+                texture.setMinificationFilter(QOpenGLTexture::Linear);
+                texture.setWrapMode(QOpenGLTexture::ClampToEdge);
+                texture.bind();
+                loadTexture4D(QString("%1/single-scattering/%2/%3.f32").arg(pathToData).arg(wlSetIndex).arg(scattererName));
+            }
+            break;
+        case PhaseFunctionType::Achromatic:
+        {
+            auto& texture=*texturesPerWLSet.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target3D));
             texture.setMinificationFilter(QOpenGLTexture::Linear);
             texture.setWrapMode(QOpenGLTexture::ClampToEdge);
             texture.bind();
-            loadTexture4D(QString("%1/single-scattering/%2/%3.f32").arg(pathToData).arg(wlSetIndex).arg(scatterer));
+            loadTexture4D(QString("%1/single-scattering/%2-xyzw.f32").arg(pathToData).arg(scattererName));
+            break;
+        }
+        case PhaseFunctionType::Smooth:
+            break;
         }
     }
 
@@ -214,41 +230,49 @@ void main()
 }
 )";
 
-    scattererNames_.clear();
     singleScatteringPrograms.clear();
-    singleScatteringPrograms.resize(SSRM_COUNT);
     for(int renderMode=0; renderMode<SSRM_COUNT; ++renderMode)
     {
-        singleScatteringPrograms[renderMode].resize(wavelengthSetCount);
-        auto& programsPerWLSet=singleScatteringPrograms[renderMode];
+        auto& programsPerScatterer=*singleScatteringPrograms.emplace_back(std::make_unique<std::map<QString,std::vector<ShaderProgPtr>>>());
 
-        const bool addScattererNames=scattererNames_.empty();
-        for(unsigned wlSetIndex=0; wlSetIndex<wavelengthSetCount; ++wlSetIndex)
+        for(const auto& [scattererName,phaseFuncType] : params.scatterers)
         {
-            auto& programsPerScatterer=programsPerWLSet[wlSetIndex];
-            const auto wlDir=QString("%1/shaders/single-scattering/%2/%3").arg(pathToData)
-                                                                          .arg(singleScatteringRenderModeNames[renderMode])
-                                                                          .arg(wlSetIndex);
-            for(const auto& scatDir : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+            auto& programs=programsPerScatterer[scattererName];
+            if(phaseFuncType==PhaseFunctionType::General || (phaseFuncType!=PhaseFunctionType::Smooth && renderMode==SSRM_ON_THE_FLY))
             {
-                auto& program=*programsPerScatterer.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+                for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+                {
+                    const auto scatDir=QString("%1/shaders/single-scattering/%2/%3/%4").arg(pathToData)
+                                                                                       .arg(singleScatteringRenderModeNames[renderMode])
+                                                                                       .arg(wlSetIndex)
+                                                                                       .arg(scattererName);
+                    auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
-                for(const auto& shaderFile : fs::directory_iterator(scatDir))
+                    for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+                        addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+
+                    addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
+                                  commonVertexShaderSrc);
+
+                    link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+                }
+            }
+            else if(phaseFuncType==PhaseFunctionType::Achromatic)
+            {
+                const auto scatDir=QString("%1/shaders/single-scattering/%2/%3").arg(pathToData)
+                                                                                .arg(singleScatteringRenderModeNames[renderMode])
+                                                                                .arg(scattererName);
+                auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+                for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                     addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-                const QString scattererName=scatDir.path().filename().u8string().c_str();
                 addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
                               commonVertexShaderSrc);
 
                 link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
-
-                if(addScattererNames && wlSetIndex==0)
-                    scattererNames_.push_back(scattererName);
             }
         }
     }
-    scatterersEnabledStates=QVector(scattererNames_.size(), true);
-    tools->updateScattererSet(scattererNames_);
 
     luminanceToScreenRGB=std::make_unique<QOpenGLShaderProgram>();
     addShaderCode(*luminanceToScreenRGB, QOpenGLShader::Fragment, tr("luminanceToScreenRGB fragment shader"), 1+R"(
@@ -304,7 +328,7 @@ void main()
         link(program, tr("multiple scattering shader program"));
     }
 
-    for(unsigned wlSetIndex=0; wlSetIndex<wavelengthSetCount; ++wlSetIndex)
+    for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
         auto& program=*zeroOrderScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
         const auto wlDir=QString("%1/shaders/zero-order-scattering/%2").arg(pathToData).arg(wlSetIndex);
@@ -338,7 +362,7 @@ void AtmosphereRenderer::setupBuffers()
 
 void AtmosphereRenderer::renderZeroOrderScattering()
 {
-    for(unsigned wlSetIndex=0; wlSetIndex<wavelengthSetCount; ++wlSetIndex)
+    for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
         const auto& prog=zeroOrderScatteringPrograms[wlSetIndex];
         prog->bind();
@@ -359,24 +383,59 @@ void AtmosphereRenderer::renderZeroOrderScattering()
 void AtmosphereRenderer::renderSingleScattering()
 {
     const auto renderMode = tools->onTheFlySingleScatteringEnabled() ? SSRM_ON_THE_FLY : SSRM_PRECOMPUTED;
-    for(unsigned wlSetIndex=0; wlSetIndex<wavelengthSetCount; ++wlSetIndex)
+    for(const auto& [scattererName,phaseFuncType] : params.scatterers)
     {
-        for(int scattererIndex=0; scattererIndex<scatterersEnabledStates.size(); ++scattererIndex)
+        if(!scatterersEnabledStates.at(scattererName))
+            continue;
+
+        if(renderMode==SSRM_ON_THE_FLY)
         {
-            if(!scatterersEnabledStates[scattererIndex])
+            if(phaseFuncType==PhaseFunctionType::Smooth)
                 continue;
 
-            const auto& prog=singleScatteringPrograms[renderMode][wlSetIndex][scattererIndex];
+            for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+            {
+                const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
+                prog->bind();
+                prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+                prog->setUniformValue("sunDirection", QVector3D(
+                            std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                            std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                            std::cos(tools->sunZenithAngle())));
+                transmittanceTextures[wlSetIndex]->bind(0);
+                prog->setUniformValue("transmittanceTexture", 0);
+
+                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+        else if(phaseFuncType==PhaseFunctionType::General)
+        {
+            for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+            {
+                const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
+                prog->bind();
+                prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+                prog->setUniformValue("sunDirection", QVector3D(
+                            std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                            std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                            std::cos(tools->sunZenithAngle())));
+                singleScatteringTextures.at(scattererName)[wlSetIndex]->bind(0);
+                prog->setUniformValue("scatteringTexture", 0);
+
+                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+        else if(phaseFuncType==PhaseFunctionType::Achromatic)
+        {
+            const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName).front();
             prog->bind();
             prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
             prog->setUniformValue("sunDirection", QVector3D(
                         std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                         std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
                         std::cos(tools->sunZenithAngle())));
-            transmittanceTextures[wlSetIndex]->bind(0);
-            prog->setUniformValue("transmittanceTexture", 0);
-            singleScatteringTextures[wlSetIndex][scattererIndex]->bind(1);
-            prog->setUniformValue("scatteringTexture", 1);
+            singleScatteringTextures.at(scattererName).front()->bind(0);
+            prog->setUniformValue("scatteringTexture", 0);
 
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
@@ -452,11 +511,13 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
                                        Parameters const& params, ToolsWidget* tools)
     : gl(gl)
     , tools(tools)
-    , wavelengthSetCount(params.wavelengthSetCount)
+    , params(params)
     , multipleScatteringTexture(QOpenGLTexture::Target3D)
     , bayerPatternTexture(QOpenGLTexture::Target2D)
     , texFBO(QOpenGLTexture::Target2D)
 {
+    for(const auto& [scattererName,_] : params.scatterers)
+        scatterersEnabledStates[scattererName]=true;
     loadShaders(pathToData);
     loadTextures(pathToData);
     setupRenderTarget();
@@ -500,9 +561,9 @@ void AtmosphereRenderer::mouseMove(const int x, const int y)
     prevMouseY=y;
 }
 
-void AtmosphereRenderer::setScattererEnabled(const int scattererIndex, const bool enable)
+void AtmosphereRenderer::setScattererEnabled(QString const& name, const bool enable)
 {
-    scatterersEnabledStates[scattererIndex]=enable;
+    scatterersEnabledStates[name]=enable;
     emit needRedraw();
 }
 

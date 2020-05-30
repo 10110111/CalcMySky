@@ -141,14 +141,14 @@ void setupTexture(TextureId id, const GLsizei width, const GLsizei height)
         throw MustQuit{};
     }
 }
-void setupTexture(TextureId id, const GLsizei width, const GLsizei height, const GLsizei depth)
+void setupTexture(const GLuint texture, const GLsizei width, const GLsizei height, const GLsizei depth)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         std::cerr << "GL error on entry to setupTexture(" << width << "," << height << "," << depth << "): " << openglErrorString(err) << "\n";
         throw MustQuit{};
     }
-    gl.glBindTexture(GL_TEXTURE_3D,textures[id]);
+    gl.glBindTexture(GL_TEXTURE_3D,texture);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindTexture(GL_TEXTURE_3D,0);
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
@@ -157,6 +157,8 @@ void setupTexture(TextureId id, const GLsizei width, const GLsizei height, const
         throw MustQuit{};
     }
 }
+void setupTexture(TextureId id, const GLsizei width, const GLsizei height, const GLsizei depth)
+{ setupTexture(textures[id],width,height,depth); }
 
 // ------------------------------------ KHR_debug support ----------------------------------------
 std::string sourceToString(const GLenum source)

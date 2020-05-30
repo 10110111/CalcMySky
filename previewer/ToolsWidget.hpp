@@ -43,10 +43,10 @@ public:
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);
     void showFrameRate(long long frameTimeInUS);
-    void updateScattererSet(QVector<QString> const& names);
+    void updateParameters(AtmosphereRenderer::Parameters const& params);
 signals:
     void settingChanged();
-    void setScattererEnabled(int scattererIndex, bool enable);
+    void setScattererEnabled(QString const& name, bool enable);
     void reloadShadersClicked();
 };
 

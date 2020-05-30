@@ -30,12 +30,15 @@ inline QString toString(glm::mat4 const& m) { return QString("mat4(%1,%2,%3,%4, 
 void setupDebugPrintCallback(QOpenGLContext& context);
 void setupTexture(TextureId id, GLsizei width, GLsizei height);
 void setupTexture(TextureId id, GLsizei width, GLsizei height, GLsizei depth);
-inline void setUniformTexture(QOpenGLShaderProgram& program, GLenum target, TextureId id, GLint sampler, const char* uniformName)
+void setupTexture(GLuint tex, GLsizei width, GLsizei height, GLsizei depth);
+inline void setUniformTexture(QOpenGLShaderProgram& program, GLenum target, GLuint texture, GLint sampler, const char* uniformName)
 {
     gl.glActiveTexture(GL_TEXTURE0+sampler);
-    gl.glBindTexture(target, textures[id]);
+    gl.glBindTexture(target, texture);
     program.setUniformValue(uniformName,sampler);
 }
+inline void setUniformTexture(QOpenGLShaderProgram& program, GLenum target, TextureId id, GLint sampler, const char* uniformName)
+{ setUniformTexture(program, target, textures[id], sampler, uniformName); }
 
 inline void setDrawBuffers(std::vector<GLenum> const& bufs)
 {

@@ -111,20 +111,23 @@ void ToolsWidget::showFrameRate(const long long frameTimeInUS)
                                                     .arg(frameTimeInUS/1e6, 0, 'g', 3));
 }
 
-void ToolsWidget::updateScattererSet(QVector<QString> const& names)
+void ToolsWidget::updateParameters(AtmosphereRenderer::Parameters const& params)
 {
     for(QCheckBox*const checkbox : scatterers)
         delete checkbox;
     scatterers.clear();
 
-    for(int scattererIndex=0; scattererIndex<names.size(); ++scattererIndex)
+    for(const auto& [scattererName,phaseFunctionType] : params.scatterers)
     {
-        const auto checkbox=new QCheckBox(names[scattererIndex]);
+        if(phaseFunctionType==PhaseFunctionType::Smooth)
+            continue;
+
+        const auto checkbox=new QCheckBox(scattererName);
         checkbox->setChecked(true);
         scattererCheckboxes_->addWidget(checkbox);
         connect(checkbox, &QCheckBox::stateChanged, this,
-                [this,scattererIndex,checkbox](const int state)
-                { emit setScattererEnabled(scattererIndex, state==Qt::Checked); });
+                [this,checkbox,scattererName](const int state)
+                { emit setScattererEnabled(scattererName, state==Qt::Checked); });
         scatterers.push_back(checkbox);
     }
 }

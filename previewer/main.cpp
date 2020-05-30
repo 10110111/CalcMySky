@@ -25,7 +25,8 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
                                         .arg(filename).arg(file.errorString())};
 
     AtmosphereRenderer::Parameters params;
-    for(auto line=file.readLine(); !line.isEmpty() && !file.error(); line=file.readLine())
+    int lineNumber=1;
+    for(auto line=file.readLine(); !line.isEmpty() && !file.error(); line=file.readLine(), ++lineNumber)
     {
         if(line=="\n") continue;
         const auto keyval=line.split(':');
@@ -33,7 +34,7 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
             throw DataLoadError{QObject::tr("Bad entry in \"%1\": must be a key:value pair")
                                             .arg(filename)};
 
-        const auto &key=keyval[0], &value=keyval[1].trimmed();
+        const QString &key=keyval[0], &value=keyval[1].trimmed();
         if(key=="wavelengths")
         {
             const auto wlStr=value.split(',');
@@ -55,10 +56,32 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
             if(params.atmosphereHeight<=0)
                 throw DataLoadError{QObject::tr("Atmosphere height must be positive")};
         }
+        else if(key=="scatterers")
+        {
+            if(!value.startsWith("{ ") || !value.endsWith("; }"))
+            {
+                throw DataLoadError{QObject::tr("Failed to parse parameters of scatterers in \"%1\": expected "
+                                                "value with format \"{ information; }\", got\n%2")
+                                                    .arg(filename).arg(value)};
+            }
+            const auto list=value.mid(2, value.size()-5).split(";");
+            const QRegularExpression expr("^ *\"([^\"]+)\" *{ *phase function ([a-z]+) *} *$");
+            for(const auto& scattererParams : list)
+            {
+                const auto match=expr.match(scattererParams);
+                if(!match.hasMatch())
+                {
+                    throw DataLoadError{QObject::tr("Failed to parse parameters of scatterers in \"%1\": "
+                                                    "\"%2\" doesn't match expected pattern \"{ phase function TYPE }\"")
+                                                    .arg(filename).arg(scattererParams)};
+                }
+                params.scatterers.emplace(match.captured(1), parsePhaseFunctionType(match.captured(2), filename, lineNumber));
+            }
+        }
         else
         {
             throw DataLoadError{QObject::tr("Unknown key \"%1\" in \"%2\"")
-                                            .arg(key.data()).arg(filename)};
+                                            .arg(key).arg(filename)};
         }
     }
 

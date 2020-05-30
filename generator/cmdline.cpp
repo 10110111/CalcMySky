@@ -346,6 +346,8 @@ ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QS
             description.numberDensity=readGLSLFunctionBody(stream,filename,++lineNumber);
         else if(key=="phase function")
             description.phaseFunction=readGLSLFunctionBody(stream,filename,++lineNumber);
+        else if(key=="phase function type")
+            description.phaseFunctionType=parsePhaseFunctionType(value,filename,lineNumber);
     }
     if(!description.valid())
     {

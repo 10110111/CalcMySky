@@ -9,6 +9,7 @@
 #include <QOpenGLShader>
 #include <glm/glm.hpp>
 #include "const.hpp"
+#include "../common/types.hpp"
 
 class OutputIndentIncrease
 {
@@ -45,6 +46,7 @@ enum FBOId
     FBO_TRANSMITTANCE,
     FBO_IRRADIANCE,
     FBO_DELTA_SCATTERING,
+    FBO_SINGLE_SCATTERING,
     FBO_MULTIPLE_SCATTERING,
 
     FBO_COUNT
@@ -62,6 +64,8 @@ enum TextureId
     TEX_COUNT
 };
 inline GLuint textures[TEX_COUNT];
+// Accumulation of radiance to yield luminance
+inline std::map<QString/*scatterer name*/, GLuint> accumulatedSingleScatteringTextures;
 
 inline std::string textureOutputDir=".";
 inline GLint transmittanceTexW, transmittanceTexH;
@@ -92,6 +96,7 @@ struct ScattererDescription
     GLfloat angstromExponent = NaN;
     QString numberDensity;
     QString phaseFunction;
+    PhaseFunctionType phaseFunctionType=PhaseFunctionType::General;
     QString name;
 
     ScattererDescription(QString const& name) : name(name) {}

@@ -93,11 +93,15 @@ void main()
                                                   cameraPosition.z,viewRayIntersectsGround);
     const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     luminance=radianceToLuminance*radiance;
-#elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED
+#elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE
     const vec4 scattering = sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z,
                                             dotViewSun, altitude, viewRayIntersectsGround);
     const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     luminance=radianceToLuminance*radiance;
+#elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE
+    const vec4 scattering = sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z,
+                                            dotViewSun, altitude, viewRayIntersectsGround);
+    luminance=scattering*currentPhaseFunction(dotViewSun);
 #elif RENDERING_MULTIPLE_SCATTERING
     luminance=sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z, dotViewSun, altitude, viewRayIntersectsGround);
 #else
