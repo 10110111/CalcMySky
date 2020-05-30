@@ -43,19 +43,6 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
     sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, 45, 2, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 2, QChar(0x00b0));
-    zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw &zero-order scattering layer"), true);
-    singleScatteringEnabled_    = addCheckBox(layout, this, tr("Draw &single scattering layers"), true);
-    {
-        const auto frame=new QFrame;
-        frame->setLayout(scattererCheckboxes_);
-        auto margins=frame->contentsMargins();
-        margins.setLeft(singleScatteringEnabled_->style()->pixelMetric(QStyle::PM_IndicatorWidth));
-        frame->setContentsMargins(margins);
-        layout->addWidget(frame);
-        connect(singleScatteringEnabled_, &QCheckBox::stateChanged, frame, [frame](const int state)
-                { frame->setEnabled(state==Qt::Checked); });
-    }
-    multipleScatteringEnabled_  = addCheckBox(layout, this, tr("Draw &multiple scattering layer"), true);
     {
         ditheringMode_->addItem(tr("Disabled"));
         ditheringMode_->addItem(tr("5/6/5-bit"));
@@ -72,6 +59,19 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
         ditheringMode_->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
         layout->addLayout(hbox);
     }
+    zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw &zero-order scattering layer"), true);
+    singleScatteringEnabled_    = addCheckBox(layout, this, tr("Draw &single scattering layers"), true);
+    {
+        const auto frame=new QFrame;
+        frame->setLayout(scattererCheckboxes_);
+        auto margins=frame->contentsMargins();
+        margins.setLeft(singleScatteringEnabled_->style()->pixelMetric(QStyle::PM_IndicatorWidth));
+        frame->setContentsMargins(margins);
+        layout->addWidget(frame);
+        connect(singleScatteringEnabled_, &QCheckBox::stateChanged, frame, [frame](const int state)
+                { frame->setEnabled(state==Qt::Checked); });
+    }
+    multipleScatteringEnabled_  = addCheckBox(layout, this, tr("Draw &multiple scattering layer"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
     {
         const auto button=new QPushButton(tr("&Reload shaders"));
