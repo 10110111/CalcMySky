@@ -283,9 +283,7 @@ void accumulateSingleScattering(const unsigned texIndex, ScattererDescription co
                                             UseGeomShader{});
     program->bind();
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
-    // radianceToLuminance wouldn't need to be transposed, if QMatrix4x4 was column-major as glm::mat4.
-    // But alas, it's not, so we do need to transpose.
-    program->setUniformValue("radianceToLuminance", QMatrix4x4(&radianceToLuminance(texIndex)[0][0]).transposed());
+    program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex)));
     render3DTexLayers(*program, "Blending single scattering layers into accumulator texture");
 
     gl.glDisable(GL_BLEND);
@@ -547,11 +545,7 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
                                             UseGeomShader{});
     program->bind();
     if(!saveResultAsRadiance)
-    {
-        // radianceToLuminance wouldn't need to be transposed, if QMatrix4x4 was column-major as glm::mat4.
-        // But alas, it's not, so we do need to transpose.
-        program->setUniformValue("radianceToLuminance", QMatrix4x4(&radianceToLuminance(texIndex)[0][0]).transposed());
-    }
+        program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex)));
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
     render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
     gl.glDisable(GL_BLEND);
