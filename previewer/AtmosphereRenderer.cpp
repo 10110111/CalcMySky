@@ -233,6 +233,19 @@ void main()
     gl_Position=vec4(position,1);
 }
 )";
+    const std::vector<std::pair<QString,QString>> codeReplacements
+    {
+        std::make_pair(QString("vec3 calcViewDir() { return vec3(0); } // Replace this stub when loading this shader"),
+                       QString(1+R"(
+uniform float zoomFactor;
+vec3 calcViewDir()
+{
+    const vec2 pos=position.xy/zoomFactor;
+    return vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
+                sin(pos.x*PI)*cos(pos.y*(PI/2)),
+                sin(pos.y*(PI/2)));
+})"))
+    };
 
     singleScatteringPrograms.clear();
     for(int renderMode=0; renderMode<SSRM_COUNT; ++renderMode)
@@ -253,7 +266,7 @@ void main()
                     auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                     for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
-                        addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+                        addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path(),codeReplacements);
 
                     addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
                                   commonVertexShaderSrc);
@@ -268,7 +281,7 @@ void main()
                                                                                 .arg(scattererName);
                 auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
                 for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
-                    addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+                    addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path(),codeReplacements);
 
                 addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
                               commonVertexShaderSrc);
@@ -327,7 +340,7 @@ void main()
         auto& program=*multipleScatteringProgram;
         const auto wlDir=pathToData+"/shaders/multiple-scattering/";
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
-            addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+            addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path(),codeReplacements);
         addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for multiple scattering"), commonVertexShaderSrc);
         link(program, tr("multiple scattering shader program"));
     }
@@ -337,7 +350,7 @@ void main()
         auto& program=*zeroOrderScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
         const auto wlDir=QString("%1/shaders/zero-order-scattering/%2").arg(pathToData).arg(wlSetIndex);
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
-            addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+            addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path(),codeReplacements);
         addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for zero-order scattering"), commonVertexShaderSrc);
         link(program, tr("zero-order scattering shader program"));
     }

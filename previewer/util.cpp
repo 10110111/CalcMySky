@@ -14,8 +14,11 @@ QByteArray readFullFile(QString const& filename)
 }
 
 void addShaderCode(QOpenGLShaderProgram& program, const QOpenGLShader::ShaderType type,
-                   QString const& description, QByteArray const& sourceCode)
+                   QString const& description, QByteArray sourceCode,
+                   std::vector<std::pair<QString,QString>> const& codeReplacements)
 {
+    for(const auto& [before,after] : codeReplacements)
+        sourceCode.replace(before.toUtf8(), after.toUtf8());
     if(!program.addShaderFromSourceCode(type, sourceCode))
         throw DataLoadError{QObject::tr("Failed to compile %1:\n%2").arg(description).arg(program.log())};
 }

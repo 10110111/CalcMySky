@@ -12,7 +12,6 @@
 uniform sampler3D scatteringTexture;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
-uniform float zoomFactor;
 in vec3 position;
 out vec4 luminance;
 
@@ -28,13 +27,11 @@ vec4 solarRadiance()
     return solarIrradianceAtTOA/(PI*sqr(sunAngularRadius));
 }
 
+vec3 calcViewDir() { return vec3(0); } // Replace this stub when loading this shader
+
 void main()
 {
-    const vec2 pos=position.xy/zoomFactor;
-    vec3 viewDir=vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
-                      sin(pos.x*PI)*cos(pos.y*(PI/2)),
-                      sin(pos.y*(PI/2)));
-
+    vec3 viewDir=calcViewDir();
 
     // NOTE: we simply clamp negative altitudes to zero (otherwise the model will break down). This is not
     // quite correct physically: there are places with negative elevation above sea level. But the error of
