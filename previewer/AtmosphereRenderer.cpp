@@ -345,6 +345,7 @@ void main()
         link(program, tr("multiple scattering shader program"));
     }
 
+    zeroOrderScatteringPrograms.clear();
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
         auto& program=*zeroOrderScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
