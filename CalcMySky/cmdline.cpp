@@ -684,10 +684,12 @@ void handleCmdLine()
         else if(key=="earth-sun distance")
         {
             earthSunDistance=getQuantity(value,0.5*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
-            // Here we don't take into account the fact that camera is not in the center of the Earth. It's not too
-            // important until we simulate eclipsed atmosphere, when we'll have to recompute Sun angular radius for
-            // each camera position.
             sunAngularRadius=sunRadius/earthSunDistance;
+        }
+        else if(key=="earth-moon distance")
+        {
+            earthMoonDistance=getQuantity(value,1e-4*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
+            // moonAngularRadius is computed from earthMoonDistance and other parameters on the fly
         }
         else if(key=="wavelengths")
             allWavelengths=getWavelengthRange(value,100,100'000,atmoDescrFileName,lineNumber);

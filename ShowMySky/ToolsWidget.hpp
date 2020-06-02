@@ -21,27 +21,33 @@ class ToolsWidget : public QDockWidget
     Manipulator* exposure_=nullptr;
     Manipulator* sunElevation_=nullptr;
     Manipulator* sunAzimuth_=nullptr;
+    Manipulator* moonElevation_=nullptr;
+    Manipulator* moonAzimuth_=nullptr;
     Manipulator* zoomFactor_=nullptr;
     QCheckBox* onTheFlySingleScatteringEnabled_=nullptr;
     QCheckBox* zeroOrderScatteringEnabled_=nullptr;
     QCheckBox* singleScatteringEnabled_=nullptr;
     QCheckBox* multipleScatteringEnabled_=nullptr;
     QCheckBox* textureFilteringEnabled_=nullptr;
+    QCheckBox* usingEclipseShader_=nullptr;
     QLabel*const frameRate=new QLabel("N/A");
     QVector<QCheckBox*> scatterers;
 public:
     ToolsWidget(double maxAltitude, QWidget* parent=nullptr);
 
     AtmosphereRenderer::DitheringMode ditheringMode() const { return static_cast<AtmosphereRenderer::DitheringMode>(ditheringMode_->currentIndex()); }
-    float altitude()       const { return altitude_->value(); }
-    float sunAzimuth()     const { return degree*sunAzimuth_->value(); }
-    float sunZenithAngle() const { return degree*(90-sunElevation_->value()); }
+    double altitude()       const { return altitude_->value(); }
+    double sunAzimuth()     const { return degree*sunAzimuth_->value(); }
+    double sunZenithAngle() const { return degree*(90-sunElevation_->value()); }
+    double moonAzimuth()     const { return degree*moonAzimuth_->value(); }
+    double moonZenithAngle() const { return degree*(90-moonElevation_->value()); }
     float zoomFactor() const { return zoomFactor_->value(); }
     bool onTheFlySingleScatteringEnabled() const { return onTheFlySingleScatteringEnabled_->isChecked(); }
     bool zeroOrderScatteringEnabled() const { return zeroOrderScatteringEnabled_->isChecked(); }
     bool singleScatteringEnabled() const { return singleScatteringEnabled_->isChecked(); }
     bool multipleScatteringEnabled() const { return multipleScatteringEnabled_->isChecked(); }
     bool textureFilteringEnabled() const { return textureFilteringEnabled_->isChecked(); }
+    bool usingEclipseShader() const { return usingEclipseShader_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }
 
     void setSunAzimuth(double azimuth);

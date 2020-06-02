@@ -41,6 +41,8 @@ public:
     {
         unsigned wavelengthSetCount=0;
         float atmosphereHeight=NAN;
+        float earthRadius=NAN;
+        float earthMoonDistance=NAN;
         std::map<QString/*scatterer name*/,PhaseFunctionType> scatterers;
     };
 
@@ -72,6 +74,7 @@ private:
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms;
     // Indexed as singleScatteringPrograms[renderMode][scattererName][wavelengthSetIndex]
     std::vector<std::unique_ptr<std::map<ScattererName,std::vector<ShaderProgPtr>>>> singleScatteringPrograms;
+    std::vector<std::unique_ptr<std::map<ScattererName,std::vector<ShaderProgPtr>>>> eclipsedSingleScatteringPrograms;
     ShaderProgPtr multipleScatteringProgram;
     ShaderProgPtr luminanceToScreenRGB;
     std::map<ScattererName,bool> scatterersEnabledStates;
@@ -85,7 +88,11 @@ private:
     void loadShaders(QString const& pathToData);
     void setupBuffers();
 
-    QVector3D sunDirection() const;
+    double moonAngularRadius() const;
+    double cameraMoonDistance() const;
+    glm::dvec3 sunDirection() const;
+    glm::dvec3 moonPosition() const;
+    glm::dvec3 cameraPosition() const;
     QVector3D rgbMaxValue() const;
     void makeBayerPatternTexture();
     glm::ivec2 loadTexture2D(QString const& path);

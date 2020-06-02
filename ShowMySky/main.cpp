@@ -56,6 +56,26 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
             if(params.atmosphereHeight<=0)
                 throw DataLoadError{QObject::tr("Atmosphere height must be positive")};
         }
+        else if(key=="Earth radius")
+        {
+            bool ok=false;
+            params.earthRadius=value.toFloat(&ok);
+            if(!ok) throw DataLoadError{QObject::tr("Failed to parse Earth radius in \"%1\"")
+                                                    .arg(filename)};
+
+            if(params.earthRadius<=0)
+                throw DataLoadError{QObject::tr("Earth radius must be positive")};
+        }
+        else if(key=="Earth-Moon distance")
+        {
+            bool ok=false;
+            params.earthMoonDistance=value.toFloat(&ok);
+            if(!ok) throw DataLoadError{QObject::tr("Failed to parse Earth-Moon distance in \"%1\"")
+                                                    .arg(filename)};
+
+            if(params.earthMoonDistance<=0)
+                throw DataLoadError{QObject::tr("Earth-Moon distance must be positive")};
+        }
         else if(key=="scatterers")
         {
             if(!value.startsWith("{ ") || !value.endsWith("; }"))
@@ -94,6 +114,10 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
         throw DataLoadError{QObject::tr("Failed to find wavelengths in \"%1\"").arg(filename)};
     if(std::isnan(params.atmosphereHeight))
         throw DataLoadError{QObject::tr("Failed to find atmosphere height in \"%1\"").arg(filename)};
+    if(std::isnan(params.earthRadius))
+        throw DataLoadError{QObject::tr("Failed to find Earth radius in \"%1\"").arg(filename)};
+    if(std::isnan(params.earthMoonDistance))
+        throw DataLoadError{QObject::tr("Failed to find Earth-Moon distance in \"%1\"").arg(filename)};
 
     return params;
 }

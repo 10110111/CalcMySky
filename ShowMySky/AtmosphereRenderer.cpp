@@ -1,6 +1,7 @@
 #include "AtmosphereRenderer.hpp"
 
 #include <set>
+#include <cmath>
 #include <array>
 #include <vector>
 #include <cstring>
@@ -12,6 +13,7 @@
 #include <QRegularExpression>
 
 #include "util.hpp"
+#include "../common/const.hpp"
 #include "../common/util.hpp"
 #include "ToolsWidget.hpp"
 
@@ -288,6 +290,37 @@ vec3 calcViewDir()
         }
     }
 
+    {
+        eclipsedSingleScatteringPrograms.clear();
+        for(int renderMode=SSRM_ON_THE_FLY; renderMode==SSRM_ON_THE_FLY; ++renderMode) // FIXME: WIP, change to the real loop when time comes
+        {
+            auto& programsPerScatterer=*eclipsedSingleScatteringPrograms.emplace_back(std::make_unique<std::map<QString,std::vector<ShaderProgPtr>>>());
+
+            for(const auto& [scattererName,phaseFuncType] : params.scatterers)
+            {
+                auto& programs=programsPerScatterer[scattererName];
+                for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+                {
+                    const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4").arg(pathToData)
+                                                                                                .arg(singleScatteringRenderModeNames[renderMode])
+                                                                                                .arg(wlSetIndex)
+                                                                                                .arg(scattererName);
+                    auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+
+                    for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+                        addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+
+                    addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
+
+                    addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
+                                  commonVertexShaderSrc);
+
+                    link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+                }
+            }
+        }
+    }
+
     luminanceToScreenRGB=std::make_unique<QOpenGLShaderProgram>();
     addShaderCode(*luminanceToScreenRGB, QOpenGLShader::Fragment, tr("luminanceToScreenRGB fragment shader"), 1+R"(
 #version 330
@@ -377,11 +410,37 @@ void AtmosphereRenderer::setupBuffers()
     gl.glBindVertexArray(0);
 }
 
-QVector3D AtmosphereRenderer::sunDirection() const
+glm::dvec3 AtmosphereRenderer::cameraPosition() const
 {
-    return QVector3D(std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                     std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                     std::cos(tools->sunZenithAngle()));
+    return glm::dvec3(0,0,tools->altitude());
+}
+
+glm::dvec3 AtmosphereRenderer::sunDirection() const
+{
+    return glm::dvec3(std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                      std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                      std::cos(tools->sunZenithAngle()));
+}
+
+glm::dvec3 AtmosphereRenderer::moonPosition() const
+{
+    const auto moonDir=glm::dvec3(std::cos(tools->moonAzimuth())*std::sin(tools->moonZenithAngle()),
+                                  std::sin(tools->moonAzimuth())*std::sin(tools->moonZenithAngle()),
+                                  std::cos(tools->moonZenithAngle()));
+    return cameraPosition()+moonDir*cameraMoonDistance();
+}
+
+double AtmosphereRenderer::cameraMoonDistance() const
+{
+    using namespace std;
+    const auto hpR=tools->altitude()+params.earthRadius;
+    const auto moonElevation=M_PI/2-tools->moonZenithAngle();
+    return -hpR*sin(moonElevation)+sqrt(sqr(params.earthMoonDistance)-0.5*sqr(hpR)*(1+cos(2*moonElevation)));
+}
+
+double AtmosphereRenderer::moonAngularRadius() const
+{
+    return moonRadius/cameraMoonDistance();
 }
 
 void AtmosphereRenderer::renderZeroOrderScattering()
@@ -390,9 +449,9 @@ void AtmosphereRenderer::renderZeroOrderScattering()
     {
         auto& prog=*zeroOrderScatteringPrograms[wlSetIndex];
         prog.bind();
-        prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+        prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
         prog.setUniformValue("zoomFactor", tools->zoomFactor());
-        prog.setUniformValue("sunDirection", sunDirection());
+        prog.setUniformValue("sunDirection", toQVector(sunDirection()));
         transmittanceTextures[wlSetIndex]->bind(0);
         prog.setUniformValue("transmittanceTexture", 0);
         irradianceTextures[wlSetIndex]->bind(1);
@@ -415,17 +474,37 @@ void AtmosphereRenderer::renderSingleScattering()
             if(phaseFuncType==PhaseFunctionType::Smooth)
                 continue;
 
-            for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+            if(tools->usingEclipseShader())
             {
-                auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
-                prog.bind();
-                prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
-                prog.setUniformValue("zoomFactor", tools->zoomFactor());
-                prog.setUniformValue("sunDirection", sunDirection());
-                transmittanceTextures[wlSetIndex]->bind(0);
-                prog.setUniformValue("transmittanceTexture", 0);
+                for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+                {
+                    auto& prog=*eclipsedSingleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
+                    prog.bind();
+                    prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                    prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
+                    prog.setUniformValue("moonPosition", toQVector(moonPosition()));
+                    prog.setUniformValue("zoomFactor", tools->zoomFactor());
+                    prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                    transmittanceTextures[wlSetIndex]->bind(0);
+                    prog.setUniformValue("transmittanceTexture", 0);
 
-                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                }
+            }
+            else
+            {
+                for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+                {
+                    auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
+                    prog.bind();
+                    prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                    prog.setUniformValue("zoomFactor", tools->zoomFactor());
+                    prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                    transmittanceTextures[wlSetIndex]->bind(0);
+                    prog.setUniformValue("transmittanceTexture", 0);
+
+                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                }
             }
         }
         else if(phaseFuncType==PhaseFunctionType::General)
@@ -434,9 +513,9 @@ void AtmosphereRenderer::renderSingleScattering()
             {
                 auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
                 prog.bind();
-                prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                 prog.setUniformValue("zoomFactor", tools->zoomFactor());
-                prog.setUniformValue("sunDirection", sunDirection());
+                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                 {
                     auto& tex=*singleScatteringTextures.at(scattererName)[wlSetIndex];
                     const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -453,9 +532,9 @@ void AtmosphereRenderer::renderSingleScattering()
         {
             auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName).front();
             prog.bind();
-            prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("zoomFactor", tools->zoomFactor());
-            prog.setUniformValue("sunDirection", sunDirection());
+            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             {
                 auto& tex=*singleScatteringTextures.at(scattererName).front();
                 const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -474,9 +553,9 @@ void AtmosphereRenderer::renderMultipleScattering()
 {
     auto& prog=*multipleScatteringProgram;
     prog.bind();
-    prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+    prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
     prog.setUniformValue("zoomFactor", tools->zoomFactor());
-    prog.setUniformValue("sunDirection", sunDirection());
+    prog.setUniformValue("sunDirection", toQVector(sunDirection()));
     {
         const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
         multipleScatteringTexture.setMinificationFilter(texFilter);

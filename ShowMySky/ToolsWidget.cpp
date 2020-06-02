@@ -28,6 +28,15 @@ QCheckBox* addCheckBox(QVBoxLayout*const layout, ToolsWidget*const tools,
     return checkbox;
 }
 
+void triggerStateChanged(QCheckBox* cb)
+{
+    {
+        QSignalBlocker block(cb);
+        cb->setChecked(!cb->isChecked());
+    }
+    cb->setChecked(!cb->isChecked());
+}
+
 }
 
 ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
@@ -43,6 +52,8 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
     sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, 45, 2, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 2, QChar(0x00b0));
+    moonElevation_= addManipulator(layout, this, tr("Moon &elevation"),  -90,  90, 41, 2, QChar(0x00b0));
+    moonAzimuth_  = addManipulator(layout, this, tr("Moon azim&uth"),   -180, 180,  0, 2, QChar(0x00b0));
     zoomFactor_   = addManipulator(layout, this, tr("&Zoom"), 1, 100, 1, 1);
     {
         ditheringMode_->addItem(tr("Disabled"));
@@ -75,6 +86,16 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     multipleScatteringEnabled_  = addCheckBox(layout, this, tr("Draw &multiple scattering layer"), true);
     textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
+
+    usingEclipseShader_=addCheckBox(layout, this, tr("Use e&clipse-mode shader"), false);
+    connect(usingEclipseShader_, &QCheckBox::stateChanged, this, [this](const int state)
+            { moonElevation_->setEnabled(state==Qt::Checked);
+              moonAzimuth_->setEnabled(state==Qt::Checked); });
+    connect(onTheFlySingleScatteringEnabled_, &QCheckBox::stateChanged, this, [this](const int state)
+            { usingEclipseShader_->setEnabled(state==Qt::Checked); });
+    triggerStateChanged(usingEclipseShader_);
+    triggerStateChanged(onTheFlySingleScatteringEnabled_);
+
     {
         const auto button=new QPushButton(tr("&Reload shaders"));
         layout->addWidget(button);

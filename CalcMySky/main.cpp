@@ -168,7 +168,7 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
             .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 // \\1")
-            .replace(QRegExp("#include \"(phase-functions|single-scattering)\\.h\\.glsl\""), "");
+            .replace(QRegExp("#include \"(phase-functions|single-scattering|single-scattering-eclipsed)\\.h\\.glsl\""), "");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "zero-order scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -202,7 +202,7 @@ void saveMultipleScatteringRenderingShader()
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
             .replace(QRegExp("\\b(RENDERING_MULTIPLE_SCATTERING)\\b"), "1 // \\1")
-            .replace(QRegExp("#include \"(phase-functions|common-functions|texture-sampling-functions|single-scattering|radiance-to-luminance)\\.h\\.glsl\""), "");
+            .replace(QRegExp("#include \"(phase-functions|common-functions|texture-sampling-functions|single-scattering|single-scattering-eclipsed|radiance-to-luminance)\\.h\\.glsl\""), "");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "multiple scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -244,7 +244,7 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
                                                                                           : "RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
                                                 .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 // \\1")
-                                                .replace(QRegExp("#include \"(common-functions|texture-sampling-functions)\\.h\\.glsl\""), "");
+                                                .replace(QRegExp("#include \"(common-functions|texture-sampling-functions|single-scattering-eclipsed)\\.h\\.glsl\""), "");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -255,6 +255,50 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
         const auto filePath = scatterer.phaseFunctionType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY ?
            QString("%1/shaders/single-scattering/%2/%3/%4/%5").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(texIndex).arg(scatterer.name).arg(filename) :
            QString("%1/shaders/single-scattering/%2/%3/%4").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(scatterer.name).arg(filename);
+        std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
+        QFile file(filePath);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
+void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescription const& scatterer, const SingleScatteringRenderMode renderMode)
+{
+    virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
+        "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
+
+    if(scatterer.phaseFunctionType==PhaseFunctionType::Smooth)
+        return; // Luminance will be already merged in multiple scattering texture, no need to render it separately
+
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    static constexpr char renderShaderFileName[]="render.frag";
+    const auto renderModeDefine = renderMode==SSRM_ON_THE_FLY ? "RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY" : "WHAAA?!";
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 // \\1")
+                                                .replace(QRegExp("#include \"(common-functions|texture-sampling-functions|single-scattering)\\.h\\.glsl\""), "");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "single scattering rendering shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& [filename, src] : sourcesToSave)
+    {
+        if(filename==viewDirFuncFileName) continue;
+
+        const auto filePath = QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4/%5").arg(textureOutputDir.c_str())
+                                                                                          .arg(toString(renderMode))
+                                                                                          .arg(texIndex)
+                                                                                          .arg(scatterer.name)
+                                                                                          .arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -349,6 +393,7 @@ void computeSingleScattering(const unsigned texIndex, ScattererDescription const
 
     saveSingleScatteringRenderingShader(texIndex, scatterer, SSRM_ON_THE_FLY);
     saveSingleScatteringRenderingShader(texIndex, scatterer, SSRM_PRECOMPUTED);
+    saveEclipsedSingleScatteringRenderingShader(texIndex, scatterer, SSRM_ON_THE_FLY);
 }
 
 void computeIndirectIrradianceOrder1(unsigned texIndex, unsigned scattererIndex);
@@ -667,6 +712,8 @@ int main(int argc, char** argv)
                 {
                     createDirs(textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
+                    createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
+                               std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 }
                 if(scatterer.phaseFunctionType==PhaseFunctionType::General)
                 {
@@ -703,6 +750,8 @@ int main(int argc, char** argv)
                 out << wlset[0] << "," << wlset[1] << "," << wlset[2] << "," << wlset[3] << (i+1==allWavelengths.size() ? "\n" : ",");
             }
             out << "atmosphere height: " << atmosphereHeight << "\n";
+            out << "Earth radius: " << earthRadius << "\n";
+            out << "Earth-Moon distance: " << earthMoonDistance << "\n";
             out << "scatterers: {";
             for(const auto& scatterer : scatterers)
                 out << " \"" << scatterer.name << "\" { phase function " << toString(scatterer.phaseFunctionType) << " };";

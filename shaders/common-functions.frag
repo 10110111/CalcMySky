@@ -1,5 +1,6 @@
 #version 330
 #extension GL_ARB_shading_language_420pack : require
+#extension GL_ARB_gpu_shader_fp64 : require
 
 #include "const.h.glsl"
 
@@ -101,4 +102,66 @@ float sunVisibility(const float cosSunZenithAngle, float altitude)
      return smoothstep(-sinHorizonZenithAngle*sunAngularRadius,
                         sinHorizonZenithAngle*sunAngularRadius,
                         cosSunZenithAngle-cosHorizonZenithAngle);
+}
+
+/*
+   R1,R2 - radii of the circles
+   d - distance between centers of the circles
+   returns area of intersection of these circles
+ */
+float circlesIntersectionArea(float R1, float R2, float d)
+{
+    if(d+min(R1,R2)<max(R1,R2)) return PI*sqr(min(R1,R2));
+    if(d>=R1+R2) return 0.;
+
+    // Return area of the lens with radii R1 and R2 and offset d
+    return sqr(R1)*acos(clamp( (sqr(d)+sqr(R1)-sqr(R2))/(2*d*R1) ,-1.,1.)) +
+           sqr(R2)*acos(clamp( (sqr(d)+sqr(R2)-sqr(R1))/(2*d*R2) ,-1.,1.)) -
+           0.5*sqrt(max( (-d+R1+R2)*(d+R1-R2)*(d-R1+R2)*(d+R1+R2) ,0.));
+}
+
+float angleBetween(dvec3 a, dvec3 b)
+{
+    // NOTE: if we calculate dot(a,b) and only then divide by norms of a and b,
+    // precision will be much worse. So normalize before calculation of dot.
+    a=normalize(a);
+    b=normalize(b);
+    const double c=dot(a,b);
+    // Don't let rounding errors lead to NaNs.
+    if(c<=-1) return PI;
+    if(c>=+1) return 0;
+    // Don't lose precision for very small angles: they are the most precious.
+    // Note that the precision loss we're concerned about here is not in the
+    // acos or sqrt: it's instead in float(c), which can lead to high
+    // granularity near c==1.0, which corresponds to the smallest and most
+    // interesting angles. Computing 1-c*c in double precision gives us small
+    // numbers, with which we'll not have any problems even after we convert
+    // them to float.
+    if(c>0.9) return asin(sqrt(float(1-c*c)));
+    return acos(float(c));
+}
+
+float angleBetweenSunAndMoon(const vec3 camera, const vec3 sunDir, const vec3 moonPos)
+{
+    return angleBetween(dvec3(sunDir), dvec3(moonPos-camera));
+}
+
+float visibleSolidAngleOfSun(const vec3 camera, const vec3 sunDir, const vec3 moonPos)
+{
+    const float Rs=sunAngularRadius;
+    const float Rm=moonAngularRadius;
+    float visibleSolidAngle=PI*sqr(Rs);
+
+    const float dSM=angleBetweenSunAndMoon(camera,sunDir,moonPos);
+    if(dSM<Rs+Rm)
+    {
+        visibleSolidAngle -= circlesIntersectionArea(Rm,Rs,dSM);
+    }
+
+    return visibleSolidAngle;
+}
+
+float sunVisibilityDueToMoon(const vec3 camera, const vec3 sunDir, const vec3 moonPos)
+{
+    return visibleSolidAngleOfSun(camera,sunDir,moonPos)/(PI*sqr(sunAngularRadius));
 }

@@ -6,6 +6,7 @@
 #include "phase-functions.h.glsl"
 #include "common-functions.h.glsl"
 #include "single-scattering.h.glsl"
+#include "single-scattering-eclipsed.h.glsl"
 #include "texture-coordinates.h.glsl"
 #include "radiance-to-luminance.h.glsl"
 #include "texture-sampling-functions.h.glsl"
@@ -13,6 +14,7 @@
 uniform sampler3D scatteringTexture;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
+uniform vec3 moonPosition;
 in vec3 position;
 out vec4 luminance;
 
@@ -63,6 +65,7 @@ void main()
 
     const vec3 zenith=vec3(0,0,1);
     const float dotViewSun=dot(viewDir,sunDirection);
+    const float dotViewMoon=dot(viewDir,moonPosition-cameraPosition);
 #if RENDERING_ZERO_SCATTERING
     vec4 radiance;
     if(viewRayIntersectsGround)
@@ -77,7 +80,7 @@ void main()
         const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
         radiance=transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
     }
-    else if(dotViewSun>cos(sunAngularRadius))
+    else if(dotViewSun>cos(sunAngularRadius) && dotViewMoon<cos(moonAngularRadius))
     {
         radiance=transmittanceToAtmosphereBorder(viewDir.z, altitude)*solarRadiance();
     }
@@ -85,6 +88,11 @@ void main()
     {
         discard;
     }
+    luminance=radianceToLuminance*radiance;
+#elif RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY
+    const vec4 scattering=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPosition,
+                                                          viewRayIntersectsGround);
+    const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     luminance=radianceToLuminance*radiance;
 #elif RENDERING_SINGLE_SCATTERING_ON_THE_FLY
     const vec4 scattering=computeSingleScattering(sunDirection.z,viewDir.z,dotViewSun,

@@ -82,7 +82,9 @@ inline GLint angularIntegrationPointsPerHalfRevolution;
 inline GLfloat earthRadius;
 inline GLfloat atmosphereHeight;
 inline double earthSunDistance;
+inline double earthMoonDistance;
 inline GLfloat sunAngularRadius; // calculated from earthSunDistance
+// moonAngularRadius is calculated from earthMoonDistance and other parameters on the fly, so isn't kept here
 inline std::vector<glm::vec4> groundAlbedo;
 inline unsigned wavelengthsIndex(glm::vec4 const& wavelengths)
 {

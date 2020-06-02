@@ -11,6 +11,7 @@ float clampDistance(const float x);
 float clampAltitude(const float altitude);
 vec4 rayleighPhaseFunction(float dotViewSun);
 float sunVisibility(const float cosSunZenithAngle, float altitude);
+float sunVisibilityDueToMoon(const vec3 camera, const vec3 sunDir, const vec3 moonDir);
 
 bool debugDataPresent();
 vec4 debugData();
