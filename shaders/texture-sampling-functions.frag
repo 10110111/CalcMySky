@@ -53,7 +53,7 @@ vec4 transmittance(const float cosViewZenithAngle, const float altitude, const f
     }
 }
 
-vec4 transmittanceToSun(const float cosSunZenithAngle, float altitude)
+float sunVisibility(const float cosSunZenithAngle, float altitude)
 {
     if(altitude<0) altitude=0;
     const float sinHorizonZenithAngle = earthRadius/(earthRadius+altitude);
@@ -64,11 +64,9 @@ vec4 transmittanceToSun(const float cosSunZenithAngle, float altitude)
      * For details, see Bruneton's explanation before GetTransmittanceToSun() in the updated
      * Precomputed Atmospheric Scattering demo.
      */
-    return transmittanceToAtmosphereBorder(cosSunZenithAngle, altitude)
-                                    *
-           smoothstep(-sinHorizonZenithAngle*sunAngularRadius,
-                       sinHorizonZenithAngle*sunAngularRadius,
-                       cosSunZenithAngle-cosHorizonZenithAngle);
+     return smoothstep(-sinHorizonZenithAngle*sunAngularRadius,
+                        sinHorizonZenithAngle*sunAngularRadius,
+                        cosSunZenithAngle-cosHorizonZenithAngle);
 }
 
 vec4 calcFirstScattering(const float cosSunZenithAngle, const float cosViewZenithAngle,

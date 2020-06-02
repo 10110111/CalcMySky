@@ -20,7 +20,9 @@ vec4 computeSingleScatteringIntegrand(const float cosSunZenithAngle, const float
 
     const vec4 xmittance=transmittance(cosViewZenithAngle, altitude, dist, viewRayIntersectsGround)
                                                     *
-                         transmittanceToSun(cosSunZenithAngleAtDist, altAtDist);
+                         transmittanceToAtmosphereBorder(cosSunZenithAngleAtDist, altAtDist)
+                                                    *
+                                  sunVisibility(cosSunZenithAngleAtDist, altAtDist);
     return xmittance*scattererDensity(altAtDist);
 }
 
