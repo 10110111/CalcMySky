@@ -10,6 +10,7 @@ float clampCosine(const float x);
 float clampDistance(const float x);
 float clampAltitude(const float altitude);
 vec4 rayleighPhaseFunction(float dotViewSun);
+float sunVisibility(const float cosSunZenithAngle, float altitude);
 
 bool debugDataPresent();
 vec4 debugData();

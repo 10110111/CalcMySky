@@ -86,3 +86,19 @@ float distanceToNearestAtmosphereBoundary(const float cosZenithAngle, const floa
     return viewRayIntersectsGround ? distanceToGround(cosZenithAngle, observerAltitude)
                                    : distanceToAtmosphereBorder(cosZenithAngle, observerAltitude);
 }
+
+float sunVisibility(const float cosSunZenithAngle, float altitude)
+{
+    if(altitude<0) altitude=0;
+    const float sinHorizonZenithAngle = earthRadius/(earthRadius+altitude);
+    const float cosHorizonZenithAngle = -sqrt(1-sqr(sinHorizonZenithAngle));
+    /* Approximating visible fraction of solar disk by smoothstep between the position of the Sun
+     * touching the horizon by its upper part and the position with lower part touching the horizon.
+     * The calculation assumes that solar angular radius is small and thus approximately equals its sine.
+     * For details, see Bruneton's explanation before GetTransmittanceToSun() in the updated
+     * Precomputed Atmospheric Scattering demo.
+     */
+     return smoothstep(-sinHorizonZenithAngle*sunAngularRadius,
+                        sinHorizonZenithAngle*sunAngularRadius,
+                        cosSunZenithAngle-cosHorizonZenithAngle);
+}
