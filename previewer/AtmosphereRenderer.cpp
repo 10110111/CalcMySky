@@ -17,11 +17,6 @@
 
 namespace fs=std::filesystem;
 
-static constexpr double degree=M_PI/180;
-static constexpr double lengthUnitInMeters=1000;
-static constexpr double earthRadius=6.36e6/lengthUnitInMeters;
-static constexpr double sunAngularRadius=0.00935/2;
-
 // XXX: keep in sync with those in generator
 static GLsizei scatTexWidth(glm::ivec4 sizes) { return sizes[0]; }
 static GLsizei scatTexHeight(glm::ivec4 sizes) { return sizes[1]*sizes[2]; }
