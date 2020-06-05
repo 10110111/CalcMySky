@@ -154,9 +154,12 @@ void computeDirectGroundIrradiance(const unsigned texIndex)
 }
 
 static constexpr char renderShaderFileName[]="render.frag";
+constexpr char viewDirFuncFileName[]="calc-view-dir.frag";
+constexpr char viewDirStubFunc[]="vec3 calcViewDir() { return vec3(0); }";
 void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
 {
     std::vector<std::pair<QString, QString>> sourcesToSave;
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
             .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 // \\1")
             .replace(QRegExp("#include \"(phase-functions|single-scattering)\\.h\\.glsl\""), "");
@@ -165,6 +168,8 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
                                             UseGeomShader{false}, &sourcesToSave);
     for(const auto& [filename, src] : sourcesToSave)
     {
+        if(filename==viewDirFuncFileName) continue;
+
         const auto filePath=QString("%1/shaders/zero-order-scattering/%2/%3")
                                 .arg(textureOutputDir.c_str()).arg(texIndex).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
@@ -188,6 +193,7 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
 void saveMultipleScatteringRenderingShader()
 {
     std::vector<std::pair<QString, QString>> sourcesToSave;
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
             .replace(QRegExp("\\b(RENDERING_MULTIPLE_SCATTERING)\\b"), "1 // \\1")
             .replace(QRegExp("#include \"(phase-functions|common-functions|texture-sampling-functions|single-scattering|radiance-to-luminance)\\.h\\.glsl\""), "");
@@ -196,6 +202,8 @@ void saveMultipleScatteringRenderingShader()
                                             UseGeomShader{false}, &sourcesToSave);
     for(const auto& [filename, src] : sourcesToSave)
     {
+        if(filename==viewDirFuncFileName) continue;
+
         const auto filePath=QString("%1/shaders/multiple-scattering/%2").arg(textureOutputDir.c_str()).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
@@ -224,6 +232,7 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
         return; // Luminance will be already merged in multiple scattering texture, no need to render it separately
 
     std::vector<std::pair<QString, QString>> sourcesToSave;
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     const auto renderModeDefine = renderMode==SSRM_ON_THE_FLY ? "RENDERING_SINGLE_SCATTERING_ON_THE_FLY" :
                                   scatterer.phaseFunctionType==PhaseFunctionType::General ? "RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE"
                                                                                           : "RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE";
@@ -235,6 +244,8 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
                                             UseGeomShader{false}, &sourcesToSave);
     for(const auto& [filename, src] : sourcesToSave)
     {
+        if(filename==viewDirFuncFileName) continue;
+
         const auto filePath = scatterer.phaseFunctionType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY ?
            QString("%1/shaders/single-scattering/%2/%3/%4/%5").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(texIndex).arg(scatterer.name).arg(filename) :
            QString("%1/shaders/single-scattering/%2/%3/%4").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(scatterer.name).arg(filename);

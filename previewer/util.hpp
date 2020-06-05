@@ -7,14 +7,11 @@
 
 QByteArray readFullFile(QString const& filename);
 void addShaderCode(QOpenGLShaderProgram& program, QOpenGLShader::ShaderType type,
-                   QString const& description, QByteArray sourceCode,
-                   std::vector<std::pair<QString,QString>> const& codeReplacements={});
-inline void addShaderFile(QOpenGLShaderProgram& program, QOpenGLShader::ShaderType type, QString const& filename,
-                          std::vector<std::pair<QString,QString>> const& codeReplacements={})
-{ addShaderCode(program, type, QObject::tr("shader file \"%1\"").arg(filename), readFullFile(filename),codeReplacements); }
-inline void addShaderFile(QOpenGLShaderProgram& program, QOpenGLShader::ShaderType type, std::filesystem::path const& filename,
-                          std::vector<std::pair<QString,QString>> const& codeReplacements={})
-{ addShaderFile(program, type, QString::fromStdString(filename.u8string()),codeReplacements); }
+                   QString const& description, QByteArray sourceCode);
+inline void addShaderFile(QOpenGLShaderProgram& program, QOpenGLShader::ShaderType type, QString const& filename)
+{ addShaderCode(program, type, QObject::tr("shader file \"%1\"").arg(filename), readFullFile(filename)); }
+inline void addShaderFile(QOpenGLShaderProgram& program, QOpenGLShader::ShaderType type, std::filesystem::path const& filename)
+{ addShaderFile(program, type, QString::fromStdString(filename.u8string())); }
 void link(QOpenGLShaderProgram& program, QString const& description);
 
 #endif

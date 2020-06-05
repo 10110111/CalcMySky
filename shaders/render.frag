@@ -2,6 +2,7 @@
 #extension GL_ARB_shading_language_420pack : require
 
 #include "const.h.glsl"
+#include "calc-view-dir.h.glsl"
 #include "phase-functions.h.glsl"
 #include "common-functions.h.glsl"
 #include "single-scattering.h.glsl"
@@ -26,8 +27,6 @@ vec4 solarRadiance()
 {
     return solarIrradianceAtTOA/(PI*sqr(sunAngularRadius));
 }
-
-vec3 calcViewDir() { return vec3(0); } // Replace this stub when loading this shader
 
 void main()
 {
