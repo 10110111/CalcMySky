@@ -60,7 +60,7 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
         ditheringMode_->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
         layout->addLayout(hbox);
     }
-    zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw &zero-order scattering layer"), true);
+    zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw zer&o-order scattering layer"), true);
     singleScatteringEnabled_    = addCheckBox(layout, this, tr("Draw &single scattering layers"), true);
     {
         const auto frame=new QFrame;
