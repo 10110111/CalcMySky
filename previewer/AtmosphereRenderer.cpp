@@ -378,6 +378,13 @@ void AtmosphereRenderer::setupBuffers()
     gl.glBindVertexArray(0);
 }
 
+QVector3D AtmosphereRenderer::sunDirection() const
+{
+    return QVector3D(std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                     std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                     std::cos(tools->sunZenithAngle()));
+}
+
 void AtmosphereRenderer::renderZeroOrderScattering()
 {
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
@@ -386,10 +393,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
         prog->bind();
         prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
         prog->setUniformValue("zoomFactor", tools->zoomFactor());
-        prog->setUniformValue("sunDirection", QVector3D(
-                    std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                    std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                    std::cos(tools->sunZenithAngle())));
+        prog->setUniformValue("sunDirection", sunDirection());
         transmittanceTextures[wlSetIndex]->bind(0);
         prog->setUniformValue("transmittanceTexture", 0);
         irradianceTextures[wlSetIndex]->bind(1);
@@ -418,10 +422,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 prog->bind();
                 prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
                 prog->setUniformValue("zoomFactor", tools->zoomFactor());
-                prog->setUniformValue("sunDirection", QVector3D(
-                            std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                            std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                            std::cos(tools->sunZenithAngle())));
+                prog->setUniformValue("sunDirection", sunDirection());
                 transmittanceTextures[wlSetIndex]->bind(0);
                 prog->setUniformValue("transmittanceTexture", 0);
 
@@ -436,10 +437,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 prog->bind();
                 prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
                 prog->setUniformValue("zoomFactor", tools->zoomFactor());
-                prog->setUniformValue("sunDirection", QVector3D(
-                            std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                            std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                            std::cos(tools->sunZenithAngle())));
+                prog->setUniformValue("sunDirection", sunDirection());
                 {
                     auto& tex=*singleScatteringTextures.at(scattererName)[wlSetIndex];
                     const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -458,10 +456,7 @@ void AtmosphereRenderer::renderSingleScattering()
             prog->bind();
             prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
             prog->setUniformValue("zoomFactor", tools->zoomFactor());
-            prog->setUniformValue("sunDirection", QVector3D(
-                        std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                        std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                        std::cos(tools->sunZenithAngle())));
+            prog->setUniformValue("sunDirection", sunDirection());
             {
                 auto& tex=*singleScatteringTextures.at(scattererName).front();
                 const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -482,10 +477,7 @@ void AtmosphereRenderer::renderMultipleScattering()
     prog->bind();
     prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
     prog->setUniformValue("zoomFactor", tools->zoomFactor());
-    prog->setUniformValue("sunDirection", QVector3D(
-                std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
-                std::cos(tools->sunZenithAngle())));
+    prog->setUniformValue("sunDirection", sunDirection());
     {
         const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
         multipleScatteringTexture.setMinificationFilter(texFilter);

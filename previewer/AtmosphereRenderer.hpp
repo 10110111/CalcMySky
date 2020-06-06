@@ -84,6 +84,7 @@ private:
     void loadShaders(QString const& pathToData);
     void setupBuffers();
 
+    QVector3D sunDirection() const;
     QVector3D rgbMaxValue() const;
     void makeBayerPatternTexture();
     glm::ivec2 loadTexture2D(QString const& path);
