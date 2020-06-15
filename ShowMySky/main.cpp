@@ -121,7 +121,7 @@ int main(int argc, char** argv)
     [[maybe_unused]] UTF8Console utf8console;
 
     QApplication app(argc, argv);
-    app.setApplicationName("Atmosphere textures preview");
+    app.setApplicationName("ShowMySky");
     app.setApplicationVersion(APP_VERSION);
 
     QSurfaceFormat format;

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10.0)
-project(atmosphere-textures-generator VERSION 0.0.1 LANGUAGES CXX)
+project(CalcMySky VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,5 +36,5 @@ endif()
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")
 
 configure_file(config.h.in config.h)
-add_subdirectory(generator)
-add_subdirectory(previewer)
+add_subdirectory(CalcMySky)
+add_subdirectory(ShowMySky)

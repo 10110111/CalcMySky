@@ -17,7 +17,7 @@
 
 namespace fs=std::filesystem;
 
-// XXX: keep in sync with those in generator
+// XXX: keep in sync with those in CalcMySky
 static GLsizei scatTexWidth(glm::ivec4 sizes) { return sizes[0]; }
 static GLsizei scatTexHeight(glm::ivec4 sizes) { return sizes[1]*sizes[2]; }
 static GLsizei scatTexDepth(glm::ivec4 sizes) { return sizes[3]; }

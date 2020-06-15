@@ -213,7 +213,7 @@ QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache)
     {
         filePath=DATA_ROOT_DIR "shaders/" + fileName;
     }
-    else if(appBinDir==QDir(BUILD_BINDIR "generator/").canonicalPath())
+    else if(appBinDir==QDir(BUILD_BINDIR "CalcMySky/").canonicalPath())
     {
         filePath=SOURCE_DIR "shaders/" + fileName;
     }

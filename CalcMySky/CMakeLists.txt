@@ -1,4 +1,4 @@
-add_executable(atmosphere-textures-generator
+add_executable(calcmysky
                 main.cpp
                 util.cpp
                 glinit.cpp
@@ -6,6 +6,6 @@ add_executable(atmosphere-textures-generator
                 shaders.cpp
                 ../common/util.cpp
                 ../config.h)
-target_link_libraries(atmosphere-textures-generator Qt5::Core Qt5::OpenGL)
+target_link_libraries(calcmysky Qt5::Core Qt5::OpenGL)
 
-install(TARGETS atmosphere-textures-generator DESTINATION "${installBinDir}")
+install(TARGETS calcmysky DESTINATION "${installBinDir}")

@@ -640,7 +640,7 @@ int main(int argc, char** argv)
 
     qInstallMessageHandler(qtMessageHandler);
     QApplication app(argc, argv);
-    app.setApplicationName("Atmosphere textures generator");
+    app.setApplicationName("CalcMySky");
     app.setApplicationVersion(APP_VERSION);
 
     try

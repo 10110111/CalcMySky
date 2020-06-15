@@ -19,7 +19,7 @@ before_build:
   - cmd: cd C:/projects
   - cmd: md build
   - cmd: cd build
-  - cmd: cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH=%QT_BASEDIR%/lib/cmake/Qt5 -DCMAKE_INSTALL_PREFIX=. ../atmosphere-textures-generator
+  - cmd: cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH=%QT_BASEDIR%/lib/cmake/Qt5 -DCMAKE_INSTALL_PREFIX=. ../CalcMySky
 
 build_script:
     - cmd: cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
@@ -31,7 +31,7 @@ for:
       - configuration: Release
   after_build:
     - cmd: cmake --build . --config %configuration% --target install
-    - cmd: 7z a atg.zip atmosphere-textures-generator
+    - cmd: 7z a atg.zip CalcMySky
     - cmd: appveyor PushArtifact atg.zip
 -
   matrix:
@@ -39,8 +39,8 @@ for:
       - configuration: Debug
   after_build:
     - cmd: cmake --build . --config %configuration% --target install
-    - cmd: for %%F in (msvcp140d vcruntime140d) do copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\debug_nonredist\x64\Microsoft.VC140.DebugCRT\%%F.dll" atmosphere-textures-generator
-    - cmd: copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.25.28508\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll" atmosphere-textures-generator
-    - cmd: copy "C:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll" atmosphere-textures-generator
-    - cmd: 7z a atg.zip atmosphere-textures-generator
+    - cmd: for %%F in (msvcp140d vcruntime140d) do copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\debug_nonredist\x64\Microsoft.VC140.DebugCRT\%%F.dll" CalcMySky
+    - cmd: copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.25.28508\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll" CalcMySky
+    - cmd: copy "C:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll" CalcMySky
+    - cmd: 7z a atg.zip CalcMySky
     - cmd: appveyor PushArtifact atg.zip

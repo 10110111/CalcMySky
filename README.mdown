@@ -1,6 +1,6 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/vtrtpjxk08xp6ba6/branch/master?svg=true)](https://ci.appveyor.com/project/10110111/atmosphere-textures-generator)
+[![Build status](https://ci.appveyor.com/api/projects/status/vtrtpjxk08xp6ba6/branch/master?svg=true)](https://ci.appveyor.com/project/10110111/CalcMySky)
 
-# Atmosphere textures generator
+# CalcMySky
 
 This set of programs will let the users of the [future precomputed atmospheric scattering model](https://github.com/Stellarium/stellarium/issues/624) for [Stellarium](https://github.com/Stellarium/stellarium) generate the textures for the particular parameters of the atmosphere.
 
@@ -21,18 +21,18 @@ The planned implementation steps are as follows:
  - [ ] Generator of airglow textures
  - [ ] Renderer in Stellarium
 
-# Generator interface
+# Interface
 
-After building the package using the usual steps of building CMake-based projects, the binary `atmosphere-textures-generator` appears in `generator` subdirectory of the build directory. It should be feeded with a file containing description of the parameters of atmosphere, as well as computation settings. A sample of such file resides in the root of source tree, with the name `sample.atmo`.
+After building the package using the usual steps of building CMake-based projects, the binary `calcmysky` appears in `CalcMySky` subdirectory of the build directory. It should be feeded with a file containing description of the parameters of atmosphere, as well as computation settings. A sample of such file resides in the root of source tree, with the name `sample.atmo`.
 
 So, to try it out, you can do something like the following on a Linux-based system:
 
 ```
-git clone https://github.com/10110111/atmosphere-textures-generator
-cd atmosphere-textures-generator
+git clone https://github.com/10110111/CalcMySky
+cd CalcMySky
 mkdir build
 cd build
 cmake ..
 make
-./generator/atmosphere-textures-generator ../sample.atmo --out-dir /tmp
+./CalcMySky/calcmysky ../sample.atmo --out-dir /tmp
 ```
