@@ -179,11 +179,10 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
     loadTexture4D(pathToData+"/multiple-scattering-xyzw.f32");
 
     singleScatteringTextures.clear();
-    for(const auto& scatterer : params.scatterers)
+    for(const auto& [scattererName, phaseFuncType] : params.scatterers)
     {
-        const auto& scattererName=scatterer.first;
         auto& texturesPerWLSet=singleScatteringTextures[scattererName];
-        switch(scatterer.second)
+        switch(phaseFuncType)
         {
         case PhaseFunctionType::General:
             for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
