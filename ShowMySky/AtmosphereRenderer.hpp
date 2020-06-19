@@ -19,6 +19,7 @@ class AtmosphereRenderer : public QObject
 
     using ShaderProgPtr=std::unique_ptr<QOpenGLShaderProgram>;
     using TexturePtr=std::unique_ptr<QOpenGLTexture>;
+    using ScattererName=QString;
     QOpenGLFunctions_3_3_Core& gl;
 public:
     enum class DitheringMode
@@ -63,17 +64,17 @@ private:
     std::vector<TexturePtr> transmittanceTextures;
     std::vector<TexturePtr> irradianceTextures;
     // Indexed as singleScatteringTextures[scattererName][wavelengthSetIndex]
-    std::map<QString/*scattererName*/,std::vector<TexturePtr>> singleScatteringTextures;
+    std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures;
     QOpenGLTexture multipleScatteringTexture;
     QOpenGLTexture bayerPatternTexture;
     QOpenGLTexture texFBO;
 
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms;
     // Indexed as singleScatteringPrograms[renderMode][scattererName][wavelengthSetIndex]
-    std::vector<std::unique_ptr<std::map<QString/*scattererName*/,std::vector<ShaderProgPtr>>>> singleScatteringPrograms;
+    std::vector<std::unique_ptr<std::map<ScattererName,std::vector<ShaderProgPtr>>>> singleScatteringPrograms;
     ShaderProgPtr multipleScatteringProgram;
     ShaderProgPtr luminanceToScreenRGB;
-    std::map<QString/*scattererName*/,bool> scatterersEnabledStates;
+    std::map<ScattererName,bool> scatterersEnabledStates;
 
     DragMode dragMode=DragMode::None;
     int prevMouseX, prevMouseY;
