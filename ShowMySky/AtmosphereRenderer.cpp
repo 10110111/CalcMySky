@@ -388,15 +388,15 @@ void AtmosphereRenderer::renderZeroOrderScattering()
 {
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
-        const auto& prog=zeroOrderScatteringPrograms[wlSetIndex];
-        prog->bind();
-        prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
-        prog->setUniformValue("zoomFactor", tools->zoomFactor());
-        prog->setUniformValue("sunDirection", sunDirection());
+        auto& prog=*zeroOrderScatteringPrograms[wlSetIndex];
+        prog.bind();
+        prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+        prog.setUniformValue("zoomFactor", tools->zoomFactor());
+        prog.setUniformValue("sunDirection", sunDirection());
         transmittanceTextures[wlSetIndex]->bind(0);
-        prog->setUniformValue("transmittanceTexture", 0);
+        prog.setUniformValue("transmittanceTexture", 0);
         irradianceTextures[wlSetIndex]->bind(1);
-        prog->setUniformValue("irradianceTexture",1);
+        prog.setUniformValue("irradianceTexture",1);
 
         gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
@@ -417,13 +417,13 @@ void AtmosphereRenderer::renderSingleScattering()
 
             for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
             {
-                const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
-                prog->bind();
-                prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
-                prog->setUniformValue("zoomFactor", tools->zoomFactor());
-                prog->setUniformValue("sunDirection", sunDirection());
+                auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
+                prog.bind();
+                prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+                prog.setUniformValue("zoomFactor", tools->zoomFactor());
+                prog.setUniformValue("sunDirection", sunDirection());
                 transmittanceTextures[wlSetIndex]->bind(0);
-                prog->setUniformValue("transmittanceTexture", 0);
+                prog.setUniformValue("transmittanceTexture", 0);
 
                 gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
@@ -432,18 +432,18 @@ void AtmosphereRenderer::renderSingleScattering()
         {
             for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
             {
-                const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
-                prog->bind();
-                prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
-                prog->setUniformValue("zoomFactor", tools->zoomFactor());
-                prog->setUniformValue("sunDirection", sunDirection());
+                auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
+                prog.bind();
+                prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+                prog.setUniformValue("zoomFactor", tools->zoomFactor());
+                prog.setUniformValue("sunDirection", sunDirection());
                 {
                     auto& tex=*singleScatteringTextures.at(scattererName)[wlSetIndex];
                     const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
                     tex.setMinificationFilter(texFilter);
                     tex.setMagnificationFilter(texFilter);
                     tex.bind(0);
-                    prog->setUniformValue("scatteringTexture", 0);
+                    prog.setUniformValue("scatteringTexture", 0);
                 }
 
                 gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -451,11 +451,11 @@ void AtmosphereRenderer::renderSingleScattering()
         }
         else if(phaseFuncType==PhaseFunctionType::Achromatic)
         {
-            const auto& prog=singleScatteringPrograms[renderMode]->at(scattererName).front();
-            prog->bind();
-            prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
-            prog->setUniformValue("zoomFactor", tools->zoomFactor());
-            prog->setUniformValue("sunDirection", sunDirection());
+            auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName).front();
+            prog.bind();
+            prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+            prog.setUniformValue("zoomFactor", tools->zoomFactor());
+            prog.setUniformValue("sunDirection", sunDirection());
             {
                 auto& tex=*singleScatteringTextures.at(scattererName).front();
                 const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -463,7 +463,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 tex.setMagnificationFilter(texFilter);
                 tex.bind(0);
             }
-            prog->setUniformValue("scatteringTexture", 0);
+            prog.setUniformValue("scatteringTexture", 0);
 
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
@@ -472,18 +472,18 @@ void AtmosphereRenderer::renderSingleScattering()
 
 void AtmosphereRenderer::renderMultipleScattering()
 {
-    const auto& prog=multipleScatteringProgram;
-    prog->bind();
-    prog->setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
-    prog->setUniformValue("zoomFactor", tools->zoomFactor());
-    prog->setUniformValue("sunDirection", sunDirection());
+    auto& prog=*multipleScatteringProgram;
+    prog.bind();
+    prog.setUniformValue("cameraPosition", QVector3D(0,0,tools->altitude()));
+    prog.setUniformValue("zoomFactor", tools->zoomFactor());
+    prog.setUniformValue("sunDirection", sunDirection());
     {
         const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
         multipleScatteringTexture.setMinificationFilter(texFilter);
         multipleScatteringTexture.setMagnificationFilter(texFilter);
     }
     multipleScatteringTexture.bind(0);
-    prog->setUniformValue("scatteringTexture", 0);
+    prog.setUniformValue("scatteringTexture", 0);
 
     gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
