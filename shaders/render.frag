@@ -12,6 +12,7 @@
 #include "texture-sampling-functions.h.glsl"
 
 uniform sampler3D scatteringTexture;
+uniform sampler2D eclipsedScatteringTexture;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
 uniform vec3 moonPosition;
@@ -66,6 +67,10 @@ void main()
     const vec3 zenith=vec3(0,0,1);
     const float dotViewSun=dot(viewDir,sunDirection);
     const float dotViewMoon=dot(viewDir,moonPosition-cameraPosition);
+
+    const vec3 sunXY=vec3(normalize(sunDirection.xy),0);
+    const vec3 viewXY=vec3(normalize(viewDir.xy),0);
+    const float azimuthRelativeToSun=atan(cross(sunXY, viewXY).z, dot(sunXY, viewXY));
 #if RENDERING_ZERO_SCATTERING
     vec4 radiance;
     if(viewRayIntersectsGround)
@@ -92,6 +97,16 @@ void main()
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY
     const vec4 scattering=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPosition,
                                                           viewRayIntersectsGround);
+    const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    luminance=radianceToLuminance*radiance;
+#elif RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE
+    const vec2 texCoords = eclipseTexVarsToTexCoords(azimuthRelativeToSun, viewDir.z, altitude,
+                                                     viewRayIntersectsGround);
+    // We don't use mip mapping here, but for some reason, on my NVidia GTX 750 Ti with Linux-x86 driver 390.116 I get
+    // an artifact at the point where azimuth texture coordinate changes from 1 to 0 (at azimuthRelativeToSun crossing
+    // 0). This happens when I simply call texture(eclipsedScatteringTexture, texCoords) without specifying LOD.
+    // Apparently, the driver uses the derivative for some reason, even though it shouldn't.
+    const vec4 scattering = textureLod(eclipsedScatteringTexture, texCoords, 0);
     const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     luminance=radianceToLuminance*radiance;
 #elif RENDERING_SINGLE_SCATTERING_ON_THE_FLY

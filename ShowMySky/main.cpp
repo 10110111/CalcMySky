@@ -46,6 +46,18 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
 
             params.wavelengthSetCount=wlStr.size()/4;
         }
+        else if(key=="eclipsed scattering texture size for relative azimuth")
+        {
+            bool ok=false;
+            params.eclipseSingleScatteringTextureSizeForRelAzimuth=value.toUInt(&ok);
+            if(!ok) throw DataLoadError{QObject::tr("Failed to parse %1 in \"%2\"").arg(key).arg(filename)};
+        }
+        else if(key=="eclipsed scattering texture size for cos(VZA)")
+        {
+            bool ok=false;
+            params.eclipseSingleScatteringTextureSizeForCosVZA=value.toUInt(&ok);
+            if(!ok) throw DataLoadError{QObject::tr("Failed to parse %1 in \"%2\"").arg(key).arg(filename)};
+        }
         else if(key=="atmosphere height")
         {
             bool ok=false;
@@ -112,6 +124,10 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
     }
     if(!params.wavelengthSetCount)
         throw DataLoadError{QObject::tr("Failed to find wavelengths in \"%1\"").arg(filename)};
+    if(!params.eclipseSingleScatteringTextureSizeForRelAzimuth)
+        throw DataLoadError{QObject::tr("Failed to find eclipsed single scattering texture size for relative azimuth in \"%1\"").arg(filename)};
+    if(!params.eclipseSingleScatteringTextureSizeForCosVZA)
+        throw DataLoadError{QObject::tr("Failed to find eclipsed single scattering texture size for cos(VZA) in \"%1\"").arg(filename)};
     if(std::isnan(params.atmosphereHeight))
         throw DataLoadError{QObject::tr("Failed to find atmosphere height in \"%1\"").arg(filename)};
     if(std::isnan(params.earthRadius))

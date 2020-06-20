@@ -285,3 +285,82 @@ ScatteringTexVars scatteringTexIndicesToTexVars(const vec3 texIndices)
                           cosVZA*cosSZA+safeSqrt((1-sqr(cosVZA))*(1-sqr(cosSZA))));
     return vars;
 }
+
+EclipseScatteringTexVars eclipseTexCoordsToTexVars(const vec2 texCoords, const float altitude)
+{
+    const float altMax=atmosphereHeight;
+    const float R=earthRadius;
+
+    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
+    const float distToHorizon = sqrt(sqr(altitude)+2*altitude*R);
+
+    const bool viewRayIntersectsGround = texCoords.t<0.5;
+    float cosViewZenithAngle;
+    if(viewRayIntersectsGround)
+    {
+        const float cosVZACoord = texCoordToUnitRange(1-2*texCoords.t, eclipsedSingleScatteringTextureSize.t/2);
+        const float distMin=altitude;
+        const float distMax=distToHorizon;
+        const float distToGround=cosVZACoord*(distMax-distMin)+distMin;
+        cosViewZenithAngle = distToGround==0 ? -1 :
+            clampCosine(-(sqr(distToHorizon)+sqr(distToGround)) / (2*distToGround*(altitude+R)));
+    }
+    else
+    {
+        const float cosVZACoord = texCoordToUnitRange(2*texCoords.t-1, eclipsedSingleScatteringTextureSize.t/2);
+        const float distMin=altMax-altitude;
+        const float distMax=distToHorizon+lengthOfHorizRayFromGroundToBorderOfAtmo;
+        const float distToTopAtmoBorder=cosVZACoord*(distMax-distMin)+distMin;
+        cosViewZenithAngle = distToTopAtmoBorder==0 ? 1 :
+            clampCosine((sqr(lengthOfHorizRayFromGroundToBorderOfAtmo)-sqr(distToHorizon)-sqr(distToTopAtmoBorder)) /
+                        (2*distToTopAtmoBorder*(altitude+R)));
+    }
+
+    const float azimuthRelativeToSun=2*PI*texCoordToUnitRange(texCoords.s, eclipsedSingleScatteringTextureSize.s);
+    return EclipseScatteringTexVars(azimuthRelativeToSun, cosViewZenithAngle, viewRayIntersectsGround);
+}
+
+vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cosViewZenithAngle,
+                               const float altitude, const bool viewRayIntersectsGround)
+{
+    const float altMax=atmosphereHeight;
+    const float R=earthRadius;
+    const float r=R+altitude;
+
+    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
+    const float distToHorizon    = sqrt(sqr(altitude)+2*altitude*R);
+
+    // ------------------------------------
+    float cosVZACoord; // Coordinate for cos(viewZenithAngle)
+    const float rCvza=r*cosViewZenithAngle;
+    // Discriminant of the quadratic equation for the intersections of the ray (altitiude, cosViewZenithAngle) with the ground.
+    const float discriminant=sqr(rCvza)-sqr(r)+sqr(R);
+    if(viewRayIntersectsGround)
+    {
+        // Distance from camera to the ground along the view ray (altitude, cosViewZenithAngle)
+        const float distToGround = -rCvza-safeSqrt(discriminant);
+        // Minimum possible value of distToGround
+        const float distMin = altitude;
+        // Maximum possible value of distToGround
+        const float distMax = distToHorizon;
+        cosVZACoord = distMax==distMin ? 0. : (distToGround-distMin)/(distMax-distMin);
+        cosVZACoord = unitRangeToTexCoord(cosVZACoord, eclipsedSingleScatteringTextureSize.t/2);
+        cosVZACoord = (1-cosVZACoord)/2;
+    }
+    else
+    {
+        // Distance from camera to the atmosphere border along the view ray (altitude, cosViewZenithAngle)
+        // sqr(lengthOfHorizRayFromGroundToBorderOfAtmo) added to sqr(R) term in discriminant changes sqr(R) to sqr(R+altMax),
+        // so that we target the top atmosphere boundary instead of bottom.
+        const float distToTopAtmoBorder = -rCvza+safeSqrt(discriminant+sqr(lengthOfHorizRayFromGroundToBorderOfAtmo));
+        const float distMin = atmosphereHeight-altitude;
+        const float distMax = distToHorizon+lengthOfHorizRayFromGroundToBorderOfAtmo;
+        cosVZACoord = distMax==distMin ? 0. : (distToTopAtmoBorder-distMin)/(distMax-distMin);
+        cosVZACoord = unitRangeToTexCoord(cosVZACoord, eclipsedSingleScatteringTextureSize.t/2);
+        cosVZACoord = (cosVZACoord+1)/2;
+    }
+
+    const float azimuthCoord=unitRangeToTexCoord(fract(azimuthRelativeToSun/(2*PI)), eclipsedSingleScatteringTextureSize.s);
+
+    return vec2(azimuthCoord, cosVZACoord);
+}

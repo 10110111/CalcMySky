@@ -9,6 +9,9 @@ scattering texture size for dot(view,sun): 16
 scattering texture size for cos(SZA): 128
 scattering texture size for altitude: 64
 
+eclipsed scattering texture size for relative azimuth: 16
+eclipsed scattering texture size for cos(VZA): 128
+
 transmittance integration points: 500
 radial integration points: 50
 angular integration points per half revolution: 16

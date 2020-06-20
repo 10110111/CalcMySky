@@ -34,6 +34,7 @@ uniform float moonAngularRadius;
 const vec4 scatteringTextureSize=)" + toString(glm::vec4(scatteringTextureSize)) + R"(;
 const vec2 irradianceTextureSize=)" + toString(glm::vec2(irradianceTexW, irradianceTexH)) + R"(;
 const vec2 transmittanceTextureSize=)" + toString(glm::vec2(transmittanceTexW,transmittanceTexH)) + R"(;
+const vec2 eclipsedSingleScatteringTextureSize=)" + toString(glm::vec2(eclipsedSingleScatteringTextureSize)) +R"(;
 const int radialIntegrationPoints=)" + toString(radialIntegrationPoints) + R"(;
 const int angularIntegrationPointsPerHalfRevolution=)" + toString(angularIntegrationPointsPerHalfRevolution) + R"(;
 const int numTransmittanceIntegrationPoints=)" + toString(numTransmittanceIntegrationPoints) + R"(;

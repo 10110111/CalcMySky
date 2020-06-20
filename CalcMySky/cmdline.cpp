@@ -677,6 +677,10 @@ void handleCmdLine()
             scatteringTextureSize[2]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for altitude")
             scatteringTextureSize[3]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed scattering texture size for relative azimuth")
+            eclipsedSingleScatteringTextureSize[0]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed scattering texture size for cos(vza)")
+            eclipsedSingleScatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")

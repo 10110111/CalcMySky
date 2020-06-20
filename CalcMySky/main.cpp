@@ -278,12 +278,10 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Scatte
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
 
-    if(scatterer.phaseFunctionType==PhaseFunctionType::Smooth)
-        return; // Luminance will be already merged in multiple scattering texture, no need to render it separately
-
     std::vector<std::pair<QString, QString>> sourcesToSave;
     static constexpr char renderShaderFileName[]="render.frag";
-    const auto renderModeDefine = renderMode==SSRM_ON_THE_FLY ? "RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY" : "WHAAA?!";
+    const auto renderModeDefine = renderMode==SSRM_ON_THE_FLY ? "RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY" :
+                                  "RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
                                                 .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 // \\1")
                                                 .replace(QRegExp("#include \"(common-functions|texture-sampling-functions|single-scattering)\\.h\\.glsl\""), "");
@@ -299,6 +297,44 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Scatte
                                                                                           .arg(texIndex)
                                                                                           .arg(scatterer.name)
                                                                                           .arg(filename);
+        std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
+        QFile file(filePath);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
+void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, QString const& scattererName)
+{
+    virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
+        "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scattererName+"(dotViewSun); }\n";
+
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    static constexpr char renderShaderFileName[]="compute-eclipsed-single-scattering.frag";
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{});
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "single scattering rendering shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& [filename, src] : sourcesToSave)
+    {
+        if(filename==viewDirFuncFileName) continue;
+
+        const auto filePath = QString("%1/shaders/single-scattering-eclipsed/precomputation/%2/%3/%4")
+                                    .arg(textureOutputDir.c_str())
+                                    .arg(texIndex)
+                                    .arg(scattererName)
+                                    .arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -394,6 +430,8 @@ void computeSingleScattering(const unsigned texIndex, ScattererDescription const
     saveSingleScatteringRenderingShader(texIndex, scatterer, SSRM_ON_THE_FLY);
     saveSingleScatteringRenderingShader(texIndex, scatterer, SSRM_PRECOMPUTED);
     saveEclipsedSingleScatteringRenderingShader(texIndex, scatterer, SSRM_ON_THE_FLY);
+    saveEclipsedSingleScatteringRenderingShader(texIndex, scatterer, SSRM_PRECOMPUTED);
+    saveEclipsedSingleScatteringComputationShader(texIndex, scatterer.name);
 }
 
 void computeIndirectIrradianceOrder1(unsigned texIndex, unsigned scattererIndex);
@@ -714,16 +752,22 @@ int main(int argc, char** argv)
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                     createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
+                    createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/precomputation/"+
+                               std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 }
                 if(scatterer.phaseFunctionType==PhaseFunctionType::General)
                 {
                     createDirs(textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
+                               std::to_string(texIndex)+"/"+scatterer.name.toStdString());
+                    createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 }
             }
             if(scatterer.phaseFunctionType==PhaseFunctionType::Achromatic)
             {
                 createDirs(textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
+                           scatterer.name.toStdString());
+                createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                            scatterer.name.toStdString());
             }
         }
@@ -752,6 +796,8 @@ int main(int argc, char** argv)
             out << "atmosphere height: " << atmosphereHeight << "\n";
             out << "Earth radius: " << earthRadius << "\n";
             out << "Earth-Moon distance: " << earthMoonDistance << "\n";
+            out << "eclipsed scattering texture size for relative azimuth: " << eclipsedSingleScatteringTextureSize[0] << "\n";
+            out << "eclipsed scattering texture size for cos(VZA): " << eclipsedSingleScatteringTextureSize[1] << "\n";
             out << "scatterers: {";
             for(const auto& scatterer : scatterers)
                 out << " \"" << scatterer.name << "\" { phase function " << toString(scatterer.phaseFunctionType) << " };";

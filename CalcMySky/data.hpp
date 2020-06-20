@@ -71,6 +71,7 @@ inline std::string textureOutputDir=".";
 inline GLint transmittanceTexW, transmittanceTexH;
 inline GLint irradianceTexW, irradianceTexH;
 inline glm::ivec4 scatteringTextureSize;
+inline glm::ivec2 eclipsedSingleScatteringTextureSize;
 // XXX: keep in sync with those in previewer and renderer
 inline auto scatTexWidth()  { return GLsizei(scatteringTextureSize[0]); }
 inline auto scatTexHeight() { return GLsizei(scatteringTextureSize[1]*scatteringTextureSize[2]); }

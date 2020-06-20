@@ -91,10 +91,7 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     connect(usingEclipseShader_, &QCheckBox::stateChanged, this, [this](const int state)
             { moonElevation_->setEnabled(state==Qt::Checked);
               moonAzimuth_->setEnabled(state==Qt::Checked); });
-    connect(onTheFlySingleScatteringEnabled_, &QCheckBox::stateChanged, this, [this](const int state)
-            { usingEclipseShader_->setEnabled(state==Qt::Checked); });
     triggerStateChanged(usingEclipseShader_);
-    triggerStateChanged(onTheFlySingleScatteringEnabled_);
 
     {
         const auto button=new QPushButton(tr("&Reload shaders"));

@@ -40,6 +40,8 @@ public:
     struct Parameters
     {
         unsigned wavelengthSetCount=0;
+        unsigned eclipseSingleScatteringTextureSizeForCosVZA=0;
+        unsigned eclipseSingleScatteringTextureSizeForRelAzimuth=0;
         float atmosphereHeight=NAN;
         float earthRadius=NAN;
         float earthMoonDistance=NAN;
@@ -62,19 +64,24 @@ private:
     ToolsWidget* tools;
     Parameters const& params;
 
-    GLuint vao=0, vbo=0, fbo=0;
+    GLuint vao=0, vbo=0, mainFBO=0;
+    GLuint eclipseSingleScatteringPrecomputationFBO=0;
     std::vector<TexturePtr> transmittanceTextures;
     std::vector<TexturePtr> irradianceTextures;
     // Indexed as singleScatteringTextures[scattererName][wavelengthSetIndex]
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures;
+    std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures;
     QOpenGLTexture multipleScatteringTexture;
     QOpenGLTexture bayerPatternTexture;
-    QOpenGLTexture texFBO;
+    QOpenGLTexture mainFBOTexture;
 
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms;
     // Indexed as singleScatteringPrograms[renderMode][scattererName][wavelengthSetIndex]
-    std::vector<std::unique_ptr<std::map<ScattererName,std::vector<ShaderProgPtr>>>> singleScatteringPrograms;
-    std::vector<std::unique_ptr<std::map<ScattererName,std::vector<ShaderProgPtr>>>> eclipsedSingleScatteringPrograms;
+    using ScatteringProgramsMap=std::map<ScattererName,std::vector<ShaderProgPtr>>;
+    std::vector<std::unique_ptr<ScatteringProgramsMap>> singleScatteringPrograms;
+    std::vector<std::unique_ptr<ScatteringProgramsMap>> eclipsedSingleScatteringPrograms;
+    // Indexed as eclipsedSingleScatteringPrecomputationPrograms[scattererName][wavelengthSetIndex]
+    std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms;
     ShaderProgPtr multipleScatteringProgram;
     ShaderProgPtr luminanceToScreenRGB;
     std::map<ScattererName,bool> scatterersEnabledStates;
@@ -92,12 +99,14 @@ private:
     double cameraMoonDistance() const;
     glm::dvec3 sunDirection() const;
     glm::dvec3 moonPosition() const;
+    glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
     QVector3D rgbMaxValue() const;
     void makeBayerPatternTexture();
     glm::ivec2 loadTexture2D(QString const& path);
     glm::ivec4 loadTexture4D(QString const& path);
 
+    void precomputeEclipsedSingleScattering();
     void renderZeroOrderScattering();
     void renderSingleScattering();
     void renderMultipleScattering();

@@ -29,4 +29,15 @@ struct ScatteringTexVars
 ScatteringTexVars scatteringTexIndicesToTexVars(const vec3 texIndices);
 vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
                      const float dotViewSun, const float altitude, const bool viewRayIntersectsGround);
+
+struct EclipseScatteringTexVars
+{
+    float azimuthRelativeToSun;
+    float cosViewZenithAngle;
+    bool viewRayIntersectsGround;
+};
+EclipseScatteringTexVars eclipseTexCoordsToTexVars(const vec2 texCoords, const float altitude);
+vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cosViewZenithAngle,
+                               const float altitude, const bool viewRayIntersectsGround);
+
 #endif

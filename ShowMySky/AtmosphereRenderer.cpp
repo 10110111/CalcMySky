@@ -292,9 +292,9 @@ vec3 calcViewDir()
 
     {
         eclipsedSingleScatteringPrograms.clear();
-        for(int renderMode=SSRM_ON_THE_FLY; renderMode==SSRM_ON_THE_FLY; ++renderMode) // FIXME: WIP, change to the real loop when time comes
+        for(int renderMode=SSRM_ON_THE_FLY; renderMode<SSRM_COUNT; ++renderMode)
         {
-            auto& programsPerScatterer=*eclipsedSingleScatteringPrograms.emplace_back(std::make_unique<std::map<QString,std::vector<ShaderProgPtr>>>());
+            auto& programsPerScatterer=*eclipsedSingleScatteringPrograms.emplace_back(std::make_unique<ScatteringProgramsMap>());
 
             for(const auto& [scattererName,phaseFuncType] : params.scatterers)
             {
@@ -317,6 +317,29 @@ vec3 calcViewDir()
 
                     link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
                 }
+            }
+        }
+    }
+
+    {
+        eclipsedSingleScatteringPrecomputationPrograms=std::make_unique<ScatteringProgramsMap>();
+        for(const auto& [scattererName,phaseFuncType] : params.scatterers)
+        {
+            auto& programs=(*eclipsedSingleScatteringPrecomputationPrograms)[scattererName];
+            for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+            {
+                const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/precomputation/%3/%4").arg(pathToData)
+                                                                                                        .arg(wlSetIndex)
+                                                                                                        .arg(scattererName);
+                auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+
+                for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+                    addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+
+                addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
+                              commonVertexShaderSrc);
+
+                link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
             }
         }
     }
@@ -430,6 +453,14 @@ glm::dvec3 AtmosphereRenderer::moonPosition() const
     return cameraPosition()+moonDir*cameraMoonDistance();
 }
 
+glm::dvec3 AtmosphereRenderer::moonPositionRelativeToSunAzimuth() const
+{
+    const auto moonDir=glm::dvec3(std::cos(tools->moonAzimuth() - tools->sunAzimuth())*std::sin(tools->moonZenithAngle()),
+                                  std::sin(tools->moonAzimuth() - tools->sunAzimuth())*std::sin(tools->moonZenithAngle()),
+                                  std::cos(tools->moonZenithAngle()));
+    return cameraPosition()+moonDir*cameraMoonDistance();
+}
+
 double AtmosphereRenderer::cameraMoonDistance() const
 {
     using namespace std;
@@ -461,8 +492,44 @@ void AtmosphereRenderer::renderZeroOrderScattering()
     }
 }
 
+
+void AtmosphereRenderer::precomputeEclipsedSingleScattering()
+{
+    // TODO: avoid redoing it if Sun elevation and Moon elevation and relative azimuth haven't changed
+    for(const auto& [scattererName, phaseFuncType] : params.scatterers)
+    {
+        auto& textures=eclipsedSingleScatteringPrecomputationTextures[scattererName];
+        const auto& programs=eclipsedSingleScatteringPrecomputationPrograms->at(scattererName);
+        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        {
+            auto& prog=*programs[wlSetIndex];
+            prog.bind();
+            prog.setUniformValue("altitude", float(tools->altitude()));
+            prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
+            prog.setUniformValue("moonPositionRelativeToSunAzimuth", toQVector(moonPositionRelativeToSunAzimuth()));
+            prog.setUniformValue("sunZenithAngle", float(tools->sunZenithAngle()));
+            transmittanceTextures[wlSetIndex]->bind(0);
+            prog.setUniformValue("transmittanceTexture", 0);
+
+            auto& tex=*textures[wlSetIndex];
+            gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseSingleScatteringPrecomputationFBO);
+            gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,tex.textureId(),0);
+            checkFramebufferStatus(gl, "Eclipsed single scattering precomputation FBO");
+            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,mainFBO);
+}
+
 void AtmosphereRenderer::renderSingleScattering()
 {
+    if(tools->usingEclipseShader())
+    {
+        gl.glDisable(GL_BLEND);
+        precomputeEclipsedSingleScattering();
+        gl.glEnable(GL_BLEND);
+    }
+
     const auto renderMode = tools->onTheFlySingleScatteringEnabled() ? SSRM_ON_THE_FLY : SSRM_PRECOMPUTED;
     for(const auto& [scattererName,phaseFuncType] : params.scatterers)
     {
@@ -509,23 +576,47 @@ void AtmosphereRenderer::renderSingleScattering()
         }
         else if(phaseFuncType==PhaseFunctionType::General)
         {
-            for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+            if(tools->usingEclipseShader())
             {
-                auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
-                prog.bind();
-                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                prog.setUniformValue("zoomFactor", tools->zoomFactor());
-                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                 {
-                    auto& tex=*singleScatteringTextures.at(scattererName)[wlSetIndex];
-                    const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
-                    tex.setMinificationFilter(texFilter);
-                    tex.setMagnificationFilter(texFilter);
-                    tex.bind(0);
-                    prog.setUniformValue("scatteringTexture", 0);
-                }
+                    auto& prog=*eclipsedSingleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
+                    prog.bind();
+                    prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                    prog.setUniformValue("zoomFactor", tools->zoomFactor());
+                    prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                    {
+                        auto& tex=*eclipsedSingleScatteringPrecomputationTextures.at(scattererName)[wlSetIndex];
+                        const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+                        tex.setMinificationFilter(texFilter);
+                        tex.setMagnificationFilter(texFilter);
+                        tex.bind(0);
+                        prog.setUniformValue("eclipsedScatteringTexture", 0);
+                    }
 
-                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                }
+            }
+            else
+            {
+                for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+                {
+                    auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
+                    prog.bind();
+                    prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                    prog.setUniformValue("zoomFactor", tools->zoomFactor());
+                    prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                    {
+                        auto& tex=*singleScatteringTextures.at(scattererName)[wlSetIndex];
+                        const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+                        tex.setMinificationFilter(texFilter);
+                        tex.setMagnificationFilter(texFilter);
+                        tex.bind(0);
+                        prog.setUniformValue("scatteringTexture", 0);
+                    }
+
+                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                }
             }
         }
         else if(phaseFuncType==PhaseFunctionType::Achromatic)
@@ -574,7 +665,7 @@ void AtmosphereRenderer::draw()
 
     gl.glBindVertexArray(vao);
     {
-        gl.glBindFramebuffer(GL_FRAMEBUFFER,fbo);
+        gl.glBindFramebuffer(GL_FRAMEBUFFER,mainFBO);
         gl.glClearColor(0,0,0,0);
         gl.glClear(GL_COLOR_BUFFER_BIT);
         gl.glEnable(GL_BLEND);
@@ -592,7 +683,7 @@ void AtmosphereRenderer::draw()
         gl.glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
         {
             luminanceToScreenRGB->bind();
-            texFBO.bind(0);
+            mainFBOTexture.bind(0);
             luminanceToScreenRGB->setUniformValue("luminanceXYZW", 0);
             bayerPatternTexture.bind(1);
             luminanceToScreenRGB->setUniformValue("bayerPattern", 1);
@@ -606,10 +697,31 @@ void AtmosphereRenderer::draw()
 
 void AtmosphereRenderer::setupRenderTarget()
 {
-    gl.glGenFramebuffers(1,&fbo);
-    texFBO.setMinificationFilter(QOpenGLTexture::Nearest);
-    texFBO.setMagnificationFilter(QOpenGLTexture::Nearest);
-    texFBO.setWrapMode(QOpenGLTexture::ClampToEdge);
+    gl.glGenFramebuffers(1,&mainFBO);
+    mainFBOTexture.setMinificationFilter(QOpenGLTexture::Nearest);
+    mainFBOTexture.setMagnificationFilter(QOpenGLTexture::Nearest);
+    mainFBOTexture.setWrapMode(QOpenGLTexture::ClampToEdge);
+
+    gl.glGenFramebuffers(1,&eclipseSingleScatteringPrecomputationFBO);
+    eclipsedSingleScatteringPrecomputationTextures.clear();
+    for(const auto& [scattererName, phaseFuncType] : params.scatterers)
+    {
+        auto& textures=eclipsedSingleScatteringPrecomputationTextures[scattererName];
+        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        {
+            auto& tex=*textures.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D));
+            tex.setMinificationFilter(QOpenGLTexture::Linear);
+            tex.setMagnificationFilter(QOpenGLTexture::Linear);
+            // relative azimuth; we don't rely on auto-repeater, since it'd shift the computed azimuths by half a texel
+            tex.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
+            // cosVZA
+            tex.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+            tex.bind();
+            const auto width=params.eclipseSingleScatteringTextureSizeForRelAzimuth;
+            const auto height=params.eclipseSingleScatteringTextureSizeForCosVZA;
+            gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        }
+    }
 
     GLint viewport[4];
     gl.glGetIntegerv(GL_VIEWPORT, viewport);
@@ -624,7 +736,7 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     , params(params)
     , multipleScatteringTexture(QOpenGLTexture::Target3D)
     , bayerPatternTexture(QOpenGLTexture::Target2D)
-    , texFBO(QOpenGLTexture::Target2D)
+    , mainFBOTexture(QOpenGLTexture::Target2D)
 {
     for(const auto& [scattererName,_] : params.scatterers)
         scatterersEnabledStates[scattererName]=true;
@@ -638,16 +750,17 @@ AtmosphereRenderer::~AtmosphereRenderer()
 {
     gl.glDeleteBuffers(1, &vbo);
     gl.glDeleteVertexArrays(1, &vao);
-    gl.glDeleteFramebuffers(1, &fbo);
+    gl.glDeleteFramebuffers(1, &mainFBO);
+    gl.glDeleteFramebuffers(1, &eclipseSingleScatteringPrecomputationFBO);
 }
 
 void AtmosphereRenderer::resizeEvent(const int width, const int height)
 {
-    assert(fbo);
-    texFBO.bind();
+    assert(mainFBO);
+    mainFBOTexture.bind();
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbo);
-    gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,texFBO.textureId(),0);
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,mainFBO);
+    gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,mainFBOTexture.textureId(),0);
     checkFramebufferStatus(gl, "Atmosphere renderer FBO");
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
