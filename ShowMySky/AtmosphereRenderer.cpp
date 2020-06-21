@@ -299,7 +299,7 @@ vec3 calcViewDir()
             for(const auto& [scattererName,phaseFuncType] : params.scatterers)
             {
                 auto& programs=programsPerScatterer[scattererName];
-                if(phaseFuncType==PhaseFunctionType::General || (phaseFuncType!=PhaseFunctionType::Smooth && renderMode==SSRM_ON_THE_FLY))
+                if(phaseFuncType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY)
                 {
                     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                     {
@@ -320,7 +320,7 @@ vec3 calcViewDir()
                         link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
                     }
                 }
-                else if(phaseFuncType==PhaseFunctionType::Achromatic)
+                else
                 {
                     const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3").arg(pathToData)
                                                                                                 .arg(singleScatteringRenderModeNames[renderMode])
@@ -641,44 +641,41 @@ void AtmosphereRenderer::renderSingleScattering()
                 }
             }
         }
-        else if(phaseFuncType==PhaseFunctionType::Achromatic)
+        else if(phaseFuncType==PhaseFunctionType::Achromatic && !tools->usingEclipseShader())
         {
-            if(tools->usingEclipseShader())
+            auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName).front();
+            prog.bind();
+            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+            prog.setUniformValue("zoomFactor", tools->zoomFactor());
+            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             {
-                auto& prog=*eclipsedSingleScatteringPrograms[renderMode]->at(scattererName).front();
-                prog.bind();
-                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                prog.setUniformValue("zoomFactor", tools->zoomFactor());
-                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
-                {
-                    auto& tex=*eclipsedSingleScatteringPrecomputationTextures.at(scattererName).front();
-                    const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
-                    tex.setMinificationFilter(texFilter);
-                    tex.setMagnificationFilter(texFilter);
-                    tex.bind(0);
-                    prog.setUniformValue("eclipsedScatteringTexture", 0);
-                }
-
-                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                auto& tex=*singleScatteringTextures.at(scattererName).front();
+                const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+                tex.setMinificationFilter(texFilter);
+                tex.setMagnificationFilter(texFilter);
+                tex.bind(0);
             }
-            else
+            prog.setUniformValue("scatteringTexture", 0);
+
+            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+        else if(tools->usingEclipseShader())
+        {
+            auto& prog=*eclipsedSingleScatteringPrograms[renderMode]->at(scattererName).front();
+            prog.bind();
+            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+            prog.setUniformValue("zoomFactor", tools->zoomFactor());
+            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             {
-                auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName).front();
-                prog.bind();
-                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                prog.setUniformValue("zoomFactor", tools->zoomFactor());
-                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
-                {
-                    auto& tex=*singleScatteringTextures.at(scattererName).front();
-                    const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
-                    tex.setMinificationFilter(texFilter);
-                    tex.setMagnificationFilter(texFilter);
-                    tex.bind(0);
-                }
-                prog.setUniformValue("scatteringTexture", 0);
-
-                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                auto& tex=*eclipsedSingleScatteringPrecomputationTextures.at(scattererName).front();
+                const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+                tex.setMinificationFilter(texFilter);
+                tex.setMagnificationFilter(texFilter);
+                tex.bind(0);
+                prog.setUniformValue("eclipsedScatteringTexture", 0);
             }
+
+            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
     }
 }

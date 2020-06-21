@@ -746,13 +746,13 @@ int main(int argc, char** argv)
         {
             for(unsigned texIndex=0; texIndex<allWavelengths.size(); ++texIndex)
             {
+                createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/precomputation/"+
+                           std::to_string(texIndex)+"/"+scatterer.name.toStdString());
+                createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
+                           std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 if(scatterer.phaseFunctionType!=PhaseFunctionType::Smooth)
                 {
                     createDirs(textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
-                               std::to_string(texIndex)+"/"+scatterer.name.toStdString());
-                    createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
-                               std::to_string(texIndex)+"/"+scatterer.name.toStdString());
-                    createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/precomputation/"+
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 }
                 if(scatterer.phaseFunctionType==PhaseFunctionType::General)
@@ -767,6 +767,9 @@ int main(int argc, char** argv)
             {
                 createDirs(textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                            scatterer.name.toStdString());
+            }
+            if(scatterer.phaseFunctionType!=PhaseFunctionType::General)
+            {
                 createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                            scatterer.name.toStdString());
             }
