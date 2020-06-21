@@ -299,11 +299,31 @@ vec3 calcViewDir()
             for(const auto& [scattererName,phaseFuncType] : params.scatterers)
             {
                 auto& programs=programsPerScatterer[scattererName];
-                for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+                if(phaseFuncType==PhaseFunctionType::General || (phaseFuncType!=PhaseFunctionType::Smooth && renderMode==SSRM_ON_THE_FLY))
                 {
-                    const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4").arg(pathToData)
+                    for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+                    {
+                        const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4").arg(pathToData)
+                                                                                                    .arg(singleScatteringRenderModeNames[renderMode])
+                                                                                                    .arg(wlSetIndex)
+                                                                                                    .arg(scattererName);
+                        auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+
+                        for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+                            addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+
+                        addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
+
+                        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
+                                      commonVertexShaderSrc);
+
+                        link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+                    }
+                }
+                else if(phaseFuncType==PhaseFunctionType::Achromatic)
+                {
+                    const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3").arg(pathToData)
                                                                                                 .arg(singleScatteringRenderModeNames[renderMode])
-                                                                                                .arg(wlSetIndex)
                                                                                                 .arg(scattererName);
                     auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
@@ -500,6 +520,8 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
     {
         auto& textures=eclipsedSingleScatteringPrecomputationTextures[scattererName];
         const auto& programs=eclipsedSingleScatteringPrecomputationPrograms->at(scattererName);
+        gl.glDisable(GL_BLEND); // First wavelength set overwrites old contents, regardless of subsequent blending modes
+        const bool needBlending = phaseFuncType==PhaseFunctionType::Achromatic || phaseFuncType==PhaseFunctionType::Smooth;
         for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
         {
             auto& prog=*programs[wlSetIndex];
@@ -511,24 +533,24 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
             transmittanceTextures[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
 
-            auto& tex=*textures[wlSetIndex];
+            auto& tex = needBlending ? *textures.front() : *textures[wlSetIndex];
             gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseSingleScatteringPrecomputationFBO);
             gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,tex.textureId(),0);
             checkFramebufferStatus(gl, "Eclipsed single scattering precomputation FBO");
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+            if(needBlending)
+                gl.glEnable(GL_BLEND);
         }
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,mainFBO);
+    gl.glEnable(GL_BLEND);
 }
 
 void AtmosphereRenderer::renderSingleScattering()
 {
     if(tools->usingEclipseShader())
-    {
-        gl.glDisable(GL_BLEND);
         precomputeEclipsedSingleScattering();
-        gl.glEnable(GL_BLEND);
-    }
 
     const auto renderMode = tools->onTheFlySingleScatteringEnabled() ? SSRM_ON_THE_FLY : SSRM_PRECOMPUTED;
     for(const auto& [scattererName,phaseFuncType] : params.scatterers)
@@ -621,21 +643,42 @@ void AtmosphereRenderer::renderSingleScattering()
         }
         else if(phaseFuncType==PhaseFunctionType::Achromatic)
         {
-            auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName).front();
-            prog.bind();
-            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-            prog.setUniformValue("zoomFactor", tools->zoomFactor());
-            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            if(tools->usingEclipseShader())
             {
-                auto& tex=*singleScatteringTextures.at(scattererName).front();
-                const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
-                tex.setMinificationFilter(texFilter);
-                tex.setMagnificationFilter(texFilter);
-                tex.bind(0);
-            }
-            prog.setUniformValue("scatteringTexture", 0);
+                auto& prog=*eclipsedSingleScatteringPrograms[renderMode]->at(scattererName).front();
+                prog.bind();
+                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                prog.setUniformValue("zoomFactor", tools->zoomFactor());
+                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                {
+                    auto& tex=*eclipsedSingleScatteringPrecomputationTextures.at(scattererName).front();
+                    const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+                    tex.setMinificationFilter(texFilter);
+                    tex.setMagnificationFilter(texFilter);
+                    tex.bind(0);
+                    prog.setUniformValue("eclipsedScatteringTexture", 0);
+                }
 
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+            else
+            {
+                auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName).front();
+                prog.bind();
+                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                prog.setUniformValue("zoomFactor", tools->zoomFactor());
+                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                {
+                    auto& tex=*singleScatteringTextures.at(scattererName).front();
+                    const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+                    tex.setMinificationFilter(texFilter);
+                    tex.setMagnificationFilter(texFilter);
+                    tex.bind(0);
+                }
+                prog.setUniformValue("scatteringTexture", 0);
+
+                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
         }
     }
 }
@@ -720,6 +763,9 @@ void AtmosphereRenderer::setupRenderTarget()
             const auto width=params.eclipseSingleScatteringTextureSizeForRelAzimuth;
             const auto height=params.eclipseSingleScatteringTextureSizeForCosVZA;
             gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+
+            if(phaseFuncType==PhaseFunctionType::Achromatic || phaseFuncType==PhaseFunctionType::Smooth)
+                break;
         }
     }
 

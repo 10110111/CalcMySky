@@ -27,6 +27,13 @@ void main()
                             texVars.cosViewZenithAngle);
     const vec3 cameraPosition=vec3(0,0,altitude);
     const vec3 sunDirection=vec3(sin(sunZenithAngle), 0, cos(sunZenithAngle));
-    scatteringTextureOutput=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPositionRelativeToSunAzimuth,
-                                                            texVars.viewRayIntersectsGround);
+    const vec4 radiance=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPositionRelativeToSunAzimuth,
+                                                        texVars.viewRayIntersectsGround);
+#if COMPUTE_RADIANCE
+    scatteringTextureOutput=radiance;
+#elif COMPUTE_LUMINANCE
+    scatteringTextureOutput=radianceToLuminance*radiance;
+#else
+#error What to compute?
+#endif
 }

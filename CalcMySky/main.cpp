@@ -281,7 +281,8 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Scatte
     std::vector<std::pair<QString, QString>> sourcesToSave;
     static constexpr char renderShaderFileName[]="render.frag";
     const auto renderModeDefine = renderMode==SSRM_ON_THE_FLY ? "RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY" :
-                                  "RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE";
+                                  scatterer.phaseFunctionType==PhaseFunctionType::General ? "RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE"
+                                                                                          : "RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
                                                 .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 // \\1")
                                                 .replace(QRegExp("#include \"(common-functions|texture-sampling-functions|single-scattering)\\.h\\.glsl\""), "");
@@ -292,11 +293,9 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Scatte
     {
         if(filename==viewDirFuncFileName) continue;
 
-        const auto filePath = QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4/%5").arg(textureOutputDir.c_str())
-                                                                                          .arg(toString(renderMode))
-                                                                                          .arg(texIndex)
-                                                                                          .arg(scatterer.name)
-                                                                                          .arg(filename);
+        const auto filePath = scatterer.phaseFunctionType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY ?
+            QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4/%5").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(texIndex).arg(scatterer.name).arg(filename) :
+            QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(scatterer.name).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -315,14 +314,15 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Scatte
     }
 }
 
-void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, QString const& scattererName)
+void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, ScattererDescription const& scatterer)
 {
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
-        "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scattererName+"(dotViewSun); }\n";
+        "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
 
     std::vector<std::pair<QString, QString>> sourcesToSave;
     static constexpr char renderShaderFileName[]="compute-eclipsed-single-scattering.frag";
-    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{});
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+        .replace(QRegExp(QString("\\b(%1)\\b").arg(scatterer.phaseFunctionType==PhaseFunctionType::General ? "COMPUTE_RADIANCE" : "COMPUTE_LUMINANCE")), "1 // \\1");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -333,7 +333,7 @@ void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, QStr
         const auto filePath = QString("%1/shaders/single-scattering-eclipsed/precomputation/%2/%3/%4")
                                     .arg(textureOutputDir.c_str())
                                     .arg(texIndex)
-                                    .arg(scattererName)
+                                    .arg(scatterer.name)
                                     .arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
@@ -431,7 +431,7 @@ void computeSingleScattering(const unsigned texIndex, ScattererDescription const
     saveSingleScatteringRenderingShader(texIndex, scatterer, SSRM_PRECOMPUTED);
     saveEclipsedSingleScatteringRenderingShader(texIndex, scatterer, SSRM_ON_THE_FLY);
     saveEclipsedSingleScatteringRenderingShader(texIndex, scatterer, SSRM_PRECOMPUTED);
-    saveEclipsedSingleScatteringComputationShader(texIndex, scatterer.name);
+    saveEclipsedSingleScatteringComputationShader(texIndex, scatterer);
 }
 
 void computeIndirectIrradianceOrder1(unsigned texIndex, unsigned scattererIndex);
