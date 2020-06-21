@@ -78,6 +78,12 @@ void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view wha
 {
     if(dbgNoSaveTextures) return; // don't take time to do useless computations
 
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "FAILED: " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
+
     std::cerr << indentOutput() << whatIsBeingDone << "... ";
     for(GLsizei layer=0; layer<scatTexDepth(); ++layer)
     {
