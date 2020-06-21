@@ -560,9 +560,6 @@ void AtmosphereRenderer::renderSingleScattering()
 
         if(renderMode==SSRM_ON_THE_FLY)
         {
-            if(phaseFuncType==PhaseFunctionType::Smooth)
-                continue;
-
             if(tools->usingEclipseShader())
             {
                 for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
@@ -582,6 +579,9 @@ void AtmosphereRenderer::renderSingleScattering()
             }
             else
             {
+                if(phaseFuncType==PhaseFunctionType::Smooth)
+                    continue;
+
                 for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                 {
                     auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
