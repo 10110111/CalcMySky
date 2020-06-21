@@ -94,7 +94,6 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
                  moonElevation_->setEnabled(eclipseEnabled);
                  moonAzimuth_->setEnabled(eclipseEnabled);
                  // TODO: remove this disabling code after we implement zero-order and multiple scattering in eclipsed mode
-                 std::cerr << "Eclipse " << (eclipseEnabled ? "en" : "dis" ) << "abled!\n";
                  if(eclipseEnabled)
                  {
                      multipleScatteringEnabled_->setChecked(false);
