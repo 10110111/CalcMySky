@@ -89,8 +89,20 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
 
     usingEclipseShader_=addCheckBox(layout, this, tr("Use e&clipse-mode shader"), false);
     connect(usingEclipseShader_, &QCheckBox::stateChanged, this, [this](const int state)
-            { moonElevation_->setEnabled(state==Qt::Checked);
-              moonAzimuth_->setEnabled(state==Qt::Checked); });
+            {
+                 const bool eclipseEnabled = state==Qt::Checked;
+                 moonElevation_->setEnabled(eclipseEnabled);
+                 moonAzimuth_->setEnabled(eclipseEnabled);
+                 // TODO: remove this disabling code after we implement zero-order and multiple scattering in eclipsed mode
+                 std::cerr << "Eclipse " << (eclipseEnabled ? "en" : "dis" ) << "abled!\n";
+                 if(eclipseEnabled)
+                 {
+                     multipleScatteringEnabled_->setChecked(false);
+                     zeroOrderScatteringEnabled_->setChecked(false);
+                 }
+                 multipleScatteringEnabled_->setEnabled(!eclipseEnabled);
+                 zeroOrderScatteringEnabled_->setEnabled(!eclipseEnabled);
+            });
     triggerStateChanged(usingEclipseShader_);
 
     {
