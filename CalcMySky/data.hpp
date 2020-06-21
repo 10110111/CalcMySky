@@ -99,7 +99,7 @@ struct ScattererDescription
     PhaseFunctionType phaseFunctionType=PhaseFunctionType::General;
     QString name;
 
-    ScattererDescription(QString const& name) : name(name) {}
+    explicit ScattererDescription(QString const& name) : name(name) {}
     bool valid() const
     {
         return std::isfinite(crossSectionAt1um) &&
