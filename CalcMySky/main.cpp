@@ -80,7 +80,7 @@ void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view wha
 
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
-        std::cerr << "FAILED: " << openglErrorString(err) << "\n";
+        std::cerr << "FAILED on entry to render3DTexLayers(): " << openglErrorString(err) << "\n";
         throw MustQuit{};
     }
 
