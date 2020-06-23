@@ -6,6 +6,9 @@
 namespace
 {
 
+const auto text_drawMultipleScattering=QObject::tr("Draw &multiple scattering layer");
+const auto text_drawMultipleScattering_plusSomeSingle=QObject::tr("Draw &multiple scattering layer (plus merged single scattering)");
+
 Manipulator* addManipulator(QVBoxLayout*const layout, ToolsWidget*const tools,
                             QString const& label, const double min, const double max, const double defaultValue,
                             const int decimalPlaces, QString const& unit="")
@@ -83,7 +86,7 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
         connect(singleScatteringEnabled_, &QCheckBox::stateChanged, frame, [frame](const int state)
                 { frame->setEnabled(state==Qt::Checked); });
     }
-    multipleScatteringEnabled_  = addCheckBox(layout, this, tr("Draw &multiple scattering layer"), true);
+    multipleScatteringEnabled_  = addCheckBox(layout, this, text_drawMultipleScattering, true);
     textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
 
@@ -148,10 +151,14 @@ void ToolsWidget::updateParameters(AtmosphereRenderer::Parameters const& params)
         delete checkbox;
     scatterers.clear();
 
+    multipleScatteringEnabled_->setText(text_drawMultipleScattering);
     for(const auto& [scattererName,phaseFunctionType] : params.scatterers)
     {
         if(phaseFunctionType==PhaseFunctionType::Smooth)
+        {
+            multipleScatteringEnabled_->setText(text_drawMultipleScattering_plusSomeSingle);
             continue;
+        }
 
         const auto checkbox=new QCheckBox(scattererName);
         checkbox->setChecked(true);
