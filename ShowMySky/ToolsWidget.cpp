@@ -7,7 +7,7 @@ namespace
 {
 
 const auto text_drawMultipleScattering=QObject::tr("Draw &multiple scattering layer");
-const auto text_drawMultipleScattering_plusSomeSingle=QObject::tr("Draw &multiple scattering layer (plus merged single scattering)");
+const auto text_drawMultipleScattering_plusSomeSingle=QObject::tr("Draw &multiple (and merged single) scattering layer");
 
 Manipulator* addManipulator(QVBoxLayout*const layout, ToolsWidget*const tools,
                             QString const& label, const double min, const double max, const double defaultValue,
