@@ -196,13 +196,17 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
     }
 }
 
-void saveMultipleScatteringRenderingShader()
+void saveMultipleScatteringRenderingShader(const unsigned texIndex)
 {
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
+    const QString macroToReplace = saveResultAsRadiance ? "RENDERING_MULTIPLE_SCATTERING_RADIANCE" : "RENDERING_MULTIPLE_SCATTERING_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-            .replace(QRegExp("\\b(RENDERING_MULTIPLE_SCATTERING)\\b"), "1 // \\1")
-            .replace(QRegExp("#include \"(phase-functions|common-functions|texture-sampling-functions|single-scattering|single-scattering-eclipsed|radiance-to-luminance)\\.h\\.glsl\""), "");
+            .replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 // \\1")
+            .replace(QRegExp("#include \"("
+                             "phase-functions|common-functions|texture-sampling-functions|single-scattering|single-scattering-eclipsed"
+                             +QString(saveResultAsRadiance ? "" : "|radiance-to-luminance")+
+                             ")\\.h\\.glsl\""), "");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "multiple scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -210,7 +214,8 @@ void saveMultipleScatteringRenderingShader()
     {
         if(filename==viewDirFuncFileName) continue;
 
-        const auto filePath=QString("%1/shaders/multiple-scattering/%2").arg(textureOutputDir.c_str()).arg(filename);
+        const auto filePath = saveResultAsRadiance ? QString("%1/shaders/multiple-scattering/%2/%3").arg(textureOutputDir.c_str()).arg(texIndex).arg(filename)
+                                                   : QString("%1/shaders/multiple-scattering/%2").arg(textureOutputDir.c_str()).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -780,6 +785,9 @@ int main(int argc, char** argv)
             createDirs(textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
         }
         createDirs(textureOutputDir+"/shaders/multiple-scattering/");
+        if(saveResultAsRadiance)
+            for(unsigned texIndex=0; texIndex<allWavelengths.size(); ++texIndex)
+                createDirs(textureOutputDir+"/shaders/multiple-scattering/"+std::to_string(texIndex));
 
         {
             std::cerr << "Writing parameters to output description file...";
@@ -886,8 +894,11 @@ int main(int argc, char** argv)
             }
 
             computeMultipleScattering(texIndex);
+            if(saveResultAsRadiance)
+                saveMultipleScatteringRenderingShader(texIndex);
         }
-        saveMultipleScatteringRenderingShader();
+        if(!saveResultAsRadiance)
+            saveMultipleScatteringRenderingShader(-1);
 
         {
             const auto timeEnd=std::chrono::steady_clock::now();

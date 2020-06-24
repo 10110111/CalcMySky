@@ -132,8 +132,11 @@ void main()
     const vec4 scattering = sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z,
                                             dotViewSun, altitude, viewRayIntersectsGround);
     luminance=scattering*currentPhaseFunction(dotViewSun);
-#elif RENDERING_MULTIPLE_SCATTERING
+#elif RENDERING_MULTIPLE_SCATTERING_LUMINANCE
     luminance=sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z, dotViewSun, altitude, viewRayIntersectsGround);
+#elif RENDERING_MULTIPLE_SCATTERING_RADIANCE
+    const vec4 radiance=sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z, dotViewSun, altitude, viewRayIntersectsGround);
+    luminance=radianceToLuminance*radiance;
 #else
 #error What to render?
 #endif

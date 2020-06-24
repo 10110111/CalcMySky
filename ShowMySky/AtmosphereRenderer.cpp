@@ -179,11 +179,29 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
     }
 
     const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
-    multipleScatteringTexture.setMinificationFilter(texFilter);
-    multipleScatteringTexture.setMagnificationFilter(texFilter);
-    multipleScatteringTexture.setWrapMode(QOpenGLTexture::ClampToEdge);
-    multipleScatteringTexture.bind();
-    loadTexture4D(pathToData+"/multiple-scattering-xyzw.f32");
+
+    multipleScatteringTextures.clear();
+    if(const auto filename=pathToData+"/multiple-scattering-xyzw.f32"; QFile::exists(filename))
+    {
+        auto& tex=*multipleScatteringTextures.emplace_back(newTex(QOpenGLTexture::Target3D));
+        tex.setMinificationFilter(texFilter);
+        tex.setMagnificationFilter(texFilter);
+        tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+        tex.bind();
+        loadTexture4D(filename);
+    }
+    else
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        {
+            auto& tex=*multipleScatteringTextures.emplace_back(newTex(QOpenGLTexture::Target3D));
+            tex.setMinificationFilter(texFilter);
+            tex.setMagnificationFilter(texFilter);
+            tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+            tex.bind();
+            loadTexture4D(QString("%1/multiple-scattering-wlset%2.f32").arg(pathToData).arg(wlSetIndex));
+        }
+    }
 
     singleScatteringTextures.clear();
     for(const auto& [scattererName, phaseFuncType] : params.scatterers)
@@ -413,9 +431,23 @@ void main()
 )");
     link(*luminanceToScreenRGB, tr("luminanceToScreenRGB shader program"));
 
+    multipleScatteringPrograms.clear();
+    if(QFile::exists(pathToData+"/shaders/multiple-scattering/0/"))
     {
-        multipleScatteringProgram=std::make_unique<QOpenGLShaderProgram>();
-        auto& program=*multipleScatteringProgram;
+        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        {
+            auto& program=*multipleScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+            const auto wlDir=QString("%1/shaders/multiple-scattering/%2").arg(pathToData).arg(wlSetIndex);
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+                addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+            addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
+            addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for multiple scattering"), commonVertexShaderSrc);
+            link(program, tr("multiple scattering shader program"));
+        }
+    }
+    else
+    {
+        auto& program=*multipleScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
         const auto wlDir=pathToData+"/shaders/multiple-scattering/";
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
@@ -687,20 +719,40 @@ void AtmosphereRenderer::renderSingleScattering()
 
 void AtmosphereRenderer::renderMultipleScattering()
 {
-    auto& prog=*multipleScatteringProgram;
-    prog.bind();
-    prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-    prog.setUniformValue("zoomFactor", tools->zoomFactor());
-    prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+    const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+    if(multipleScatteringTextures.size()==1)
     {
-        const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
-        multipleScatteringTexture.setMinificationFilter(texFilter);
-        multipleScatteringTexture.setMagnificationFilter(texFilter);
-    }
-    multipleScatteringTexture.bind(0);
-    prog.setUniformValue("scatteringTexture", 0);
+        auto& prog=*multipleScatteringPrograms.front();
+        prog.bind();
+        prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+        prog.setUniformValue("zoomFactor", tools->zoomFactor());
+        prog.setUniformValue("sunDirection", toQVector(sunDirection()));
 
-    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        auto& tex=*multipleScatteringTextures.front();
+        tex.setMinificationFilter(texFilter);
+        tex.setMagnificationFilter(texFilter);
+        tex.bind(0);
+        prog.setUniformValue("scatteringTexture", 0);
+        gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+    else
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        {
+            auto& prog=*multipleScatteringPrograms[wlSetIndex];
+            prog.bind();
+            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+            prog.setUniformValue("zoomFactor", tools->zoomFactor());
+            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+
+            auto& tex=*multipleScatteringTextures[wlSetIndex];
+            tex.setMinificationFilter(texFilter);
+            tex.setMagnificationFilter(texFilter);
+            tex.bind(0);
+            prog.setUniformValue("scatteringTexture", 0);
+            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
 }
 
 void AtmosphereRenderer::draw()
@@ -782,7 +834,6 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     : gl(gl)
     , tools(tools)
     , params(params)
-    , multipleScatteringTexture(QOpenGLTexture::Target3D)
     , bayerPatternTexture(QOpenGLTexture::Target2D)
     , mainFBOTexture(QOpenGLTexture::Target2D)
 {
@@ -792,6 +843,12 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     loadTextures(pathToData);
     setupRenderTarget();
     setupBuffers();
+    if(multipleScatteringPrograms.size() != multipleScatteringTextures.size())
+    {
+        throw DataLoadError{tr("Numbers of multiple scattering shader programs and textures don't match: %1 vs %2")
+                              .arg(multipleScatteringPrograms.size())
+                              .arg(multipleScatteringTextures.size())};
+    }
 }
 
 AtmosphereRenderer::~AtmosphereRenderer()

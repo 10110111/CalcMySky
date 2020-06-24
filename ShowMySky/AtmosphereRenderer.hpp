@@ -66,23 +66,23 @@ private:
 
     GLuint vao=0, vbo=0, mainFBO=0;
     GLuint eclipseSingleScatteringPrecomputationFBO=0;
+    std::vector<TexturePtr> multipleScatteringTextures;
     std::vector<TexturePtr> transmittanceTextures;
     std::vector<TexturePtr> irradianceTextures;
     // Indexed as singleScatteringTextures[scattererName][wavelengthSetIndex]
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures;
     std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures;
-    QOpenGLTexture multipleScatteringTexture;
     QOpenGLTexture bayerPatternTexture;
     QOpenGLTexture mainFBOTexture;
 
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms;
+    std::vector<ShaderProgPtr> multipleScatteringPrograms;
     // Indexed as singleScatteringPrograms[renderMode][scattererName][wavelengthSetIndex]
     using ScatteringProgramsMap=std::map<ScattererName,std::vector<ShaderProgPtr>>;
     std::vector<std::unique_ptr<ScatteringProgramsMap>> singleScatteringPrograms;
     std::vector<std::unique_ptr<ScatteringProgramsMap>> eclipsedSingleScatteringPrograms;
     // Indexed as eclipsedSingleScatteringPrecomputationPrograms[scattererName][wavelengthSetIndex]
     std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms;
-    ShaderProgPtr multipleScatteringProgram;
     ShaderProgPtr luminanceToScreenRGB;
     std::map<ScattererName,bool> scatterersEnabledStates;
 
