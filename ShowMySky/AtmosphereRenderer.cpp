@@ -24,6 +24,11 @@ static GLsizei scatTexWidth(glm::ivec4 sizes) { return sizes[0]; }
 static GLsizei scatTexHeight(glm::ivec4 sizes) { return sizes[1]*sizes[2]; }
 static GLsizei scatTexDepth(glm::ivec4 sizes) { return sizes[3]; }
 
+static auto newTex(QOpenGLTexture::Target target)
+{
+    return std::make_unique<QOpenGLTexture>(target);
+}
+
 void AtmosphereRenderer::makeBayerPatternTexture()
 {
     bayerPatternTexture.setMinificationFilter(QOpenGLTexture::Nearest);
@@ -157,7 +162,7 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
 
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
-        auto& tex=*transmittanceTextures.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D));
+        auto& tex=*transmittanceTextures.emplace_back(newTex(QOpenGLTexture::Target2D));
         tex.setMinificationFilter(QOpenGLTexture::Linear);
         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
         tex.bind();
@@ -166,7 +171,7 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
 
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
-        auto& tex=*irradianceTextures.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D));
+        auto& tex=*irradianceTextures.emplace_back(newTex(QOpenGLTexture::Target2D));
         tex.setMinificationFilter(QOpenGLTexture::Linear);
         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
         tex.bind();
@@ -189,7 +194,7 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
         case PhaseFunctionType::General:
             for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
             {
-                auto& texture=*texturesPerWLSet.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target3D));
+                auto& texture=*texturesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
                 texture.setMinificationFilter(texFilter);
                 texture.setMagnificationFilter(texFilter);
                 texture.setWrapMode(QOpenGLTexture::ClampToEdge);
@@ -199,7 +204,7 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
             break;
         case PhaseFunctionType::Achromatic:
         {
-            auto& texture=*texturesPerWLSet.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target3D));
+            auto& texture=*texturesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
             texture.setMinificationFilter(texFilter);
             texture.setMagnificationFilter(texFilter);
             texture.setWrapMode(QOpenGLTexture::ClampToEdge);
@@ -749,7 +754,7 @@ void AtmosphereRenderer::setupRenderTarget()
         auto& textures=eclipsedSingleScatteringPrecomputationTextures[scattererName];
         for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
         {
-            auto& tex=*textures.emplace_back(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D));
+            auto& tex=*textures.emplace_back(newTex(QOpenGLTexture::Target2D));
             tex.setMinificationFilter(QOpenGLTexture::Linear);
             tex.setMagnificationFilter(QOpenGLTexture::Linear);
             // relative azimuth; we don't rely on auto-repeater, since it'd shift the computed azimuths by half a texel
