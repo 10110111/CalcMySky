@@ -2,6 +2,7 @@
 #include <QFrame>
 #include <QPushButton>
 #include <cmath>
+#include "RadiancePlot.hpp"
 
 namespace
 {
@@ -113,6 +114,11 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
         connect(button, &QPushButton::clicked, this, &ToolsWidget::reloadShadersClicked);
     }
     {
+        showRadiancePlot_=new QPushButton(tr("Show radiance &plot"));
+        layout->addWidget(showRadiancePlot_);
+        connect(showRadiancePlot_, &QPushButton::clicked, this, &ToolsWidget::showRadiancePlot);
+    }
+    {
         const auto grid=new QGridLayout;
         layout->addLayout(grid);
         grid->setColumnStretch(1,1);
@@ -122,6 +128,24 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     }
 
     layout->addStretch();
+}
+
+void ToolsWidget::showRadiancePlot()
+{
+    if(!radiancePlot_)
+        radiancePlot_.reset(new RadiancePlot);
+    radiancePlot_->show();
+}
+
+void ToolsWidget::handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance const& spectrum)
+{
+    if(!radiancePlot_) return;
+    radiancePlot_->setData(spectrum.wavelengths.data(), spectrum.radiances.data(), spectrum.wavelengths.size());
+}
+
+void ToolsWidget::setCanGrabRadiance(const bool can)
+{
+    showRadiancePlot_->setEnabled(can);
 }
 
 void ToolsWidget::setSunAzimuth(const double azimuth)

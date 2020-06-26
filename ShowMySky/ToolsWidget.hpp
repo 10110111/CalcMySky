@@ -2,10 +2,12 @@
 #define INCLUDE_ONCE_5D7304A4_A588_478B_B21C_55EA5C4F88C0
 
 #include <QDockWidget>
+#include <QPushButton>
 #include <QComboBox>
 #include <QCheckBox>
 #include "Manipulator.hpp"
 #include "AtmosphereRenderer.hpp"
+#include "RadiancePlot.hpp"
 
 class QCheckBox;
 
@@ -30,6 +32,8 @@ class ToolsWidget : public QDockWidget
     QCheckBox* multipleScatteringEnabled_=nullptr;
     QCheckBox* textureFilteringEnabled_=nullptr;
     QCheckBox* usingEclipseShader_=nullptr;
+    QPushButton* showRadiancePlot_=nullptr;
+    std::unique_ptr<RadiancePlot> radiancePlot_;
     QLabel*const frameRate=new QLabel("N/A");
     QVector<QCheckBox*> scatterers;
 public:
@@ -50,10 +54,16 @@ public:
     bool usingEclipseShader() const { return usingEclipseShader_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }
 
+    void handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance const& spectrum);
+    void setCanGrabRadiance(bool can);
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);
     void showFrameRate(long long frameTimeInUS);
     void updateParameters(AtmosphereRenderer::Parameters const& params);
+
+private:
+    void showRadiancePlot();
+
 signals:
     void settingChanged();
     void setScattererEnabled(QString const& name, bool enable);

@@ -30,6 +30,7 @@ protected:
 
 private:
     void reloadShaders();
+    void updateSpectralRadiance(QPoint const& pixelPos);
 
 signals:
     void frameFinished(long long timeInUS);

@@ -53,14 +53,33 @@ void GLWidget::resizeGL(int w, int h)
     renderer->resizeEvent(w,h);
 }
 
+void GLWidget::updateSpectralRadiance(QPoint const& pixelPos)
+{
+    makeCurrent();
+    if(const auto spectrum=renderer->getPixelSpectralRadiance(pixelPos); !spectrum.empty())
+        tools->handleSpectralRadiance(spectrum);
+}
+
 void GLWidget::mouseMoveEvent(QMouseEvent* event)
 {
+    if(event->buttons()==Qt::LeftButton && !(event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier)))
+    {
+        updateSpectralRadiance(event->pos());
+        return;
+    }
+
     renderer->mouseMove(event->x(), event->y());
     update();
 }
 
 void GLWidget::mousePressEvent(QMouseEvent* event)
 {
+    if(event->buttons()==Qt::LeftButton && !(event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier)))
+    {
+        updateSpectralRadiance(event->pos());
+        return;
+    }
+
     if(event->modifiers() & Qt::ControlModifier)
         renderer->setDragMode(AtmosphereRenderer::DragMode::Sun, event->x(), event->y());
     else

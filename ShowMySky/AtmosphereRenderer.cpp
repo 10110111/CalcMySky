@@ -920,6 +920,7 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
                               .arg(multipleScatteringPrograms.size())
                               .arg(multipleScatteringTextures.size())};
     }
+    tools->setCanGrabRadiance(canGrabRadiance());
 }
 
 AtmosphereRenderer::~AtmosphereRenderer()

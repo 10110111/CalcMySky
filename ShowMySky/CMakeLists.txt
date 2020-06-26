@@ -5,6 +5,7 @@ add_executable(showmysky
                 GLWidget.cpp
                 ToolsWidget.cpp
                 Manipulator.cpp
+                RadiancePlot.cpp
                 AtmosphereRenderer.cpp
                 ../common/util.cpp
                 ../config.h)
