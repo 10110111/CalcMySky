@@ -186,14 +186,15 @@ int main(int argc, char** argv)
         handleCmdLine();
         const auto params=parseParams(pathToData);
 
-        QMainWindow mainWin;
+        const auto mainWin=new QMainWindow;
         const auto tools=new ToolsWidget(params.atmosphereHeight);
         const auto glWidget=new GLWidget(pathToData, params, tools);
 
-        mainWin.setCentralWidget(glWidget);
-        mainWin.addDockWidget(Qt::RightDockWidgetArea, tools);
-        mainWin.resize(app.primaryScreen()->size()/1.6);
-        mainWin.show();
+        mainWin->setAttribute(Qt::WA_DeleteOnClose);
+        mainWin->setCentralWidget(glWidget);
+        mainWin->addDockWidget(Qt::RightDockWidgetArea, tools);
+        mainWin->resize(app.primaryScreen()->size()/1.6);
+        mainWin->show();
         return app.exec();
     }
     catch(Error const& ex)
