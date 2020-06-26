@@ -44,7 +44,19 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
                                                 "and contain a multiple of 4 numbers").arg(filename)};
             }
 
-            params.wavelengthSetCount=wlStr.size()/4;
+            for(const auto& wl : wlStr)
+            {
+                bool ok=false;
+                double value=wl.toDouble(&ok);
+                if(!ok)
+                {
+                    throw DataLoadError{QObject::tr("Bad wavelengths entry in \"%1\": each component of the "
+                                                    "array must be a number; instead got \"%2\"")
+                                            .arg(filename).arg(wl)};
+                }
+                params.wavelengths.emplace_back(value);
+            }
+            params.wavelengthSetCount=params.wavelengths.size()/4;
         }
         else if(key=="eclipsed scattering texture size for relative azimuth")
         {
@@ -122,7 +134,7 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
         throw DataLoadError{QObject::tr("Failed to read parameters from \"%1\": %2")
                                         .arg(filename).arg(file.errorString())};
     }
-    if(!params.wavelengthSetCount)
+    if(params.wavelengths.empty())
         throw DataLoadError{QObject::tr("Failed to find wavelengths in \"%1\"").arg(filename)};
     if(!params.eclipseSingleScatteringTextureSizeForRelAzimuth)
         throw DataLoadError{QObject::tr("Failed to find eclipsed single scattering texture size for relative azimuth in \"%1\"").arg(filename)};

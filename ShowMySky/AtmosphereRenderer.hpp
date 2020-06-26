@@ -39,6 +39,7 @@ public:
 
     struct Parameters
     {
+        std::vector<unsigned> wavelengths;
         unsigned wavelengthSetCount=0;
         unsigned eclipseSingleScatteringTextureSizeForCosVZA=0;
         unsigned eclipseSingleScatteringTextureSizeForRelAzimuth=0;
