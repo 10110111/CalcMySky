@@ -531,10 +531,54 @@ double AtmosphereRenderer::moonAngularRadius() const
     return moonRadius/cameraMoonDistance();
 }
 
+auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) const -> SpectralRadiance
+{
+    if(radianceRenderBuffers.empty()) return {};
+
+    constexpr auto wavelengthsPerPixel=4;
+    SpectralRadiance output;
+    for(const auto wl : params.wavelengths)
+        output.wavelengths.emplace_back(wl);
+    gl.glBindFramebuffer(GL_FRAMEBUFFER, mainFBO);
+    gl.glReadBuffer(GL_COLOR_ATTACHMENT1);
+    for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+    {
+        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
+        GLfloat data[wavelengthsPerPixel]={NAN,NAN,NAN,NAN};
+        gl.glReadPixels(pixelPos.x(), viewportSize.height()-pixelPos.y()-1, 1,1, GL_RGBA, GL_FLOAT, data);
+        for(unsigned i=0; i<wavelengthsPerPixel; ++i)
+            output.radiances.emplace_back(data[i]);
+    }
+    assert(output.wavelengths.size()==output.radiances.size());
+    return output;
+}
+
+void AtmosphereRenderer::clearRadianceFrames()
+{
+    if(radianceRenderBuffers.empty()) return;
+
+    for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+    {
+        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
+        gl.glDrawBuffers(2, std::array<GLenum,2>{GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1}.data());
+        gl.glClearBufferfv(GL_COLOR, 1, std::array<GLfloat,4>{0,0,0,0}.data());
+    }
+}
+
+bool AtmosphereRenderer::canGrabRadiance() const
+{
+    const auto& sst=singleScatteringTextures;
+    const bool haveNoLuminanceOnlySingleScatteringTextures = std::find_if(sst.begin(), sst.end(), [=](auto const& texSet)
+                                                                          { return texSet.second.size()==1; }) == sst.end();
+    return haveNoLuminanceOnlySingleScatteringTextures && multipleScatteringTextures.size()==params.wavelengthSetCount;
+}
+
 void AtmosphereRenderer::renderZeroOrderScattering()
 {
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
+        if(!radianceRenderBuffers.empty())
+            gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
         auto& prog=*zeroOrderScatteringPrograms[wlSetIndex];
         prog.bind();
         prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
@@ -557,7 +601,7 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
     {
         auto& textures=eclipsedSingleScatteringPrecomputationTextures[scattererName];
         const auto& programs=eclipsedSingleScatteringPrecomputationPrograms->at(scattererName);
-        gl.glDisable(GL_BLEND); // First wavelength set overwrites old contents, regardless of subsequent blending modes
+        gl.glDisablei(GL_BLEND, 0); // First wavelength set overwrites old contents, regardless of subsequent blending modes
         const bool needBlending = phaseFuncType==PhaseFunctionType::Achromatic || phaseFuncType==PhaseFunctionType::Smooth;
         for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
         {
@@ -577,11 +621,11 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
             if(needBlending)
-                gl.glEnable(GL_BLEND);
+                gl.glEnablei(GL_BLEND, 0);
         }
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,mainFBO);
-    gl.glEnable(GL_BLEND);
+    gl.glEnablei(GL_BLEND, 0);
 }
 
 void AtmosphereRenderer::renderSingleScattering()
@@ -601,6 +645,9 @@ void AtmosphereRenderer::renderSingleScattering()
             {
                 for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                 {
+                    if(!radianceRenderBuffers.empty())
+                        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
+
                     auto& prog=*eclipsedSingleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
@@ -621,6 +668,9 @@ void AtmosphereRenderer::renderSingleScattering()
 
                 for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                 {
+                    if(!radianceRenderBuffers.empty())
+                        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
+
                     auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
@@ -639,6 +689,9 @@ void AtmosphereRenderer::renderSingleScattering()
             {
                 for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                 {
+                    if(!radianceRenderBuffers.empty())
+                        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
+
                     auto& prog=*eclipsedSingleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
@@ -660,6 +713,9 @@ void AtmosphereRenderer::renderSingleScattering()
             {
                 for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                 {
+                    if(!radianceRenderBuffers.empty())
+                        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
+
                     auto& prog=*singleScatteringPrograms[renderMode]->at(scattererName)[wlSetIndex];
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
@@ -739,6 +795,9 @@ void AtmosphereRenderer::renderMultipleScattering()
     {
         for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
         {
+            if(!radianceRenderBuffers.empty())
+                gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
+
             auto& prog=*multipleScatteringPrograms[wlSetIndex];
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
@@ -763,9 +822,14 @@ void AtmosphereRenderer::draw()
     gl.glBindVertexArray(vao);
     {
         gl.glBindFramebuffer(GL_FRAMEBUFFER,mainFBO);
+        if(canGrabRadiance())
+        {
+            clearRadianceFrames(); // also calls glDrawBuffers
+            gl.glEnablei(GL_BLEND, 1);
+        }
         gl.glClearColor(0,0,0,0);
         gl.glClear(GL_COLOR_BUFFER_BIT);
-        gl.glEnable(GL_BLEND);
+        gl.glEnablei(GL_BLEND, 0);
         {
             gl.glBlendFunc(GL_ONE, GL_ONE);
             if(tools->zeroOrderScatteringEnabled())
@@ -775,7 +839,7 @@ void AtmosphereRenderer::draw()
             if(tools->multipleScatteringEnabled())
                 renderMultipleScattering();
         }
-        gl.glDisable(GL_BLEND);
+        gl.glDisablei(GL_BLEND, 0);
 
         gl.glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
         {
@@ -798,6 +862,13 @@ void AtmosphereRenderer::setupRenderTarget()
     mainFBOTexture.setMinificationFilter(QOpenGLTexture::Nearest);
     mainFBOTexture.setMagnificationFilter(QOpenGLTexture::Nearest);
     mainFBOTexture.setWrapMode(QOpenGLTexture::ClampToEdge);
+
+    if(canGrabRadiance())
+    {
+        assert(radianceRenderBuffers.empty());
+        radianceRenderBuffers.resize(params.wavelengthSetCount);
+        gl.glGenRenderbuffers(radianceRenderBuffers.size(), radianceRenderBuffers.data());
+    }
 
     gl.glGenFramebuffers(1,&eclipseSingleScatteringPrecomputationFBO);
     eclipsedSingleScatteringPrecomputationTextures.clear();
@@ -857,10 +928,14 @@ AtmosphereRenderer::~AtmosphereRenderer()
     gl.glDeleteVertexArrays(1, &vao);
     gl.glDeleteFramebuffers(1, &mainFBO);
     gl.glDeleteFramebuffers(1, &eclipseSingleScatteringPrecomputationFBO);
+    if(!radianceRenderBuffers.empty())
+        gl.glDeleteRenderbuffers(radianceRenderBuffers.size(), radianceRenderBuffers.data());
 }
 
 void AtmosphereRenderer::resizeEvent(const int width, const int height)
 {
+    viewportSize=QSize(width,height);
+
     assert(mainFBO);
     mainFBOTexture.bind();
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
@@ -868,6 +943,15 @@ void AtmosphereRenderer::resizeEvent(const int width, const int height)
     gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,mainFBOTexture.textureId(),0);
     checkFramebufferStatus(gl, "Atmosphere renderer FBO");
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+
+    if(!radianceRenderBuffers.empty())
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        {
+            gl.glBindRenderbuffer(GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
+            gl.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, width, height);
+        }
+    }
 }
 
 void AtmosphereRenderer::mouseMove(const int x, const int y)

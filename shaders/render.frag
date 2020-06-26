@@ -17,7 +17,8 @@ uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
 uniform vec3 moonPosition;
 in vec3 position;
-out vec4 luminance;
+layout(location=0) out vec4 luminance;
+layout(location=1) out vec4 radianceOutput;
 
 float cosZenithAngleOfHorizon(float altitude)
 {
@@ -94,11 +95,13 @@ void main()
         discard;
     }
     luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY
     const vec4 scattering=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPosition,
                                                           viewRayIntersectsGround);
     const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE
     const vec2 texCoords = eclipseTexVarsToTexCoords(azimuthRelativeToSun, viewDir.z, altitude,
                                                      viewRayIntersectsGround);
@@ -109,6 +112,7 @@ void main()
     const vec4 scattering = textureLod(eclipsedScatteringTexture, texCoords, 0);
     const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE
     const vec2 texCoords = eclipseTexVarsToTexCoords(azimuthRelativeToSun, viewDir.z, altitude,
                                                      viewRayIntersectsGround);
@@ -123,11 +127,13 @@ void main()
                                                   cameraPosition.z,viewRayIntersectsGround);
     const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
 #elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE
     const vec4 scattering = sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z,
                                             dotViewSun, altitude, viewRayIntersectsGround);
     const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
 #elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE
     const vec4 scattering = sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z,
                                             dotViewSun, altitude, viewRayIntersectsGround);
@@ -137,6 +143,7 @@ void main()
 #elif RENDERING_MULTIPLE_SCATTERING_RADIANCE
     const vec4 radiance=sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z, dotViewSun, altitude, viewRayIntersectsGround);
     luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
 #else
 #error What to render?
 #endif

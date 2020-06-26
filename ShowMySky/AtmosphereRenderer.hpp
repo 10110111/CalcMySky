@@ -49,6 +49,14 @@ public:
         std::map<QString/*scatterer name*/,PhaseFunctionType> scatterers;
     };
 
+    struct SpectralRadiance
+    {
+        std::vector<float> wavelengths; // nm
+        std::vector<float> radiances;   // W/(m^2*sr*nm)
+        auto size() const { return wavelengths.size(); }
+        bool empty() const { return wavelengths.empty(); }
+    };
+
     AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, Parameters const& params, ToolsWidget* tools);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
@@ -60,6 +68,7 @@ public:
     void resizeEvent(int width, int height);
     void setScattererEnabled(QString const& name, bool enable);
     void reloadShaders(QString const& pathToData);
+    SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const;
 
 private:
     ToolsWidget* tools;
@@ -70,11 +79,13 @@ private:
     std::vector<TexturePtr> multipleScatteringTextures;
     std::vector<TexturePtr> transmittanceTextures;
     std::vector<TexturePtr> irradianceTextures;
+    std::vector<GLuint> radianceRenderBuffers;
     // Indexed as singleScatteringTextures[scattererName][wavelengthSetIndex]
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures;
     std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures;
     QOpenGLTexture bayerPatternTexture;
     QOpenGLTexture mainFBOTexture;
+    QSize viewportSize;
 
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms;
     std::vector<ShaderProgPtr> multipleScatteringPrograms;
@@ -111,6 +122,8 @@ private:
     void renderZeroOrderScattering();
     void renderSingleScattering();
     void renderMultipleScattering();
+    void clearRadianceFrames();
+    bool canGrabRadiance() const;
 
 signals:
     void needRedraw();
