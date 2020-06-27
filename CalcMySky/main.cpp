@@ -931,7 +931,7 @@ int main(int argc, char** argv)
     }
     catch(ParsingError const& ex)
     {
-        std::cerr << ex.what();
+        std::cerr << ex.what() << "\n";
         return 1;
     }
     catch(Error const& ex)
