@@ -67,12 +67,13 @@ public:
     void mouseMove(int x, int y);
     void resizeEvent(int width, int height);
     void setScattererEnabled(QString const& name, bool enable);
-    void reloadShaders(QString const& pathToData);
+    void reloadShaders();
     SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const;
 
 private:
     ToolsWidget* tools;
     Parameters const& params;
+    QString pathToData;
 
     GLuint vao=0, vbo=0, mainFBO=0;
     GLuint eclipseSingleScatteringPrecomputationFBO=0;
@@ -101,10 +102,11 @@ private:
     DragMode dragMode=DragMode::None;
     int prevMouseX, prevMouseY;
 
-    void parseParams(QString const& pathToData);
-    void loadTextures(QString const& pathToData);
+    void parseParams();
+    void loadTextures();
+    void reloadScatteringTextures();
     void setupRenderTarget();
-    void loadShaders(QString const& pathToData);
+    void loadShaders();
     void setupBuffers();
 
     double moonAngularRadius() const;

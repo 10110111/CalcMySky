@@ -154,7 +154,7 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
     return {sizes[0], sizes[1]};
 }
 
-void AtmosphereRenderer::loadTextures(QString const& pathToData)
+void AtmosphereRenderer::loadTextures()
 {
     while(gl.glGetError()!=GL_NO_ERROR);
 
@@ -178,6 +178,15 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
         loadTexture2D(QString("%1/irradiance-wlset%2.f32").arg(pathToData).arg(wlSetIndex));
     }
 
+    reloadScatteringTextures();
+
+    makeBayerPatternTexture();
+
+    assert(gl.glGetError()==GL_NO_ERROR);
+}
+
+void AtmosphereRenderer::reloadScatteringTextures()
+{
     const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
 
     multipleScatteringTextures.clear();
@@ -234,13 +243,9 @@ void AtmosphereRenderer::loadTextures(QString const& pathToData)
             break;
         }
     }
-
-    makeBayerPatternTexture();
-
-    assert(gl.glGetError()==GL_NO_ERROR);
 }
 
-void AtmosphereRenderer::loadShaders(QString const& pathToData)
+void AtmosphereRenderer::loadShaders()
 {
     constexpr char commonVertexShaderSrc[]=R"(
 #version 330
@@ -905,13 +910,14 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     : gl(gl)
     , tools(tools)
     , params(params)
+    , pathToData(pathToData)
     , bayerPatternTexture(QOpenGLTexture::Target2D)
     , mainFBOTexture(QOpenGLTexture::Target2D)
 {
     for(const auto& [scattererName,_] : params.scatterers)
         scatterersEnabledStates[scattererName]=true;
-    loadShaders(pathToData);
-    loadTextures(pathToData);
+    loadShaders();
+    loadTextures();
     setupRenderTarget();
     setupBuffers();
     if(multipleScatteringPrograms.size() != multipleScatteringTextures.size())
@@ -980,9 +986,9 @@ void AtmosphereRenderer::setScattererEnabled(QString const& name, const bool ena
     emit needRedraw();
 }
 
-void AtmosphereRenderer::reloadShaders(QString const& pathToData)
+void AtmosphereRenderer::reloadShaders()
 {
     std::cerr << "Reloading shaders... ";
-    loadShaders(pathToData);
+    loadShaders();
     std::cerr << "done\n";
 }

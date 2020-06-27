@@ -94,6 +94,6 @@ void GLWidget::mouseReleaseEvent(QMouseEvent*)
 void GLWidget::reloadShaders()
 {
     makeCurrent();
-    renderer->reloadShaders(pathToData);
+    renderer->reloadShaders();
     update();
 }
