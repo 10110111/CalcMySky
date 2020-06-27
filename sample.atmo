@@ -31,7 +31,7 @@ solar irradiance at TOA: 1.037,1.249,1.684,1.975,1.968,1.877,1.854,1.818,1.723,1
 # Taken from http://gsp.humboldt.edu/OLM/Courses/GSP_216_Online/lesson2-1/reflectance.html, in particular, the file link:
 #  http://gsp.humboldt.edu/OLM/Courses/GSP_216_Online/lesson2-1/reflect.csv
 # The data set chosen is that for grass.
-ground albedo: 0,0.035,0.04,0.041,0.043,0.067,0.107,0.09,0.07,0.057,0.047,0.12,0.268,0.417,0.566,0.715
+ground albedo: 0.035,0.037,0.04,0.041,0.043,0.067,0.107,0.09,0.07,0.057,0.047,0.138,0.367,0.468,0.483,0.491
 
 Scatterer "molecules": # Rayleigh scattering
 {
