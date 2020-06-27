@@ -38,3 +38,6 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}"
 configure_file(config.h.in config.h)
 add_subdirectory(CalcMySky)
 add_subdirectory(ShowMySky)
+
+enable_testing()
+add_subdirectory(tests)
