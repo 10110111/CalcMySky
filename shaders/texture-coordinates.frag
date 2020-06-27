@@ -74,14 +74,13 @@ vec2 transmittanceTexVarsToTexCoord(const float cosVZA, float altitude)
     if(altitude<0)
         altitude=0;
 
-    const float altMax=atmosphereHeight;
     const float R=earthRadius;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
+    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon=sqrt(sqr(altitude)+2*altitude*R);
     const float t=unitRangeToTexCoord(distToHorizon / lengthOfHorizRayFromGroundToBorderOfAtmo,
                                       transmittanceTextureSize.t);
-    const float dMin=altMax-altitude; // distance to zenith
+    const float dMin=atmosphereHeight-altitude; // distance to zenith
     const float dMax=lengthOfHorizRayFromGroundToBorderOfAtmo+distToHorizon;
     const float d=distanceToAtmosphereBorder(cosVZA,altitude);
     const float s=unitRangeToTexCoord((d-dMin)/(dMax-dMin), transmittanceTextureSize.s);
@@ -108,11 +107,10 @@ Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, co
                                                const float dotViewSun, const float altitude,
                                                const bool viewRayIntersectsGround)
 {
-    const float altMax=atmosphereHeight;
     const float R=earthRadius;
     const float r=R+altitude;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
+    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon    = sqrt(sqr(altitude)+2*altitude*R);
     const float altCoord = distToHorizon / lengthOfHorizRayFromGroundToBorderOfAtmo;
 
@@ -134,7 +132,7 @@ Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, co
     else
     {
         // Distance from camera to the atmosphere border along the view ray (altitude, cosViewZenithAngle)
-        // sqr(lengthOfHorizRayFromGroundToBorderOfAtmo) added to sqr(R) term in discriminant changes sqr(R) to sqr(R+altMax),
+        // sqr(lengthOfHorizRayFromGroundToBorderOfAtmo) added to sqr(R) term in discriminant changes sqr(R) to sqr(R+atmosphereHeight),
         // so that we target the top atmosphere boundary instead of bottom.
         const float distToTopAtmoBorder = -rCvza+safeSqrt(discriminant+sqr(lengthOfHorizRayFromGroundToBorderOfAtmo));
         const float distMin = atmosphereHeight-altitude;
@@ -202,13 +200,12 @@ vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const f
 
 ScatteringTexVars scatteringTex4DCoordsToTexVars(const Scattering4DCoords coords)
 {
-    const float altMax=atmosphereHeight;
     const float R=earthRadius;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
+    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon = coords.altitude*lengthOfHorizRayFromGroundToBorderOfAtmo;
     // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
-    const float altitude=clamp(sqrt(sqr(distToHorizon)+sqr(R))-R, 0., altMax);
+    const float altitude=clamp(sqrt(sqr(distToHorizon)+sqr(R))-R, 0., atmosphereHeight);
 
     // ------------------------------------
     float cosViewZenithAngle;
@@ -222,7 +219,7 @@ ScatteringTexVars scatteringTex4DCoordsToTexVars(const Scattering4DCoords coords
     }
     else
     {
-        const float distMin=altMax-altitude;
+        const float distMin=atmosphereHeight-altitude;
         const float distMax=distToHorizon+lengthOfHorizRayFromGroundToBorderOfAtmo;
         const float distToTopAtmoBorder=coords.cosViewZenithAngle*(distMax-distMin)+distMin;
         cosViewZenithAngle = distToTopAtmoBorder==0 ? 1 :
@@ -288,10 +285,9 @@ ScatteringTexVars scatteringTexIndicesToTexVars(const vec3 texIndices)
 
 EclipseScatteringTexVars eclipseTexCoordsToTexVars(const vec2 texCoords, const float altitude)
 {
-    const float altMax=atmosphereHeight;
     const float R=earthRadius;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
+    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon = sqrt(sqr(altitude)+2*altitude*R);
 
     const bool viewRayIntersectsGround = texCoords.t<0.5;
@@ -308,7 +304,7 @@ EclipseScatteringTexVars eclipseTexCoordsToTexVars(const vec2 texCoords, const f
     else
     {
         const float cosVZACoord = texCoordToUnitRange(2*texCoords.t-1, eclipsedSingleScatteringTextureSize.t/2);
-        const float distMin=altMax-altitude;
+        const float distMin=atmosphereHeight-altitude;
         const float distMax=distToHorizon+lengthOfHorizRayFromGroundToBorderOfAtmo;
         const float distToTopAtmoBorder=cosVZACoord*(distMax-distMin)+distMin;
         cosViewZenithAngle = distToTopAtmoBorder==0 ? 1 :
@@ -323,11 +319,10 @@ EclipseScatteringTexVars eclipseTexCoordsToTexVars(const vec2 texCoords, const f
 vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cosViewZenithAngle,
                                const float altitude, const bool viewRayIntersectsGround)
 {
-    const float altMax=atmosphereHeight;
     const float R=earthRadius;
     const float r=R+altitude;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+altMax)-sqr(R));
+    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon    = sqrt(sqr(altitude)+2*altitude*R);
 
     // ------------------------------------
@@ -350,7 +345,7 @@ vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cos
     else
     {
         // Distance from camera to the atmosphere border along the view ray (altitude, cosViewZenithAngle)
-        // sqr(lengthOfHorizRayFromGroundToBorderOfAtmo) added to sqr(R) term in discriminant changes sqr(R) to sqr(R+altMax),
+        // sqr(lengthOfHorizRayFromGroundToBorderOfAtmo) added to sqr(R) term in discriminant changes sqr(R) to sqr(R+atmosphereHeight),
         // so that we target the top atmosphere boundary instead of bottom.
         const float distToTopAtmoBorder = -rCvza+safeSqrt(discriminant+sqr(lengthOfHorizRayFromGroundToBorderOfAtmo));
         const float distMin = atmosphereHeight-altitude;
