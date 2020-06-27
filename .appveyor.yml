@@ -23,6 +23,8 @@ before_build:
 
 build_script:
     - cmd: cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+    - cmd: set PATH=%PATH%;%QT_BASEDIR%\bin
+    - cmd: ctest -C %configuration%
 
 for:
 -
