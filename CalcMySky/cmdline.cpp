@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <optional>
 #include <iostream>
+#include <QFileInfo>
 #include <QCommandLineParser>
 #include <QRegularExpression>
 #include <QFile>
@@ -16,6 +17,7 @@
 
 #include "data.hpp"
 #include "util.hpp"
+#include "Spectrum.hpp"
 
 unsigned long long getUInt(QString const& value, const unsigned long long min, const unsigned long long max,
                            QString const& filename, int lineNumber)
@@ -194,6 +196,33 @@ QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& l
 std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const GLfloat max,
                                  QString const& filename, const int lineNumber, const bool checkSize=true)
 {
+    if(line.startsWith("file "))
+    {
+        if(allWavelengths.empty())
+        {
+            std::cerr << filename << ":" << lineNumber << ": error: tried to read a spectrum file without having read list of wavelengths\n";
+            throw MustQuit{};
+        }
+        auto path=line.mid(5);
+        const QFileInfo fi(path);
+        if(!fi.isAbsolute())
+            path=QFileInfo(filename).absolutePath()+"/"+path;
+        QFile file(path);
+        if(!file.open(QFile::ReadOnly))
+        {
+            std::cerr << filename << ":" << lineNumber << ": failed to open the file " << path << ": " << file.errorString() << "\n";
+            throw MustQuit{};
+        }
+        const auto spectrum=Spectrum::parseFromCSV(file.readAll(),path,1)
+                                            .resample(allWavelengths.front()[0],
+                                                      allWavelengths.back()[pointsPerWavelengthItem-1],
+                                                      allWavelengths.size()*pointsPerWavelengthItem);
+        const auto& values=spectrum.values;
+        std::vector<glm::vec4> output;
+        for(unsigned i=0; i<values.size(); i+=4)
+            output.emplace_back(values[i+0], values[i+1], values[i+2], values[i+3]);
+        return output;
+    }
     const auto items=line.split(',');
     if(checkSize && size_t(items.size()) != allWavelengths.size()*pointsPerWavelengthItem)
     {
