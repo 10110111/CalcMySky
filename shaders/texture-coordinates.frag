@@ -5,6 +5,8 @@
 #include "texture-coordinates.h.glsl"
 #include "common-functions.h.glsl"
 
+const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(atmosphereHeight*(atmosphereHeight+2*earthRadius));
+
 uniform sampler2D transmittanceTexture;
 
 struct Scattering4DCoords
@@ -43,7 +45,6 @@ TransmittanceTexVars transmittanceTexCoordToTexVars(const vec2 texCoord)
 {
     const float R=earthRadius;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(atmosphereHeight*(atmosphereHeight+2*earthRadius));
     const float distToHorizon=lengthOfHorizRayFromGroundToBorderOfAtmo *
                                 texCoordToUnitRange(texCoord.t,transmittanceTextureSize.t);
     // Distance from Earth center to camera
@@ -76,7 +77,6 @@ vec2 transmittanceTexVarsToTexCoord(const float cosVZA, float altitude)
 
     const float R=earthRadius;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon=sqrt(sqr(altitude)+2*altitude*R);
     const float t=unitRangeToTexCoord(distToHorizon / lengthOfHorizRayFromGroundToBorderOfAtmo,
                                       transmittanceTextureSize.t);
@@ -110,7 +110,6 @@ Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, co
     const float R=earthRadius;
     const float r=R+altitude;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon    = sqrt(sqr(altitude)+2*altitude*R);
     const float altCoord = distToHorizon / lengthOfHorizRayFromGroundToBorderOfAtmo;
 
@@ -202,7 +201,6 @@ ScatteringTexVars scatteringTex4DCoordsToTexVars(const Scattering4DCoords coords
 {
     const float R=earthRadius;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon = coords.altitude*lengthOfHorizRayFromGroundToBorderOfAtmo;
     // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
     const float altitude=clamp(sqrt(sqr(distToHorizon)+sqr(R))-R, 0., atmosphereHeight);
@@ -287,7 +285,6 @@ EclipseScatteringTexVars eclipseTexCoordsToTexVars(const vec2 texCoords, const f
 {
     const float R=earthRadius;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon = sqrt(sqr(altitude)+2*altitude*R);
 
     const bool viewRayIntersectsGround = texCoords.t<0.5;
@@ -322,7 +319,6 @@ vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cos
     const float R=earthRadius;
     const float r=R+altitude;
 
-    const float lengthOfHorizRayFromGroundToBorderOfAtmo=sqrt(sqr(R+atmosphereHeight)-sqr(R));
     const float distToHorizon    = sqrt(sqr(altitude)+2*altitude*R);
 
     // ------------------------------------
