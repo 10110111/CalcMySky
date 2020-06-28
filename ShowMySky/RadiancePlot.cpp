@@ -70,8 +70,8 @@ static auto backgroundColor() { return wavelengthToQColor(1000/*nm*/); }
 static QBrush makeSpectrumBrush()
 {
     const qreal dl=0.01;
-    const qreal wlUV=400.5;
-    const qreal wlIR=700;
+    const qreal wlUV=360;
+    const qreal wlIR=830;
     QLinearGradient gradient(QPointF(wlUV-dl,0),QPointF(wlIR+dl,0));
     gradient.setColorAt(0.,QColor(0,0,0,0));
     gradient.setColorAt(1.,QColor(0,0,0,0));
