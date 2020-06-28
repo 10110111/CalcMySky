@@ -68,7 +68,7 @@ QVector3D AtmosphereRenderer::rgbMaxValue() const
 	}
 }
 
-glm::ivec4 AtmosphereRenderer::loadTexture4D(QString const& path)
+void AtmosphereRenderer::loadTexture4D(QString const& path)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -109,7 +109,6 @@ glm::ivec4 AtmosphereRenderer::loadTexture4D(QString const& path)
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
     std::cerr << "done\n";
-    return size;
 }
 
 glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)

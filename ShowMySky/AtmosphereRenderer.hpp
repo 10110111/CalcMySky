@@ -118,7 +118,7 @@ private:
     QVector3D rgbMaxValue() const;
     void makeBayerPatternTexture();
     glm::ivec2 loadTexture2D(QString const& path);
-    glm::ivec4 loadTexture4D(QString const& path);
+    void loadTexture4D(QString const& path);
 
     void precomputeEclipsedSingleScattering();
     void renderZeroOrderScattering();
