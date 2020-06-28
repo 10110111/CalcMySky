@@ -281,6 +281,7 @@ void AtmosphereRenderer::reloadScatteringTextures()
 
 void AtmosphereRenderer::loadShaders()
 {
+    std::cerr << "Loading shaders... ";
     constexpr char commonVertexShaderSrc[]=R"(
 #version 330
 in vec3 vertex;
@@ -506,6 +507,7 @@ void main()
         addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for zero-order scattering"), commonVertexShaderSrc);
         link(program, tr("zero-order scattering shader program"));
     }
+    std::cerr << "done\n";
 }
 
 void AtmosphereRenderer::setupBuffers()
