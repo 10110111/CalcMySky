@@ -4,8 +4,8 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QRegularExpression>
+#include "../common/cie-xyzw-functions.hpp"
 
-static auto backgroundColor() { return QColor(140,140,140); }
 static auto curveColor() { return QColor(0x3f,0x3d,0x99); }
 static auto textColor() { return QColor(255,255,255); }
 constexpr double ticksTextSpaceFactor=1.2; // to avoid fitting the text too tightly
@@ -15,6 +15,71 @@ constexpr double topMarginFactor=3;
 constexpr double yTickWidthFactor=1; // relative to font 'x' width
 constexpr double yTickSpacingFactor=1.5;
 constexpr double rightMarginFactor=3;
+
+glm::vec3 RGB2sRGB(glm::vec3 const& RGB)
+{
+    // No, we aren't gonna do the piecewise sRGB gamma
+    // pedantry. Just the usual good approximation.
+    return pow(RGB, glm::vec3(1/2.2));
+}
+
+// Linear part of sRGB transformation
+glm::vec3 XYZ2RGB(glm::vec3 const& XYZ)
+{
+    using namespace glm;
+    return dmat3(vec3(3.2406,-0.9689,0.0557),
+                 vec3(-1.5372,1.8758,-0.204),
+                 vec3(-0.4986,0.0415,1.057))*XYZ;
+}
+
+glm::vec3 wavelengthToRGB(const float wavelength)
+{
+    const auto XYZ=glm::vec3(wavelengthToXYZW(wavelength));
+    return XYZ2RGB(XYZ);
+}
+
+QColor wavelengthToQColor(const float wavelength)
+{
+    const auto RGB=wavelengthToRGB(wavelength);
+
+    static float rgbMin=0;
+    static float rgbMax=0;
+    static const bool inited=[]
+    {
+        for(double wl=400;wl<700;wl+=0.1)
+        {
+            const auto RGB=wavelengthToRGB(wl);
+            const auto newMin=std::min({RGB.r,RGB.g,RGB.b});
+            const auto newMax=std::max({RGB.r,RGB.g,RGB.b});
+            if(newMin<rgbMin)
+                rgbMin=newMin;
+            if(newMax>rgbMax)
+                rgbMax=newMax;
+        }
+        return true;
+    }();
+    (void)inited;
+
+    const auto desaturated=(RGB-rgbMin)/(rgbMax-rgbMin); // desaturate and scale to [0,1]
+    const auto sRGB=RGB2sRGB(desaturated);
+    return QColor::fromRgbF(sRGB.r,sRGB.g,sRGB.b);
+}
+
+static auto backgroundColor() { return wavelengthToQColor(1000/*nm*/); }
+
+static QBrush makeSpectrumBrush()
+{
+    const qreal dl=0.01;
+    const qreal wlUV=400.5;
+    const qreal wlIR=700;
+    QLinearGradient gradient(QPointF(wlUV-dl,0),QPointF(wlIR+dl,0));
+    gradient.setColorAt(0.,QColor(0,0,0,0));
+    gradient.setColorAt(1.,QColor(0,0,0,0));
+    for(qreal wavelength=wlUV;wavelength<=wlIR;wavelength+=5)
+        gradient.setColorAt((wavelength-(wlUV-dl))/(wlIR+dl-(wlUV-dl)),wavelengthToQColor(wavelength));
+    gradient.setSpread(QGradient::PadSpread);
+    return gradient;
+}
 
 RadiancePlot::RadiancePlot(QWidget* parent)
     : QWidget(parent)
@@ -167,19 +232,19 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
 
     setupQPainter(p);
 
-    QPainterPath path;
-    path.moveTo(wavelengths.front(), radiances.front());
+    QPainterPath curve;
+    curve.moveTo(wavelengths.front(), radiances.front());
     for(size_t i=1;i<wavelengths.size();++i)
-        path.lineTo(wavelengths[i],radiances[i]);
+        curve.lineTo(wavelengths[i],radiances[i]);
+
+    auto filling=curve;
+    // close the path to fill space under the curve
+    filling.lineTo(wavelengths.back(),0);
+    filling.lineTo(wavelengths.front(),0);
+
+    const auto fillBrush=makeSpectrumBrush();
+    p.fillPath(filling,fillBrush);
 
     p.setPen(QPen(curveColor(),0));
-    p.drawPath(path);
-
-    // close path to fill space under the curve
-    path.lineTo(wavelengths.back(),0);
-    path.lineTo(wavelengths.front(),0);
-
-    auto fillBrush=curveColor();
-    fillBrush.setAlphaF(0.3);
-    p.fillPath(path,fillBrush);
+    p.drawPath(curve);
 }
