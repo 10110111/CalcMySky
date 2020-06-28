@@ -24,6 +24,11 @@ static GLsizei scatTexWidth(glm::ivec4 sizes) { return sizes[0]; }
 static GLsizei scatTexHeight(glm::ivec4 sizes) { return sizes[1]*sizes[2]; }
 static GLsizei scatTexDepth(glm::ivec4 sizes) { return sizes[3]; }
 
+float unitRangeToTexCoord(const float u, const int texSize)
+{
+    return (0.5+(texSize-1)*u)/texSize;
+}
+
 static auto newTex(QOpenGLTexture::Target target)
 {
     return std::make_unique<QOpenGLTexture>(target);
@@ -68,7 +73,7 @@ QVector3D AtmosphereRenderer::rgbMaxValue() const
 	}
 }
 
-void AtmosphereRenderer::loadTexture4D(QString const& path)
+void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -89,11 +94,31 @@ void AtmosphereRenderer::loadTexture4D(QString const& path)
                                 .arg(path).arg(file.errorString())};
         }
     }
-    const auto subpixelCount = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
     std::cerr << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
-    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
+
+    const auto numAltIntervals = sizes[3]-1;
+    const auto altTexIndex = altitudeCoord==1 ? numAltIntervals-1 : altitudeCoord*numAltIntervals;
+    const auto intAltIndex = std::floor(altTexIndex);
+    const auto fractAltIndex = altTexIndex-intAltIndex;
+
+    staticAltitudeTexCoord_ = unitRangeToTexCoord(fractAltIndex, 2);
+    loadedAltitudeURTexCoordRange[0] = intAltIndex/numAltIntervals;
+    loadedAltitudeURTexCoordRange[1] = (intAltIndex+1)/numAltIntervals;
+
+    const auto subpixelReadOffset = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*intAltIndex;
+    sizes[3]=2;
+    const auto subpixelCountToRead = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+
+    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCountToRead]);
     {
-        const qint64 sizeToRead=subpixelCount*sizeof subpixels[0];
+        const qint64 offset=file.pos()+subpixelReadOffset*sizeof subpixels[0];
+        std::cerr << "skipping to offset " << offset << "... ";
+        if(!file.seek(offset))
+        {
+            throw DataLoadError{tr("Failed to seek to offset %1 in file \"%2\": %3")
+                                .arg(offset).arg(path).arg(file.errorString())};
+        }
+        const qint64 sizeToRead=subpixelCountToRead*sizeof subpixels[0];
         if(file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead) != sizeToRead)
         {
             throw DataLoadError{tr("Failed to read texture data from file \"%1\": %2")
@@ -108,6 +133,7 @@ void AtmosphereRenderer::loadTexture4D(QString const& path)
         throw DataLoadError{tr("GL error in loadTexture4D(\"%1\") after glTexImage3D() call: %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
+
     std::cerr << "done\n";
 }
 
@@ -184,9 +210,18 @@ void AtmosphereRenderer::loadTextures()
     assert(gl.glGetError()==GL_NO_ERROR);
 }
 
+double AtmosphereRenderer::altitudeUnitRangeTexCoord() const
+{
+    const auto h = tools->altitude();
+    const auto H = params.atmosphereHeight;
+    const auto R = params.earthRadius;
+    return std::sqrt(h*(h+2*R) / ( H*(H+2*R) ));
+}
+
 void AtmosphereRenderer::reloadScatteringTextures()
 {
     const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+    const auto altCoord = altitudeUnitRangeTexCoord();
 
     multipleScatteringTextures.clear();
     if(const auto filename=pathToData+"/multiple-scattering-xyzw.f32"; QFile::exists(filename))
@@ -196,7 +231,7 @@ void AtmosphereRenderer::reloadScatteringTextures()
         tex.setMagnificationFilter(texFilter);
         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
         tex.bind();
-        loadTexture4D(filename);
+        loadTexture4D(filename, altCoord);
     }
     else
     {
@@ -207,7 +242,7 @@ void AtmosphereRenderer::reloadScatteringTextures()
             tex.setMagnificationFilter(texFilter);
             tex.setWrapMode(QOpenGLTexture::ClampToEdge);
             tex.bind();
-            loadTexture4D(QString("%1/multiple-scattering-wlset%2.f32").arg(pathToData).arg(wlSetIndex));
+            loadTexture4D(QString("%1/multiple-scattering-wlset%2.f32").arg(pathToData).arg(wlSetIndex), altCoord);
         }
     }
 
@@ -225,7 +260,7 @@ void AtmosphereRenderer::reloadScatteringTextures()
                 texture.setMagnificationFilter(texFilter);
                 texture.setWrapMode(QOpenGLTexture::ClampToEdge);
                 texture.bind();
-                loadTexture4D(QString("%1/single-scattering/%2/%3.f32").arg(pathToData).arg(wlSetIndex).arg(scattererName));
+                loadTexture4D(QString("%1/single-scattering/%2/%3.f32").arg(pathToData).arg(wlSetIndex).arg(scattererName), altCoord);
             }
             break;
         case PhaseFunctionType::Achromatic:
@@ -235,7 +270,7 @@ void AtmosphereRenderer::reloadScatteringTextures()
             texture.setMagnificationFilter(texFilter);
             texture.setWrapMode(QOpenGLTexture::ClampToEdge);
             texture.bind();
-            loadTexture4D(QString("%1/single-scattering/%2-xyzw.f32").arg(pathToData).arg(scattererName));
+            loadTexture4D(QString("%1/single-scattering/%2-xyzw.f32").arg(pathToData).arg(scattererName), altCoord);
             break;
         }
         case PhaseFunctionType::Smooth:
@@ -732,6 +767,7 @@ void AtmosphereRenderer::renderSingleScattering()
                         tex.setMagnificationFilter(texFilter);
                         tex.bind(0);
                         prog.setUniformValue("scatteringTexture", 0);
+                        prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
                     }
 
                     gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -753,6 +789,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 tex.bind(0);
             }
             prog.setUniformValue("scatteringTexture", 0);
+            prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
 
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
@@ -793,6 +830,7 @@ void AtmosphereRenderer::renderMultipleScattering()
         tex.setMagnificationFilter(texFilter);
         tex.bind(0);
         prog.setUniformValue("scatteringTexture", 0);
+        prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
         gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     else
@@ -813,6 +851,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             tex.setMagnificationFilter(texFilter);
             tex.bind(0);
             prog.setUniformValue("scatteringTexture", 0);
+            prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
     }
@@ -820,6 +859,13 @@ void AtmosphereRenderer::renderMultipleScattering()
 
 void AtmosphereRenderer::draw()
 {
+    const auto altCoord=altitudeUnitRangeTexCoord();
+    if(altCoord < loadedAltitudeURTexCoordRange[0] || altCoord > loadedAltitudeURTexCoordRange[1])
+    {
+        std::cerr << "Reloading textures due to altitude getting out of the currently loaded layers\n";
+        reloadScatteringTextures();
+    }
+
     GLint targetFBO=-1;
     gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFBO);
 

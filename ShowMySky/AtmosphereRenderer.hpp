@@ -87,6 +87,8 @@ private:
     QOpenGLTexture bayerPatternTexture;
     QOpenGLTexture mainFBOTexture;
     QSize viewportSize;
+    float loadedAltitudeURTexCoordRange[2]={NAN,NAN};
+    float staticAltitudeTexCoord_=-1;
 
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms;
     std::vector<ShaderProgPtr> multipleScatteringPrograms;
@@ -109,6 +111,7 @@ private:
     void loadShaders();
     void setupBuffers();
 
+    double altitudeUnitRangeTexCoord() const;
     double moonAngularRadius() const;
     double cameraMoonDistance() const;
     glm::dvec3 sunDirection() const;
@@ -118,7 +121,7 @@ private:
     QVector3D rgbMaxValue() const;
     void makeBayerPatternTexture();
     glm::ivec2 loadTexture2D(QString const& path);
-    void loadTexture4D(QString const& path);
+    void loadTexture4D(QString const& path, float altitudeCoord);
 
     void precomputeEclipsedSingleScattering();
     void renderZeroOrderScattering();

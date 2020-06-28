@@ -8,6 +8,7 @@
 const float LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO=sqrt(atmosphereHeight*(atmosphereHeight+2*earthRadius));
 
 uniform sampler2D transmittanceTexture;
+uniform float staticAltitudeTexCoord=-1;
 
 struct Scattering4DCoords
 {
@@ -167,7 +168,8 @@ TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords)
                                         ceil (cosSZAIndex)*texW+coords.dotViewSun*(texW-1)) / (texW*texH-1);
     const vec2 combinedCoord=unitRangeToTexCoord(combiCoordUnitRange, texW*texH);
 
-    const float altitude=unitRangeToTexCoord(coords.altitude, scatteringTextureSize[3]);
+    const float altitude = staticAltitudeTexCoord>=0 ? staticAltitudeTexCoord
+                                                     : unitRangeToTexCoord(coords.altitude, scatteringTextureSize[3]);
 
     const float alphaUpper=fract(cosSZAIndex);
     return TexCoordPair(vec3(cosVZAtc, combinedCoord.x, altitude), float(1-alphaUpper),
