@@ -19,7 +19,7 @@
 #include "glinit.hpp"
 #include "cmdline.hpp"
 #include "shaders.hpp"
-#include "../cie-xyzw-functions.hpp"
+#include "../common/cie-xyzw-functions.hpp"
 
 QOpenGLFunctions_3_3_Core gl;
 
