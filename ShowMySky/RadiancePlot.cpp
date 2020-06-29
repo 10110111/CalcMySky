@@ -205,10 +205,20 @@ std::vector<std::pair<float,QString>> RadiancePlot::genTicks(std::vector<float> 
     return output;
 }
 
-void RadiancePlot::setupQPainter(QPainter& p) const
+void RadiancePlot::paintEvent(QPaintEvent *event)
 {
-    assert(!wavelengths.empty());
+    QPainter p(this);
+    p.fillRect(event->rect(),backgroundColor());
 
+    if(wavelengths.empty())
+    {
+        p.setPen(textColor());
+        p.drawText(rect(), Qt::AlignCenter|Qt::AlignHCenter|Qt::TextWordWrap,
+                   tr("Click on the image in the main window to see spectral radiance of a point"));
+        return;
+    }
+
+    assert(!wavelengths.empty());
     const auto ticksX=genTicks(wavelengths);
     const auto ticksY=genTicks(radiances, 0);
 
@@ -229,25 +239,7 @@ void RadiancePlot::setupQPainter(QPainter& p) const
     const float dy=(pixMax - h*pixMax + marginBottom*pixMax + marginTop*pixMin)/(pixMin-pixMax);
     p.setTransform(QTransform(sx,0,0,sy,dx,dy));
 
-    drawAxes(p, ticksX, ticksY, wlMin, wlMax, pixMin, pixMax);
-
     p.setRenderHint(QPainter::Antialiasing,true);
-}
-
-void RadiancePlot::paintEvent(QPaintEvent *event)
-{
-    QPainter p(this);
-    p.fillRect(event->rect(),backgroundColor());
-
-    if(wavelengths.empty())
-    {
-        p.setPen(textColor());
-        p.drawText(rect(), Qt::AlignCenter|Qt::AlignHCenter|Qt::TextWordWrap,
-                   tr("Click on the image in the main window to see spectral radiance of a point"));
-        return;
-    }
-
-    setupQPainter(p);
 
     QPainterPath curve;
     curve.moveTo(wavelengths.front(), radiances.front());
@@ -264,4 +256,7 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
 
     p.setPen(QPen(curveColor(),0));
     p.drawPath(curve);
+
+    p.setRenderHint(QPainter::Antialiasing,false);
+    drawAxes(p, ticksX, ticksY, wlMin, wlMax, pixMin, pixMax);
 }

@@ -15,7 +15,6 @@ protected:
     void paintEvent(QPaintEvent *event);
 
 private:
-    void setupQPainter(QPainter& p) const;
     QMarginsF calcPlotMargins(QPainter const& p, std::vector<std::pair<float,QString>> const& ticksY) const;
     void drawAxes(QPainter& p, std::vector<std::pair<float,QString>> const& ticksX,
                   std::vector<std::pair<float,QString>> const& ticksY,
