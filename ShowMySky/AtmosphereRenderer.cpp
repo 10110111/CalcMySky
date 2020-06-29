@@ -98,14 +98,14 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
 
     const auto numAltIntervals = sizes[3]-1;
     const auto altTexIndex = altitudeCoord==1 ? numAltIntervals-1 : altitudeCoord*numAltIntervals;
-    const auto intAltIndex = std::floor(altTexIndex);
-    const auto fractAltIndex = altTexIndex-intAltIndex;
+    const auto floorAltIndex = std::floor(altTexIndex);
+    const auto fractAltIndex = altTexIndex-floorAltIndex;
 
     staticAltitudeTexCoord_ = unitRangeToTexCoord(fractAltIndex, 2);
-    loadedAltitudeURTexCoordRange[0] = intAltIndex/numAltIntervals;
-    loadedAltitudeURTexCoordRange[1] = (intAltIndex+1)/numAltIntervals;
+    loadedAltitudeURTexCoordRange[0] = floorAltIndex/numAltIntervals;
+    loadedAltitudeURTexCoordRange[1] = (floorAltIndex+1)/numAltIntervals;
 
-    const auto subpixelReadOffset = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(intAltIndex);
+    const auto subpixelReadOffset = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(floorAltIndex);
     sizes[3]=2;
     const auto subpixelCountToRead = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
 
