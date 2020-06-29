@@ -281,7 +281,6 @@ void AtmosphereRenderer::reloadScatteringTextures()
 
 void AtmosphereRenderer::loadShaders()
 {
-    std::cerr << "Loading shaders... ";
     constexpr char commonVertexShaderSrc[]=R"(
 #version 330
 in vec3 vertex;
@@ -321,6 +320,7 @@ vec3 calcViewDir()
                                                                                        .arg(singleScatteringRenderModeNames[renderMode])
                                                                                        .arg(wlSetIndex)
                                                                                        .arg(scattererName);
+                    std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
                     auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                     for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -339,6 +339,7 @@ vec3 calcViewDir()
                 const auto scatDir=QString("%1/shaders/single-scattering/%2/%3").arg(pathToData)
                                                                                 .arg(singleScatteringRenderModeNames[renderMode])
                                                                                 .arg(scattererName);
+                std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
                 auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
                 for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                     addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
@@ -370,6 +371,7 @@ vec3 calcViewDir()
                                                                                                     .arg(singleScatteringRenderModeNames[renderMode])
                                                                                                     .arg(wlSetIndex)
                                                                                                     .arg(scattererName);
+                        std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
                         auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -388,6 +390,7 @@ vec3 calcViewDir()
                     const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3").arg(pathToData)
                                                                                                 .arg(singleScatteringRenderModeNames[renderMode])
                                                                                                 .arg(scattererName);
+                    std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
                     auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                     for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -414,6 +417,7 @@ vec3 calcViewDir()
                 const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/precomputation/%3/%4").arg(pathToData)
                                                                                                         .arg(wlSetIndex)
                                                                                                         .arg(scattererName);
+                std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
                 auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                 for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -478,6 +482,7 @@ void main()
         {
             auto& program=*multipleScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
             const auto wlDir=QString("%1/shaders/multiple-scattering/%2").arg(pathToData).arg(wlSetIndex);
+            std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
             for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
             addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
@@ -489,6 +494,7 @@ void main()
     {
         auto& program=*multipleScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
         const auto wlDir=pathToData+"/shaders/multiple-scattering/";
+        std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
         addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
@@ -501,13 +507,13 @@ void main()
     {
         auto& program=*zeroOrderScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
         const auto wlDir=QString("%1/shaders/zero-order-scattering/%2").arg(pathToData).arg(wlSetIndex);
+        std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
         addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
         addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for zero-order scattering"), commonVertexShaderSrc);
         link(program, tr("zero-order scattering shader program"));
     }
-    std::cerr << "done\n";
 }
 
 void AtmosphereRenderer::setupBuffers()
