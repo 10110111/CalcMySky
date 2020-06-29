@@ -8,13 +8,15 @@
 
 static auto curveColor() { return QColor(0x3f,0x3d,0x99); }
 static auto textColor() { return QColor(255,255,255); }
-constexpr double ticksTextSpaceFactor=1.2; // to avoid fitting the text too tightly
-constexpr double xTickHeightFactor=1; // relative to font height
-constexpr double xTickSpacingFactor=1.0;
-constexpr double topMarginFactor=3;
-constexpr double yTickWidthFactor=1; // relative to font 'x' width
-constexpr double yTickSpacingFactor=1.5;
-constexpr double rightMarginFactor=3;
+// These tick metrics are in units of font size (height for x ticks, 'x' width for y ticks)
+constexpr double xTickSpaceUnderLabel=0.5;
+constexpr double xTickSpaceAboveLabel=0.1;
+constexpr double xTickLineLength=0.5;
+constexpr double yTickSpaceLeft=1.0;
+constexpr double yTickSpaceRight=1.0;
+constexpr double yTickLineLength=1;
+constexpr double topMargin=3;
+constexpr double rightMargin=3;
 
 glm::vec3 RGB2sRGB(glm::vec3 const& RGB)
 {
@@ -100,14 +102,14 @@ void RadiancePlot::setData(const float* wavelengths, const float* radiances, con
 QMarginsF RadiancePlot::calcPlotMargins(QPainter const& p, std::vector<std::pair<float,QString>> const& ticksY) const
 {
     const QFontMetricsF fm(p.font());
-    double left=0;
+    double maxYTickLabelWidth=0;
     for(const auto& [_,tick] : ticksY)
-        if(const auto w=fm.width(tick); left<w)
-            left=w;
-    left *= ticksTextSpaceFactor;
-    left += fm.width('x')*(yTickWidthFactor+yTickSpacingFactor);
-    const double bottom = fm.height()*ticksTextSpaceFactor + fm.height()*(xTickHeightFactor+xTickSpacingFactor);
-    const double top=fm.height()*topMarginFactor, right=fm.width('x')*rightMarginFactor;
+        if(const auto w=fm.width(tick); maxYTickLabelWidth<w)
+            maxYTickLabelWidth=w;
+    const auto left   = (yTickSpaceLeft+yTickSpaceRight+yTickLineLength) * fm.width('x')+maxYTickLabelWidth;
+    const auto bottom = fm.height()*(xTickSpaceUnderLabel+1+xTickSpaceAboveLabel+xTickLineLength);
+    const auto top    = fm.height()*topMargin;
+    const auto right  = fm.width('x')*rightMargin;
     return {left,top,right,bottom};
 }
 
@@ -120,23 +122,25 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
     auto m=p.transform();
     p.resetTransform();
     const QFontMetricsF fm(p.font());
+    const auto charWidth=fm.width('x');
     {
-        const auto textMarginLeft=fm.width('x')*yTickSpacingFactor/2;
         const auto axisPos=m.dx()+m.m11()*xMin;
         for(const auto& [y, label] : ticksY)
         {
-            p.drawText(QPointF(textMarginLeft, m.dy()+m.m22()*y+fm.height()/2), label);
-            p.drawLine(QPointF(axisPos-textMarginLeft, m.dy()+m.m22()*y), QPointF(axisPos, m.dy()+m.m22()*y));
+            p.drawText(QPointF(charWidth*yTickSpaceLeft, m.dy()+m.m22()*y+fm.height()/2), label);
+            p.drawLine(QPointF(axisPos-yTickLineLength*charWidth, m.dy()+m.m22()*y),
+                       QPointF(axisPos, m.dy()+m.m22()*y));
         }
         p.drawLine(QPointF(axisPos, m.dy()+m.m22()*yMin), QPointF(axisPos, m.dy()+m.m22()*yMax));
     }
     {
-        const auto textMarginBottom=fm.height()*xTickSpacingFactor/2;
         const auto axisPos=m.dy();
         for(const auto& [x, label] : ticksX)
         {
-            p.drawText(QPointF(m.dx()+m.m11()*x-fm.width(label)/2, height()-1-textMarginBottom), label);
-            p.drawLine(QPointF(m.dx()+m.m11()*x, axisPos+textMarginBottom), QPointF(m.dx()+m.m11()*x, axisPos));
+            p.drawText(QPointF(m.dx()+m.m11()*x-fm.width(label)/2,
+                               height()-1-fm.height()*xTickSpaceUnderLabel), label);
+            p.drawLine(QPointF(m.dx()+m.m11()*x, axisPos+xTickLineLength*fm.height()),
+                       QPointF(m.dx()+m.m11()*x, axisPos));
         }
         p.drawLine(QPointF(m.dx()+m.m11()*xMin, axisPos), QPointF(m.dx()+m.m11()*xMax, axisPos));
     }
