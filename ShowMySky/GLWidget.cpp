@@ -60,8 +60,10 @@ void GLWidget::updateSpectralRadiance(QPoint const& pixelPos)
 {
     makeCurrent();
     if(const auto spectrum=renderer->getPixelSpectralRadiance(pixelPos); !spectrum.empty())
-        tools->handleSpectralRadiance(spectrum);
-    lastRadianceCapturePosition=pixelPos;
+    {
+        if(tools->handleSpectralRadiance(spectrum))
+            lastRadianceCapturePosition=pixelPos;
+    }
 }
 
 void GLWidget::mouseMoveEvent(QMouseEvent* event)

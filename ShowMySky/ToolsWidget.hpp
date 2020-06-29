@@ -54,7 +54,7 @@ public:
     bool usingEclipseShader() const { return usingEclipseShader_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }
 
-    void handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance const& spectrum);
+    bool handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance const& spectrum);
     void setCanGrabRadiance(bool can);
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);

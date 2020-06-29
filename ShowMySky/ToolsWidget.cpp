@@ -137,10 +137,11 @@ void ToolsWidget::showRadiancePlot()
     radiancePlot_->show();
 }
 
-void ToolsWidget::handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance const& spectrum)
+bool ToolsWidget::handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance const& spectrum)
 {
-    if(!radiancePlot_) return;
+    if(!radiancePlot_ || !radiancePlot_->isVisible()) return false;
     radiancePlot_->setData(spectrum.wavelengths.data(), spectrum.radiances.data(), spectrum.wavelengths.size());
+    return true;
 }
 
 void ToolsWidget::setCanGrabRadiance(const bool can)
