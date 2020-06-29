@@ -46,6 +46,9 @@ void GLWidget::paintGL()
     glFinish();
     const auto t1=std::chrono::steady_clock::now();
     emit frameFinished(std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count());
+
+    if(lastRadianceCapturePosition.x()>=0 && lastRadianceCapturePosition.y()>=0)
+        updateSpectralRadiance(lastRadianceCapturePosition);
 }
 
 void GLWidget::resizeGL(int w, int h)
@@ -58,6 +61,7 @@ void GLWidget::updateSpectralRadiance(QPoint const& pixelPos)
     makeCurrent();
     if(const auto spectrum=renderer->getPixelSpectralRadiance(pixelPos); !spectrum.empty())
         tools->handleSpectralRadiance(spectrum);
+    lastRadianceCapturePosition=pixelPos;
 }
 
 void GLWidget::mouseMoveEvent(QMouseEvent* event)

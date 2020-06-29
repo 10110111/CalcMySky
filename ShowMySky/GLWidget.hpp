@@ -15,6 +15,7 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
     AtmosphereRenderer::Parameters params;
     QString pathToData;
     ToolsWidget* tools;
+    QPoint lastRadianceCapturePosition{-1,-1};
 public:
     explicit GLWidget(QString const& pathToData, AtmosphereRenderer::Parameters const& params,
                       ToolsWidget* tools, QWidget* parent=nullptr);
