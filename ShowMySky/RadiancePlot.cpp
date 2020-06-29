@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QTextDocument>
 #include <QRegularExpression>
 #include "../common/cie-xyzw-functions.hpp"
 
@@ -15,7 +16,7 @@ constexpr double xTickLineLength=0.5;
 constexpr double yTickSpaceLeft=1.0;
 constexpr double yTickSpaceRight=1.0;
 constexpr double yTickLineLength=1;
-constexpr double topMargin=3;
+constexpr double topMargin=2;
 constexpr double rightMargin=3;
 
 glm::vec3 RGB2sRGB(glm::vec3 const& RGB)
@@ -123,6 +124,7 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
     p.resetTransform();
     const QFontMetricsF fm(p.font());
     const auto charWidth=fm.width('x');
+    // Y ticks
     {
         const auto axisPos=m.dx()+m.m11()*xMin;
         for(const auto& [y, label] : ticksY)
@@ -132,17 +134,28 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
                        QPointF(axisPos, m.dy()+m.m22()*y));
         }
         p.drawLine(QPointF(axisPos, m.dy()+m.m22()*yMin), QPointF(axisPos, m.dy()+m.m22()*yMax));
+        QTextDocument td;
+        td.setDefaultFont(p.font());
+        td.setDefaultStyleSheet(QString("body{color: %1;}").arg(textColor().name()));
+        td.setHtml("<body>radiance,\nW&middot;m<sup>-2</sup>&#8239;sr<sup>-1</sup>&#8239;nm<sup>-1</sup></body>");
+        p.save();
+        td.drawContents(&p);
+        p.restore();
     }
+    // X ticks
     {
         const auto axisPos=m.dy();
+        const auto tickPosY=height()-1-fm.height()*xTickSpaceUnderLabel;
         for(const auto& [x, label] : ticksX)
         {
-            p.drawText(QPointF(m.dx()+m.m11()*x-fm.width(label)/2,
-                               height()-1-fm.height()*xTickSpaceUnderLabel), label);
+            p.drawText(QPointF(m.dx()+m.m11()*x-fm.width(label)/2, tickPosY), label);
             p.drawLine(QPointF(m.dx()+m.m11()*x, axisPos+xTickLineLength*fm.height()),
                        QPointF(m.dx()+m.m11()*x, axisPos));
         }
         p.drawLine(QPointF(m.dx()+m.m11()*xMin, axisPos), QPointF(m.dx()+m.m11()*xMax, axisPos));
+        const auto xAxisLabel=tr(u8"\u03bb, nm");
+        // FIXME: this choice of X coordinate can overlap with the rightmost tick label
+        p.drawText(QPointF(m.dx()+m.m11()*xMax-fm.width(xAxisLabel)/2, tickPosY), xAxisLabel);
     }
     p.restore();
 }
