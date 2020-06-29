@@ -105,7 +105,7 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     loadedAltitudeURTexCoordRange[0] = intAltIndex/numAltIntervals;
     loadedAltitudeURTexCoordRange[1] = (intAltIndex+1)/numAltIntervals;
 
-    const auto subpixelReadOffset = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*intAltIndex;
+    const auto subpixelReadOffset = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(intAltIndex);
     sizes[3]=2;
     const auto subpixelCountToRead = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
 
