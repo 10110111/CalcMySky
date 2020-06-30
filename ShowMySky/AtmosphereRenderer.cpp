@@ -601,6 +601,8 @@ double AtmosphereRenderer::moonAngularRadius() const
 auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) const -> SpectralRadiance
 {
     if(radianceRenderBuffers.empty()) return {};
+    if(pixelPos.x()<0 || pixelPos.y()<0 || pixelPos.x()>=viewportSize.width() || pixelPos.y()>=viewportSize.height())
+        return {};
 
     constexpr auto wavelengthsPerPixel=4;
     SpectralRadiance output;
