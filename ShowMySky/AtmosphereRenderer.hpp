@@ -53,6 +53,10 @@ public:
     {
         std::vector<float> wavelengths; // nm
         std::vector<float> radiances;   // W/(m^2*sr*nm)
+        // Direction from which this radiance was measured
+        float azimuth;   // degrees
+        float elevation; // degrees
+
         auto size() const { return wavelengths.size(); }
         bool empty() const { return wavelengths.empty(); }
     };
@@ -75,12 +79,13 @@ private:
     Parameters const& params;
     QString pathToData;
 
-    GLuint vao=0, vbo=0, mainFBO=0;
+    GLuint vao=0, vbo=0, mainFBO=0, viewDirectionFBO=0;
     GLuint eclipseSingleScatteringPrecomputationFBO=0;
     std::vector<TexturePtr> multipleScatteringTextures;
     std::vector<TexturePtr> transmittanceTextures;
     std::vector<TexturePtr> irradianceTextures;
     std::vector<GLuint> radianceRenderBuffers;
+    GLuint viewDirectionRenderBuffer=0;
     // Indexed as singleScatteringTextures[scattererName][wavelengthSetIndex]
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures;
     std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures;
@@ -99,6 +104,7 @@ private:
     // Indexed as eclipsedSingleScatteringPrecomputationPrograms[scattererName][wavelengthSetIndex]
     std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms;
     ShaderProgPtr luminanceToScreenRGB;
+    ShaderProgPtr viewDirectionGetterProgram;
     std::map<ScattererName,bool> scatterersEnabledStates;
 
     DragMode dragMode=DragMode::None;

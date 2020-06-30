@@ -7,9 +7,11 @@
 class RadiancePlot : public QWidget
 {
     std::vector<float> wavelengths, radiances;
+    float azimuth=NAN, elevation=NAN;
 public:
     RadiancePlot(QWidget* parent=nullptr);
-    void setData(const float* wavelengths, const float* radiances, unsigned size);
+    void setData(const float* wavelengths, const float* radiances, unsigned size,
+                 float azimuth, float elevation);
 
 protected:
     void paintEvent(QPaintEvent *event);

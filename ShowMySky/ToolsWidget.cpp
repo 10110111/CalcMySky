@@ -140,7 +140,8 @@ void ToolsWidget::showRadiancePlot()
 bool ToolsWidget::handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance const& spectrum)
 {
     if(!radiancePlot_ || !radiancePlot_->isVisible()) return false;
-    radiancePlot_->setData(spectrum.wavelengths.data(), spectrum.radiances.data(), spectrum.wavelengths.size());
+    radiancePlot_->setData(spectrum.wavelengths.data(), spectrum.radiances.data(), spectrum.wavelengths.size(),
+                           spectrum.azimuth, spectrum.elevation);
     return true;
 }
 

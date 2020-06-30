@@ -91,12 +91,15 @@ RadiancePlot::RadiancePlot(QWidget* parent)
     setWindowTitle(tr("Spectral radiance - ShowMySky"));
 }
 
-void RadiancePlot::setData(const float* wavelengths, const float* radiances, const unsigned size)
+void RadiancePlot::setData(const float* wavelengths, const float* radiances, const unsigned size,
+                           const float azimuth, const float elevation)
 {
     this->wavelengths.resize(size);
     this->radiances.resize(size);
     std::copy_n(wavelengths, size, this->wavelengths.data());
     std::copy_n(radiances, size, this->radiances.data());
+    this->azimuth=azimuth;
+    this->elevation=elevation;
     update();
 }
 
@@ -137,7 +140,8 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
         QTextDocument td;
         td.setDefaultFont(p.font());
         td.setDefaultStyleSheet(QString("body{color: %1;}").arg(textColor().name()));
-        td.setHtml("<body>radiance,\nW&middot;m<sup>-2</sup>&#8239;sr<sup>-1</sup>&#8239;nm<sup>-1</sup></body>");
+        td.setHtml(tr("<body>radiance,\nW&middot;m<sup>-2</sup>&#8239;sr<sup>-1</sup>&#8239;nm<sup>-1</sup>, at azimuth %1&deg;, elevation %2&deg;</body>")
+                    .arg(azimuth).arg(elevation));
         p.save();
         td.drawContents(&p);
         p.restore();

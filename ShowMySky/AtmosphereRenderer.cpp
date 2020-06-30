@@ -514,6 +514,26 @@ void main()
         addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for zero-order scattering"), commonVertexShaderSrc);
         link(program, tr("zero-order scattering shader program"));
     }
+
+    {
+        viewDirectionGetterProgram=std::make_unique<QOpenGLShaderProgram>();
+        auto& program=*viewDirectionGetterProgram;
+        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for view direction getter"), commonVertexShaderSrc);
+        addShaderCode(program, QOpenGLShader::Fragment, tr("viewDir function shader"), viewDirShaderSrc);
+        addShaderCode(program, QOpenGLShader::Fragment, tr("fragment shader for view direction getter"), 1+R"(
+#version 330
+
+in vec3 position;
+out vec3 viewDir;
+
+vec3 calcViewDir();
+void main()
+{
+    viewDir=calcViewDir();
+}
+)");
+        link(program, tr("view direction getter shader program"));
+    }
 }
 
 void AtmosphereRenderer::setupBuffers()
@@ -597,6 +617,20 @@ auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) const 
             output.radiances.emplace_back(data[i]);
     }
     assert(output.wavelengths.size()==output.radiances.size());
+
+    {
+        gl.glBindVertexArray(vao);
+        viewDirectionGetterProgram->bind();
+        viewDirectionGetterProgram->setUniformValue("zoomFactor", tools->zoomFactor());
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, viewDirectionFBO);
+        gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        gl.glBindVertexArray(0);
+        GLfloat viewDir[3]={NAN,NAN,NAN};
+        gl.glReadPixels(pixelPos.x(), viewportSize.height()-pixelPos.y()-1, 1,1, GL_RGB, GL_FLOAT, viewDir);
+        output.azimuth = 180/M_PI * (viewDir[0]!=0 || viewDir[1]!=0 ? std::atan2(viewDir[1], viewDir[0]) : 0);
+        output.elevation = 180/M_PI * std::asin(viewDir[2]);
+    }
+
     return output;
 }
 
@@ -926,6 +960,15 @@ void AtmosphereRenderer::setupRenderTarget()
         assert(radianceRenderBuffers.empty());
         radianceRenderBuffers.resize(params.wavelengthSetCount);
         gl.glGenRenderbuffers(radianceRenderBuffers.size(), radianceRenderBuffers.data());
+
+        gl.glGenFramebuffers(1, &viewDirectionFBO);
+        gl.glGenRenderbuffers(1, &viewDirectionRenderBuffer);
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, viewDirectionFBO);
+        gl.glBindRenderbuffer(GL_RENDERBUFFER, viewDirectionRenderBuffer);
+        gl.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, 1, 1); // dummy size just to initialize the renderbuffer
+        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, viewDirectionRenderBuffer);
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        gl.glBindRenderbuffer(GL_RENDERBUFFER, 0);
     }
 
     gl.glGenFramebuffers(1,&eclipseSingleScatteringPrecomputationFBO);
@@ -1011,6 +1054,8 @@ void AtmosphereRenderer::resizeEvent(const int width, const int height)
             gl.glBindRenderbuffer(GL_RENDERBUFFER, radianceRenderBuffers[wlSetIndex]);
             gl.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, width, height);
         }
+        gl.glBindRenderbuffer(GL_RENDERBUFFER, viewDirectionRenderBuffer);
+        gl.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, width, height);
     }
 }
 
