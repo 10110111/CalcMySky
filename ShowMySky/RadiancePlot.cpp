@@ -2,7 +2,10 @@
 #include <cassert>
 #include <algorithm>
 #include <QPainter>
+#include <QMessageBox>
 #include <QPaintEvent>
+#include <QFileDialog>
+#include <QTextStream>
 #include <QTextDocument>
 #include <QRegularExpression>
 #include "../common/cie-xyzw-functions.hpp"
@@ -263,4 +266,33 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
 
     p.setRenderHint(QPainter::Antialiasing,false);
     drawAxes(p, ticksX, ticksY, wlMin, wlMax, pixMin, pixMax);
+}
+
+void RadiancePlot::keyPressEvent(QKeyEvent* event)
+{
+    if(event->key()==Qt::Key_S &&
+       (event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier|Qt::AltModifier))==Qt::ControlModifier)
+    {
+        saveSpectrum();
+    }
+}
+
+void RadiancePlot::saveSpectrum()
+{
+    if(wavelengths.empty()) return;
+
+    const auto path=QFileDialog::getSaveFileName(this, tr("Save spectrum"), {}, tr("CSV tables (*.csv)"));
+    if(path.isNull()) return;
+
+    QFile file(path);
+    if(!file.open(QFile::WriteOnly))
+    {
+        QMessageBox::critical(this, tr("Failed to open file"),
+                              tr("Failed to open destination file: %1").arg(file.errorString()));
+        return;
+    }
+    QTextStream s(&file);
+    s << "wavelength (nm),radiance (W/m^2/sr/nm)\n";
+    for(unsigned i=0; i<wavelengths.size(); ++i)
+        s << wavelengths[i] << "," << radiances[i] << "\n";
 }

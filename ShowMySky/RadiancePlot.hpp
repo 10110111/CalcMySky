@@ -15,6 +15,7 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *event);
+    void keyPressEvent(QKeyEvent* event);
 
 private:
     QMarginsF calcPlotMargins(QPainter const& p, std::vector<std::pair<float,QString>> const& ticksY) const;
@@ -22,6 +23,7 @@ private:
                   std::vector<std::pair<float,QString>> const& ticksY,
                   float xMin, float xMax, float yMin, float yMax) const;
     std::vector<std::pair<float,QString>> genTicks(std::vector<float> const& values, const float min=NAN) const;
+    void saveSpectrum();
 };
 
 #endif
