@@ -148,6 +148,17 @@ bool ToolsWidget::handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance co
 void ToolsWidget::setCanGrabRadiance(const bool can)
 {
     showRadiancePlot_->setEnabled(can);
+	if(!can)
+	{
+		showRadiancePlot_->setToolTip(tr("Radiance is not available because some textures in\n"
+										 "the current dataset contain only luminance data.\n"
+										 "Use --radiance option for calcmysky command to\n"
+										 "generate full-spectral textures."));
+	}
+	else
+	{
+		showRadiancePlot_->setToolTip("");
+	}
 }
 
 void ToolsWidget::setSunAzimuth(const double azimuth)
