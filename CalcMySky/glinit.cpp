@@ -50,6 +50,8 @@ void initTexturesAndFramebuffers()
         setupTexture(tex,width,height,depth);
     }
     setupTexture(TEX_MULTIPLE_SCATTERING,width,height,depth);
+    // XXX: keep in sync with its use in GLSL computeDoubleScatteringEclipsedDensitySample() and EclipsedDoubleScatteringPrecomputer's constructor
+    setupTexture(TEX_ECLIPSED_DOUBLE_SCATTERING, atmo.eclipseAngularIntegrationPoints, atmo.radialIntegrationPoints);
 
     gl.glGenFramebuffers(FBO_COUNT,fbos);
 }

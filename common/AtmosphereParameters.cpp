@@ -422,6 +422,8 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
             radialIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="angular integration points")
             angularIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="angular integration points for eclipse")
+            eclipseAngularIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for sza")
             irradianceTexW=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for altitude")
@@ -446,6 +448,16 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
             eclipsedSingleScatteringTextureSize[0]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="eclipsed scattering texture size for vza")
             eclipsedSingleScatteringTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed double scattering texture size for relative azimuth")
+            eclipsedDoubleScatteringTextureSize[0]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed double scattering texture size for vza")
+            eclipsedDoubleScatteringTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed double scattering texture size for sza")
+            eclipsedDoubleScatteringTextureSize[2]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed double scattering number of azimuth pairs to sample")
+            eclipsedDoubleScatteringNumberOfAzimuthPairsToSample=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed double scattering number of elevation pairs to sample")
+            eclipsedDoubleScatteringNumberOfElevationPairsToSample=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
@@ -486,6 +498,10 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
         else
             std::cerr << "WARNING: Unknown key: " << key << "\n";
     }
+    eclipsedDoubleScatteringTextureSize[3]=scatteringTextureSize[3];
+
+    lengthOfHorizRayFromGroundToBorderOfAtmo=std::sqrt(atmosphereHeight*(atmosphereHeight+2*earthRadius));
+
     if(!stream.atEnd())
     {
         std::cerr << atmoDescrFileName << ":" << lineNumber << ": error: failed to read file\n";

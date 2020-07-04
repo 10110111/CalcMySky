@@ -84,6 +84,8 @@ private:
 
     GLuint vao_=0, vbo_=0, mainFBO_=0, viewDirectionFBO_=0;
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;
+    // Lower and upper altitude slices from the 4D texture
+    std::vector<TexturePtr> eclipsedDoubleScatteringTexturesLower_, eclipsedDoubleScatteringTexturesUpper_;
     std::vector<TexturePtr> multipleScatteringTextures_;
     std::vector<TexturePtr> transmittanceTextures_;
     std::vector<TexturePtr> irradianceTextures_;
@@ -96,7 +98,9 @@ private:
     QOpenGLTexture mainFBOTexture_;
     QSize viewportSize_;
     float loadedAltitudeURTexCoordRange_[2]={NAN,NAN};
+    float loadedEclipsedDoubleScatteringAltitudeURTexCoordRange_[2]={NAN,NAN};
     float staticAltitudeTexCoord_=-1;
+    float eclipsedDoubleScatteringAltitudeAlphaUpper_=-1;
 
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> multipleScatteringPrograms_;
@@ -104,6 +108,7 @@ private:
     using ScatteringProgramsMap=std::map<ScattererName,std::vector<ShaderProgPtr>>;
     std::vector<std::unique_ptr<ScatteringProgramsMap>> singleScatteringPrograms_;
     std::vector<std::unique_ptr<ScatteringProgramsMap>> eclipsedSingleScatteringPrograms_;
+    std::vector<ShaderProgPtr> eclipsedDoubleScatteringPrograms_;
     // Indexed as eclipsedSingleScatteringPrecomputationPrograms_[scattererName][wavelengthSetIndex]
     std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms_;
     ShaderProgPtr luminanceToScreenRGB_;
@@ -114,6 +119,7 @@ private:
     int prevMouseX_, prevMouseY_;
 
     int numAltIntervalsIn4DTexture_;
+    int numAltIntervalsInEclipsed4DTexture_;
 
     bool readyToRender_=false;
 
@@ -138,7 +144,9 @@ private:
     void makeBayerPatternTexture();
     glm::ivec2 loadTexture2D(QString const& path);
     void loadTexture4D(QString const& path, float altitudeCoord);
+    void load4DTexAltitudeSlicePair(QString const& path, QOpenGLTexture& texLower, QOpenGLTexture& texUpper, float altitudeCoord);
     void updateAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);
+    void updateEclipsedAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);
 
     void precomputeEclipsedSingleScattering();
     void renderZeroOrderScattering();

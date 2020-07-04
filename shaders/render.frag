@@ -13,6 +13,8 @@
 
 uniform sampler3D scatteringTexture;
 uniform sampler2D eclipsedScatteringTexture;
+uniform sampler3D eclipsedDoubleScatteringTextureLower;
+uniform sampler3D eclipsedDoubleScatteringTextureUpper;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
 uniform vec3 moonPosition;
@@ -97,7 +99,7 @@ void main()
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE
     const vec2 texCoords = eclipseTexVarsToTexCoords(azimuthRelativeToSun, viewDir.z, altitude,
-                                                     viewRayIntersectsGround);
+                                                     viewRayIntersectsGround, eclipsedSingleScatteringTextureSize);
     // We don't use mip mapping here, but for some reason, on my NVidia GTX 750 Ti with Linux-x86 driver 390.116 I get
     // an artifact at the point where azimuth texture coordinate changes from 1 to 0 (at azimuthRelativeToSun crossing
     // 0). This happens when I simply call texture(eclipsedScatteringTexture, texCoords) without specifying LOD.
@@ -108,13 +110,20 @@ void main()
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE
     const vec2 texCoords = eclipseTexVarsToTexCoords(azimuthRelativeToSun, viewDir.z, altitude,
-                                                     viewRayIntersectsGround);
+                                                     viewRayIntersectsGround, eclipsedSingleScatteringTextureSize);
     // We don't use mip mapping here, but for some reason, on my NVidia GTX 750 Ti with Linux-x86 driver 390.116 I get
     // an artifact at the point where azimuth texture coordinate changes from 1 to 0 (at azimuthRelativeToSun crossing
     // 0). This happens when I simply call texture(eclipsedScatteringTexture, texCoords) without specifying LOD.
     // Apparently, the driver uses the derivative for some reason, even though it shouldn't.
     const vec4 scattering = textureLod(eclipsedScatteringTexture, texCoords, 0);
     luminance=scattering*currentPhaseFunction(dotViewSun);
+#elif RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE // FIXME: we'd better do this rendering at the same time as single scattering, this could improve performance
+    const vec4 radiance=exp(sampleEclipseDoubleScattering4DTexture(eclipsedDoubleScatteringTextureLower,
+                                                                   eclipsedDoubleScatteringTextureUpper,
+                                                                   sunDirection.z, viewDir.z, azimuthRelativeToSun,
+                                                                   altitude, viewRayIntersectsGround));
+    luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
 #elif RENDERING_SINGLE_SCATTERING_ON_THE_FLY
     const vec4 scattering=computeSingleScattering(sunDirection.z,viewDir.z,dotViewSun,
                                                   cameraPosition.z,viewRayIntersectsGround);

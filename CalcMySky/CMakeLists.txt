@@ -6,6 +6,7 @@ add_executable(calcmysky
                 shaders.cpp
                 ../common/Spectrum.cpp
                 ../common/AtmosphereParameters.cpp
+                ../common/EclipsedDoubleScatteringPrecomputer.cpp
                 ../common/util.cpp
                 ../config.h)
 target_link_libraries(calcmysky Qt5::Core Qt5::OpenGL)

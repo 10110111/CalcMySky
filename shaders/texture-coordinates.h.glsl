@@ -38,6 +38,11 @@ struct EclipseScatteringTexVars
 };
 EclipseScatteringTexVars eclipseTexCoordsToTexVars(const vec2 texCoords, const float altitude);
 vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cosViewZenithAngle,
-                               const float altitude, const bool viewRayIntersectsGround);
+                               const float altitude, const bool viewRayIntersectsGround,
+                               const vec2 texSize);
+
+vec4 sampleEclipseDoubleScattering4DTexture(sampler3D texLower, sampler3D texUpper, const float cosSunZenithAngle,
+                                            const float cosViewZenithAngle, const float azimuthRelativeToSun,
+                                            const float altitude, const bool viewRayIntersectsGround);
 
 #endif

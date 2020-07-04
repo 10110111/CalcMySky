@@ -112,4 +112,23 @@ public:
 #endif
 };
 
+// XXX: keep in sync with the same function in texture-coordinates.frag
+inline float unitRangeToTexCoord(const float u, const int texSize)
+{
+    return (0.5+(texSize-1)*u)/texSize;
+}
+
+// XXX: keep in sync with the same function in texture-coordinates.frag
+inline float texCoordToUnitRange(const float texCoord, const float texSize)
+{
+    return (texSize*texCoord-0.5)/(texSize-1);
+}
+
+// XXX: keep in sync with the same function in common-functions.frag
+template<typename Number>
+Number clampCosine(const Number x)
+{
+    return std::clamp(x, Number(-1), Number(1));
+}
+
 #endif

@@ -91,19 +91,17 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
 
-    usingEclipseShader_=addCheckBox(layout, this, tr("Use e&clipse-mode shader"), false);
+    usingEclipseShader_=addCheckBox(layout, this, tr("Use e&clipse-mode shaders"), false);
     connect(usingEclipseShader_, &QCheckBox::stateChanged, this, [this](const int state)
             {
                  const bool eclipseEnabled = state==Qt::Checked;
                  moonElevation_->setEnabled(eclipseEnabled);
                  moonAzimuth_->setEnabled(eclipseEnabled);
-                 // TODO: remove this disabling code after we implement zero-order and multiple scattering in eclipsed mode
+                 // TODO: remove this disabling code after we implement zero-order scattering in eclipsed mode
                  if(eclipseEnabled)
                  {
-                     multipleScatteringEnabled_->setChecked(false);
                      zeroOrderScatteringEnabled_->setChecked(false);
                  }
-                 multipleScatteringEnabled_->setEnabled(!eclipseEnabled);
                  zeroOrderScatteringEnabled_->setEnabled(!eclipseEnabled);
             });
     triggerStateChanged(usingEclipseShader_);

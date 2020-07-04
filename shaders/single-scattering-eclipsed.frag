@@ -5,6 +5,7 @@
 #include "densities.h.glsl"
 #include "common-functions.h.glsl"
 #include "texture-sampling-functions.h.glsl"
+#include_if(ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION) "phase-functions.h.glsl"
 
 float cosZenithAngle(vec3 origin, vec3 direction)
 {
@@ -31,7 +32,12 @@ vec4 computeSingleScatteringIntegrandEclipsed(const float cosSunZenithAngle, con
                                                     *
                             // FIXME: this ignores orientation of the crescent of eclipsed Sun WRT horizon
                                     sunVisibility(cosSunZenithAngleAtDist, altAtDist);
-    return xmittance*scattererDensity(altAtDist);
+#if ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION
+    COMPUTE_TOTAL_SCATTERING_COEFFICIENT;
+    return xmittance * totalScatteringCoefficient;
+#else
+    return xmittance * scattererDensity(altAtDist);
+#endif
 }
 
 vec4 computeSingleScatteringEclipsed(const vec3 camera, const vec3 viewDir, const vec3 sunDir, const vec3 moonPos,
@@ -62,6 +68,14 @@ vec4 computeSingleScatteringEclipsed(const vec3 camera, const vec3 viewDir, cons
                                                              altitude, dist, viewRayIntersectsGround,
                                                              camera+viewDir*dist, sunDir, moonPos);
     }
-    spectrum *= dl*solarIrradianceAtTOA*scatteringCrossSection();
+
+    spectrum *= dl*solarIrradianceAtTOA
+#if ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION
+                                // the multiplier is already included
+#else
+                                        * scatteringCrossSection()
+#endif
+        ;
+
     return spectrum;
 }

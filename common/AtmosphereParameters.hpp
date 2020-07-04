@@ -76,15 +76,20 @@ struct AtmosphereParameters
     GLint irradianceTexW, irradianceTexH;
     glm::ivec4 scatteringTextureSize;
     glm::ivec2 eclipsedSingleScatteringTextureSize;
+    glm::ivec4 eclipsedDoubleScatteringTextureSize;
+    unsigned eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
+    unsigned eclipsedDoubleScatteringNumberOfElevationPairsToSample;
     unsigned scatteringOrdersToCompute;
     GLint numTransmittanceIntegrationPoints;
     GLint radialIntegrationPoints;
     GLint angularIntegrationPoints;
+    GLint eclipseAngularIntegrationPoints;
     GLfloat earthRadius;
     GLfloat atmosphereHeight;
     double earthSunDistance;
     double earthMoonDistance;
     GLfloat sunAngularRadius; // calculated from earthSunDistance
+    float lengthOfHorizRayFromGroundToBorderOfAtmo; // calculated from atmosphereHeight and earthRadius
     // moonAngularRadius is calculated from earthMoonDistance and other parameters on the fly, so isn't kept here
     std::vector<glm::vec4> groundAlbedo;
     std::vector<Scatterer> scatterers;

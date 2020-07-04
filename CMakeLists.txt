@@ -15,6 +15,8 @@ include(cmake/CheckGLM.cmake)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 find_package(Qt5 5.9 REQUIRED Core OpenGL)
+find_package(Eigen3 REQUIRED)
+include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
 include_directories(${CMAKE_BINARY_DIR})
 
 if(WIN32)

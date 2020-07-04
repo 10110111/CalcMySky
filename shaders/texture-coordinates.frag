@@ -9,6 +9,8 @@ const float LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO=sqrt(atmosphereHei
 
 uniform sampler2D transmittanceTexture;
 uniform float staticAltitudeTexCoord=-1;
+uniform float eclipsedDoubleScatteringAltitudeAlphaUpper;
+uniform vec3 eclipsedDoubleScatteringTextureSize;
 
 struct Scattering4DCoords
 {
@@ -368,16 +370,31 @@ EclipseScattering2DCoords eclipseTexVarsTo2DCoords(const float azimuthRelativeTo
 }
 
 vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cosViewZenithAngle,
-                               const float altitude, const bool viewRayIntersectsGround)
+                               const float altitude, const bool viewRayIntersectsGround, const vec2 texSize)
 {
     const EclipseScattering2DCoords coords=eclipseTexVarsTo2DCoords(azimuthRelativeToSun, cosViewZenithAngle, altitude,
                                                                     viewRayIntersectsGround);
     const float cosVZAtc = viewRayIntersectsGround ?
                             // Coordinate is in ~[0,0.5]
-                            0.5-0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, eclipsedSingleScatteringTextureSize.t/2) :
+                            0.5-0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, texSize.t/2) :
                             // Coordinate is in ~[0.5,1]
-                            0.5+0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, eclipsedSingleScatteringTextureSize.t/2);
-    const float azimuthTC = coords.azimuth + 1/(2*eclipsedSingleScatteringTextureSize.s);
+                            0.5+0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, texSize.t/2);
+    const float azimuthTC = coords.azimuth + 1/(2*texSize.s);
 
     return vec2(azimuthTC, cosVZAtc);
+}
+
+vec4 sampleEclipseDoubleScattering4DTexture(sampler3D texLower, sampler3D texUpper, const float cosSunZenithAngle,
+                                            const float cosViewZenithAngle, const float azimuthRelativeToSun,
+                                            const float altitude, const bool viewRayIntersectsGround)
+{
+    const vec2 coords2d=eclipseTexVarsToTexCoords(azimuthRelativeToSun, cosViewZenithAngle, altitude, viewRayIntersectsGround,
+                                                  eclipsedDoubleScatteringTextureSize.st);
+    const float cosSZACoord=unitRangeToTexCoord(cosSZAToUnitRangeTexCoord(cosSunZenithAngle), eclipsedDoubleScatteringTextureSize[2]);
+    const vec3 texCoords=vec3(coords2d, cosSZACoord);
+
+    const vec4 upper=texture(texUpper, texCoords);
+    const vec4 lower=texture(texLower, texCoords);
+
+    return mix(lower,upper,eclipsedDoubleScatteringAltitudeAlphaUpper);
 }

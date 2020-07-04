@@ -24,6 +24,7 @@ enum FBOId
     FBO_DELTA_SCATTERING,
     FBO_SINGLE_SCATTERING,
     FBO_MULTIPLE_SCATTERING,
+    FBO_ECLIPSED_DOUBLE_SCATTERING,
 
     FBO_COUNT
 };
@@ -36,6 +37,7 @@ enum TextureId
     TEX_DELTA_SCATTERING,
     TEX_MULTIPLE_SCATTERING,
     TEX_DELTA_SCATTERING_DENSITY,
+    TEX_ECLIPSED_DOUBLE_SCATTERING,
 
     TEX_COUNT
 };
@@ -47,6 +49,7 @@ struct Options
 {
     bool saveResultAsRadiance=false;
     bool dbgNoSaveTextures=false;
+    bool dbgNoEDSTextures=false;
     bool dbgSaveGroundIrradiance=false;
     bool dbgSaveScatDensityOrder2FromGround=false;
     bool dbgSaveScatDensity=false;

@@ -15,6 +15,7 @@ eclipsed scattering texture size for VZA: 128
 transmittance integration points: 500
 radial integration points: 50
 angular integration points per half revolution: 16
+angular integration points per half revolution for eclipse: 16
 scattering orders: 4
 
 Earth-Sun distance: 1.01208 AU # on 2017-08-21 at 12:12:12 UTC
