@@ -50,7 +50,7 @@ QColor wavelengthToQColor(const float wavelength)
 
     static float rgbMin=0;
     static float rgbMax=0;
-    static const bool inited=[]
+    [[maybe_unused]] static const bool inited=[]
     {
         for(double wl=400;wl<700;wl+=0.1)
         {
@@ -64,7 +64,6 @@ QColor wavelengthToQColor(const float wavelength)
         }
         return true;
     }();
-    (void)inited;
 
     const auto desaturated=(RGB-rgbMin)/(rgbMax-rgbMin); // desaturate and scale to [0,1]
     const auto sRGB=RGB2sRGB(desaturated);
