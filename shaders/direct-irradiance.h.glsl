@@ -1,0 +1,6 @@
+#ifndef INCLUDE_ONCE_58AEF899_1A84_4A2F_AD71_4E7680B83E29
+#define INCLUDE_ONCE_58AEF899_1A84_4A2F_AD71_4E7680B83E29
+
+vec4 computeDirectGroundIrradiance(const float cosSunZenithAngle, const float altitude);
+
+#endif
