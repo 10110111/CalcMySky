@@ -2,8 +2,13 @@
 #define INCLUDE_ONCE_E28E88C6_7992_4205_828C_8E04CC339B83
 
 #include <iostream>
+#include <glm/glm.hpp>
 #include <QString>
+#include <QVector3D>
 #include <QOpenGLFunctions_3_3_Core>
+
+template<typename T> auto sqr(T const& x) { return x*x; }
+inline QVector3D toQVector(glm::dvec3 const& v) { return QVector3D(v.x, v.y, v.z); }
 
 struct MustQuit{ int exitCode=1; };
 
