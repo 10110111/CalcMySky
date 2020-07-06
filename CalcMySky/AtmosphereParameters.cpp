@@ -3,6 +3,9 @@
 #include "Spectrum.hpp"
 #include "../common/const.hpp"
 
+namespace
+{
+
 unsigned long long getUInt(QString const& value, const unsigned long long min, const unsigned long long max,
                            QString const& filename, int lineNumber)
 {
@@ -426,6 +429,8 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, Q
     }
 
     return description;
+}
+
 }
 
 void AtmosphereParameters::parse(QString const& atmoDescrFileName)

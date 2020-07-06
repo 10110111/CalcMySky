@@ -18,6 +18,9 @@
 #include "data.hpp"
 #include "util.hpp"
 
+namespace
+{
+
 QStringList wordWrap(QString const& longLine, const int maxWidth)
 {
     const auto words=longLine.split(' ');
@@ -151,6 +154,8 @@ void showHelp(std::ostream& s, QList<QCommandLineOption> const& options, QString
                 s << std::string(namesColumnWidth+1, ' ');
         }
     }
+}
+
 }
 
 void handleCmdLine()
