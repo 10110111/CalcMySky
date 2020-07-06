@@ -3,6 +3,7 @@
 
 #include <set>
 #include <map>
+#include <cmath>
 #include <array>
 #include <vector>
 #include <memory>
@@ -69,8 +70,8 @@ struct AtmosphereParameters
 {
     struct Scatterer
     {
-        GLfloat crossSectionAt1um = NaN;
-        GLfloat angstromExponent = NaN;
+        GLfloat crossSectionAt1um = NAN;
+        GLfloat angstromExponent = NAN;
         QString numberDensity;
         QString phaseFunction;
         PhaseFunctionType phaseFunctionType=PhaseFunctionType::General;
