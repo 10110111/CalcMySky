@@ -198,7 +198,7 @@ std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const
 {
     if(line.startsWith("file "))
     {
-        if(allWavelengths.empty())
+        if(atmo.allWavelengths.empty())
         {
             std::cerr << filename << ":" << lineNumber << ": error: tried to read a spectrum file without having read list of wavelengths\n";
             throw MustQuit{};
@@ -214,9 +214,9 @@ std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const
             throw MustQuit{};
         }
         const auto spectrum=Spectrum::parseFromCSV(file.readAll(),path,1)
-                                            .resample(allWavelengths.front()[0],
-                                                      allWavelengths.back()[pointsPerWavelengthItem-1],
-                                                      allWavelengths.size()*pointsPerWavelengthItem);
+                                            .resample(atmo.allWavelengths.front()[0],
+                                                      atmo.allWavelengths.back()[pointsPerWavelengthItem-1],
+                                                      atmo.allWavelengths.size()*pointsPerWavelengthItem);
         const auto& values=spectrum.values;
         std::vector<glm::vec4> output;
         for(unsigned i=0; i<values.size(); i+=4)
@@ -224,9 +224,9 @@ std::vector<glm::vec4> getSpectrum(QString const& line, const GLfloat min, const
         return output;
     }
     const auto items=line.split(',');
-    if(checkSize && size_t(items.size()) != allWavelengths.size()*pointsPerWavelengthItem)
+    if(checkSize && size_t(items.size()) != atmo.allWavelengths.size()*pointsPerWavelengthItem)
     {
-            std::cerr << filename << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are " << allWavelengths.size()*pointsPerWavelengthItem << " wavelengths\n";
+            std::cerr << filename << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are " << atmo.allWavelengths.size()*pointsPerWavelengthItem << " wavelengths\n";
             throw MustQuit{};
     }
     if(items.size()%4)
@@ -342,9 +342,9 @@ std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat min
     return values;
 }
 
-ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
+AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
 {
-    ScattererDescription description(name);
+    AtmosphereParameters::Scatterer description(name);
     bool begun=false;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
     {
@@ -395,9 +395,9 @@ ScattererDescription parseScatterer(QTextStream& stream, QString const& name, QS
     return description;
 }
 
-AbsorberDescription parseAbsorber(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
+AtmosphereParameters::Absorber parseAbsorber(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
 {
-    AbsorberDescription description(name);
+    AtmosphereParameters::Absorber description(name, atmo);
 
     bool begun=false;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
@@ -623,7 +623,7 @@ void handleCmdLine()
         throw MustQuit{0};
     }
     if(parser.isSet(textureOutputDirOpt))
-        textureOutputDir=parser.value(textureOutputDirOpt).toStdString();
+        atmo.textureOutputDir=parser.value(textureOutputDirOpt).toStdString();
     if(parser.isSet(dbgNoSaveTexturesOpt))
         dbgNoSaveTextures=true;
     if(parser.isSet(saveResultAsRadianceOpt))
@@ -677,19 +677,19 @@ void handleCmdLine()
         const auto key=keyValue[0].simplified().toLower();
         const auto value=keyValue[1].trimmed();
         if(key=="transmittance texture size for cos(vza)")
-            transmittanceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.transmittanceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="transmittance texture size for altitude")
-            transmittanceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.transmittanceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="transmittance integration points")
-            numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+            atmo.numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="radial integration points")
-            radialIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+            atmo.radialIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="angular integration points per half revolution")
-            angularIntegrationPointsPerHalfRevolution=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+            atmo.angularIntegrationPointsPerHalfRevolution=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for cos(sza)")
-            irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for altitude")
-            irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for cos(vza)")
         {
             const auto integer=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
@@ -698,54 +698,54 @@ void handleCmdLine()
                 std::cerr << atmoDescrFileName << ":" << lineNumber << ": value for \"" << key << "\" must be even (shaders rely on this)\n";
                 throw MustQuit{};
             }
-            scatteringTextureSize[0]=integer;
+            atmo.scatteringTextureSize[0]=integer;
         }
         else if(key=="scattering texture size for dot(view,sun)")
-            scatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.scatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for cos(sza)")
-            scatteringTextureSize[2]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.scatteringTextureSize[2]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for altitude")
-            scatteringTextureSize[3]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.scatteringTextureSize[3]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="eclipsed scattering texture size for relative azimuth")
-            eclipsedSingleScatteringTextureSize[0]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.eclipsedSingleScatteringTextureSize[0]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="eclipsed scattering texture size for cos(vza)")
-            eclipsedSingleScatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            atmo.eclipsedSingleScatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
-            earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
+            atmo.earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
-            atmosphereHeight=getQuantity(value,1,1e6,LengthQuantity{},atmoDescrFileName,lineNumber);
+            atmo.atmosphereHeight=getQuantity(value,1,1e6,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="earth-sun distance")
         {
-            earthSunDistance=getQuantity(value,0.5*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
-            sunAngularRadius=sunRadius/earthSunDistance;
+            atmo.earthSunDistance=getQuantity(value,0.5*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
+            atmo.sunAngularRadius=sunRadius/atmo.earthSunDistance;
         }
         else if(key=="earth-moon distance")
         {
-            earthMoonDistance=getQuantity(value,1e-4*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
-            // moonAngularRadius is computed from earthMoonDistance and other parameters on the fly
+            atmo.earthMoonDistance=getQuantity(value,1e-4*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
+            // moonAngularRadius is computed from atmo.earthMoonDistance and other parameters on the fly
         }
         else if(key=="wavelengths")
-            allWavelengths=getWavelengthRange(value,100,100'000,atmoDescrFileName,lineNumber);
+            atmo.allWavelengths=getWavelengthRange(value,100,100'000,atmoDescrFileName,lineNumber);
         else if(key=="solar irradiance at toa")
-            solarIrradianceAtTOA=getSpectrum(value,0,1e3,atmoDescrFileName,lineNumber);
+            atmo.solarIrradianceAtTOA=getSpectrum(value,0,1e3,atmoDescrFileName,lineNumber);
         else if(key.contains(scattererDescriptionKey))
         {
             const auto& name=scattererDescriptionKey.cap(1);
-            if(std::find_if(scatterers.begin(), scatterers.end(),
-                            [&](const auto& existing) { return existing.name==name; }) != scatterers.end())
+            if(std::find_if(atmo.scatterers.begin(), atmo.scatterers.end(),
+                            [&](const auto& existing) { return existing.name==name; }) != atmo.scatterers.end())
             {
                 std::cerr << atmoDescrFileName << ":" << lineNumber << ": duplicate scatterer \"" << name << "\"\n";
                 throw MustQuit{};
             }
-            scatterers.emplace_back(parseScatterer(stream, name, atmoDescrFileName,++lineNumber));
+            atmo.scatterers.emplace_back(parseScatterer(stream, name, atmoDescrFileName,++lineNumber));
         }
         else if(key.contains(absorberDescriptionKey))
-            absorbers.emplace_back(parseAbsorber(stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
+            atmo.absorbers.emplace_back(parseAbsorber(stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
         else if(key=="scattering orders")
-            scatteringOrdersToCompute=getQuantity(value,1,100, DimensionlessQuantity{},atmoDescrFileName,lineNumber);
+            atmo.scatteringOrdersToCompute=getQuantity(value,1,100, DimensionlessQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="ground albedo")
         {
-            groundAlbedo=getSpectrum(value, 0, 1, atmoDescrFileName, lineNumber);
+            atmo.groundAlbedo=getSpectrum(value, 0, 1, atmoDescrFileName, lineNumber);
         }
         else
             std::cerr << "WARNING: Unknown key: " << key << "\n";
@@ -755,19 +755,19 @@ void handleCmdLine()
         std::cerr << atmoDescrFileName << ":" << lineNumber << ": error: failed to read file\n";
         throw MustQuit{};
     }
-    if(allWavelengths.empty())
+    if(atmo.allWavelengths.empty())
     {
         std::cerr << "Wavelengths aren't specified in atmosphere description\n";
         throw MustQuit{};
     }
-    if(solarIrradianceAtTOA.empty())
+    if(atmo.solarIrradianceAtTOA.empty())
     {
         std::cerr << "Solar irradiance at TOA isn't specified in atmosphere description\n";
         throw MustQuit{};
     }
-    if(groundAlbedo.empty())
+    if(atmo.groundAlbedo.empty())
     {
         std::cerr << "Warning: ground albedo was not specified, assuming 100% white.\n";
-        groundAlbedo=std::vector<glm::vec4>(allWavelengths.size(), glm::vec4(1));
+        atmo.groundAlbedo=std::vector<glm::vec4>(atmo.allWavelengths.size(), glm::vec4(1));
     }
 }

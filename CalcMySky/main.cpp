@@ -30,39 +30,39 @@ glm::mat4 radianceToLuminance(const unsigned texIndex)
                                                                                  0,y,0,0,
                                                                                  0,0,z,0,
                                                                                  0,0,0,w); };
-    const auto wlCount = 4*allWavelengths.size();
+    const auto wlCount = 4*atmo.allWavelengths.size();
     // Weights for the trapezoidal quadrature rule
     const mat4 weights = wlCount==4            ? diag(0.5,1,1,0.5) :
                          texIndex==0           ? diag(0.5,1,1,1  ) :
                          texIndex+1==wlCount/4 ? diag(  1,1,1,0.5) :
                                                  diag(  1,1,1,1);
-    const mat4 dlambda = weights * abs(allWavelengths.back()[3]-allWavelengths.front()[0]) / (wlCount-1.f);
+    const mat4 dlambda = weights * abs(atmo.allWavelengths.back()[3]-atmo.allWavelengths.front()[0]) / (wlCount-1.f);
     // Ref: Rapport BIPM-2019/05. Principles Governing Photometry, 2nd edition. Sections 6.2, 6.3.
     const mat4 maxLuminousEfficacy=diag(683.002f,683.002f,683.002f,1700.13f); // lm/W
-    return maxLuminousEfficacy * mat4(wavelengthToXYZW(allWavelengths[texIndex][0]),
-                                      wavelengthToXYZW(allWavelengths[texIndex][1]),
-                                      wavelengthToXYZW(allWavelengths[texIndex][2]),
-                                      wavelengthToXYZW(allWavelengths[texIndex][3])) * dlambda;
+    return maxLuminousEfficacy * mat4(wavelengthToXYZW(atmo.allWavelengths[texIndex][0]),
+                                      wavelengthToXYZW(atmo.allWavelengths[texIndex][1]),
+                                      wavelengthToXYZW(atmo.allWavelengths[texIndex][2]),
+                                      wavelengthToXYZW(atmo.allWavelengths[texIndex][3])) * dlambda;
 }
 
 void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 {
-    if(scatteringOrder==scatteringOrdersToCompute)
+    if(scatteringOrder==atmo.scatteringOrdersToCompute)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
-                    textureOutputDir+"/irradiance-wlset"+std::to_string(texIndex)+".f32",
-                    {irradianceTexW, irradianceTexH});
+                    atmo.textureOutputDir+"/irradiance-wlset"+std::to_string(texIndex)+".f32",
+                    {atmo.irradianceTexW, atmo.irradianceTexH});
     }
 
     if(!dbgSaveGroundIrradiance) return;
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
-                textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
-                {irradianceTexW, irradianceTexH});
+                atmo.textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
+                {atmo.irradianceTexW, atmo.irradianceTexH});
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
-                textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
-                {irradianceTexW, irradianceTexH});
+                atmo.textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
+                {atmo.irradianceTexW, atmo.irradianceTexH});
 }
 
 void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texIndex)
@@ -70,8 +70,8 @@ void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texInd
     if(!dbgSaveScatDensity) return;
     saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                 "order "+std::to_string(scatteringOrder)+" scattering density",
-                textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
-                {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                atmo.textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
+                {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
 }
 
 void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view whatIsBeingDone)
@@ -85,10 +85,10 @@ void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view wha
     }
 
     std::cerr << indentOutput() << whatIsBeingDone << "... ";
-    for(GLsizei layer=0; layer<scatTexDepth(); ++layer)
+    for(GLsizei layer=0; layer<atmo.scatTexDepth(); ++layer)
     {
         std::ostringstream ss;
-        ss << layer << " of " << scatTexDepth() << " layers done";
+        ss << layer << " of " << atmo.scatTexDepth() << " layers done";
         std::cerr << ss.str();
 
         program.setUniformValue("layer",layer);
@@ -120,15 +120,15 @@ void computeTransmittance(const unsigned texIndex)
     checkFramebufferStatus("framebuffer for transmittance texture");
 
     program->bind();
-    gl.glViewport(0, 0, transmittanceTexW, transmittanceTexH);
+    gl.glViewport(0, 0, atmo.transmittanceTexW, atmo.transmittanceTexH);
     renderQuad();
 
     gl.glFinish();
     std::cerr << "done\n";
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_TRANSMITTANCE],"transmittance texture",
-                textureOutputDir+"/transmittance-wlset"+std::to_string(texIndex)+".f32",
-                {transmittanceTexW, transmittanceTexH});
+                atmo.textureOutputDir+"/transmittance-wlset"+std::to_string(texIndex)+".f32",
+                {atmo.transmittanceTexW, atmo.transmittanceTexH});
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -149,7 +149,7 @@ void computeDirectGroundIrradiance(const unsigned texIndex)
 
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
 
-    gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
+    gl.glViewport(0, 0, atmo.irradianceTexW, atmo.irradianceTexH);
     renderQuad();
 
     gl.glFinish();
@@ -177,7 +177,7 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
         if(filename==viewDirFuncFileName) continue;
 
         const auto filePath=QString("%1/shaders/zero-order-scattering/%2/%3")
-                                .arg(textureOutputDir.c_str()).arg(texIndex).arg(filename);
+                                .arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -214,8 +214,8 @@ void saveMultipleScatteringRenderingShader(const unsigned texIndex)
     {
         if(filename==viewDirFuncFileName) continue;
 
-        const auto filePath = saveResultAsRadiance ? QString("%1/shaders/multiple-scattering/%2/%3").arg(textureOutputDir.c_str()).arg(texIndex).arg(filename)
-                                                   : QString("%1/shaders/multiple-scattering/%2").arg(textureOutputDir.c_str()).arg(filename);
+        const auto filePath = saveResultAsRadiance ? QString("%1/shaders/multiple-scattering/%2/%3").arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename)
+                                                   : QString("%1/shaders/multiple-scattering/%2").arg(atmo.textureOutputDir.c_str()).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -234,7 +234,7 @@ void saveMultipleScatteringRenderingShader(const unsigned texIndex)
     }
 }
 
-void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescription const& scatterer, const SingleScatteringRenderMode renderMode)
+void saveSingleScatteringRenderingShader(const unsigned texIndex, AtmosphereParameters::Scatterer const& scatterer, const SingleScatteringRenderMode renderMode)
 {
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
@@ -258,8 +258,8 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
         if(filename==viewDirFuncFileName) continue;
 
         const auto filePath = scatterer.phaseFunctionType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY ?
-           QString("%1/shaders/single-scattering/%2/%3/%4/%5").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(texIndex).arg(scatterer.name).arg(filename) :
-           QString("%1/shaders/single-scattering/%2/%3/%4").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(scatterer.name).arg(filename);
+           QString("%1/shaders/single-scattering/%2/%3/%4/%5").arg(atmo.textureOutputDir.c_str()).arg(toString(renderMode)).arg(texIndex).arg(scatterer.name).arg(filename) :
+           QString("%1/shaders/single-scattering/%2/%3/%4").arg(atmo.textureOutputDir.c_str()).arg(toString(renderMode)).arg(scatterer.name).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -278,7 +278,7 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescr
     }
 }
 
-void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, ScattererDescription const& scatterer, const SingleScatteringRenderMode renderMode)
+void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, AtmosphereParameters::Scatterer const& scatterer, const SingleScatteringRenderMode renderMode)
 {
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
@@ -299,8 +299,8 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Scatte
         if(filename==viewDirFuncFileName) continue;
 
         const auto filePath = scatterer.phaseFunctionType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY ?
-            QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4/%5").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(texIndex).arg(scatterer.name).arg(filename) :
-            QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4").arg(textureOutputDir.c_str()).arg(toString(renderMode)).arg(scatterer.name).arg(filename);
+            QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4/%5").arg(atmo.textureOutputDir.c_str()).arg(toString(renderMode)).arg(texIndex).arg(scatterer.name).arg(filename) :
+            QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4").arg(atmo.textureOutputDir.c_str()).arg(toString(renderMode)).arg(scatterer.name).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -319,7 +319,7 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Scatte
     }
 }
 
-void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, ScattererDescription const& scatterer)
+void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, AtmosphereParameters::Scatterer const& scatterer)
 {
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
@@ -336,7 +336,7 @@ void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, Scat
         if(filename==viewDirFuncFileName) continue;
 
         const auto filePath = QString("%1/shaders/single-scattering-eclipsed/precomputation/%2/%3/%4")
-                                    .arg(textureOutputDir.c_str())
+                                    .arg(atmo.textureOutputDir.c_str())
                                     .arg(texIndex)
                                     .arg(scatterer.name)
                                     .arg(filename);
@@ -358,7 +358,7 @@ void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, Scat
     }
 }
 
-void accumulateSingleScattering(const unsigned texIndex, ScattererDescription const& scatterer)
+void accumulateSingleScattering(const unsigned texIndex, AtmosphereParameters::Scatterer const& scatterer)
 {
     gl.glBlendFunc(GL_ONE, GL_ONE);
     gl.glEnable(GL_BLEND);
@@ -371,7 +371,7 @@ void accumulateSingleScattering(const unsigned texIndex, ScattererDescription co
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
-        setupTexture(targetTexture, scatTexWidth(),scatTexHeight(),scatTexDepth());
+        setupTexture(targetTexture, atmo.scatTexWidth(),atmo.scatTexHeight(),atmo.scatTexDepth());
         gl.glDisable(GL_BLEND);
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_SINGLE_SCATTERING]);
@@ -389,25 +389,25 @@ void accumulateSingleScattering(const unsigned texIndex, ScattererDescription co
     gl.glDisable(GL_BLEND);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 
-    if(texIndex+1==allWavelengths.size() && scatterer.phaseFunctionType!=PhaseFunctionType::Smooth)
+    if(texIndex+1==atmo.allWavelengths.size() && scatterer.phaseFunctionType!=PhaseFunctionType::Smooth)
     {
         saveTexture(GL_TEXTURE_3D,targetTexture, "single scattering texture",
-                    textureOutputDir+"/single-scattering/"+scatterer.name.toStdString()+"-xyzw.f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                    atmo.textureOutputDir+"/single-scattering/"+scatterer.name.toStdString()+"-xyzw.f32",
+                    {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
     }
 }
 
-void computeSingleScattering(const unsigned texIndex, ScattererDescription const& scatterer)
+void computeSingleScattering(const unsigned texIndex, AtmosphereParameters::Scatterer const& scatterer)
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_DELTA_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_DELTA_SCATTERING],0);
     checkFramebufferStatus("framebuffer for first scattering");
 
-    gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
+    gl.glViewport(0, 0, atmo.scatTexWidth(), atmo.scatTexHeight());
 
     const auto src=makeScattererDensityFunctionsSrc()+
                     "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
-                    "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(allWavelengths[texIndex]))+"; }\n";
+                    "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(atmo.allWavelengths[texIndex]))+"; }\n";
     virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
     const auto program=compileShaderProgram("compute-single-scattering.frag",
                                             "single scattering computation shader program",
@@ -423,8 +423,8 @@ void computeSingleScattering(const unsigned texIndex, ScattererDescription const
     {
     case PhaseFunctionType::General:
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING], "single scattering texture",
-                    textureOutputDir+"/single-scattering/"+std::to_string(texIndex)+"/"+scatterer.name.toStdString()+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                    atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex)+"/"+scatterer.name.toStdString()+".f32",
+                    {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
         break;
     case PhaseFunctionType::Achromatic:
     case PhaseFunctionType::Smooth:
@@ -462,7 +462,7 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
                                      "scattering density computation shader program", UseGeomShader{});
     }
 
-    gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
+    gl.glViewport(0, 0, atmo.scatTexWidth(), atmo.scatTexHeight());
 
     program->bind();
 
@@ -479,14 +479,14 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                     "order 2 scattering density from ground texture",
-                    textureOutputDir+"/scattering-density2-from-ground-wlset"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                    atmo.textureOutputDir+"/scattering-density2-from-ground-wlset"+std::to_string(texIndex)+".f32",
+                    {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
     }
 
     gl.glBlendFunc(GL_ONE, GL_ONE);
-    for(unsigned scattererIndex=0; scattererIndex<scatterers.size(); ++scattererIndex)
+    for(unsigned scattererIndex=0; scattererIndex<atmo.scatterers.size(); ++scattererIndex)
     {
-        const auto& scatterer=scatterers[scattererIndex];
+        const auto& scatterer=atmo.scatterers[scattererIndex];
         std::cerr << indentOutput() << "Processing scatterer \""+scatterer.name.toStdString()+"\":\n";
         OutputIndentIncrease incr;
 
@@ -546,7 +546,7 @@ void computeIndirectIrradianceOrder1(const unsigned texIndex, const unsigned sca
 {
     constexpr unsigned scatteringOrder=2;
 
-    gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
+    gl.glViewport(0, 0, atmo.irradianceTexW, atmo.irradianceTexH);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
     gl.glBlendFunc(GL_ONE, GL_ONE);
@@ -556,7 +556,7 @@ void computeIndirectIrradianceOrder1(const unsigned texIndex, const unsigned sca
         gl.glEnablei(GL_BLEND, 0); // Second and subsequent scatterers blend into delta-irradiance-texture
     gl.glEnablei(GL_BLEND, 1); // Total irradiance is always accumulated
 
-    const auto& scatterer=scatterers[scattererIndex];
+    const auto& scatterer=atmo.scatterers[scattererIndex];
 
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
@@ -581,7 +581,7 @@ void computeIndirectIrradianceOrder1(const unsigned texIndex, const unsigned sca
 void computeIndirectIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 {
     assert(scatteringOrder>2);
-    gl.glViewport(0, 0, irradianceTexW, irradianceTexH);
+    gl.glViewport(0, 0, atmo.irradianceTexW, atmo.irradianceTexH);
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
     gl.glBlendFunc(GL_ONE, GL_ONE);
@@ -608,7 +608,7 @@ void computeIndirectIrradiance(const unsigned scatteringOrder, const unsigned te
 void mergeSmoothSingleScatteringTexture()
 {
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
-    for(const auto& scatterer : scatterers)
+    for(const auto& scatterer : atmo.scatterers)
     {
         if(scatterer.phaseFunctionType!=PhaseFunctionType::Smooth)
             continue;
@@ -659,19 +659,19 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
                     "multiple scattering accumulator texture",
-                    textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                    atmo.textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
+                    {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
     }
-    if(scatteringOrder==scatteringOrdersToCompute && (texIndex+1==allWavelengths.size() || saveResultAsRadiance))
+    if(scatteringOrder==atmo.scatteringOrdersToCompute && (texIndex+1==atmo.allWavelengths.size() || saveResultAsRadiance))
     {
         mergeSmoothSingleScatteringTexture();
 
         const auto filename = saveResultAsRadiance ?
-            textureOutputDir+"/multiple-scattering-wlset"+std::to_string(texIndex)+".f32" :
-            textureOutputDir+"/multiple-scattering-xyzw.f32";
+            atmo.textureOutputDir+"/multiple-scattering-wlset"+std::to_string(texIndex)+".f32" :
+            atmo.textureOutputDir+"/multiple-scattering-xyzw.f32";
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
                     "multiple scattering accumulator texture", filename,
-                    {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                    {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
     }
 }
 
@@ -681,7 +681,7 @@ void computeMultipleScatteringFromDensity(const unsigned scatteringOrder, const 
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_DELTA_SCATTERING],0);
     checkFramebufferStatus("framebuffer for delta multiple scattering");
 
-    gl.glViewport(0, 0, scatTexWidth(), scatTexHeight());
+    gl.glViewport(0, 0, atmo.scatTexWidth(), atmo.scatTexHeight());
 
     {
         const auto program=compileShaderProgram("compute-multiple-scattering.frag",
@@ -698,8 +698,8 @@ void computeMultipleScatteringFromDensity(const unsigned scatteringOrder, const 
         {
             saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
                         "delta scattering texture",
-                        textureOutputDir+"/delta-scattering-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
-                        {scatteringTextureSize[0], scatteringTextureSize[1], scatteringTextureSize[2], scatteringTextureSize[3]});
+                        atmo.textureOutputDir+"/delta-scattering-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
+                        {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
         }
     }
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -717,7 +717,7 @@ void computeMultipleScattering(const unsigned texIndex)
         computeScatteringDensityOrder2(texIndex);
         computeMultipleScatteringFromDensity(2,texIndex);
     }
-    for(unsigned scatteringOrder=3; scatteringOrder<=scatteringOrdersToCompute; ++scatteringOrder)
+    for(unsigned scatteringOrder=3; scatteringOrder<=atmo.scatteringOrdersToCompute; ++scatteringOrder)
     {
         std::cerr << indentOutput() << "Working on scattering order " << scatteringOrder << ":\n";
         OutputIndentIncrease incr;
@@ -742,56 +742,56 @@ int main(int argc, char** argv)
         handleCmdLine();
 
         if(saveResultAsRadiance)
-            for(auto& scatterer : scatterers)
+            for(auto& scatterer : atmo.scatterers)
                 scatterer.phaseFunctionType=PhaseFunctionType::General;
 
-        if(textureOutputDir.length() && textureOutputDir.back()=='/')
-            textureOutputDir.pop_back(); // Make the paths a bit nicer (without double slashes)
-        for(const auto& scatterer : scatterers)
+        if(atmo.textureOutputDir.length() && atmo.textureOutputDir.back()=='/')
+            atmo.textureOutputDir.pop_back(); // Make the paths a bit nicer (without double slashes)
+        for(const auto& scatterer : atmo.scatterers)
         {
-            for(unsigned texIndex=0; texIndex<allWavelengths.size(); ++texIndex)
+            for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
             {
-                createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/precomputation/"+
+                createDirs(atmo.textureOutputDir+"/shaders/single-scattering-eclipsed/precomputation/"+
                            std::to_string(texIndex)+"/"+scatterer.name.toStdString());
-                createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
+                createDirs(atmo.textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
                            std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 if(scatterer.phaseFunctionType!=PhaseFunctionType::Smooth)
                 {
-                    createDirs(textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
+                    createDirs(atmo.textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 }
                 if(scatterer.phaseFunctionType==PhaseFunctionType::General)
                 {
-                    createDirs(textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
+                    createDirs(atmo.textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
-                    createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
+                    createDirs(atmo.textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 }
             }
             if(scatterer.phaseFunctionType==PhaseFunctionType::Achromatic)
             {
-                createDirs(textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
+                createDirs(atmo.textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                            scatterer.name.toStdString());
             }
             if(scatterer.phaseFunctionType!=PhaseFunctionType::General)
             {
-                createDirs(textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
+                createDirs(atmo.textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                            scatterer.name.toStdString());
             }
         }
-        for(unsigned texIndex=0; texIndex<allWavelengths.size(); ++texIndex)
+        for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
         {
-            createDirs(textureOutputDir+"/shaders/zero-order-scattering/"+std::to_string(texIndex));
-            createDirs(textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
+            createDirs(atmo.textureOutputDir+"/shaders/zero-order-scattering/"+std::to_string(texIndex));
+            createDirs(atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
         }
-        createDirs(textureOutputDir+"/shaders/multiple-scattering/");
+        createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/");
         if(saveResultAsRadiance)
-            for(unsigned texIndex=0; texIndex<allWavelengths.size(); ++texIndex)
-                createDirs(textureOutputDir+"/shaders/multiple-scattering/"+std::to_string(texIndex));
+            for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
+                createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/"+std::to_string(texIndex));
 
         {
             std::cerr << "Writing parameters to output description file...";
-            QFile file((textureOutputDir+"/params.txt").c_str());
+            QFile file((atmo.textureOutputDir+"/params.txt").c_str());
             if(!file.open(QFile::WriteOnly))
             {
                 std::cerr << " FAILED to open file: " << file.errorString().toStdString() << "\n";
@@ -799,18 +799,18 @@ int main(int argc, char** argv)
             }
             QTextStream out(&file);
             out << "wavelengths: ";
-            for(unsigned i=0; i<allWavelengths.size(); ++i)
+            for(unsigned i=0; i<atmo.allWavelengths.size(); ++i)
             {
-                const auto& wlset=allWavelengths[i];
-                out << wlset[0] << "," << wlset[1] << "," << wlset[2] << "," << wlset[3] << (i+1==allWavelengths.size() ? "\n" : ",");
+                const auto& wlset=atmo.allWavelengths[i];
+                out << wlset[0] << "," << wlset[1] << "," << wlset[2] << "," << wlset[3] << (i+1==atmo.allWavelengths.size() ? "\n" : ",");
             }
-            out << "atmosphere height: " << atmosphereHeight << "\n";
-            out << "Earth radius: " << earthRadius << "\n";
-            out << "Earth-Moon distance: " << earthMoonDistance << "\n";
-            out << "eclipsed scattering texture size for relative azimuth: " << eclipsedSingleScatteringTextureSize[0] << "\n";
-            out << "eclipsed scattering texture size for cos(VZA): " << eclipsedSingleScatteringTextureSize[1] << "\n";
+            out << "atmosphere height: " << atmo.atmosphereHeight << "\n";
+            out << "Earth radius: " << atmo.earthRadius << "\n";
+            out << "Earth-Moon distance: " << atmo.earthMoonDistance << "\n";
+            out << "eclipsed scattering texture size for relative azimuth: " << atmo.eclipsedSingleScatteringTextureSize[0] << "\n";
+            out << "eclipsed scattering texture size for cos(VZA): " << atmo.eclipsedSingleScatteringTextureSize[1] << "\n";
             out << "scatterers: {";
-            for(const auto& scatterer : scatterers)
+            for(const auto& scatterer : atmo.scatterers)
                 out << " \"" << scatterer.name << "\" { phase function " << toString(scatterer.phaseFunctionType) << " };";
             out << " }\n";
             out.flush();
@@ -864,18 +864,18 @@ int main(int argc, char** argv)
 
         const auto timeBegin=std::chrono::steady_clock::now();
 
-        for(unsigned texIndex=0;texIndex<allWavelengths.size();++texIndex)
+        for(unsigned texIndex=0;texIndex<atmo.allWavelengths.size();++texIndex)
         {
-            std::cerr << "Working on wavelengths " << allWavelengths[texIndex][0] << ", "
-                                                   << allWavelengths[texIndex][1] << ", "
-                                                   << allWavelengths[texIndex][2] << ", "
-                                                   << allWavelengths[texIndex][3] << " nm"
-                         " (set " << texIndex+1 << " of " << allWavelengths.size() << "):\n";
+            std::cerr << "Working on wavelengths " << atmo.allWavelengths[texIndex][0] << ", "
+                                                   << atmo.allWavelengths[texIndex][1] << ", "
+                                                   << atmo.allWavelengths[texIndex][2] << ", "
+                                                   << atmo.allWavelengths[texIndex][3] << " nm"
+                         " (set " << texIndex+1 << " of " << atmo.allWavelengths.size() << "):\n";
             OutputIndentIncrease incr;
 
-            initConstHeader(allWavelengths[texIndex]);
+            initConstHeader(atmo.allWavelengths[texIndex]);
             virtualSourceFiles[COMPUTE_TRANSMITTANCE_SHADER_FILENAME]=
-                makeTransmittanceComputeFunctionsSrc(allWavelengths[texIndex]);
+                makeTransmittanceComputeFunctionsSrc(atmo.allWavelengths[texIndex]);
             virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc();
             virtualSourceFiles[TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME]=makeTotalScatteringCoefSrc();
             virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +

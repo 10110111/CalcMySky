@@ -33,8 +33,6 @@ inline bool dbgSaveDeltaScattering=false;
 inline bool dbgSaveAccumScattering=false;
 
 constexpr unsigned pointsPerWavelengthItem=4;
-inline std::vector<glm::vec4> allWavelengths;
-inline std::vector<glm::vec4> solarIrradianceAtTOA;
 
 inline std::map<QString, QString> virtualSourceFiles;
 inline std::map<QString, QString> virtualHeaderFiles;
@@ -67,76 +65,90 @@ inline GLuint textures[TEX_COUNT];
 // Accumulation of radiance to yield luminance
 inline std::map<QString/*scatterer name*/, GLuint> accumulatedSingleScatteringTextures;
 
-inline std::string textureOutputDir=".";
-inline GLint transmittanceTexW, transmittanceTexH;
-inline GLint irradianceTexW, irradianceTexH;
-inline glm::ivec4 scatteringTextureSize;
-inline glm::ivec2 eclipsedSingleScatteringTextureSize;
-// XXX: keep in sync with those in previewer and renderer
-inline auto scatTexWidth()  { return GLsizei(scatteringTextureSize[0]); }
-inline auto scatTexHeight() { return GLsizei(scatteringTextureSize[1]*scatteringTextureSize[2]); }
-inline auto scatTexDepth()  { return GLsizei(scatteringTextureSize[3]); }
-inline unsigned scatteringOrdersToCompute;
-inline GLint numTransmittanceIntegrationPoints;
-inline GLint radialIntegrationPoints;
-inline GLint angularIntegrationPointsPerHalfRevolution;
-inline GLfloat earthRadius;
-inline GLfloat atmosphereHeight;
-inline double earthSunDistance;
-inline double earthMoonDistance;
-inline GLfloat sunAngularRadius; // calculated from earthSunDistance
-// moonAngularRadius is calculated from earthMoonDistance and other parameters on the fly, so isn't kept here
-inline std::vector<glm::vec4> groundAlbedo;
-inline unsigned wavelengthsIndex(glm::vec4 const& wavelengths)
+struct AtmosphereParameters
 {
-    const auto it=std::find(allWavelengths.begin(), allWavelengths.end(), wavelengths);
-    assert(it!=allWavelengths.end());
-    return it-allWavelengths.begin();
-}
-struct ScattererDescription
-{
-    GLfloat crossSectionAt1um = NaN;
-    GLfloat angstromExponent = NaN;
-    QString numberDensity;
-    QString phaseFunction;
-    PhaseFunctionType phaseFunctionType=PhaseFunctionType::General;
-    QString name;
+    struct Scatterer
+    {
+        GLfloat crossSectionAt1um = NaN;
+        GLfloat angstromExponent = NaN;
+        QString numberDensity;
+        QString phaseFunction;
+        PhaseFunctionType phaseFunctionType=PhaseFunctionType::General;
+        QString name;
 
-    explicit ScattererDescription(QString const& name) : name(name) {}
-    bool valid() const
+        explicit Scatterer(QString const& name) : name(name) {}
+        bool valid() const
+        {
+            return std::isfinite(crossSectionAt1um) &&
+                   std::isfinite(angstromExponent) &&
+                   !numberDensity.isEmpty() &&
+                   !phaseFunction.isEmpty() &&
+                   !name.isEmpty();
+        }
+        glm::vec4 crossSection(glm::vec4 const wavelengths) const
+        {
+            constexpr float refWL=1000; // nm
+            return crossSectionAt1um*pow(wavelengths/refWL, glm::vec4(-angstromExponent));
+        }
+    };
+    struct Absorber
     {
-        return std::isfinite(crossSectionAt1um) &&
-               std::isfinite(angstromExponent) &&
-               !numberDensity.isEmpty() &&
-               !phaseFunction.isEmpty() &&
-               !name.isEmpty();
-    }
-    glm::vec4 crossSection(glm::vec4 const wavelengths) const
+        QString numberDensity;
+        QString name;
+        std::vector<glm::vec4> absorptionCrossSection;
+
+        AtmosphereParameters const& atmo;
+
+        Absorber(QString const& name, AtmosphereParameters const& atmo)
+            : name(name)
+            , atmo(atmo)
+        {}
+        bool valid() const
+        {
+            return !numberDensity.isEmpty() &&
+                   absorptionCrossSection.size()==atmo.allWavelengths.size() &&
+                   !name.isEmpty();
+        }
+        glm::vec4 crossSection(glm::vec4 const wavelengths) const
+        {
+            const auto i=atmo.wavelengthsIndex(wavelengths);
+            return absorptionCrossSection[i];
+        }
+    };
+
+    std::vector<glm::vec4> allWavelengths;
+    std::vector<glm::vec4> solarIrradianceAtTOA;
+    std::string textureOutputDir=".";
+    GLint transmittanceTexW, transmittanceTexH;
+    GLint irradianceTexW, irradianceTexH;
+    glm::ivec4 scatteringTextureSize;
+    glm::ivec2 eclipsedSingleScatteringTextureSize;
+    unsigned scatteringOrdersToCompute;
+    GLint numTransmittanceIntegrationPoints;
+    GLint radialIntegrationPoints;
+    GLint angularIntegrationPointsPerHalfRevolution;
+    GLfloat earthRadius;
+    GLfloat atmosphereHeight;
+    double earthSunDistance;
+    double earthMoonDistance;
+    GLfloat sunAngularRadius; // calculated from earthSunDistance
+    // moonAngularRadius is calculated from earthMoonDistance and other parameters on the fly, so isn't kept here
+    std::vector<glm::vec4> groundAlbedo;
+    std::vector<Scatterer> scatterers;
+    std::vector<Absorber> absorbers;
+
+    // XXX: keep in sync with those in previewer and renderer
+    auto scatTexWidth()  const { return GLsizei(scatteringTextureSize[0]); }
+    auto scatTexHeight() const { return GLsizei(scatteringTextureSize[1]*scatteringTextureSize[2]); }
+    auto scatTexDepth()  const { return GLsizei(scatteringTextureSize[3]); }
+    unsigned wavelengthsIndex(glm::vec4 const& wavelengths) const
     {
-        constexpr float refWL=1000; // nm
-        return crossSectionAt1um*pow(wavelengths/refWL, glm::vec4(-angstromExponent));
+        const auto it=std::find(allWavelengths.begin(), allWavelengths.end(), wavelengths);
+        assert(it!=allWavelengths.end());
+        return it-allWavelengths.begin();
     }
 };
-inline std::vector<ScattererDescription> scatterers;
-struct AbsorberDescription
-{
-    QString numberDensity;
-    QString name;
-    std::vector<glm::vec4> absorptionCrossSection;
 
-    AbsorberDescription(QString const& name) : name(name) {}
-    bool valid() const
-    {
-        return !numberDensity.isEmpty() &&
-               absorptionCrossSection.size()==allWavelengths.size() &&
-               !name.isEmpty();
-    }
-    glm::vec4 crossSection(glm::vec4 const wavelengths) const
-    {
-        const auto i=wavelengthsIndex(wavelengths);
-        return absorptionCrossSection[i];
-    }
-};
-inline std::vector<AbsorberDescription> absorbers;
+inline AtmosphereParameters atmo;
 
 #endif

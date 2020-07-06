@@ -19,8 +19,8 @@ void initConstHeader(glm::vec4 const& wavelengths)
     QString header=1+R"(
 #ifndef INCLUDE_ONCE_2B59AE86_E78B_4D75_ACDF_5DA644F8E9A3
 #define INCLUDE_ONCE_2B59AE86_E78B_4D75_ACDF_5DA644F8E9A3
-const float earthRadius=)"+QString::number(earthRadius)+"; // must be in meters\n"
-                         "const float atmosphereHeight="+QString::number(atmosphereHeight)+"; // must be in meters\n"
+const float earthRadius=)"+QString::number(atmo.earthRadius)+"; // must be in meters\n"
+                         "const float atmosphereHeight="+QString::number(atmo.atmosphereHeight)+"; // must be in meters\n"
                          R"(
 const vec3 earthCenter=vec3(0,0,-earthRadius);
 
@@ -29,21 +29,21 @@ const float PI=3.1415926535897932;
 const float km=1000;
 #define sqr(x) ((x)*(x))
 
-const float sunAngularRadius=)" + toString(sunAngularRadius) + R"(;
+const float sunAngularRadius=)" + toString(atmo.sunAngularRadius) + R"(;
 uniform float moonAngularRadius;
-const vec4 scatteringTextureSize=)" + toString(glm::vec4(scatteringTextureSize)) + R"(;
-const vec2 irradianceTextureSize=)" + toString(glm::vec2(irradianceTexW, irradianceTexH)) + R"(;
-const vec2 transmittanceTextureSize=)" + toString(glm::vec2(transmittanceTexW,transmittanceTexH)) + R"(;
-const vec2 eclipsedSingleScatteringTextureSize=)" + toString(glm::vec2(eclipsedSingleScatteringTextureSize)) +R"(;
-const int radialIntegrationPoints=)" + toString(radialIntegrationPoints) + R"(;
-const int angularIntegrationPointsPerHalfRevolution=)" + toString(angularIntegrationPointsPerHalfRevolution) + R"(;
-const int numTransmittanceIntegrationPoints=)" + toString(numTransmittanceIntegrationPoints) + R"(;
+const vec4 scatteringTextureSize=)" + toString(glm::vec4(atmo.scatteringTextureSize)) + R"(;
+const vec2 irradianceTextureSize=)" + toString(glm::vec2(atmo.irradianceTexW, atmo.irradianceTexH)) + R"(;
+const vec2 transmittanceTextureSize=)" + toString(glm::vec2(atmo.transmittanceTexW,atmo.transmittanceTexH)) + R"(;
+const vec2 eclipsedSingleScatteringTextureSize=)" + toString(glm::vec2(atmo.eclipsedSingleScatteringTextureSize)) +R"(;
+const int radialIntegrationPoints=)" + toString(atmo.radialIntegrationPoints) + R"(;
+const int angularIntegrationPointsPerHalfRevolution=)" + toString(atmo.angularIntegrationPointsPerHalfRevolution) + R"(;
+const int numTransmittanceIntegrationPoints=)" + toString(atmo.numTransmittanceIntegrationPoints) + R"(;
 )";
-    for(auto const& scatterer : scatterers)
+    for(auto const& scatterer : atmo.scatterers)
         header += "const vec4 scatteringCrossSection_"+scatterer.name+"="+toString(scatterer.crossSection(wavelengths))+";\n";
-    const auto wlI=wavelengthsIndex(wavelengths);
-    header += "const vec4 groundAlbedo="+toString(groundAlbedo[wlI])+";\n";
-    header += "const vec4 solarIrradianceAtTOA="+toString(solarIrradianceAtTOA[wlI])+";\n";
+    const auto wlI=atmo.wavelengthsIndex(wavelengths);
+    header += "const vec4 groundAlbedo="+toString(atmo.groundAlbedo[wlI])+";\n";
+    header += "const vec4 solarIrradianceAtTOA="+toString(atmo.solarIrradianceAtTOA[wlI])+";\n";
 
     header+="#endif\n"; // close the include guard
     virtualHeaderFiles[CONSTANTS_HEADER_FILENAME]=header;
@@ -53,7 +53,7 @@ QString makeDensitiesFunctions()
 {
     QString header;
     QString src;
-    for(auto const& scatterer : scatterers)
+    for(auto const& scatterer : atmo.scatterers)
     {
         src += "float scattererNumberDensity_"+scatterer.name+"(float altitude)\n"
                "{\n"
@@ -61,7 +61,7 @@ QString makeDensitiesFunctions()
                "}\n";
         header += "float scattererNumberDensity_"+scatterer.name+"(float altitude);\n";
     }
-    for(auto const& absorber : absorbers)
+    for(auto const& absorber : atmo.absorbers)
     {
         src += "float absorberNumberDensity_"+absorber.name+"(float altitude)\n"
                "{\n"
@@ -120,13 +120,13 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
 {
     const vec4 depth=
 )";
-    for(auto const& scatterer : scatterers)
+    for(auto const& scatterer : atmo.scatterers)
     {
         opticalDepthFunctions += QString(opticalDepthFunctionTemplate).replace("##agentSpecies",scatterer.name).replace("agent##","scatterer");
         computeFunction += "        +opticalDepthToAtmosphereBorder_"+scatterer.name+
                              "(altitude,cosZenithAngle,"+toString(scatterer.crossSection(wavelengths))+")\n";
     }
-    for(auto const& absorber : absorbers)
+    for(auto const& absorber : atmo.absorbers)
     {
         opticalDepthFunctions += QString(opticalDepthFunctionTemplate).replace("##agentSpecies",absorber.name).replace("agent##","absorber");
         computeFunction += "        +opticalDepthToAtmosphereBorder_"+absorber.name+
@@ -160,7 +160,7 @@ QString makePhaseFunctionsSrc()
 
 )";
     QString header;
-    for(auto const& scatterer : scatterers)
+    for(auto const& scatterer : atmo.scatterers)
     {
         src += "vec4 phaseFunction_"+scatterer.name+"(float dotViewSun)\n"
                "{\n"
@@ -187,7 +187,7 @@ vec4 totalScatteringCoefficient(float altitude, float dotViewInc)
 {
     return
 )";
-    for(auto const& scatterer : scatterers)
+    for(auto const& scatterer : atmo.scatterers)
     {
         src += "        + scatteringCrossSection_"+scatterer.name+
                " * scattererNumberDensity_"+scatterer.name+"(altitude) "

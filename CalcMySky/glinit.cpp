@@ -35,11 +35,11 @@ void initTexturesAndFramebuffers()
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
     }
-    setupTexture(TEX_TRANSMITTANCE,transmittanceTexW,transmittanceTexH);
-    setupTexture(TEX_DELTA_IRRADIANCE,irradianceTexW,irradianceTexH);
-    setupTexture(TEX_IRRADIANCE,irradianceTexW,irradianceTexH);
+    setupTexture(TEX_TRANSMITTANCE,atmo.transmittanceTexW,atmo.transmittanceTexH);
+    setupTexture(TEX_DELTA_IRRADIANCE,atmo.irradianceTexW,atmo.irradianceTexH);
+    setupTexture(TEX_IRRADIANCE,atmo.irradianceTexW,atmo.irradianceTexH);
 
-    const auto width=scatTexWidth(), height=scatTexHeight(), depth=scatTexDepth();
+    const auto width=atmo.scatTexWidth(), height=atmo.scatTexHeight(), depth=atmo.scatTexDepth();
     for(const auto tex : {TEX_DELTA_SCATTERING,TEX_DELTA_SCATTERING_DENSITY})
     {
         gl.glBindTexture(GL_TEXTURE_3D,textures[tex]);
@@ -58,9 +58,9 @@ void checkLimits()
 {
     GLint max3DTexSize=-1;
     gl.glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &max3DTexSize);
-    if(scatTexWidth()>max3DTexSize || scatTexHeight()>max3DTexSize || scatTexDepth()>max3DTexSize)
+    if(atmo.scatTexWidth()>max3DTexSize || atmo.scatTexHeight()>max3DTexSize || atmo.scatTexDepth()>max3DTexSize)
     {
-        std::cerr << "Scattering texture 3D size of " << scatTexWidth() << "x" << scatTexHeight() << "x" << scatTexDepth() << " is too large: GL_MAX_3D_TEXTURE_SIZE is " << max3DTexSize << "\n";
+        std::cerr << "Scattering texture 3D size of " << atmo.scatTexWidth() << "x" << atmo.scatTexHeight() << "x" << atmo.scatTexDepth() << " is too large: GL_MAX_3D_TEXTURE_SIZE is " << max3DTexSize << "\n";
         throw MustQuit{};
     }
 }
