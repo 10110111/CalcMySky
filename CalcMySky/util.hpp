@@ -53,4 +53,17 @@ void saveTexture(GLenum target, GLuint texture, std::string_view name, std::stri
                  std::vector<GLsizei> const& sizes);
 void createDirs(std::string const& path);
 
+class OutputIndentIncrease
+{
+    inline static unsigned outputIndent=0;
+    friend std::string indentOutput();
+public:
+     OutputIndentIncrease() { ++outputIndent; }
+    ~OutputIndentIncrease() { --outputIndent; }
+};
+inline std::string indentOutput()
+{
+    return std::string(OutputIndentIncrease::outputIndent, ' ');
+}
+
 #endif

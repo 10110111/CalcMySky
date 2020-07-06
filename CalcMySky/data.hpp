@@ -12,19 +12,6 @@
 #include "const.hpp"
 #include "AtmosphereParameters.hpp"
 
-class OutputIndentIncrease
-{
-    inline static unsigned outputIndent=0;
-    friend std::string indentOutput();
-public:
-     OutputIndentIncrease() { ++outputIndent; }
-    ~OutputIndentIncrease() { --outputIndent; }
-};
-inline std::string indentOutput()
-{
-    return std::string(OutputIndentIncrease::outputIndent, ' ');
-}
-
 inline bool saveResultAsRadiance=false;
 inline bool dbgNoSaveTextures=false;
 inline bool dbgSaveGroundIrradiance=false;
