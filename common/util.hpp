@@ -7,6 +7,15 @@
 #include <QVector3D>
 #include <QOpenGLFunctions_3_3_Core>
 
+#define DEFINE_EXPLICIT_BOOL(Type)          \
+struct Type                                 \
+{                                           \
+    bool on=true;                           \
+    explicit Type()=default;                \
+    explicit Type(bool on) : on(on) {}      \
+    operator bool() const { return on; }    \
+}
+
 template<typename T> auto sqr(T const& x) { return x*x; }
 inline QVector3D toQVector(glm::dvec3 const& v) { return QVector3D(v.x, v.y, v.z); }
 

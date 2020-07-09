@@ -4,15 +4,7 @@
 #include <memory>
 #include <QOpenGLShader>
 #include <glm/glm.hpp>
-
-#define DEFINE_EXPLICIT_BOOL(Type)          \
-struct Type                                 \
-{                                           \
-    bool on=true;                           \
-    explicit Type()=default;                \
-    explicit Type(bool on) : on(on) {}      \
-    operator bool() const { return on; }    \
-}
+#include "../common/util.hpp"
 
 DEFINE_EXPLICIT_BOOL(IgnoreCache);
 QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache=IgnoreCache{false});
