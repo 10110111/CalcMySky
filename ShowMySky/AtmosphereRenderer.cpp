@@ -19,19 +19,24 @@
 
 namespace fs=std::filesystem;
 
+namespace
+{
+
 // XXX: keep in sync with those in CalcMySky
-static GLsizei scatTexWidth(glm::ivec4 sizes) { return sizes[0]; }
-static GLsizei scatTexHeight(glm::ivec4 sizes) { return sizes[1]*sizes[2]; }
-static GLsizei scatTexDepth(glm::ivec4 sizes) { return sizes[3]; }
+GLsizei scatTexWidth(glm::ivec4 sizes) { return sizes[0]; }
+GLsizei scatTexHeight(glm::ivec4 sizes) { return sizes[1]*sizes[2]; }
+GLsizei scatTexDepth(glm::ivec4 sizes) { return sizes[3]; }
 
 float unitRangeToTexCoord(const float u, const int texSize)
 {
     return (0.5+(texSize-1)*u)/texSize;
 }
 
-static auto newTex(QOpenGLTexture::Target target)
+auto newTex(QOpenGLTexture::Target target)
 {
     return std::make_unique<QOpenGLTexture>(target);
+}
+
 }
 
 void AtmosphereRenderer::makeBayerPatternTexture()
