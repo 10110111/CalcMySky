@@ -37,6 +37,7 @@ void GLWidget::initializeGL()
     connect(tools, &ToolsWidget::settingChanged, this, update);
     connect(tools, &ToolsWidget::setScattererEnabled, renderer.get(), &AtmosphereRenderer::setScattererEnabled);
     connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
+    renderer->loadData();
 }
 
 void GLWidget::paintGL()

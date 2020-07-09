@@ -184,7 +184,7 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
     return {sizes[0], sizes[1]};
 }
 
-void AtmosphereRenderer::loadTextures()
+void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
 {
     while(gl.glGetError()!=GL_NO_ERROR);
 
@@ -192,23 +192,37 @@ void AtmosphereRenderer::loadTextures()
 
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo;
+            continue;
+        }
+
         auto& tex=*transmittanceTextures.emplace_back(newTex(QOpenGLTexture::Target2D));
         tex.setMinificationFilter(QOpenGLTexture::Linear);
         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
         tex.bind();
         loadTexture2D(QString("%1/transmittance-wlset%2.f32").arg(pathToData).arg(wlSetIndex));
+        tick(++loadingStepsDone);
     }
 
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo;
+            continue;
+        }
+
         auto& tex=*irradianceTextures.emplace_back(newTex(QOpenGLTexture::Target2D));
         tex.setMinificationFilter(QOpenGLTexture::Linear);
         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
         tex.bind();
         loadTexture2D(QString("%1/irradiance-wlset%2.f32").arg(pathToData).arg(wlSetIndex));
+        tick(++loadingStepsDone);
     }
 
-    reloadScatteringTextures();
+    reloadScatteringTextures(countStepsOnly);
 
     makeBayerPatternTexture();
 
@@ -223,7 +237,7 @@ double AtmosphereRenderer::altitudeUnitRangeTexCoord() const
     return std::sqrt(h*(h+2*R) / ( H*(H+2*R) ));
 }
 
-void AtmosphereRenderer::reloadScatteringTextures()
+void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStepsOnly)
 {
     const auto texFilter = tools->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
     const auto altCoord = altitudeUnitRangeTexCoord();
@@ -231,23 +245,38 @@ void AtmosphereRenderer::reloadScatteringTextures()
     multipleScatteringTextures.clear();
     if(const auto filename=pathToData+"/multiple-scattering-xyzw.f32"; QFile::exists(filename))
     {
-        auto& tex=*multipleScatteringTextures.emplace_back(newTex(QOpenGLTexture::Target3D));
-        tex.setMinificationFilter(texFilter);
-        tex.setMagnificationFilter(texFilter);
-        tex.setWrapMode(QOpenGLTexture::ClampToEdge);
-        tex.bind();
-        loadTexture4D(filename, altCoord);
-    }
-    else
-    {
-        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo;
+        }
+        else
         {
             auto& tex=*multipleScatteringTextures.emplace_back(newTex(QOpenGLTexture::Target3D));
             tex.setMinificationFilter(texFilter);
             tex.setMagnificationFilter(texFilter);
             tex.setWrapMode(QOpenGLTexture::ClampToEdge);
             tex.bind();
+            loadTexture4D(filename, altCoord);
+            tick(++loadingStepsDone);
+        }
+    }
+    else
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo;
+                continue;
+            }
+
+            auto& tex=*multipleScatteringTextures.emplace_back(newTex(QOpenGLTexture::Target3D));
+            tex.setMinificationFilter(texFilter);
+            tex.setMagnificationFilter(texFilter);
+            tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+            tex.bind();
             loadTexture4D(QString("%1/multiple-scattering-wlset%2.f32").arg(pathToData).arg(wlSetIndex), altCoord);
+            tick(++loadingStepsDone);
         }
     }
 
@@ -260,22 +289,36 @@ void AtmosphereRenderer::reloadScatteringTextures()
         case PhaseFunctionType::General:
             for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
             {
+                if(countStepsOnly)
+                {
+                    ++totalLoadingStepsToDo;
+                    continue;
+                }
+
                 auto& texture=*texturesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
                 texture.setMinificationFilter(texFilter);
                 texture.setMagnificationFilter(texFilter);
                 texture.setWrapMode(QOpenGLTexture::ClampToEdge);
                 texture.bind();
                 loadTexture4D(QString("%1/single-scattering/%2/%3.f32").arg(pathToData).arg(wlSetIndex).arg(scattererName), altCoord);
+                tick(++loadingStepsDone);
             }
             break;
         case PhaseFunctionType::Achromatic:
         {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo;
+                continue;
+            }
+
             auto& texture=*texturesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
             texture.setMinificationFilter(texFilter);
             texture.setMagnificationFilter(texFilter);
             texture.setWrapMode(QOpenGLTexture::ClampToEdge);
             texture.bind();
             loadTexture4D(QString("%1/single-scattering/%2-xyzw.f32").arg(pathToData).arg(scattererName), altCoord);
+            tick(++loadingStepsDone);
             break;
         }
         case PhaseFunctionType::Smooth:
@@ -284,7 +327,7 @@ void AtmosphereRenderer::reloadScatteringTextures()
     }
 }
 
-void AtmosphereRenderer::loadShaders()
+void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
 {
     constexpr char commonVertexShaderSrc[]=R"(
 #version 330
@@ -321,6 +364,12 @@ vec3 calcViewDir()
             {
                 for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                 {
+                    if(countStepsOnly)
+                    {
+                        ++totalLoadingStepsToDo;
+                        continue;
+                    }
+
                     const auto scatDir=QString("%1/shaders/single-scattering/%2/%3/%4").arg(pathToData)
                                                                                        .arg(singleScatteringRenderModeNames[renderMode])
                                                                                        .arg(wlSetIndex)
@@ -337,10 +386,17 @@ vec3 calcViewDir()
                                   commonVertexShaderSrc);
 
                     link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+                    tick(++loadingStepsDone);
                 }
             }
             else if(phaseFuncType==PhaseFunctionType::Achromatic)
             {
+                if(countStepsOnly)
+                {
+                    ++totalLoadingStepsToDo;
+                    continue;
+                }
+
                 const auto scatDir=QString("%1/shaders/single-scattering/%2/%3").arg(pathToData)
                                                                                 .arg(singleScatteringRenderModeNames[renderMode])
                                                                                 .arg(scattererName);
@@ -355,45 +411,32 @@ vec3 calcViewDir()
                               commonVertexShaderSrc);
 
                 link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+                tick(++loadingStepsDone);
             }
         }
     }
 
+    eclipsedSingleScatteringPrograms.clear();
+    for(int renderMode=SSRM_ON_THE_FLY; renderMode<SSRM_COUNT; ++renderMode)
     {
-        eclipsedSingleScatteringPrograms.clear();
-        for(int renderMode=SSRM_ON_THE_FLY; renderMode<SSRM_COUNT; ++renderMode)
+        auto& programsPerScatterer=*eclipsedSingleScatteringPrograms.emplace_back(std::make_unique<ScatteringProgramsMap>());
+
+        for(const auto& [scattererName,phaseFuncType] : params.scatterers)
         {
-            auto& programsPerScatterer=*eclipsedSingleScatteringPrograms.emplace_back(std::make_unique<ScatteringProgramsMap>());
-
-            for(const auto& [scattererName,phaseFuncType] : params.scatterers)
+            auto& programs=programsPerScatterer[scattererName];
+            if(phaseFuncType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY)
             {
-                auto& programs=programsPerScatterer[scattererName];
-                if(phaseFuncType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY)
+                for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
                 {
-                    for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+                    if(countStepsOnly)
                     {
-                        const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4").arg(pathToData)
-                                                                                                    .arg(singleScatteringRenderModeNames[renderMode])
-                                                                                                    .arg(wlSetIndex)
-                                                                                                    .arg(scattererName);
-                        std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
-                        auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
-
-                        for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
-                            addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
-
-                        addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-
-                        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
-                                      commonVertexShaderSrc);
-
-                        link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+                        ++totalLoadingStepsToDo;
+                        continue;
                     }
-                }
-                else
-                {
-                    const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3").arg(pathToData)
+
+                    const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3/%4").arg(pathToData)
                                                                                                 .arg(singleScatteringRenderModeNames[renderMode])
+                                                                                                .arg(wlSetIndex)
                                                                                                 .arg(scattererName);
                     std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
                     auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
@@ -407,37 +450,74 @@ vec3 calcViewDir()
                                   commonVertexShaderSrc);
 
                     link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+                    tick(++loadingStepsDone);
                 }
             }
-        }
-    }
-
-    {
-        eclipsedSingleScatteringPrecomputationPrograms=std::make_unique<ScatteringProgramsMap>();
-        for(const auto& [scattererName,phaseFuncType] : params.scatterers)
-        {
-            auto& programs=(*eclipsedSingleScatteringPrecomputationPrograms)[scattererName];
-            for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+            else
             {
-                const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/precomputation/%3/%4").arg(pathToData)
-                                                                                                        .arg(wlSetIndex)
-                                                                                                        .arg(scattererName);
+                if(countStepsOnly)
+                {
+                    ++totalLoadingStepsToDo;
+                    continue;
+                }
+
+                const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3").arg(pathToData)
+                                                                                            .arg(singleScatteringRenderModeNames[renderMode])
+                                                                                            .arg(scattererName);
                 std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
                 auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                 for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                     addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
+                addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
+
                 addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
                               commonVertexShaderSrc);
 
                 link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+                tick(++loadingStepsDone);
             }
         }
     }
 
-    luminanceToScreenRGB=std::make_unique<QOpenGLShaderProgram>();
-    addShaderCode(*luminanceToScreenRGB, QOpenGLShader::Fragment, tr("luminanceToScreenRGB fragment shader"), 1+R"(
+    eclipsedSingleScatteringPrecomputationPrograms=std::make_unique<ScatteringProgramsMap>();
+    for(const auto& [scattererName,phaseFuncType] : params.scatterers)
+    {
+        auto& programs=(*eclipsedSingleScatteringPrecomputationPrograms)[scattererName];
+        for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo;
+                continue;
+            }
+
+            const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/precomputation/%3/%4").arg(pathToData)
+                                                                                                    .arg(wlSetIndex)
+                                                                                                    .arg(scattererName);
+            std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
+            auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+                addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+
+            addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scattererName),
+                          commonVertexShaderSrc);
+
+            link(program, tr("shader program for scatterer \"%1\"").arg(scattererName));
+            tick(++loadingStepsDone);
+        }
+    }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo;
+    }
+    else
+    {
+        luminanceToScreenRGB=std::make_unique<QOpenGLShaderProgram>();
+        addShaderCode(*luminanceToScreenRGB, QOpenGLShader::Fragment, tr("luminanceToScreenRGB fragment shader"), 1+R"(
 #version 330
 uniform float exposure;
 uniform sampler2D luminanceXYZW;
@@ -468,7 +548,7 @@ void main()
     color=vec4(dither(srgb),1);
 }
 )");
-    addShaderCode(*luminanceToScreenRGB, QOpenGLShader::Vertex, tr("luminanceToScreenRGB vertex shader"), 1+R"(
+        addShaderCode(*luminanceToScreenRGB, QOpenGLShader::Vertex, tr("luminanceToScreenRGB vertex shader"), 1+R"(
 #version 330
 in vec3 vertex;
 out vec2 texCoord;
@@ -478,13 +558,21 @@ void main()
     gl_Position=vec4(vertex,1);
 }
 )");
-    link(*luminanceToScreenRGB, tr("luminanceToScreenRGB shader program"));
+        link(*luminanceToScreenRGB, tr("luminanceToScreenRGB shader program"));
+        tick(++loadingStepsDone);
+    }
 
     multipleScatteringPrograms.clear();
     if(QFile::exists(pathToData+"/shaders/multiple-scattering/0/"))
     {
         for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
         {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo;
+                continue;
+            }
+
             auto& program=*multipleScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
             const auto wlDir=QString("%1/shaders/multiple-scattering/%2").arg(pathToData).arg(wlSetIndex);
             std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
@@ -493,23 +581,38 @@ void main()
             addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
             addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for multiple scattering"), commonVertexShaderSrc);
             link(program, tr("multiple scattering shader program"));
+            tick(++loadingStepsDone);
         }
     }
     else
     {
-        auto& program=*multipleScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
-        const auto wlDir=pathToData+"/shaders/multiple-scattering/";
-        std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
-        for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
-            addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
-        addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for multiple scattering"), commonVertexShaderSrc);
-        link(program, tr("multiple scattering shader program"));
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo;
+        }
+        else
+        {
+            auto& program=*multipleScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+            const auto wlDir=pathToData+"/shaders/multiple-scattering/";
+            std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+                addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+            addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
+            addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for multiple scattering"), commonVertexShaderSrc);
+            link(program, tr("multiple scattering shader program"));
+            tick(++loadingStepsDone);
+        }
     }
 
     zeroOrderScatteringPrograms.clear();
     for(unsigned wlSetIndex=0; wlSetIndex<params.wavelengthSetCount; ++wlSetIndex)
     {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo;
+            continue;
+        }
+
         auto& program=*zeroOrderScatteringPrograms.emplace_back(std::make_unique<QOpenGLShaderProgram>());
         const auto wlDir=QString("%1/shaders/zero-order-scattering/%2").arg(pathToData).arg(wlSetIndex);
         std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
@@ -518,8 +621,14 @@ void main()
         addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
         addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for zero-order scattering"), commonVertexShaderSrc);
         link(program, tr("zero-order scattering shader program"));
+        tick(++loadingStepsDone);
     }
 
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo;
+    }
+    else
     {
         viewDirectionGetterProgram=std::make_unique<QOpenGLShaderProgram>();
         auto& program=*viewDirectionGetterProgram;
@@ -538,6 +647,7 @@ void main()
 }
 )");
         link(program, tr("view direction getter shader program"));
+        tick(++loadingStepsDone);
     }
 }
 
@@ -908,11 +1018,16 @@ void AtmosphereRenderer::renderMultipleScattering()
 
 void AtmosphereRenderer::draw()
 {
+    if(!readyToRender) return;
+
     const auto altCoord=altitudeUnitRangeTexCoord();
     if(altCoord < loadedAltitudeURTexCoordRange[0] || altCoord > loadedAltitudeURTexCoordRange[1])
     {
         std::cerr << "Reloading textures due to altitude getting out of the currently loaded layers\n";
-        reloadScatteringTextures();
+        totalLoadingStepsToDo=0;
+        reloadScatteringTextures(CountStepsOnly{true});
+        loadingStepsDone=0;
+        reloadScatteringTextures(CountStepsOnly{false});
     }
 
     GLint targetFBO=-1;
@@ -1017,27 +1132,72 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     , bayerPatternTexture(QOpenGLTexture::Target2D)
     , mainFBOTexture(QOpenGLTexture::Target2D)
 {
+}
+
+void AtmosphereRenderer::loadData()
+{
+    readyToRender=false;
+    loadingStepsDone=0;
+    totalLoadingStepsToDo=0;
+
+    clearResources();
+
     for(const auto& [scattererName,_] : params.scatterers)
         scatterersEnabledStates[scattererName]=true;
-    loadShaders();
-    loadTextures();
+
+    // The longest actions should be progress-tracked
+    loadShaders(CountStepsOnly{true});
+    loadTextures(CountStepsOnly{true});
+    // Now they can be actually executed, reporting the progress
+    loadShaders(CountStepsOnly{false});
+    loadTextures(CountStepsOnly{false});
+
     setupRenderTarget();
     setupBuffers();
+
     if(multipleScatteringPrograms.size() != multipleScatteringTextures.size())
     {
         throw DataLoadError{tr("Numbers of multiple scattering shader programs and textures don't match: %1 vs %2")
                               .arg(multipleScatteringPrograms.size())
                               .arg(multipleScatteringTextures.size())};
     }
+
     tools->setCanGrabRadiance(canGrabRadiance());
+    readyToRender=true;
+}
+
+void AtmosphereRenderer::tick(const int loadingStepsDone)
+{
+    std::cerr << "Loading progress: " << 100.*loadingStepsDone/totalLoadingStepsToDo << "% (" << loadingStepsDone << " out of " << totalLoadingStepsToDo << ")\n";
 }
 
 AtmosphereRenderer::~AtmosphereRenderer()
 {
-    gl.glDeleteBuffers(1, &vbo);
-    gl.glDeleteVertexArrays(1, &vao);
-    gl.glDeleteFramebuffers(1, &mainFBO);
-    gl.glDeleteFramebuffers(1, &eclipseSingleScatteringPrecomputationFBO);
+    clearResources();
+}
+
+void AtmosphereRenderer::clearResources()
+{
+    if(vbo)
+    {
+        gl.glDeleteBuffers(1, &vbo);
+        vbo=0;
+    }
+    if(vao)
+    {
+        gl.glDeleteVertexArrays(1, &vao);
+        vao=0;
+    }
+    if(mainFBO)
+    {
+        gl.glDeleteFramebuffers(1, &mainFBO);
+        mainFBO=0;
+    }
+    if(eclipseSingleScatteringPrecomputationFBO)
+    {
+        gl.glDeleteFramebuffers(1, &eclipseSingleScatteringPrecomputationFBO);
+        eclipseSingleScatteringPrecomputationFBO=0;
+    }
     if(!radianceRenderBuffers.empty())
         gl.glDeleteRenderbuffers(radianceRenderBuffers.size(), radianceRenderBuffers.data());
 }
@@ -1045,8 +1205,8 @@ AtmosphereRenderer::~AtmosphereRenderer()
 void AtmosphereRenderer::resizeEvent(const int width, const int height)
 {
     viewportSize=QSize(width,height);
+    if(!mainFBO) return;
 
-    assert(mainFBO);
     mainFBOTexture.bind();
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,mainFBO);
@@ -1094,6 +1254,9 @@ void AtmosphereRenderer::setScattererEnabled(QString const& name, const bool ena
 void AtmosphereRenderer::reloadShaders()
 {
     std::cerr << "Reloading shaders... ";
-    loadShaders();
+    totalLoadingStepsToDo=0;
+    loadShaders(CountStepsOnly{true});
+    loadingStepsDone=0;
+    loadShaders(CountStepsOnly{false});
     std::cerr << "done\n";
 }

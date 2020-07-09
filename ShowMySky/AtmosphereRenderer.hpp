@@ -65,6 +65,7 @@ public:
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
+    void loadData();
 
     void draw();
     void setDragMode(DragMode mode, int x=0, int y=0) { dragMode=mode; prevMouseX=x; prevMouseY=y; }
@@ -76,8 +77,9 @@ public:
 
 private:
     ToolsWidget* tools;
-    Parameters const& params;
+    Parameters params;
     QString pathToData;
+    int totalLoadingStepsToDo=-1, loadingStepsDone=0;
 
     GLuint vao=0, vbo=0, mainFBO=0, viewDirectionFBO=0;
     GLuint eclipseSingleScatteringPrecomputationFBO=0;
@@ -110,12 +112,17 @@ private:
     DragMode dragMode=DragMode::None;
     int prevMouseX, prevMouseY;
 
+    bool readyToRender=false;
+
+    DEFINE_EXPLICIT_BOOL(CountStepsOnly);
     void parseParams();
-    void loadTextures();
-    void reloadScatteringTextures();
+    void loadTextures(CountStepsOnly countStepsOnly);
+    void reloadScatteringTextures(CountStepsOnly countStepsOnly);
     void setupRenderTarget();
-    void loadShaders();
+    void loadShaders(CountStepsOnly countStepsOnly);
     void setupBuffers();
+    void clearResources();
+    void tick(int loadingStepsDone);
 
     double altitudeUnitRangeTexCoord() const;
     double moonAngularRadius() const;
