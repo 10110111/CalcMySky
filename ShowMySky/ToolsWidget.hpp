@@ -1,6 +1,7 @@
 #ifndef INCLUDE_ONCE_5D7304A4_A588_478B_B21C_55EA5C4F88C0
 #define INCLUDE_ONCE_5D7304A4_A588_478B_B21C_55EA5C4F88C0
 
+#include <QProgressBar>
 #include <QDockWidget>
 #include <QPushButton>
 #include <QComboBox>
@@ -34,7 +35,10 @@ class ToolsWidget : public QDockWidget
     QCheckBox* usingEclipseShader_=nullptr;
     QPushButton* showRadiancePlot_=nullptr;
     std::unique_ptr<RadiancePlot> radiancePlot_;
+    QWidget*const loadProgressWidget_=new QWidget;
     QLabel*const frameRate=new QLabel("N/A");
+    QLabel*const loadProgressLabel_=new QLabel("Loading...");
+    QProgressBar*const loadProgressBar_=new QProgressBar;
     QVector<QCheckBox*> scatterers;
 public:
     ToolsWidget(double maxAltitude, QWidget* parent=nullptr);
@@ -60,6 +64,7 @@ public:
     void setSunZenithAngle(double elevation);
     void showFrameRate(long long frameTimeInUS);
     void updateParameters(AtmosphereRenderer::Parameters const& params);
+    void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
 private:
     void showRadiancePlot();

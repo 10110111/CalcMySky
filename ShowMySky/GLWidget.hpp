@@ -32,6 +32,7 @@ protected:
 private:
     void reloadShaders();
     void updateSpectralRadiance(QPoint const& pixelPos);
+    void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
 signals:
     void frameFinished(long long timeInUS);

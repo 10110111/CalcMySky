@@ -1018,16 +1018,20 @@ void AtmosphereRenderer::renderMultipleScattering()
 
 void AtmosphereRenderer::draw()
 {
-    if(!readyToRender) return;
+    if(!readyToRender_) return;
+    // Don't try to draw while we're still loading something. We can come here in
+    // this state when e.g. progress reporting code results in a resize event.
+    if(totalLoadingStepsToDo!=0) return;
 
     const auto altCoord=altitudeUnitRangeTexCoord();
     if(altCoord < loadedAltitudeURTexCoordRange[0] || altCoord > loadedAltitudeURTexCoordRange[1])
     {
-        std::cerr << "Reloading textures due to altitude getting out of the currently loaded layers\n";
+        currentActivity_=tr("Reloading textures due to altitude getting out of the currently loaded layers...");
         totalLoadingStepsToDo=0;
         reloadScatteringTextures(CountStepsOnly{true});
         loadingStepsDone=0;
         reloadScatteringTextures(CountStepsOnly{false});
+        reportLoadingFinished();
     }
 
     GLint targetFBO=-1;
@@ -1136,7 +1140,7 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
 
 void AtmosphereRenderer::loadData()
 {
-    readyToRender=false;
+    readyToRender_=false;
     loadingStepsDone=0;
     totalLoadingStepsToDo=0;
 
@@ -1145,12 +1149,14 @@ void AtmosphereRenderer::loadData()
     for(const auto& [scattererName,_] : params.scatterers)
         scatterersEnabledStates[scattererName]=true;
 
+    currentActivity_=tr("Loading textures and shaders...");
     // The longest actions should be progress-tracked
     loadShaders(CountStepsOnly{true});
     loadTextures(CountStepsOnly{true});
     // Now they can be actually executed, reporting the progress
     loadShaders(CountStepsOnly{false});
     loadTextures(CountStepsOnly{false});
+    reportLoadingFinished();
 
     setupRenderTarget();
     setupBuffers();
@@ -1163,12 +1169,20 @@ void AtmosphereRenderer::loadData()
     }
 
     tools->setCanGrabRadiance(canGrabRadiance());
-    readyToRender=true;
+    readyToRender_=true;
 }
 
 void AtmosphereRenderer::tick(const int loadingStepsDone)
 {
-    std::cerr << "Loading progress: " << 100.*loadingStepsDone/totalLoadingStepsToDo << "% (" << loadingStepsDone << " out of " << totalLoadingStepsToDo << ")\n";
+    emit loadProgress(currentActivity_, loadingStepsDone, totalLoadingStepsToDo);
+}
+
+void AtmosphereRenderer::reportLoadingFinished()
+{
+    currentActivity_.clear();
+    totalLoadingStepsToDo=0;
+    loadingStepsDone=0;
+    tick(0);
 }
 
 AtmosphereRenderer::~AtmosphereRenderer()
@@ -1253,10 +1267,10 @@ void AtmosphereRenderer::setScattererEnabled(QString const& name, const bool ena
 
 void AtmosphereRenderer::reloadShaders()
 {
-    std::cerr << "Reloading shaders... ";
+    currentActivity_=tr("Reloading shaders...");
     totalLoadingStepsToDo=0;
     loadShaders(CountStepsOnly{true});
     loadingStepsDone=0;
     loadShaders(CountStepsOnly{false});
-    std::cerr << "done\n";
+    reportLoadingFinished();
 }

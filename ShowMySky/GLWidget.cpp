@@ -34,14 +34,27 @@ void GLWidget::initializeGL()
     tools->updateParameters(params);
     const auto update=qOverload<>(&GLWidget::update);
     connect(renderer.get(), &AtmosphereRenderer::needRedraw, this, update);
+    connect(renderer.get(), &AtmosphereRenderer::loadProgress, this, &GLWidget::onLoadProgress);
     connect(tools, &ToolsWidget::settingChanged, this, update);
     connect(tools, &ToolsWidget::setScattererEnabled, renderer.get(), &AtmosphereRenderer::setScattererEnabled);
     connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
-    renderer->loadData();
+}
+
+void GLWidget::onLoadProgress(QString const& currentActivity, const int stepsDone, const int stepsToDo)
+{
+    tools->onLoadProgress(currentActivity,stepsDone,stepsToDo);
+    // Processing of load progress has likely drawn something on some widgets,
+    // which would take away OpenGL context, so we must take it back.
+    makeCurrent();
 }
 
 void GLWidget::paintGL()
 {
+    if(!isVisible()) return;
+
+    if(!renderer->readyToRender())
+        renderer->loadData();
+
     const auto t0=std::chrono::steady_clock::now();
     renderer->draw();
     glFinish();

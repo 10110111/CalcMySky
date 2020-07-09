@@ -66,6 +66,7 @@ public:
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
     void loadData();
+    bool readyToRender() const { return readyToRender_; }
 
     void draw();
     void setDragMode(DragMode mode, int x=0, int y=0) { dragMode=mode; prevMouseX=x; prevMouseY=y; }
@@ -75,11 +76,15 @@ public:
     void reloadShaders();
     SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const;
 
+signals:
+    void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
+
 private:
     ToolsWidget* tools;
     Parameters params;
     QString pathToData;
     int totalLoadingStepsToDo=-1, loadingStepsDone=0;
+    QString currentActivity_;
 
     GLuint vao=0, vbo=0, mainFBO=0, viewDirectionFBO=0;
     GLuint eclipseSingleScatteringPrecomputationFBO=0;
@@ -112,7 +117,7 @@ private:
     DragMode dragMode=DragMode::None;
     int prevMouseX, prevMouseY;
 
-    bool readyToRender=false;
+    bool readyToRender_=false;
 
     DEFINE_EXPLICIT_BOOL(CountStepsOnly);
     void parseParams();
@@ -123,6 +128,7 @@ private:
     void setupBuffers();
     void clearResources();
     void tick(int loadingStepsDone);
+    void reportLoadingFinished();
 
     double altitudeUnitRangeTexCoord() const;
     double moonAngularRadius() const;
