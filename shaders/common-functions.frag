@@ -59,6 +59,16 @@ float clampDistance(const float d)
     return max(d, 0.);
 }
 
+vec3 normalToEarth(vec3 point)
+{
+    return normalize(point-earthCenter);
+}
+
+float pointAltitude(vec3 point)
+{
+    return length(point-earthCenter)-earthRadius;
+}
+
 float distanceToAtmosphereBorder(const float cosZenithAngle, const float observerAltitude)
 {
     const float Robs=earthRadius+observerAltitude;

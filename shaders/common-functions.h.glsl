@@ -9,6 +9,8 @@ float safeSqrt(const float x);
 float clampCosine(const float x);
 float clampDistance(const float x);
 float clampAltitude(const float altitude);
+vec3 normalToEarth(vec3 point);
+float pointAltitude(vec3 point);
 vec4 rayleighPhaseFunction(float dotViewSun);
 float sunVisibility(const float cosSunZenithAngle, float altitude);
 float sunVisibilityDueToMoon(const vec3 camera, const vec3 sunDir, const vec3 moonDir);

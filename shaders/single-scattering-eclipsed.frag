@@ -6,16 +6,6 @@
 #include "common-functions.h.glsl"
 #include "texture-sampling-functions.h.glsl"
 
-vec3 normalToEarth(vec3 point)
-{
-    return normalize(point-earthCenter);
-}
-
-float pointAltitude(vec3 point)
-{
-    return length(point-earthCenter)-earthRadius;
-}
-
 float cosZenithAngle(vec3 origin, vec3 direction)
 {
     return dot(direction, normalToEarth(origin));
