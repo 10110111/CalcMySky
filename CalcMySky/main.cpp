@@ -521,6 +521,7 @@ void computeScatteringDensity(const unsigned scatteringOrder, const unsigned tex
 {
     assert(scatteringOrder>2);
 
+    gl.glViewport(0, 0, atmo.scatTexWidth(), atmo.scatTexHeight());
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
 
