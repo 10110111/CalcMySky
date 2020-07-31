@@ -20,6 +20,7 @@
 #include "cmdline.hpp"
 #include "shaders.hpp"
 #include "../common/cie-xyzw-functions.hpp"
+#include "../common/timing.hpp"
 
 QOpenGLFunctions_3_3_Core gl;
 
@@ -901,34 +902,8 @@ int main(int argc, char** argv)
         if(!saveResultAsRadiance)
             saveMultipleScatteringRenderingShader(-1);
 
-        {
-            const auto timeEnd=std::chrono::steady_clock::now();
-            const auto microsecTaken=std::chrono::duration_cast<std::chrono::microseconds>(timeEnd-timeBegin).count();
-            const auto secondsTaken=1e-6*microsecTaken;
-            if(secondsTaken<60)
-            {
-                std::cerr << "Finished in " << secondsTaken << " s\n";
-            }
-            else
-            {
-                auto remainder=secondsTaken;
-                const auto d = int(remainder/(24*3600));
-                remainder -= d*(24*3600);
-                const auto h = int(remainder/3600);
-                remainder -= h*3600;
-                const auto m = int(remainder/60);
-                remainder -= m*60;
-                const auto s = std::lround(remainder);
-                std::cerr << "Finished in ";
-                if(d)
-                    std::cerr << d << "d";
-                if(d || h)
-                    std::cerr << h << "h";
-                if(d || h || m)
-                    std::cerr << m << "m";
-                std::cerr << s << "s\n";
-            }
-        }
+        const auto timeEnd=std::chrono::steady_clock::now();
+        std::cerr << "Finished in " << formatDeltaTime(timeBegin, timeEnd) << "\n";
     }
     catch(ParsingError const& ex)
     {
