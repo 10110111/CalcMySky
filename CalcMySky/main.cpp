@@ -511,6 +511,7 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
         gl.glEnable(GL_BLEND);
         render3DTexLayers(*program, "Computing scattering density layers");
 
+        // Disables blending before returning
         computeIndirectIrradianceOrder1(texIndex, scattererIndex);
     }
     gl.glDisable(GL_BLEND);
