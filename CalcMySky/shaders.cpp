@@ -272,15 +272,22 @@ QString withHeadersIncluded(QString src, QString const& filename)
     QString newSrc;
     for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine(), ++lineNumber)
     {
-        if(!line.simplified().startsWith("#include \""))
+        if(!line.contains(QRegExp("^\\s*#include(?: \"|_if\\s*\\()")))
         {
+            // Not an include line, pass it to output
             newSrc.append(line+'\n');
             continue;
         }
-        auto includePattern=QRegExp("^#include \"([^\"]+)\"$");
+        if(line.contains(QRegExp("^\\s*#include_if\\([A-Za-z_][A-Za-z0-9_]*\\)")))
+        {
+            // Disabled include, skip it (enabled one must have the condition be literal 1)
+            newSrc.append('\n');
+            continue;
+        }
+        auto includePattern=QRegExp("^#include(?:_if\\s*\\(\\s*1\\s*(?:/\\*[^)]*\\*/)?\\))? \"([^\"]+)\"$");
         if(!includePattern.exactMatch(line))
         {
-            std::cerr << filename.toStdString() << ":" << lineNumber << ": syntax error in #include directive\n";
+            std::cerr << filename.toStdString() << ":" << lineNumber << ": syntax error in #include directive:\n" << line << "\n";
             throw MustQuit{};
         }
         const auto includeFileName=includePattern.cap(1);
@@ -312,7 +319,7 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
     QTextStream srcStream(&shaderSrc);
     for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine())
     {
-        auto includePattern=QRegExp("^#include \"([^\"]+)(\\.h\\.glsl)\"$");
+        auto includePattern=QRegExp("^#include(?:_if\\s*\\(\\s*1\\s*(?:/\\*[^)]*\\*/)?\\))? \"([^\"]+)(\\.h\\.glsl)\"$");
         if(!includePattern.exactMatch(line))
             continue;
         const auto includeFileBaseName=includePattern.cap(1);
