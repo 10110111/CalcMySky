@@ -67,6 +67,7 @@ public:
     ~AtmosphereRenderer();
     void loadData();
     bool readyToRender() const { return readyToRender_; }
+    bool failedToLoadData() const { return failedToLoadData_; }
 
     void draw();
     void setDragMode(DragMode mode, int x=0, int y=0) { dragMode=mode; prevMouseX=x; prevMouseY=y; }
@@ -118,6 +119,7 @@ private:
     int prevMouseX, prevMouseY;
 
     bool readyToRender_=false;
+    bool failedToLoadData_=false;
 
     DEFINE_EXPLICIT_BOOL(CountStepsOnly);
     void parseParams();
