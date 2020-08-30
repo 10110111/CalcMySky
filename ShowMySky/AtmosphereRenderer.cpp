@@ -1163,7 +1163,6 @@ void AtmosphereRenderer::loadData()
 
     if(multipleScatteringPrograms.size() != multipleScatteringTextures.size())
     {
-        failedToLoadData_=true;
         throw DataLoadError{tr("Numbers of multiple scattering shader programs and textures don't match: %1 vs %2")
                               .arg(multipleScatteringPrograms.size())
                               .arg(multipleScatteringTextures.size())};

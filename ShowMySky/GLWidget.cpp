@@ -39,6 +39,14 @@ void GLWidget::initializeGL()
     connect(tools, &ToolsWidget::settingChanged, this, update);
     connect(tools, &ToolsWidget::setScattererEnabled, renderer.get(), &AtmosphereRenderer::setScattererEnabled);
     connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
+    try
+    {
+        renderer->loadData();
+    }
+    catch(Error const& ex)
+    {
+        QMessageBox::critical(this, ex.errorType(), ex.what());
+    }
 }
 
 void GLWidget::onLoadProgress(QString const& currentActivity, const int stepsDone, const int stepsToDo)
@@ -51,26 +59,17 @@ void GLWidget::onLoadProgress(QString const& currentActivity, const int stepsDon
 
 void GLWidget::paintGL()
 {
-    try
-    {
-        if(!isVisible()) return;
+    if(!isVisible()) return;
+    if(!renderer->readyToRender()) return;
 
-        if(!renderer->readyToRender() && !renderer->failedToLoadData())
-            renderer->loadData();
+    const auto t0=std::chrono::steady_clock::now();
+    renderer->draw();
+    glFinish();
+    const auto t1=std::chrono::steady_clock::now();
+    emit frameFinished(std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count());
 
-        const auto t0=std::chrono::steady_clock::now();
-        renderer->draw();
-        glFinish();
-        const auto t1=std::chrono::steady_clock::now();
-        emit frameFinished(std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count());
-
-        if(lastRadianceCapturePosition.x()>=0 && lastRadianceCapturePosition.y()>=0)
-            updateSpectralRadiance(lastRadianceCapturePosition);
-    }
-    catch(Error const& ex)
-    {
-        QMessageBox::critical(this, ex.errorType(), ex.what());
-    }
+    if(lastRadianceCapturePosition.x()>=0 && lastRadianceCapturePosition.y()>=0)
+        updateSpectralRadiance(lastRadianceCapturePosition);
 }
 
 void GLWidget::resizeGL(int w, int h)
