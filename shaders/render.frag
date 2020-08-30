@@ -3,13 +3,13 @@
 
 #include "const.h.glsl"
 #include "calc-view-dir.h.glsl"
-#include "phase-functions.h.glsl"
-#include "common-functions.h.glsl"
-#include "single-scattering.h.glsl"
-#include "single-scattering-eclipsed.h.glsl"
+#include_if(RENDERING_ANY_SINGLE_SCATTERING) "phase-functions.h.glsl"
+#include_if(RENDERING_ZERO_SCATTERING) "common-functions.h.glsl"
+#include_if(RENDERING_ANY_NORMAL_SINGLE_SCATTERING) "single-scattering.h.glsl"
+#include_if(RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING) "single-scattering-eclipsed.h.glsl"
 #include "texture-coordinates.h.glsl"
 #include "radiance-to-luminance.h.glsl"
-#include "texture-sampling-functions.h.glsl"
+#include_if(RENDERING_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
 
 uniform sampler3D scatteringTexture;
 uniform sampler2D eclipsedScatteringTexture;

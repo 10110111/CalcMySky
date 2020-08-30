@@ -168,8 +168,7 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-            .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 // \\1")
-            .replace(QRegExp("#include \"(phase-functions|single-scattering|single-scattering-eclipsed)\\.h\\.glsl\""), "");
+            .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "zero-order scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -202,12 +201,7 @@ void saveMultipleScatteringRenderingShader(const unsigned texIndex)
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     const QString macroToReplace = saveResultAsRadiance ? "RENDERING_MULTIPLE_SCATTERING_RADIANCE" : "RENDERING_MULTIPLE_SCATTERING_LUMINANCE";
-    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-            .replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 // \\1")
-            .replace(QRegExp("#include \"("
-                             "phase-functions|common-functions|texture-sampling-functions|single-scattering|single-scattering-eclipsed"
-                             +QString(saveResultAsRadiance ? "" : "|radiance-to-luminance")+
-                             ")\\.h\\.glsl\""), "");
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{}).replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "multiple scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -249,8 +243,9 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, AtmospherePara
                                   scatterer.phaseFunctionType==PhaseFunctionType::General ? "RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE"
                                                                                           : "RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 // \\1")
-                                                .replace(QRegExp("#include \"(common-functions|texture-sampling-functions|single-scattering-eclipsed)\\.h\\.glsl\""), "");
+                                                .replace(QRegExp("\\b(RENDERING_ANY_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                                .replace(QRegExp("\\b(RENDERING_ANY_NORMAL_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -290,8 +285,9 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Atmosp
                                   scatterer.phaseFunctionType==PhaseFunctionType::General ? "RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE"
                                                                                           : "RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 // \\1")
-                                                .replace(QRegExp("#include \"(common-functions|texture-sampling-functions|single-scattering)\\.h\\.glsl\""), "");
+                                                .replace(QRegExp("\\b(RENDERING_ANY_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                                .replace(QRegExp("\\b(RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -328,7 +324,7 @@ void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, Atmo
     std::vector<std::pair<QString, QString>> sourcesToSave;
     static constexpr char renderShaderFileName[]="compute-eclipsed-single-scattering.frag";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-        .replace(QRegExp(QString("\\b(%1)\\b").arg(scatterer.phaseFunctionType==PhaseFunctionType::General ? "COMPUTE_RADIANCE" : "COMPUTE_LUMINANCE")), "1 // \\1");
+        .replace(QRegExp(QString("\\b(%1)\\b").arg(scatterer.phaseFunctionType==PhaseFunctionType::General ? "COMPUTE_RADIANCE" : "COMPUTE_LUMINANCE")), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
