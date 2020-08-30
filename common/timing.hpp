@@ -21,7 +21,6 @@ std::string formatDeltaTime(const std::chrono::time_point<T> timeBegin, const st
         const auto m = int(remainder/60);
         remainder -= m*60;
         const auto s = std::lround(remainder);
-        ss << "Finished in ";
         if(d)
             ss << d << "d";
         if(d || h)
