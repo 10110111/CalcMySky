@@ -132,6 +132,7 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
         layout->addWidget(loadProgressWidget_);
         loadProgressLayout->addWidget(loadProgressLabel_);
         loadProgressLayout->addWidget(loadProgressBar_);
+        loadProgressLabel_->setWordWrap(true);
         loadProgressWidget_->hide();
     }
 
