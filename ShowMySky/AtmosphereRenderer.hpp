@@ -61,6 +61,12 @@ public:
         bool empty() const { return wavelengths.empty(); }
     };
 
+    struct Direction
+    {
+        float azimuth;
+        float elevation;
+    };
+
     AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, Parameters const& params, ToolsWidget* tools);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
@@ -75,6 +81,7 @@ public:
     void setScattererEnabled(QString const& name, bool enable);
     void reloadShaders();
     SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const;
+    Direction getViewDirection(QPoint const& pixelPos) const;
 
 signals:
     void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);

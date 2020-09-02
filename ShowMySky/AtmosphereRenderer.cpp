@@ -735,20 +735,28 @@ auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) const 
     }
     assert(output.wavelengths.size()==output.radiances.size());
 
-    {
-        gl.glBindVertexArray(vao);
-        viewDirectionGetterProgram->bind();
-        viewDirectionGetterProgram->setUniformValue("zoomFactor", tools->zoomFactor());
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, viewDirectionFBO);
-        gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        gl.glBindVertexArray(0);
-        GLfloat viewDir[3]={NAN,NAN,NAN};
-        gl.glReadPixels(pixelPos.x(), viewportSize.height()-pixelPos.y()-1, 1,1, GL_RGB, GL_FLOAT, viewDir);
-        output.azimuth = 180/M_PI * (viewDir[0]!=0 || viewDir[1]!=0 ? std::atan2(viewDir[1], viewDir[0]) : 0);
-        output.elevation = 180/M_PI * std::asin(viewDir[2]);
-    }
+    const auto dir=getViewDirection(pixelPos);
+    output.azimuth=dir.azimuth;
+    output.elevation=dir.elevation;
 
     return output;
+}
+
+auto AtmosphereRenderer::getViewDirection(QPoint const& pixelPos) const -> Direction
+{
+    gl.glBindVertexArray(vao);
+    viewDirectionGetterProgram->bind();
+    viewDirectionGetterProgram->setUniformValue("zoomFactor", tools->zoomFactor());
+    gl.glBindFramebuffer(GL_FRAMEBUFFER, viewDirectionFBO);
+    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    gl.glBindVertexArray(0);
+    GLfloat viewDir[3]={NAN,NAN,NAN};
+    gl.glReadPixels(pixelPos.x(), viewportSize.height()-pixelPos.y()-1, 1,1, GL_RGB, GL_FLOAT, viewDir);
+
+    const float azimuth = 180/M_PI * (viewDir[0]!=0 || viewDir[1]!=0 ? std::atan2(viewDir[1], viewDir[0]) : 0);
+    const float elevation = 180/M_PI * std::asin(viewDir[2]);
+
+    return Direction{azimuth, elevation};
 }
 
 void AtmosphereRenderer::clearRadianceFrames()
