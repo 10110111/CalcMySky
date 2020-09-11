@@ -457,12 +457,14 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
             std::cerr << atmoDescrFileName << ":" << lineNumber << ": error: not a key:value pair\n";
             throw MustQuit{};
         }
+
+        constexpr auto GLSIZEI_MAX = std::numeric_limits<GLsizei>::max();
         const auto key=keyValue[0].simplified().toLower();
         const auto value=keyValue[1].trimmed();
         if(key=="transmittance texture size for cos(vza)")
-            transmittanceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            transmittanceTexW=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="transmittance texture size for altitude")
-            transmittanceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            transmittanceTexH=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="transmittance integration points")
             numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="radial integration points")
@@ -470,12 +472,12 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
         else if(key=="angular integration points per half revolution")
             angularIntegrationPointsPerHalfRevolution=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for cos(sza)")
-            irradianceTexW=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            irradianceTexW=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for altitude")
-            irradianceTexH=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            irradianceTexH=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for cos(vza)")
         {
-            const auto integer=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            const auto integer=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
             if(integer%2)
             {
                 std::cerr << atmoDescrFileName << ":" << lineNumber << ": value for \"" << key << "\" must be even (shaders rely on this)\n";
@@ -484,15 +486,15 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
             scatteringTextureSize[0]=integer;
         }
         else if(key=="scattering texture size for dot(view,sun)")
-            scatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            scatteringTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for cos(sza)")
-            scatteringTextureSize[2]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            scatteringTextureSize[2]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for altitude")
-            scatteringTextureSize[3]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            scatteringTextureSize[3]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="eclipsed scattering texture size for relative azimuth")
-            eclipsedSingleScatteringTextureSize[0]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            eclipsedSingleScatteringTextureSize[0]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="eclipsed scattering texture size for cos(vza)")
-            eclipsedSingleScatteringTextureSize[1]=getUInt(value,1,std::numeric_limits<GLsizei>::max(), atmoDescrFileName, lineNumber);
+            eclipsedSingleScatteringTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
