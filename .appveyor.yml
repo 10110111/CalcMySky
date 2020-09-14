@@ -33,8 +33,8 @@ for:
       - configuration: Release
   after_build:
     - cmd: cmake --build . --config %configuration% --target install
-    - cmd: 7z a atg.zip CalcMySky
-    - cmd: appveyor PushArtifact atg.zip
+    - cmd: 7z a CalcMySky.zip CalcMySky
+    - cmd: appveyor PushArtifact CalcMySky.zip
 -
   matrix:
     only:
@@ -44,5 +44,5 @@ for:
     - cmd: for %%F in (msvcp140d vcruntime140d) do copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\debug_nonredist\x64\Microsoft.VC140.DebugCRT\%%F.dll" CalcMySky
     - cmd: copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.25.28508\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll" CalcMySky
     - cmd: copy "C:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll" CalcMySky
-    - cmd: 7z a atg.zip CalcMySky
-    - cmd: appveyor PushArtifact atg.zip
+    - cmd: 7z a CalcMySky.zip CalcMySky
+    - cmd: appveyor PushArtifact CalcMySky.zip
