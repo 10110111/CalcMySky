@@ -101,6 +101,13 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     }
     std::cerr << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
 
+    if(const qint64 expectedFileSize = sizeof(GLfloat)*4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] + file.pos();
+       expectedFileSize != file.size())
+    {
+        throw DataLoadError{tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4×%5×%6 from file header.\nThe expected size is %7 bytes.")
+                            .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(sizes[2]).arg(sizes[3]).arg(expectedFileSize)};
+    }
+
     const auto numAltIntervals = sizes[3]-1;
     const auto altTexIndex = altitudeCoord==1 ? numAltIntervals-1 : altitudeCoord*numAltIntervals;
     const auto floorAltIndex = std::floor(altTexIndex);
@@ -124,10 +131,12 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
                                 .arg(offset).arg(path).arg(file.errorString())};
         }
         const qint64 sizeToRead=subpixelCountToRead*sizeof subpixels[0];
-        if(file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead) != sizeToRead)
+        const auto actuallyRead=file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead);
+        if(actuallyRead != sizeToRead)
         {
-            throw DataLoadError{tr("Failed to read texture data from file \"%1\": %2")
-                                .arg(path).arg(file.errorString())};
+            const auto error = actuallyRead==-1 ? tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
+                                                : tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
+            throw DataLoadError{error};
         }
     }
     const glm::ivec4 size(sizes[0],sizes[1],sizes[2],sizes[3]);
@@ -165,13 +174,23 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
     }
     const auto subpixelCount = 4*uint64_t(sizes[0])*sizes[1];
     std::cerr << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "... ";
+
+    if(const qint64 expectedFileSize = subpixelCount*sizeof(GLfloat)+file.pos();
+       expectedFileSize != file.size())
+    {
+        throw DataLoadError{tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4 from file header.\nThe expected size is %5 bytes.")
+                            .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(expectedFileSize)};
+    }
+
     const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
     {
         const qint64 sizeToRead=subpixelCount*sizeof subpixels[0];
-        if(file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead) != sizeToRead)
+        const auto actuallyRead=file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead);
+        if(actuallyRead != sizeToRead)
         {
-            throw DataLoadError{tr("Failed to read texture data from file \"%1\": %2")
-                                .arg(path).arg(file.errorString())};
+            const auto error = actuallyRead==-1 ? tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
+                                                : tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
+            throw DataLoadError{error};
         }
     }
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,sizes[0],sizes[1],0,GL_RGBA,GL_FLOAT,subpixels.get());
