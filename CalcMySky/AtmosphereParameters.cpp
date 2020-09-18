@@ -461,7 +461,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
         constexpr auto GLSIZEI_MAX = std::numeric_limits<GLsizei>::max();
         const auto key=keyValue[0].simplified().toLower();
         const auto value=keyValue[1].trimmed();
-        if(key=="transmittance texture size for cos(vza)")
+        if(key=="transmittance texture size for vza")
             transmittanceTexW=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="transmittance texture size for altitude")
             transmittanceTexH=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
@@ -471,11 +471,11 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
             radialIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="angular integration points per half revolution")
             angularIntegrationPointsPerHalfRevolution=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
-        else if(key=="irradiance texture size for cos(sza)")
+        else if(key=="irradiance texture size for sza")
             irradianceTexW=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for altitude")
             irradianceTexH=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
-        else if(key=="scattering texture size for cos(vza)")
+        else if(key=="scattering texture size for vza")
         {
             const auto integer=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
             if(integer%2)
@@ -487,13 +487,13 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
         }
         else if(key=="scattering texture size for dot(view,sun)")
             scatteringTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
-        else if(key=="scattering texture size for cos(sza)")
+        else if(key=="scattering texture size for sza")
             scatteringTextureSize[2]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="scattering texture size for altitude")
             scatteringTextureSize[3]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="eclipsed scattering texture size for relative azimuth")
             eclipsedSingleScatteringTextureSize[0]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
-        else if(key=="eclipsed scattering texture size for cos(vza)")
+        else if(key=="eclipsed scattering texture size for vza")
             eclipsedSingleScatteringTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
