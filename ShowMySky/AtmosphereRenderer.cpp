@@ -1134,8 +1134,8 @@ void AtmosphereRenderer::setupRenderTarget()
             auto& tex=*textures.emplace_back(newTex(QOpenGLTexture::Target2D));
             tex.setMinificationFilter(QOpenGLTexture::Linear);
             tex.setMagnificationFilter(QOpenGLTexture::Linear);
-            // relative azimuth; we don't rely on auto-repeater, since it'd shift the computed azimuths by half a texel
-            tex.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
+            // relative azimuth
+            tex.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
             // cosVZA
             tex.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
             tex.bind();
