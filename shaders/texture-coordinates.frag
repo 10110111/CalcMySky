@@ -99,6 +99,33 @@ vec2 irradianceTexVarsToTexCoord(const float cosSunZenithAngle, const float alti
     return vec2(s,t);
 }
 
+float cosSZAToUnitRangeTexCoord(const float cosSunZenithAngle)
+{
+    // Distance to top atmosphere border along the ray groundUnderCamera-sun: (altitude, cosSunZenithAngle)
+    const float distFromGroundToTopAtmoBorder=distanceToAtmosphereBorder(cosSunZenithAngle, 0.);
+    const float distMin=atmosphereHeight;
+    const float distMax=LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
+    // TODO: choose a more descriptive name
+    const float a=(distFromGroundToTopAtmoBorder-distMin)/(distMax-distMin);
+    // TODO: choose a more descriptive name
+    const float A=earthRadius/(distMax-distMin);
+    return max(0.,1-a/A)/(a+1);
+}
+
+float unitRangeTexCoordToCosSZA(const float texCoord)
+{
+    const float distMin=atmosphereHeight;
+    const float distMax=LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
+    // TODO: choose a more descriptive name, same as in cosSZAToUnitRangeTexCoord()
+    const float A=earthRadius/(distMax-distMin);
+    // TODO: choose a more descriptive name, same as in cosSZAToUnitRangeTexCoord()
+    const float a=(A-A*texCoord)/(1+A*texCoord);
+    const float distFromGroundToTopAtmoBorder=distMin+min(a,A)*(distMax-distMin);
+    return distFromGroundToTopAtmoBorder==0 ? 1 :
+        clampCosine((sqr(LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO)-sqr(distFromGroundToTopAtmoBorder)) /
+                    (2*earthRadius*distFromGroundToTopAtmoBorder));
+}
+
 // dotViewSun: dot(viewDir,sunDir)
 Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, const float cosViewZenithAngle,
                                                const float dotViewSun, const float altitude,
@@ -134,20 +161,12 @@ Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, co
         const float distMax = distToHorizon+LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
         cosVZACoord = distMax==distMin ? 0. : (distToTopAtmoBorder-distMin)/(distMax-distMin);
     }
-    // ------------------------------------
 
+    // ------------------------------------
     const float dotVSCoord=(dotViewSun+1)/2;
-    // ------------------------------------
 
-    // Distance to top atmosphere border along the ray groundUnderCamera-sun: (altitude, cosSunZenithAngle)
-    const float distFromGroundToTopAtmoBorder=distanceToAtmosphereBorder(cosSunZenithAngle, 0.);
-    const float distMin=atmosphereHeight;
-    const float distMax=LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
-    // TODO: choose a more descriptive name
-    const float a=(distFromGroundToTopAtmoBorder-distMin)/(distMax-distMin);
-    // TODO: choose a more descriptive name
-    const float A=earthRadius/(distMax-distMin);
-    const float cosSZACoord=max(0.,1-a/A)/(a+1);
+    // ------------------------------------
+    const float cosSZACoord=cosSZAToUnitRangeTexCoord(cosSunZenithAngle);
 
     return Scattering4DCoords(cosSZACoord, cosVZACoord, dotVSCoord, altCoord, viewRayIntersectsGround);
 }
@@ -224,16 +243,8 @@ ScatteringTexVars scatteringTex4DCoordsToTexVars(const Scattering4DCoords coords
     const float dotViewSun=coords.dotViewSun*2-1;
 
     // ------------------------------------
-    const float distMin=atmosphereHeight;
-    const float distMax=LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
-    // TODO: choose a more descriptive name, same as in scatteringTexVarsTo4DCoords()
-    const float A=earthRadius/(distMax-distMin);
-    // TODO: choose a more descriptive name, same as in scatteringTexVarsTo4DCoords()
-    const float a=(A-A*coords.cosSunZenithAngle)/(1+A*coords.cosSunZenithAngle);
-    const float distFromGroundToTopAtmoBorder=distMin+min(a,A)*(distMax-distMin);
-    const float cosSunZenithAngle = distFromGroundToTopAtmoBorder==0 ? 1 :
-        clampCosine((sqr(LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO)-sqr(distFromGroundToTopAtmoBorder)) /
-                    (2*earthRadius*distFromGroundToTopAtmoBorder));
+    const float cosSunZenithAngle=unitRangeTexCoordToCosSZA(coords.cosSunZenithAngle);
+
     return ScatteringTexVars(cosSunZenithAngle, cosViewZenithAngle, dotViewSun, altitude, coords.viewRayIntersectsGround);
 }
 
