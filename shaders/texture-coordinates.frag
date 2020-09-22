@@ -26,6 +26,12 @@ struct TexCoordPair
     float alphaUpper;
 };
 
+struct EclipseScattering2DCoords
+{
+    float azimuth;
+    float cosViewZenithAngle;
+};
+
 float texCoordToUnitRange(const float texCoord, const float texSize)
 {
     return (texSize*texCoord-0.5)/(texSize-1);
@@ -323,8 +329,8 @@ EclipseScatteringTexVars eclipseTexCoordsToTexVars(const vec2 texCoords, const f
     return EclipseScatteringTexVars(azimuthRelativeToSun, cosViewZenithAngle, viewRayIntersectsGround);
 }
 
-vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cosViewZenithAngle,
-                               const float altitude, const bool viewRayIntersectsGround)
+EclipseScattering2DCoords eclipseTexVarsTo2DCoords(const float azimuthRelativeToSun, const float cosViewZenithAngle,
+                                                   const float altitude, const bool viewRayIntersectsGround)
 {
     const float r=earthRadius+altitude;
 
@@ -344,8 +350,6 @@ vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cos
         // Maximum possible value of distToGround
         const float distMax = distToHorizon;
         cosVZACoord = distMax==distMin ? 0. : (distToGround-distMin)/(distMax-distMin);
-        cosVZACoord = unitRangeToTexCoord(cosVZACoord, eclipsedSingleScatteringTextureSize.t/2);
-        cosVZACoord = (1-cosVZACoord)/2;
     }
     else
     {
@@ -356,11 +360,24 @@ vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cos
         const float distMin = atmosphereHeight-altitude;
         const float distMax = distToHorizon+LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
         cosVZACoord = distMax==distMin ? 0. : (distToTopAtmoBorder-distMin)/(distMax-distMin);
-        cosVZACoord = unitRangeToTexCoord(cosVZACoord, eclipsedSingleScatteringTextureSize.t/2);
-        cosVZACoord = (cosVZACoord+1)/2;
     }
 
-    const float azimuthCoord = azimuthRelativeToSun/(2*PI) + 1/(2*eclipsedSingleScatteringTextureSize.s);
+    const float azimuthCoord = azimuthRelativeToSun/(2*PI);
 
-    return vec2(azimuthCoord, cosVZACoord);
+    return EclipseScattering2DCoords(azimuthCoord, cosVZACoord);
+}
+
+vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cosViewZenithAngle,
+                               const float altitude, const bool viewRayIntersectsGround)
+{
+    const EclipseScattering2DCoords coords=eclipseTexVarsTo2DCoords(azimuthRelativeToSun, cosViewZenithAngle, altitude,
+                                                                    viewRayIntersectsGround);
+    const float cosVZAtc = viewRayIntersectsGround ?
+                            // Coordinate is in ~[0,0.5]
+                            0.5-0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, eclipsedSingleScatteringTextureSize.t/2) :
+                            // Coordinate is in ~[0.5,1]
+                            0.5+0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, eclipsedSingleScatteringTextureSize.t/2);
+    const float azimuthTC = coords.azimuth + 1/(2*eclipsedSingleScatteringTextureSize.s);
+
+    return vec2(azimuthTC, cosVZAtc);
 }
