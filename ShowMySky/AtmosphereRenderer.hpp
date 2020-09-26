@@ -75,7 +75,7 @@ public:
     bool readyToRender() const { return readyToRender_; }
 
     void draw();
-    void setDragMode(DragMode mode, int x=0, int y=0) { dragMode=mode; prevMouseX=x; prevMouseY=y; }
+    void setDragMode(DragMode mode, int x=0, int y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
     void mouseMove(int x, int y);
     void resizeEvent(int width, int height);
     void setScattererEnabled(QString const& name, bool enable);
@@ -87,42 +87,42 @@ signals:
     void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
 private:
-    ToolsWidget* tools;
-    Parameters params;
-    QString pathToData;
-    int totalLoadingStepsToDo=-1, loadingStepsDone=0;
+    ToolsWidget* tools_;
+    Parameters params_;
+    QString pathToData_;
+    int totalLoadingStepsToDo_=-1, loadingStepsDone_=0;
     QString currentActivity_;
 
-    GLuint vao=0, vbo=0, mainFBO=0, viewDirectionFBO=0;
-    GLuint eclipseSingleScatteringPrecomputationFBO=0;
-    std::vector<TexturePtr> multipleScatteringTextures;
-    std::vector<TexturePtr> transmittanceTextures;
-    std::vector<TexturePtr> irradianceTextures;
-    std::vector<GLuint> radianceRenderBuffers;
-    GLuint viewDirectionRenderBuffer=0;
-    // Indexed as singleScatteringTextures[scattererName][wavelengthSetIndex]
-    std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures;
-    std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures;
-    QOpenGLTexture bayerPatternTexture;
-    QOpenGLTexture mainFBOTexture;
-    QSize viewportSize;
-    float loadedAltitudeURTexCoordRange[2]={NAN,NAN};
+    GLuint vao_=0, vbo_=0, mainFBO_=0, viewDirectionFBO_=0;
+    GLuint eclipseSingleScatteringPrecomputationFBO_=0;
+    std::vector<TexturePtr> multipleScatteringTextures_;
+    std::vector<TexturePtr> transmittanceTextures_;
+    std::vector<TexturePtr> irradianceTextures_;
+    std::vector<GLuint> radianceRenderBuffers_;
+    GLuint viewDirectionRenderBuffer_=0;
+    // Indexed as singleScatteringTextures_[scattererName][wavelengthSetIndex]
+    std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures_;
+    std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures_;
+    QOpenGLTexture bayerPatternTexture_;
+    QOpenGLTexture mainFBOTexture_;
+    QSize viewportSize_;
+    float loadedAltitudeURTexCoordRange_[2]={NAN,NAN};
     float staticAltitudeTexCoord_=-1;
 
-    std::vector<ShaderProgPtr> zeroOrderScatteringPrograms;
-    std::vector<ShaderProgPtr> multipleScatteringPrograms;
-    // Indexed as singleScatteringPrograms[renderMode][scattererName][wavelengthSetIndex]
+    std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
+    std::vector<ShaderProgPtr> multipleScatteringPrograms_;
+    // Indexed as singleScatteringPrograms_[renderMode][scattererName][wavelengthSetIndex]
     using ScatteringProgramsMap=std::map<ScattererName,std::vector<ShaderProgPtr>>;
-    std::vector<std::unique_ptr<ScatteringProgramsMap>> singleScatteringPrograms;
-    std::vector<std::unique_ptr<ScatteringProgramsMap>> eclipsedSingleScatteringPrograms;
-    // Indexed as eclipsedSingleScatteringPrecomputationPrograms[scattererName][wavelengthSetIndex]
-    std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms;
-    ShaderProgPtr luminanceToScreenRGB;
-    ShaderProgPtr viewDirectionGetterProgram;
-    std::map<ScattererName,bool> scatterersEnabledStates;
+    std::vector<std::unique_ptr<ScatteringProgramsMap>> singleScatteringPrograms_;
+    std::vector<std::unique_ptr<ScatteringProgramsMap>> eclipsedSingleScatteringPrograms_;
+    // Indexed as eclipsedSingleScatteringPrecomputationPrograms_[scattererName][wavelengthSetIndex]
+    std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms_;
+    ShaderProgPtr luminanceToScreenRGB_;
+    ShaderProgPtr viewDirectionGetterProgram_;
+    std::map<ScattererName,bool> scatterersEnabledStates_;
 
-    DragMode dragMode=DragMode::None;
-    int prevMouseX, prevMouseY;
+    DragMode dragMode_=DragMode::None;
+    int prevMouseX_, prevMouseY_;
 
     bool readyToRender_=false;
 
