@@ -18,6 +18,9 @@ inline QString toString(double x) { return QString::number(x, 'g', 17); }
 inline QString toString(float x) { return QString::number(x, 'g', 9); }
 inline QString toString(glm::vec2 v) { return QString("vec2(%1,%2)").arg(double(v.x), 0,'g',9)
                                                              .arg(double(v.y), 0,'g',9); }
+inline QString toString(glm::vec3 v) { return QString("vec3(%1,%2,%3)").arg(double(v.x), 0,'g',9)
+                                                                       .arg(double(v.y), 0,'g',9)
+                                                                       .arg(double(v.z), 0,'g',9); }
 inline QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(double(v.x), 0,'g',9)
                                                                    .arg(double(v.y), 0,'g',9)
                                                                    .arg(double(v.z), 0,'g',9)
