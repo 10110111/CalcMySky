@@ -17,14 +17,14 @@ inline QString toString(int x) { return QString::number(x); }
 inline QString toString(double x) { return QString::number(x, 'g', 17); }
 inline QString toString(float x) { return QString::number(x, 'g', 9); }
 inline QString toString(glm::vec2 v) { return QString("vec2(%1,%2)").arg(double(v.x), 0,'g',9)
-                                                             .arg(double(v.y), 0,'g',9); }
+                                                                    .arg(double(v.y), 0,'g',9); }
 inline QString toString(glm::vec3 v) { return QString("vec3(%1,%2,%3)").arg(double(v.x), 0,'g',9)
                                                                        .arg(double(v.y), 0,'g',9)
                                                                        .arg(double(v.z), 0,'g',9); }
 inline QString toString(glm::vec4 v) { return QString("vec4(%1,%2,%3,%4)").arg(double(v.x), 0,'g',9)
-                                                                   .arg(double(v.y), 0,'g',9)
-                                                                   .arg(double(v.z), 0,'g',9)
-                                                                   .arg(double(v.w), 0,'g',9); }
+                                                                          .arg(double(v.y), 0,'g',9)
+                                                                          .arg(double(v.z), 0,'g',9)
+                                                                          .arg(double(v.w), 0,'g',9); }
 inline QString toString(glm::mat4 const& m) { return QString("mat4(%1,%2,%3,%4,  %5,%6,%7,%8,  %9,%10,%11,%12,  %13,%14,%15,%16)")
           .arg(double(m[0][0]),0,'g',9).arg(double(m[0][1]),0,'g',9).arg(double(m[0][2]),0,'g',9).arg(double(m[0][3]),0,'g',9)
           .arg(double(m[1][0]),0,'g',9).arg(double(m[1][1]),0,'g',9).arg(double(m[1][2]),0,'g',9).arg(double(m[1][3]),0,'g',9)
