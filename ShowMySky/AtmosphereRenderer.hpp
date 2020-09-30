@@ -124,6 +124,8 @@ private:
     DragMode dragMode_=DragMode::None;
     int prevMouseX_, prevMouseY_;
 
+    int numAltIntervalsIn4DTexture_;
+
     bool readyToRender_=false;
 
     DEFINE_EXPLICIT_BOOL(CountStepsOnly);
@@ -148,6 +150,7 @@ private:
     void makeBayerPatternTexture();
     glm::ivec2 loadTexture2D(QString const& path);
     void loadTexture4D(QString const& path, float altitudeCoord);
+    void updateAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);
 
     void precomputeEclipsedSingleScattering();
     void renderZeroOrderScattering();

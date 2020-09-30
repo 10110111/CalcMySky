@@ -78,6 +78,17 @@ QVector3D AtmosphereRenderer::rgbMaxValue() const
 	}
 }
 
+void AtmosphereRenderer::updateAltitudeTexCoords(const float altitudeCoord, double* floorAltIndexOut)
+{
+    const auto altTexIndex = altitudeCoord==1 ? numAltIntervalsIn4DTexture_-1 : altitudeCoord*numAltIntervalsIn4DTexture_;
+    const auto floorAltIndex = std::floor(altTexIndex);
+    const auto fractAltIndex = altTexIndex-floorAltIndex;
+
+    staticAltitudeTexCoord_ = unitRangeToTexCoord(fractAltIndex, 2);
+
+    if(floorAltIndexOut) *floorAltIndexOut=floorAltIndex;
+}
+
 void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
@@ -108,14 +119,12 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
                             .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(sizes[2]).arg(sizes[3]).arg(expectedFileSize)};
     }
 
-    const auto numAltIntervals = sizes[3]-1;
-    const auto altTexIndex = altitudeCoord==1 ? numAltIntervals-1 : altitudeCoord*numAltIntervals;
-    const auto floorAltIndex = std::floor(altTexIndex);
-    const auto fractAltIndex = altTexIndex-floorAltIndex;
+    numAltIntervalsIn4DTexture_ = sizes[3]-1;
+    double floorAltIndex;
+    updateAltitudeTexCoords(altitudeCoord, &floorAltIndex);
 
-    staticAltitudeTexCoord_ = unitRangeToTexCoord(fractAltIndex, 2);
-    loadedAltitudeURTexCoordRange_[0] = floorAltIndex/numAltIntervals;
-    loadedAltitudeURTexCoordRange_[1] = (floorAltIndex+1)/numAltIntervals;
+    loadedAltitudeURTexCoordRange_[0] = floorAltIndex/numAltIntervalsIn4DTexture_;
+    loadedAltitudeURTexCoordRange_[1] = (floorAltIndex+1)/numAltIntervalsIn4DTexture_;
 
     const auto subpixelReadOffset = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(floorAltIndex);
     sizes[3]=2;
@@ -1059,6 +1068,10 @@ void AtmosphereRenderer::draw()
         loadingStepsDone_=0;
         reloadScatteringTextures(CountStepsOnly{false});
         reportLoadingFinished();
+    }
+    else
+    {
+        updateAltitudeTexCoords(altCoord);
     }
 
     GLint targetFBO=-1;
