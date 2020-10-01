@@ -217,7 +217,7 @@ ScatteringTexVars scatteringTex4DCoordsToTexVars(const Scattering4DCoords coords
 {
     const float distToHorizon = coords.altitude*LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
     // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
-    const float altitude=clamp(sqrt(sqr(distToHorizon)+sqr(earthRadius))-earthRadius, 0., atmosphereHeight);
+    const float altitude=clampAltitude(sqrt(sqr(distToHorizon)+sqr(earthRadius))-earthRadius);
 
     // ------------------------------------
     float cosViewZenithAngle;
