@@ -257,6 +257,12 @@ Scattering4DCoords scatteringTexIndicesTo4DCoords(const vec3 texIndices)
     coords4d.cosViewZenithAngle = coords4d.viewRayIntersectsGround ?
                                    1-2*texIndices[0]/(indexMax[0]-1) :
                                    2*(texIndices[0]-1)/(indexMax[0]-1)-1;
+    // Although the above formula, when compiled as written above, should produce exact result for zenith and nadir,
+    // aggressive optimizations of NVIDIA driver can and do result in inexact coordinate. And this is bad, since our
+    // further calculations in scatteringTex4DCoordsToTexVars are sensitive to these values when altitude==atmosphereHeight,
+    // when looking into zenith. So let's fixup this special case.
+    if(texIndices[0]==scatteringTextureSize[0]/2)
+        coords4d.cosViewZenithAngle=0;
 
     // Width and height of the 2D subspace of the 4D texture - the subspace spanned by
     // the texture indices we combine into a single sampler3D coordinate.
