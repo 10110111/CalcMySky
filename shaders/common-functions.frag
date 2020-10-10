@@ -84,6 +84,13 @@ float distanceToGround(const float cosZenithAngle, const float observerAltitude)
     return clampDistance(-safeSqrt(discriminant)-Robs*cosZenithAngle);
 }
 
+float cosZenithAngleOfHorizon(const float altitude)
+{
+    const float R=earthRadius;
+    const float h=altitude;
+    return -sqrt(2*h*R+sqr(h))/(R+h);
+}
+
 bool rayIntersectsGround(const float cosViewZenithAngle, const float observerAltitude)
 {
     const float Robs=earthRadius+observerAltitude;

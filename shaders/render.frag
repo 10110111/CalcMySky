@@ -20,13 +20,6 @@ in vec3 position;
 layout(location=0) out vec4 luminance;
 layout(location=1) out vec4 radianceOutput;
 
-float cosZenithAngleOfHorizon(float altitude)
-{
-    float R=earthRadius;
-    float h=altitude;
-    return -sqrt(2*h*R+sqr(h))/(R+h);
-}
-
 vec4 solarRadiance()
 {
     return solarIrradianceAtTOA/(PI*sqr(sunAngularRadius));
