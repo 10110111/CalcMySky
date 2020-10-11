@@ -93,9 +93,7 @@ float cosZenithAngleOfHorizon(const float altitude)
 
 bool rayIntersectsGround(const float cosViewZenithAngle, const float observerAltitude)
 {
-    const float Robs=earthRadius+observerAltitude;
-    const float discriminant=sqr(earthRadius)-sqr(Robs)*(1-sqr(cosViewZenithAngle));
-    return cosViewZenithAngle<0 && discriminant>0;
+    return cosViewZenithAngle<cosZenithAngleOfHorizon(observerAltitude);
 }
 
 float distanceToNearestAtmosphereBoundary(const float cosZenithAngle, const float observerAltitude,
