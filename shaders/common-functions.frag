@@ -87,7 +87,7 @@ float distanceToGround(const float cosZenithAngle, const float observerAltitude)
 float cosZenithAngleOfHorizon(const float altitude)
 {
     const float R=earthRadius;
-    const float h=altitude;
+    const float h=max(0.,altitude); // negative values would result in sqrt(-|x|)
     return -sqrt(2*h*R+sqr(h))/(R+h);
 }
 
