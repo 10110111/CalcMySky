@@ -231,10 +231,7 @@ int main(int argc, char** argv)
         mainWin->resize(windowSize);
         mainWin->show();
         if(detachedTools)
-        {
             tools->setFloating(true);
-            tools->show();
-        }
         return app.exec();
     }
     catch(Error const& ex)
