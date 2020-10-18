@@ -150,12 +150,15 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
     return params;
 }
 
+QSize windowSize;
 void handleCmdLine()
 {
     QCommandLineParser parser;
     parser.addPositionalArgument("path to data", "Path to atmosphere textures");
     parser.addVersionOption();
     parser.addHelpOption();
+    QCommandLineOption winSizeOpt("win-size", "Window size", "WIDTHxHEIGHT");
+    parser.addOption(winSizeOpt);
 
     parser.process(*qApp);
 
@@ -164,6 +167,23 @@ void handleCmdLine()
         throw BadCommandLine{QObject::tr("Too many arguments")};
     if(posArgs.isEmpty())
         throw BadCommandLine{parser.helpText()};
+
+    if(parser.isSet(winSizeOpt))
+    {
+        QRegularExpression pattern("^([0-9]+)x([0-9]+)$");
+        QRegularExpressionMatch match;
+        const auto value=parser.value(winSizeOpt);
+        if(value.contains(pattern, &match))
+        {
+            bool okW=false;
+            const auto width=match.captured(1).toUInt(&okW);
+            bool okH=false;
+            const auto height=match.captured(2).toUInt(&okH);
+            if(!okW || !okH)
+                throw BadCommandLine{QObject::tr("Can't parse window size specification \"%1\"").arg(value)};
+            windowSize=QSize(width,height);
+        }
+    }
 
     pathToData=posArgs[0];
 }
@@ -183,6 +203,7 @@ int main(int argc, char** argv)
 
     try
     {
+        windowSize=app.primaryScreen()->size()/1.6;
         handleCmdLine();
         const auto params=parseParams(pathToData);
 
@@ -193,7 +214,7 @@ int main(int argc, char** argv)
         mainWin->setAttribute(Qt::WA_DeleteOnClose);
         mainWin->setCentralWidget(glWidget);
         mainWin->addDockWidget(Qt::RightDockWidgetArea, tools);
-        mainWin->resize(app.primaryScreen()->size()/1.6);
+        mainWin->resize(windowSize);
         mainWin->show();
         return app.exec();
     }
