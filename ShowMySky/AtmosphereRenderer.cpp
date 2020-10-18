@@ -557,12 +557,12 @@ uniform sampler2D bayerPattern;
 vec3 dither(vec3 c)
 {
     if(rgbMaxValue.r==0.) return c;
-    float bayer=texture2D(bayerPattern,gl_FragCoord.xy/8.).r;
+    vec3 bayer=texture2D(bayerPattern,gl_FragCoord.xy/8.).rrr;
 
     vec3 rgb=c*rgbMaxValue;
     vec3 head=floor(rgb);
     vec3 tail=rgb-head;
-    return (head+1.-step(tail,vec3(bayer)))/rgbMaxValue;
+    return (head+1.-step(tail,bayer))/rgbMaxValue;
 }
 
 void main()
