@@ -227,15 +227,14 @@ int main(int argc, char** argv)
         if(frameless)
             mainWin->setWindowFlag(Qt::FramelessWindowHint);
         mainWin->setCentralWidget(glWidget);
-        if(!detachedTools)
-        {
-            // FIXME: if we don't do this (as in the detachedTools case), then the dock widget
-            // is not draggable and not attachable to main window.
-            mainWin->addDockWidget(Qt::RightDockWidgetArea, tools);
-        }
+        mainWin->addDockWidget(Qt::RightDockWidgetArea, tools);
         mainWin->resize(windowSize);
         mainWin->show();
-        tools->show();
+        if(detachedTools)
+        {
+            tools->setFloating(true);
+            tools->show();
+        }
         return app.exec();
     }
     catch(Error const& ex)
