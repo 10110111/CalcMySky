@@ -3,6 +3,7 @@ add_executable(showmysky
                 main.cpp
                 util.cpp
                 GLWidget.cpp
+                MainWindow.cpp
                 ToolsWidget.cpp
                 Manipulator.cpp
                 RadiancePlot.cpp

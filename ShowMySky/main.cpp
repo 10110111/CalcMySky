@@ -11,6 +11,7 @@
 #include "config.h"
 #include "../common/util.hpp"
 #include "GLWidget.hpp"
+#include "MainWindow.hpp"
 #include "ToolsWidget.hpp"
 #include "util.hpp"
 
@@ -219,15 +220,14 @@ int main(int argc, char** argv)
         handleCmdLine();
         const auto params=parseParams(pathToData);
 
-        const auto mainWin=new QMainWindow;
         const auto tools=new ToolsWidget(params.atmosphereHeight);
         const auto glWidget=new GLWidget(pathToData, params, tools);
+        const auto mainWin=new MainWindow(tools);
 
         mainWin->setAttribute(Qt::WA_DeleteOnClose);
         if(frameless)
             mainWin->setWindowFlag(Qt::FramelessWindowHint);
         mainWin->setCentralWidget(glWidget);
-        mainWin->addDockWidget(Qt::RightDockWidgetArea, tools);
         mainWin->resize(windowSize);
         mainWin->show();
         if(detachedTools)
