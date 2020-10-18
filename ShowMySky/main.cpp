@@ -151,6 +151,7 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
 }
 
 QSize windowSize;
+bool detachedTools=false;
 void handleCmdLine()
 {
     QCommandLineParser parser;
@@ -159,6 +160,8 @@ void handleCmdLine()
     parser.addHelpOption();
     QCommandLineOption winSizeOpt("win-size", "Window size", "WIDTHxHEIGHT");
     parser.addOption(winSizeOpt);
+    QCommandLineOption detachedToolsOpt("detached-tools", "Start with tools dock detached");
+    parser.addOption(detachedToolsOpt);
 
     parser.process(*qApp);
 
@@ -184,6 +187,9 @@ void handleCmdLine()
             windowSize=QSize(width,height);
         }
     }
+
+    if(parser.isSet(detachedToolsOpt))
+        detachedTools=true;
 
     pathToData=posArgs[0];
 }
@@ -213,9 +219,15 @@ int main(int argc, char** argv)
 
         mainWin->setAttribute(Qt::WA_DeleteOnClose);
         mainWin->setCentralWidget(glWidget);
-        mainWin->addDockWidget(Qt::RightDockWidgetArea, tools);
+        if(!detachedTools)
+        {
+            // FIXME: if we don't do this (as in the detachedTools case), then the dock widget
+            // is not draggable and not attachable to main window.
+            mainWin->addDockWidget(Qt::RightDockWidgetArea, tools);
+        }
         mainWin->resize(windowSize);
         mainWin->show();
+        tools->show();
         return app.exec();
     }
     catch(Error const& ex)
