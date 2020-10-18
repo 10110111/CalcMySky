@@ -152,6 +152,7 @@ AtmosphereRenderer::Parameters parseParams(QString const& pathToData)
 
 QSize windowSize;
 bool detachedTools=false;
+bool frameless=false;
 void handleCmdLine()
 {
     QCommandLineParser parser;
@@ -162,6 +163,8 @@ void handleCmdLine()
     parser.addOption(winSizeOpt);
     QCommandLineOption detachedToolsOpt("detached-tools", "Start with tools dock detached");
     parser.addOption(detachedToolsOpt);
+    QCommandLineOption framelessOpt("frameless", "Make main window frameless");
+    parser.addOption(framelessOpt);
 
     parser.process(*qApp);
 
@@ -191,6 +194,9 @@ void handleCmdLine()
     if(parser.isSet(detachedToolsOpt))
         detachedTools=true;
 
+    if(parser.isSet(framelessOpt))
+        frameless=true;
+
     pathToData=posArgs[0];
 }
 
@@ -218,6 +224,8 @@ int main(int argc, char** argv)
         const auto glWidget=new GLWidget(pathToData, params, tools);
 
         mainWin->setAttribute(Qt::WA_DeleteOnClose);
+        if(frameless)
+            mainWin->setWindowFlag(Qt::FramelessWindowHint);
         mainWin->setCentralWidget(glWidget);
         if(!detachedTools)
         {
