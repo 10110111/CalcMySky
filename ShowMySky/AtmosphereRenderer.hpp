@@ -118,7 +118,6 @@ private:
     bool readyToRender_=false;
 
     DEFINE_EXPLICIT_BOOL(CountStepsOnly);
-    void parseParams();
     void loadTextures(CountStepsOnly countStepsOnly);
     void reloadScatteringTextures(CountStepsOnly countStepsOnly);
     void setupRenderTarget();
