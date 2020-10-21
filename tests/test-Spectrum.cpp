@@ -1,4 +1,4 @@
-#include "../CalcMySky/Spectrum.hpp"
+#include "../common/Spectrum.hpp"
 #include <cmath>
 #include <limits>
 #include <iostream>

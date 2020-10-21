@@ -10,7 +10,7 @@
 #include <QOpenGLShader>
 #include <glm/glm.hpp>
 #include "const.hpp"
-#include "AtmosphereParameters.hpp"
+#include "../common/AtmosphereParameters.hpp"
 
 inline bool saveResultAsRadiance=false;
 inline bool dbgNoSaveTextures=false;

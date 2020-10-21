@@ -4,8 +4,8 @@ add_executable(calcmysky
                 glinit.cpp
                 cmdline.cpp
                 shaders.cpp
-                Spectrum.cpp
-                AtmosphereParameters.cpp
+                ../common/Spectrum.cpp
+                ../common/AtmosphereParameters.cpp
                 ../common/util.cpp
                 ../config.h)
 target_link_libraries(calcmysky Qt5::Core Qt5::OpenGL)

@@ -1,7 +1,7 @@
 #include "AtmosphereParameters.hpp"
 #include <optional>
 #include "Spectrum.hpp"
-#include "../common/const.hpp"
+#include "const.hpp"
 
 namespace
 {
