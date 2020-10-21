@@ -3,6 +3,8 @@
 #include "Spectrum.hpp"
 #include "const.hpp"
 
+using ParsingFailure=AtmosphereParameters::ParsingError;
+
 namespace
 {
 
@@ -12,14 +14,11 @@ unsigned long long getUInt(QString const& value, const unsigned long long min, c
     bool ok;
     const auto x=value.toULongLong(&ok);
     if(!ok)
-    {
-        std::cerr << filename << ":" << lineNumber << ": can't parse integer\n";
-        throw MustQuit{};
-    }
+        throw ParsingFailure{filename,lineNumber,"can't parse integer"};
     if(x<min || x>max)
     {
-        std::cerr << filename << ":" << lineNumber << ": integer out of range. Valid range is [" << min << ".." << max << "]\n";
-        throw MustQuit{};
+        throw ParsingFailure{filename,lineNumber,QString("value %1 out of range. Valid range is [%2..%3]")
+                                                    .arg(x).arg(min).arg(max)};
     }
     return x;
 }
@@ -103,14 +102,11 @@ double getQuantity(QString const& value, const double min, const double max, Dim
     bool ok;
     const auto x=value.toDouble(&ok);
     if(!ok)
-    {
-        std::cerr << filename << ":" << lineNumber << ": failed to parse number\n";
-        throw MustQuit{};
-    }
+        throw ParsingFailure{filename,lineNumber,"failed to parse number"};
     if(x<min || x>max)
     {
-        std::cerr << filename << ":" << lineNumber << ": value " << x << " is out of range. Valid range is [" << min << ".." << max << "].\n";
-        throw MustQuit{};
+        throw ParsingFailure{filename,lineNumber,QString("value %1 is out of range. Valid range is [%2..%3].")
+                                                    .arg(x).arg(min).arg(max)};
     }
     return x;
 }
@@ -127,10 +123,7 @@ double getQuantity(QString const& value, const double min, const double max, Qua
     bool ok;
     const auto x=regex.cap(1).toDouble(&ok);
     if(!ok)
-    {
-        std::cerr << filename << ":" << lineNumber << ": failed to parse numeric part of the quantity\n";
-        throw MustQuit{};
-    }
+        throw ParsingFailure{filename,lineNumber,"failed to parse numeric part of the quantity"};
     const auto units=quantity.units();
     const auto unit=regex.cap(2).trimmed();
     const auto scaleIt=units.find(unit);
@@ -165,10 +158,7 @@ QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& l
         if(!begun)
         {
             if(!startEndMarker.exactMatch(line))
-            {
-                std::cerr << filename << ":" << lineNumber << ": function body must start and end with triple backtick placed on a separate line.\n";
-                throw MustQuit{};
-            }
+                throw ParsingFailure{filename,lineNumber,"function body must start and end with triple backtick placed on a separate line."};
             begun=true;
             continue;
         }
@@ -187,20 +177,14 @@ std::vector<glm::vec4> getSpectrum(std::vector<glm::vec4> const& allWavelengths,
     if(line.startsWith("file "))
     {
         if(allWavelengths.empty())
-        {
-            std::cerr << filename << ":" << lineNumber << ": error: tried to read a spectrum file without having read list of wavelengths\n";
-            throw MustQuit{};
-        }
+            throw ParsingFailure{filename,lineNumber,"error: tried to read a spectrum file without having read list of wavelengths"};
         auto path=line.mid(5);
         const QFileInfo fi(path);
         if(!fi.isAbsolute())
             path=QFileInfo(filename).absolutePath()+"/"+path;
         QFile file(path);
         if(!file.open(QFile::ReadOnly))
-        {
-            std::cerr << filename << ":" << lineNumber << ": failed to open the file " << path << ": " << file.errorString() << "\n";
-            throw MustQuit{};
-        }
+            throw ParsingFailure{filename,lineNumber,QString("failed to open the file \"%1\": %2").arg(path).arg(file.errorString())};
         const auto spectrum=Spectrum::parseFromCSV(file.readAll(),path,1)
                                             .resample(allWavelengths.front()[0],
                                                       allWavelengths.back()[AtmosphereParameters::pointsPerWavelengthItem-1],
@@ -219,30 +203,20 @@ std::vector<glm::vec4> getSpectrum(std::vector<glm::vec4> const& allWavelengths,
             throw MustQuit{};
     }
     if(items.size()%4)
-    {
-            std::cerr << filename << ":" << lineNumber << ": spectrum length must be a multiple of 4\n";
-            throw MustQuit{};
-    }
+        throw ParsingFailure{filename,lineNumber,"spectrum length must be a multiple of 4"};
     std::vector<GLfloat> values;
     for(int i=0; i<items.size(); ++i)
     {
         bool ok;
         const auto value=items[i].toFloat(&ok);
         if(!ok)
-        {
-            std::cerr << filename << ":" << lineNumber << ": failed to parse entry #" << i+1 << "\n";
-            throw MustQuit{};
-        }
+            throw ParsingFailure{filename,lineNumber,QString("failed to parse entry #%1").arg(i+1)};
         if(value<min)
-        {
-            std::cerr << filename << ":" << lineNumber << ": spectrum point #" << i+1 << " is less than minimally allowed: " << value << " < " << min << "\n";
-            throw MustQuit{};
-        }
+            throw ParsingFailure{filename,lineNumber,QString("spectrum point #%1 is less than minimally allowed: %2 < %3")
+                                                        .arg(i+1).arg(value).arg(min)};
         if(value>max)
-        {
-            std::cerr << filename << ":" << lineNumber << ": spectrum point #" << i+1 << " is greater than maximally allowed: " << value << " > " << max << "\n";
-            throw MustQuit{};
-        }
+            throw ParsingFailure{filename,lineNumber,QString("spectrum point #%1 is greater than maximally allowed: %2 > %3")
+                                                        .arg(i+1).arg(value).arg(max)};
         values.emplace_back(value);
     }
     std::vector<glm::vec4> spectrum;
@@ -264,61 +238,37 @@ std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat min
         if(QRegExp minRX("\\s*min\\s*=\\s*(.+)\\s*"); minRX.exactMatch(item))
         {
             if(minOpt)
-            {
-                std::cerr << filename << ":" << lineNumber << ": bad wavelength range: extra `min' key\n";
-                throw MustQuit{};
-            }
+                throw ParsingFailure{filename,lineNumber,"bad wavelength range: extra `min' key"};
             minOpt=getQuantity(minRX.capturedTexts()[1], minWL_nm*nm, maxWL_nm*nm, WavelengthQuantity{},
                                filename, lineNumber, "wavelength range minimum: ");
         }
         else if(QRegExp maxRX("\\s*max\\s*=\\s*(.+)\\s*"); maxRX.exactMatch(item))
         {
             if(maxOpt)
-            {
-                std::cerr << filename << ":" << lineNumber << ": bad wavelength range: extra `max' key\n";
-                throw MustQuit{};
-            }
+                throw ParsingFailure{filename,lineNumber,"bad wavelength range: extra `max' key"};
             maxOpt=getQuantity(maxRX.capturedTexts()[1], minWL_nm*nm, maxWL_nm*nm, WavelengthQuantity{},
                                filename, lineNumber, "wavelength range maximum: ");
         }
         else if(QRegExp countRX("\\s*count\\s*=\\s*([0-9]+)\\s*"); countRX.exactMatch(item))
         {
             if(countOpt)
-            {
-                std::cerr << filename << ":" << lineNumber << ": bad wavelength range: extra `count' key\n";
-                throw MustQuit{};
-            }
+                throw ParsingFailure{filename,lineNumber,"bad wavelength range: extra `count' key"};
             bool ok=false;
             countOpt=countRX.capturedTexts()[1].toInt(&ok);
             if(!ok)
-            {
-                std::cerr << filename << ":" << lineNumber << ": wavelength range: failed to parse range count.\n";
-                throw MustQuit{};
-            }
+                throw ParsingFailure{filename,lineNumber,"wavelength range: failed to parse range count."};
         }
     }
     if(!minOpt)
-    {
-        std::cerr << filename << ":" << lineNumber << ": invalid range: missing `min' key\n";
-        throw MustQuit{};
-    }
+        throw ParsingFailure{filename,lineNumber,"invalid range: missing `min' key"};
     if(!maxOpt)
-    {
-        std::cerr << filename << ":" << lineNumber << ": invalid range: missing `max' key\n";
-        throw MustQuit{};
-    }
+        throw ParsingFailure{filename,lineNumber,"invalid range: missing `max' key"};
     if(!countOpt)
-    {
-        std::cerr << filename << ":" << lineNumber << ": invalid range: missing `count' key\n";
-        throw MustQuit{};
-    }
+        throw ParsingFailure{filename,lineNumber,"invalid range: missing `count' key"};
     const auto min=*minOpt/nm, max=*maxOpt/nm;
     const int count=*countOpt;
     if(count<=0 || count%4)
-    {
-        std::cerr << filename << ":" << lineNumber << ": range element count must be a positive multple of 4.\n";
-        throw MustQuit{};
-    }
+        throw ParsingFailure{filename,lineNumber,"range element count must be a positive multple of 4."};
     std::vector<glm::vec4> values;
     const auto range=max-min;
     for(int i=0;i<count;i+=4)
@@ -346,10 +296,7 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
         if(!begun)
         {
             if(keyValue.size()!=1 || keyValue[0] != "{")
-            {
-                std::cerr << filename << ":" << lineNumber << ": scatterer description must begin with a '{'\n";
-                throw MustQuit{};
-            }
+                throw ParsingFailure{filename,lineNumber,"scatterer description must begin with a '{'"};
             begun=true;
             continue;
         }
@@ -357,10 +304,7 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
             break;
 
         if(keyValue.size()!=2)
-        {
-            std::cerr << filename << ":" << lineNumber << ": error: not a key:value pair\n";
-            throw MustQuit{};
-        }
+            throw ParsingFailure{filename,lineNumber,"error: not a key:value pair"};
         const auto key=keyValue[0].simplified().toLower();
         const auto value=keyValue[1].trimmed();
 
@@ -400,10 +344,7 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, Q
         if(!begun)
         {
             if(keyValue.size()!=1 || keyValue[0] != "{")
-            {
-                std::cerr << filename << ":" << lineNumber << ": absorber description must begin with a '{'\n";
-                throw MustQuit{};
-            }
+                throw ParsingFailure{filename,lineNumber,"absorber description must begin with a '{'"};
             begun=true;
             continue;
         }
@@ -411,10 +352,7 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, Q
             break;
 
         if(keyValue.size()!=2)
-        {
-            std::cerr << filename << ":" << lineNumber << ": error: not a key:value pair\n";
-            throw MustQuit{};
-        }
+            throw ParsingFailure{filename,lineNumber,"error: not a key:value pair"};
         const auto key=keyValue[0].simplified().toLower();
         const auto value=keyValue[1].trimmed();
 

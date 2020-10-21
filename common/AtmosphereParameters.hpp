@@ -4,10 +4,21 @@
 #include <cmath>
 #include <glm/glm.hpp>
 #include <QtGui>
-#include "../common/types.hpp"
+#include "types.hpp"
+#include "util.hpp"
 
 struct AtmosphereParameters
 {
+    class ParsingError : public Error
+    {
+        QString message;
+    public:
+        ParsingError(QString const& filename, int lineNum, QString const& message)
+            : message(QString("%1:%2: %3").arg(filename).arg(lineNum).arg(message))
+        {}
+        QString errorType() const override { return QObject::tr("Parsing error"); }
+        QString what() const override { return message; }
+    };
     struct Scatterer
     {
         GLfloat crossSectionAt1um = NAN;
