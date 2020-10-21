@@ -14,6 +14,7 @@ unsigned long long getUInt(QString const& value, const unsigned long long min, c
     if(!ok)
     {
         std::cerr << filename << ":" << lineNumber << ": can't parse integer\n";
+        throw MustQuit{};
     }
     if(x<min || x>max)
     {
