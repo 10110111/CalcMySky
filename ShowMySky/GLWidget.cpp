@@ -7,7 +7,7 @@
 #include "util.hpp"
 #include "ToolsWidget.hpp"
 
-GLWidget::GLWidget(QString const& pathToData, AtmosphereRenderer::Parameters const& params, ToolsWidget* tools, QWidget* parent)
+GLWidget::GLWidget(QString const& pathToData, AtmosphereParameters const& params, ToolsWidget* tools, QWidget* parent)
     : QOpenGLWidget(parent)
     , params(params)
     , pathToData(pathToData)

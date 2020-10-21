@@ -790,34 +790,23 @@ int main(int argc, char** argv)
 
         {
             std::cerr << "Writing parameters to output description file...";
-            QFile file((atmo.textureOutputDir+"/params.txt").c_str());
+            const auto target=atmo.textureOutputDir+"/params.atmo";
+            QFile file(target.c_str());
             if(!file.open(QFile::WriteOnly))
             {
-                std::cerr << " FAILED to open file: " << file.errorString().toStdString() << "\n";
+                std::cerr << " FAILED to open \"" << target << "\": " << file.errorString() << "\n";
                 throw MustQuit{};
             }
             QTextStream out(&file);
-            out << "wavelengths: ";
-            for(unsigned i=0; i<atmo.allWavelengths.size(); ++i)
-            {
-                const auto& wlset=atmo.allWavelengths[i];
-                out << wlset[0] << "," << wlset[1] << "," << wlset[2] << "," << wlset[3] << (i+1==atmo.allWavelengths.size() ? "\n" : ",");
-            }
-            out << "atmosphere height: " << atmo.atmosphereHeight << "\n";
-            out << "Earth radius: " << atmo.earthRadius << "\n";
-            out << "Earth-Moon distance: " << atmo.earthMoonDistance << "\n";
-            out << "eclipsed scattering texture size for relative azimuth: " << atmo.eclipsedSingleScatteringTextureSize[0] << "\n";
-            out << "eclipsed scattering texture size for cos(VZA): " << atmo.eclipsedSingleScatteringTextureSize[1] << "\n";
-            out << "scatterers: {";
-            for(const auto& scatterer : atmo.scatterers)
-                out << " \"" << scatterer.name << "\" { phase function " << toString(scatterer.phaseFunctionType) << " };";
-            out << " }\n";
+            if(saveResultAsRadiance)
+                out << AtmosphereParameters::ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE << "\n";
+            out << atmo.descriptionFileText;
             out.flush();
             file.close();
             if(file.error())
             {
-                std::cerr << " FAILED to write: " << file.errorString().toStdString() << "\n";
-                return 1;
+                std::cerr << " FAILED to write to \"" << target << "\": " << file.errorString() << "\n";
+                throw MustQuit{};
             }
             std::cerr << " done\n";
         }

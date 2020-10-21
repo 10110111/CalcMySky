@@ -8,6 +8,8 @@ add_executable(showmysky
                 Manipulator.cpp
                 RadiancePlot.cpp
                 AtmosphereRenderer.cpp
+                ../common/AtmosphereParameters.cpp
+                ../common/Spectrum.cpp
                 ../common/util.cpp
                 ../config.h)
 target_link_libraries(showmysky Qt5::Core Qt5::Widgets Qt5::OpenGL)

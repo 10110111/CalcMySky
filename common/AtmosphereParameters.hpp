@@ -68,6 +68,7 @@ struct AtmosphereParameters
         }
     };
 
+    QString descriptionFileText;
     std::vector<glm::vec4> allWavelengths;
     std::vector<glm::vec4> solarIrradianceAtTOA;
     std::string textureOutputDir=".";
@@ -88,7 +89,9 @@ struct AtmosphereParameters
     std::vector<glm::vec4> groundAlbedo;
     std::vector<Scatterer> scatterers;
     std::vector<Absorber> absorbers;
+    bool allTexturesAreRadiance=false;
     static constexpr unsigned pointsPerWavelengthItem=4;
+    static constexpr char ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE[]="all textures are radiances";
 
 
     void parse(QString const& atmoDescrFileName);

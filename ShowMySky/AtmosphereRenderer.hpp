@@ -11,6 +11,7 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLFunctions_3_3_Core>
 #include "../common/types.hpp"
+#include "../common/AtmosphereParameters.hpp"
 
 class ToolsWidget;
 class AtmosphereRenderer : public QObject
@@ -37,18 +38,6 @@ public:
         Camera,
     };
 
-    struct Parameters
-    {
-        std::vector<unsigned> wavelengths;
-        unsigned wavelengthSetCount=0;
-        unsigned eclipseSingleScatteringTextureSizeForCosVZA=0;
-        unsigned eclipseSingleScatteringTextureSizeForRelAzimuth=0;
-        float atmosphereHeight=NAN;
-        float earthRadius=NAN;
-        float earthMoonDistance=NAN;
-        std::map<QString/*scatterer name*/,PhaseFunctionType> scatterers;
-    };
-
     struct SpectralRadiance
     {
         std::vector<float> wavelengths; // nm
@@ -67,7 +56,7 @@ public:
         float elevation;
     };
 
-    AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, Parameters const& params, ToolsWidget* tools);
+    AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, AtmosphereParameters const& params, ToolsWidget* tools);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
@@ -88,7 +77,7 @@ signals:
 
 private:
     ToolsWidget* tools_;
-    Parameters params_;
+    AtmosphereParameters params_;
     QString pathToData_;
     int totalLoadingStepsToDo_=-1, loadingStepsDone_=0;
     QString currentActivity_;

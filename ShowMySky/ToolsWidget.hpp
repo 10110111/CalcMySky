@@ -63,7 +63,7 @@ public:
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);
     void showFrameRate(long long frameTimeInUS);
-    void updateParameters(AtmosphereRenderer::Parameters const& params);
+    void updateParameters(AtmosphereParameters const& params);
     void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
 private:

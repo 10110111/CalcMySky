@@ -281,7 +281,8 @@ std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat min
     return values;
 }
 
-AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
+AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString const& name, const bool forceGeneralPhaseFunction,
+                                               QString const& filename, int& lineNumber)
 {
     AtmosphereParameters::Scatterer description(name);
     bool begun=false;
@@ -318,6 +319,9 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
             description.phaseFunction=readGLSLFunctionBody(stream,filename,++lineNumber);
         else if(key=="phase function type")
             description.phaseFunctionType=parsePhaseFunctionType(value,filename,lineNumber);
+
+        if(forceGeneralPhaseFunction)
+            description.phaseFunctionType=PhaseFunctionType::General;
     }
     if(!description.valid())
     {
@@ -380,7 +384,8 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
         std::cerr << "Failed to open atmosphere description file: " << atmoDescr.errorString() << '\n';
         throw MustQuit{};
     }
-    QTextStream stream(&atmoDescr);
+    descriptionFileText=atmoDescr.readAll();
+    QTextStream stream(&descriptionFileText, QIODevice::ReadOnly);
     int lineNumber=1;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
     {
@@ -390,6 +395,13 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
         assert(codeAndComment.size());
         if(codeAndComment[0].trimmed().isEmpty())
             continue;
+
+        if(codeAndComment[0]==ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE)
+        {
+            allTexturesAreRadiance=true;
+            continue;
+        }
+
         const auto keyValue=codeAndComment[0].split(':');
         if(keyValue.size()!=2)
         {
@@ -461,7 +473,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
                 std::cerr << atmoDescrFileName << ":" << lineNumber << ": duplicate scatterer \"" << name << "\"\n";
                 throw MustQuit{};
             }
-            scatterers.emplace_back(parseScatterer(stream, name, atmoDescrFileName,++lineNumber));
+            scatterers.emplace_back(parseScatterer(stream, name, allTexturesAreRadiance, atmoDescrFileName,++lineNumber));
         }
         else if(key.contains(absorberDescriptionKey))
             absorbers.emplace_back(parseAbsorber(*this, stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
