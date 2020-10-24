@@ -55,7 +55,7 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
 void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
                  const std::string_view path, std::vector<GLsizei> const& sizes)
 {
-    if(dbgNoSaveTextures)
+    if(opts.dbgNoSaveTextures)
     {
         std::cerr << indentOutput() << "Would save " << name << ", but only shaders are to be saved.\n";
         return;

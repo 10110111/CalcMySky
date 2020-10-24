@@ -12,14 +12,6 @@
 #include "const.hpp"
 #include "../common/AtmosphereParameters.hpp"
 
-inline bool saveResultAsRadiance=false;
-inline bool dbgNoSaveTextures=false;
-inline bool dbgSaveGroundIrradiance=false;
-inline bool dbgSaveScatDensityOrder2FromGround=false;
-inline bool dbgSaveScatDensity=false;
-inline bool dbgSaveDeltaScattering=false;
-inline bool dbgSaveAccumScattering=false;
-
 inline std::map<QString, QString> virtualSourceFiles;
 inline std::map<QString, QString> virtualHeaderFiles;
 
@@ -51,6 +43,17 @@ inline GLuint textures[TEX_COUNT];
 // Accumulation of radiance to yield luminance
 inline std::map<QString/*scatterer name*/, GLuint> accumulatedSingleScatteringTextures;
 
+struct Options
+{
+    bool saveResultAsRadiance=false;
+    bool dbgNoSaveTextures=false;
+    bool dbgSaveGroundIrradiance=false;
+    bool dbgSaveScatDensityOrder2FromGround=false;
+    bool dbgSaveScatDensity=false;
+    bool dbgSaveDeltaScattering=false;
+    bool dbgSaveAccumScattering=false;
+};
+inline Options opts;
 inline AtmosphereParameters atmo;
 
 #endif

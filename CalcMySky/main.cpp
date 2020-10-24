@@ -55,7 +55,7 @@ void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
                     {atmo.irradianceTexW, atmo.irradianceTexH});
     }
 
-    if(!dbgSaveGroundIrradiance) return;
+    if(!opts.dbgSaveGroundIrradiance) return;
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                 atmo.textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
@@ -68,7 +68,7 @@ void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 
 void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texIndex)
 {
-    if(!dbgSaveScatDensity) return;
+    if(!opts.dbgSaveScatDensity) return;
     saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                 "order "+std::to_string(scatteringOrder)+" scattering density",
                 atmo.textureOutputDir+"/scattering-density"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
@@ -77,7 +77,7 @@ void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texInd
 
 void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view whatIsBeingDone)
 {
-    if(dbgNoSaveTextures) return; // don't take time to do useless computations
+    if(opts.dbgNoSaveTextures) return; // don't take time to do useless computations
 
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -200,7 +200,7 @@ void saveMultipleScatteringRenderingShader(const unsigned texIndex)
 {
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
-    const QString macroToReplace = saveResultAsRadiance ? "RENDERING_MULTIPLE_SCATTERING_RADIANCE" : "RENDERING_MULTIPLE_SCATTERING_LUMINANCE";
+    const QString macroToReplace = opts.saveResultAsRadiance ? "RENDERING_MULTIPLE_SCATTERING_RADIANCE" : "RENDERING_MULTIPLE_SCATTERING_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{}).replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "multiple scattering rendering shader program",
@@ -209,8 +209,8 @@ void saveMultipleScatteringRenderingShader(const unsigned texIndex)
     {
         if(filename==viewDirFuncFileName) continue;
 
-        const auto filePath = saveResultAsRadiance ? QString("%1/shaders/multiple-scattering/%2/%3").arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename)
-                                                   : QString("%1/shaders/multiple-scattering/%2").arg(atmo.textureOutputDir.c_str()).arg(filename);
+        const auto filePath = opts.saveResultAsRadiance ? QString("%1/shaders/multiple-scattering/%2/%3").arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename)
+                                                        : QString("%1/shaders/multiple-scattering/%2").arg(atmo.textureOutputDir.c_str()).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -472,7 +472,7 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
 
     render3DTexLayers(*program, "Computing scattering density layers for radiation from the ground");
 
-    if(dbgSaveScatDensityOrder2FromGround)
+    if(opts.dbgSaveScatDensityOrder2FromGround)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
                     "order 2 scattering density from ground texture",
@@ -634,7 +634,7 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
     // Now it's time to do this by only holding the accumulator and delta scattering texture in VRAM.
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBlendFunc(GL_ONE, GL_ONE);
-    if(scatteringOrder>2 || (texIndex>0 && !saveResultAsRadiance))
+    if(scatteringOrder>2 || (texIndex>0 && !opts.saveResultAsRadiance))
         gl.glEnable(GL_BLEND);
     else
         gl.glDisable(GL_BLEND);
@@ -646,7 +646,7 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
                                             "scattering texture copy-blend shader program",
                                             UseGeomShader{});
     program->bind();
-    if(!saveResultAsRadiance)
+    if(!opts.saveResultAsRadiance)
         program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex)));
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
     render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
@@ -654,18 +654,18 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 
-    if(dbgSaveAccumScattering)
+    if(opts.dbgSaveAccumScattering)
     {
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
                     "multiple scattering accumulator texture",
                     atmo.textureOutputDir+"/multiple-scattering-to-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
                     {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
     }
-    if(scatteringOrder==atmo.scatteringOrdersToCompute && (texIndex+1==atmo.allWavelengths.size() || saveResultAsRadiance))
+    if(scatteringOrder==atmo.scatteringOrdersToCompute && (texIndex+1==atmo.allWavelengths.size() || opts.saveResultAsRadiance))
     {
         mergeSmoothSingleScatteringTexture();
 
-        const auto filename = saveResultAsRadiance ?
+        const auto filename = opts.saveResultAsRadiance ?
             atmo.textureOutputDir+"/multiple-scattering-wlset"+std::to_string(texIndex)+".f32" :
             atmo.textureOutputDir+"/multiple-scattering-xyzw.f32";
         saveTexture(GL_TEXTURE_3D,textures[TEX_MULTIPLE_SCATTERING],
@@ -693,7 +693,7 @@ void computeMultipleScatteringFromDensity(const unsigned scatteringOrder, const 
 
         render3DTexLayers(*program, "Computing multiple scattering layers");
 
-        if(dbgSaveDeltaScattering)
+        if(opts.dbgSaveDeltaScattering)
         {
             saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING],
                         "delta scattering texture",
@@ -740,7 +740,7 @@ int main(int argc, char** argv)
     {
         handleCmdLine();
 
-        if(saveResultAsRadiance)
+        if(opts.saveResultAsRadiance)
             for(auto& scatterer : atmo.scatterers)
                 scatterer.phaseFunctionType=PhaseFunctionType::General;
 
@@ -784,7 +784,7 @@ int main(int argc, char** argv)
             createDirs(atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
         }
         createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/");
-        if(saveResultAsRadiance)
+        if(opts.saveResultAsRadiance)
             for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
                 createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/"+std::to_string(texIndex));
 
@@ -798,7 +798,7 @@ int main(int argc, char** argv)
                 throw MustQuit{};
             }
             QTextStream out(&file);
-            if(saveResultAsRadiance)
+            if(opts.saveResultAsRadiance)
                 out << AtmosphereParameters::ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE << "\n";
             out << atmo.descriptionFileText;
             out.flush();
@@ -882,10 +882,10 @@ int main(int argc, char** argv)
             }
 
             computeMultipleScattering(texIndex);
-            if(saveResultAsRadiance)
+            if(opts.saveResultAsRadiance)
                 saveMultipleScatteringRenderingShader(texIndex);
         }
-        if(!saveResultAsRadiance)
+        if(!opts.saveResultAsRadiance)
             saveMultipleScatteringRenderingShader(-1);
 
         const auto timeEnd=std::chrono::steady_clock::now();

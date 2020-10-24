@@ -205,19 +205,19 @@ void handleCmdLine()
     if(parser.isSet(textureOutputDirOpt))
         atmo.textureOutputDir=parser.value(textureOutputDirOpt).toStdString();
     if(parser.isSet(dbgNoSaveTexturesOpt))
-        dbgNoSaveTextures=true;
+        opts.dbgNoSaveTextures=true;
     if(parser.isSet(saveResultAsRadianceOpt))
-        saveResultAsRadiance=true;
+        opts.saveResultAsRadiance=true;
     if(parser.isSet(dbgSaveGroundIrradianceOpt))
-        dbgSaveGroundIrradiance=true;
+        opts.dbgSaveGroundIrradiance=true;
     if(parser.isSet(dbgSaveScatDensityOrder2FromGroundOpt))
-        dbgSaveScatDensityOrder2FromGround=true;
+        opts.dbgSaveScatDensityOrder2FromGround=true;
     if(parser.isSet(dbgSaveScatDensityOpt))
-        dbgSaveScatDensity=true;
+        opts.dbgSaveScatDensity=true;
     if(parser.isSet(dbgSaveDeltaScatteringOpt))
-        dbgSaveDeltaScattering=true;
+        opts.dbgSaveDeltaScattering=true;
     if(parser.isSet(dbgSaveAccumScatteringOpt))
-        dbgSaveAccumScattering=true;
+        opts.dbgSaveAccumScattering=true;
 
     const auto posArgs=parser.positionalArguments();
     if(posArgs.size()>1)
