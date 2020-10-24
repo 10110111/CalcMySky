@@ -851,7 +851,7 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
 
             auto& tex = needBlending ? *textures.front() : *textures[wlSetIndex];
             gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseSingleScatteringPrecomputationFBO_);
-            gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,tex.textureId(),0);
+            gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,tex.textureId(),0);
             checkFramebufferStatus(gl, "Eclipsed single scattering precomputation FBO");
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -1265,7 +1265,7 @@ void AtmosphereRenderer::resizeEvent(const int width, const int height)
     mainFBOTexture_.bind();
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,mainFBO_);
-    gl.glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,mainFBOTexture_.textureId(),0);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,mainFBOTexture_.textureId(),0);
     checkFramebufferStatus(gl, "Atmosphere renderer FBO");
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 
