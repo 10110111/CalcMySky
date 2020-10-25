@@ -14,9 +14,8 @@
 #include "timing.hpp"
 #include "util.hpp"
 
-extern QOpenGLFunctions_3_3_Core gl;
-
-static glm::vec4 sumTexels(const GLuint textureToRead, const double texW, const double texH, const GLenum unusedTextureUnit)
+static glm::vec4 sumTexels(QOpenGLFunctions_3_3_Core& gl, const GLuint textureToRead,
+                           const double texW, const double texH, const GLenum unusedTextureUnit)
 {
     gl.glActiveTexture(unusedTextureUnit);
     gl.glBindTexture(GL_TEXTURE_2D, textureToRead);
@@ -121,12 +120,13 @@ std::pair<float,bool> EclipsedDoubleScatteringPrecomputer::eclipseTexCoordsToTex
 }
 
 EclipsedDoubleScatteringPrecomputer::
-    EclipsedDoubleScatteringPrecomputer(QOpenGLShaderProgram& program,
+    EclipsedDoubleScatteringPrecomputer(QOpenGLShaderProgram& program, QOpenGLFunctions_3_3_Core& gl,
                                         const GLuint intermediateTextureName, const GLuint intermediateTextureTexUnitNum,
                                         AtmosphereParameters const& atmo,
                                         const unsigned texSizeByViewAzimuth, const unsigned texSizeByViewElevation,
                                         const unsigned texSizeBySZA, const unsigned texSizeByAltitude)
     : program(program)
+    , gl(gl)
     , atmo(atmo)
     , intermediateTextureName(intermediateTextureName)
     , intermediateTextureTexUnitNum(intermediateTextureTexUnitNum)
@@ -164,7 +164,8 @@ EclipsedDoubleScatteringPrecomputer::~EclipsedDoubleScatteringPrecomputer()
 }
 
 void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const unsigned szaIndex,
-                                                  const double cameraAltitude, const double sunZenithAngle)
+                                                  const double cameraAltitude, const double sunZenithAngle,
+                                                  const double moonZenithAngle, const double moonAzimuthRelativeToSun)
 {
     using namespace glm;
     using std::sin;
@@ -178,8 +179,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
     const auto nElevationPairsToSample=atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample;
 
     const dvec3 sunDir(sin(sunZenithAngle), 0, cos(sunZenithAngle));
-    const dvec3 moonDir=sunDir; // we only consider the total maximal eclipses here
-    const auto moonZenithAngle=sunZenithAngle;
+    const dvec3 moonDir = dmat3(rotate(moonAzimuthRelativeToSun,dvec3(0,0,1)))*dvec3(sin(moonZenithAngle), 0, cos(moonZenithAngle));
     const double cameraMoonDistance=[cameraAltitude,moonZenithAngle, this]{
         const auto hpR=cameraAltitude+atmo.earthRadius;
         const auto moonElevation=M_PI/2-moonZenithAngle;
@@ -224,7 +224,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
             // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-            const auto integral=sumTexels(intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
+            const auto integral=sumTexels(gl, intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
                 samplesAboveHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, log(integral[i]));
         }
@@ -236,7 +236,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
             // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-            const auto integral=sumTexels(intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
+            const auto integral=sumTexels(gl, intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
                 samplesBelowHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, log(integral[i]));
         }

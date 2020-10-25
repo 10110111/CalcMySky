@@ -811,7 +811,7 @@ std::unique_ptr<QOpenGLShaderProgram> saveEclipsedDoubleScatteringComputationSha
     {
         if(filename==viewDirFuncFileName) continue;
 
-        const auto filePath = QString("%1/shaders/double-scattering-eclipsed/on-the-fly/%2/%3").arg(atmo.textureOutputDir.c_str())
+        const auto filePath = QString("%1/shaders/double-scattering-eclipsed/precomputation/%2/%3").arg(atmo.textureOutputDir.c_str())
                                     .arg(texIndex).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
@@ -856,7 +856,7 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
     int unusedTextureUnitNum=0;
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,unusedTextureUnitNum++,"transmittanceTexture");
 
-    EclipsedDoubleScatteringPrecomputer precomputer(*program,
+    EclipsedDoubleScatteringPrecomputer precomputer(*program, gl,
                                                     textures[TEX_ECLIPSED_DOUBLE_SCATTERING], unusedTextureUnitNum,
                                                     atmo, texSizeByViewAzimuth, texSizeByViewElevation, texSizeBySZA, texSizeByAltitude);
 
@@ -877,7 +877,7 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
             // To avoid too many zeros that would make log interpolation problematic, we clamp the bottom value at 1 m. The same at the top.
             const float cameraAltitude=clamp(sqrt(sqr(distToHorizon)+sqr(atmo.earthRadius))-atmo.earthRadius, 1.f, atmo.atmosphereHeight-1);
 
-            precomputer.compute(altIndex, szaIndex, cameraAltitude, sunZenithAngle);
+            precomputer.compute(altIndex, szaIndex, cameraAltitude, sunZenithAngle, sunZenithAngle, 0);
 
             // Clear previous status and reset cursor position
             const auto statusWidth=ss.tellp();
@@ -967,7 +967,7 @@ int main(int argc, char** argv)
         {
             createDirs(atmo.textureOutputDir+"/shaders/zero-order-scattering/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputed/"+std::to_string(texIndex));
-            createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/on-the-fly/"+std::to_string(texIndex));
+            createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputation/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
         }
         createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/");

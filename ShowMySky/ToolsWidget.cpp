@@ -90,6 +90,7 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     multipleScatteringEnabled_  = addCheckBox(layout, this, text_drawMultipleScattering, true);
     textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
+    onTheFlyPrecompDoubleScatteringEnabled_=addCheckBox(layout, this, tr("Precompute double(-only) scattering on the fly"), true);
 
     usingEclipseShader_=addCheckBox(layout, this, tr("Use e&clipse-mode shaders"), false);
     connect(usingEclipseShader_, &QCheckBox::stateChanged, this, [this](const int state)

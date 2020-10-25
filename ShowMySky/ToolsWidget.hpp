@@ -28,6 +28,7 @@ class ToolsWidget : public QDockWidget
     Manipulator* moonAzimuth_=nullptr;
     Manipulator* zoomFactor_=nullptr;
     QCheckBox* onTheFlySingleScatteringEnabled_=nullptr;
+    QCheckBox* onTheFlyPrecompDoubleScatteringEnabled_=nullptr;
     QCheckBox* zeroOrderScatteringEnabled_=nullptr;
     QCheckBox* singleScatteringEnabled_=nullptr;
     QCheckBox* multipleScatteringEnabled_=nullptr;
@@ -51,6 +52,7 @@ public:
     double moonZenithAngle() const { return degree*(90-moonElevation_->value()); }
     float zoomFactor() const { return zoomFactor_->value(); }
     bool onTheFlySingleScatteringEnabled() const { return onTheFlySingleScatteringEnabled_->isChecked(); }
+    bool onTheFlyPrecompDoubleScatteringEnabled() const { return onTheFlyPrecompDoubleScatteringEnabled_->isChecked(); }
     bool zeroOrderScatteringEnabled() const { return zeroOrderScatteringEnabled_->isChecked(); }
     bool singleScatteringEnabled() const { return singleScatteringEnabled_->isChecked(); }
     bool multipleScatteringEnabled() const { return multipleScatteringEnabled_->isChecked(); }

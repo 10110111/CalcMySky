@@ -84,6 +84,7 @@ private:
 
     GLuint vao_=0, vbo_=0, mainFBO_=0, viewDirectionFBO_=0;
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;
+    GLuint eclipseDoubleScatteringPrecomputationFBO_=0;
     // Lower and upper altitude slices from the 4D texture
     std::vector<TexturePtr> eclipsedDoubleScatteringTexturesLower_, eclipsedDoubleScatteringTexturesUpper_;
     std::vector<TexturePtr> multipleScatteringTextures_;
@@ -94,6 +95,8 @@ private:
     // Indexed as singleScatteringTextures_[scattererName][wavelengthSetIndex]
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures_;
     std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures_;
+    TexturePtr eclipsedDoubleScatteringPrecomputationScratchTexture_;
+    std::vector<TexturePtr> eclipsedDoubleScatteringPrecomputationTargetTextures_;
     QOpenGLTexture bayerPatternTexture_;
     QOpenGLTexture mainFBOTexture_;
     QSize viewportSize_;
@@ -108,7 +111,8 @@ private:
     using ScatteringProgramsMap=std::map<ScattererName,std::vector<ShaderProgPtr>>;
     std::vector<std::unique_ptr<ScatteringProgramsMap>> singleScatteringPrograms_;
     std::vector<std::unique_ptr<ScatteringProgramsMap>> eclipsedSingleScatteringPrograms_;
-    std::vector<ShaderProgPtr> eclipsedDoubleScatteringPrograms_;
+    std::vector<ShaderProgPtr> eclipsedDoubleScatteringPrecomputedPrograms_;
+    std::vector<ShaderProgPtr> eclipsedDoubleScatteringPrecomputationPrograms_;
     // Indexed as eclipsedSingleScatteringPrecomputationPrograms_[scattererName][wavelengthSetIndex]
     std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms_;
     ShaderProgPtr luminanceToScreenRGB_;
@@ -149,6 +153,7 @@ private:
     void updateEclipsedAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);
 
     void precomputeEclipsedSingleScattering();
+    void precomputeEclipsedDoubleScattering();
     void renderZeroOrderScattering();
     void renderSingleScattering();
     void renderMultipleScattering();

@@ -11,6 +11,7 @@
 class EclipsedDoubleScatteringPrecomputer
 {
     QOpenGLShaderProgram& program;
+    QOpenGLFunctions_3_3_Core& gl;
     AtmosphereParameters const& atmo;
     const GLuint intermediateTextureName;
     const unsigned intermediateTextureTexUnitNum;
@@ -46,13 +47,14 @@ public:
      *   * Transmittance texture uniform is set for program
      *   * VAO for a quad is bound
      */
-    EclipsedDoubleScatteringPrecomputer(QOpenGLShaderProgram& program,
+    EclipsedDoubleScatteringPrecomputer(QOpenGLShaderProgram& program, QOpenGLFunctions_3_3_Core& gl,
                                         GLuint intermediateTextureName, GLuint intermediateTextureTexUnitNum,
                                         AtmosphereParameters const& atmo,
                                         unsigned texSizeByViewAzimuth, unsigned texSizeByViewElevation,
                                         unsigned texSizeBySZA, unsigned texSizeByAltitude);
     ~EclipsedDoubleScatteringPrecomputer();
-    void compute(unsigned altIndex, unsigned szaIndex, double cameraAltitude, double sunZenithAngle);
+    void compute(unsigned altIndex, unsigned szaIndex, double cameraAltitude, double sunZenithAngle,
+                 double moonZenithAngle, double moonAzimuthRelativeToSun);
     std::vector<glm::vec4> const& texture() const { return texture_; }
 };
 
