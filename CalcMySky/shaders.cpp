@@ -36,7 +36,7 @@ const vec2 irradianceTextureSize=)" + toString(glm::vec2(atmo.irradianceTexW, at
 const vec2 transmittanceTextureSize=)" + toString(glm::vec2(atmo.transmittanceTexW,atmo.transmittanceTexH)) + R"(;
 const vec2 eclipsedSingleScatteringTextureSize=)" + toString(glm::vec2(atmo.eclipsedSingleScatteringTextureSize)) +R"(;
 const int radialIntegrationPoints=)" + toString(atmo.radialIntegrationPoints) + R"(;
-const int angularIntegrationPointsPerHalfRevolution=)" + toString(atmo.angularIntegrationPointsPerHalfRevolution) + R"(;
+const int angularIntegrationPoints=)" + toString(atmo.angularIntegrationPoints) + R"(;
 const int numTransmittanceIntegrationPoints=)" + toString(atmo.numTransmittanceIntegrationPoints) + R"(;
 )";
     for(auto const& scatterer : atmo.scatterers)

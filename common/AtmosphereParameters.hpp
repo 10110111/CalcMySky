@@ -79,7 +79,7 @@ struct AtmosphereParameters
     unsigned scatteringOrdersToCompute;
     GLint numTransmittanceIntegrationPoints;
     GLint radialIntegrationPoints;
-    GLint angularIntegrationPointsPerHalfRevolution;
+    GLint angularIntegrationPoints;
     GLfloat earthRadius;
     GLfloat atmosphereHeight;
     double earthSunDistance;

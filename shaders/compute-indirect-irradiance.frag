@@ -12,27 +12,28 @@ layout(location=1) out vec4 irradianceOutput;
 
 vec4 computeIndirectGroundIrradiance(const float cosSunZenithAngle, const float altitude, const int scatteringOrder)
 {
-    const float dAzimuth = PI/angularIntegrationPointsPerHalfRevolution;
-    const float dZenAng  = PI/angularIntegrationPointsPerHalfRevolution;
+    const float goldenRatio=1.6180339887499;
+    const float dSolidAngle = 4*PI/angularIntegrationPoints;
     const vec3 sunDir = vec3(safeSqrt(1-sqr(cosSunZenithAngle)), 0, cosSunZenithAngle);
     vec4 radiance=vec4(0);
-    for(int z=0; z<angularIntegrationPointsPerHalfRevolution/2; ++z)
+    // Our Fibonacci grid spiral goes from zenith to nadir monotonically. Halfway to the nadir it's (almost) on the horizon.
+    // Beyond that it's under the horizon. We need only the upper part of the sphere, so we stop at k==N/2.
+    for(int k=0; k<angularIntegrationPoints/2; ++k)
     {
-        const float zenithAngle=(z+0.5)*dZenAng;
+        // NOTE: directionIndex must be a half-integer: the range is [0.5, angularIntegrationPoints-0.5]
+        // Explanation of the Fibonacci grid generation can be seen at https://stackoverflow.com/a/44164075/673852
+        const float directionIndex=k+0.5;
+        const float zenithAngle=acos(clamp(1-(2.*directionIndex)/angularIntegrationPoints, -1.,1.));
+        const float azimuth=directionIndex*(2*PI*goldenRatio);
         const float cosIncZenithAngle=cos(zenithAngle);
         const float sinIncZenithAngle=sin(zenithAngle);
         const float lambertianFactor=cosIncZenithAngle;
-        for(int a=0; a < 2*angularIntegrationPointsPerHalfRevolution; ++a)
-        {
-            const float azimuth = (a+0.5)*dAzimuth;
-            const vec3 incDir = vec3(cos(azimuth)*sinIncZenithAngle,
-                                     sin(azimuth)*sinIncZenithAngle,
-                                     cosIncZenithAngle);
-            const float dSolidAngle = dAzimuth*dZenAng*sinIncZenithAngle;
-            const float dotIncSun = dot(sunDir, incDir);
-            radiance += dSolidAngle * lambertianFactor * scattering(cosSunZenithAngle, incDir.z, dotIncSun,
+        const vec3 incDir = vec3(cos(azimuth)*sinIncZenithAngle,
+                                 sin(azimuth)*sinIncZenithAngle,
+                                 cosIncZenithAngle);
+        const float dotIncSun = dot(sunDir, incDir);
+        radiance += dSolidAngle * lambertianFactor * scattering(cosSunZenithAngle, incDir.z, dotIncSun,
                                                                     altitude, false, scatteringOrder);
-        }
     }
     return radiance;
 }

@@ -420,8 +420,8 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
             numTransmittanceIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="radial integration points")
             radialIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
-        else if(key=="angular integration points per half revolution")
-            angularIntegrationPointsPerHalfRevolution=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="angular integration points")
+            angularIntegrationPoints=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for sza")
             irradianceTexW=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="irradiance texture size for altitude")

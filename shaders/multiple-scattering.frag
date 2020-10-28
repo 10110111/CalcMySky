@@ -24,13 +24,20 @@ vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosView
     //       scattering peak like that of Mie phase functions.
     // TODO:At the very least, the phase functions should be lowpass-filtered to avoid aliasing, before
     //       sampling them here.
-    const float dAzimuth = PI/angularIntegrationPointsPerHalfRevolution;
-    const float dZenAng  = PI/angularIntegrationPointsPerHalfRevolution;
+
+    const float goldenRatio=1.6180339887499;
+    const float dSolidAngle = 4*PI/angularIntegrationPoints;
+
     vec4 scatteringDensity = vec4(0);
     // Iterate over all incident directions
-    for(int z=0; z<angularIntegrationPointsPerHalfRevolution; ++z)
+    // NOTE: directionIndex must be a half-integer: the range is [0.5, angularIntegrationPoints-0.5]
+    // Explanation of the Fibonacci grid generation can be seen at https://stackoverflow.com/a/44164075/673852
+    for(int k=0; k<angularIntegrationPoints; ++k)
     {
-        const float zenithAngle=(z+0.5)*dZenAng;
+        const float directionIndex=k+0.5;
+        const float zenithAngle=acos(clamp(1-(2.*directionIndex)/angularIntegrationPoints, -1.,1.));
+        const float azimuth=directionIndex*(2*PI*goldenRatio);
+
         const float cosIncZenithAngle=cos(zenithAngle);
         const float sinIncZenithAngle=sin(zenithAngle);
         const bool incRayIntersectsGround=rayIntersectsGround(cosIncZenithAngle, altitude);
@@ -44,40 +51,35 @@ vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosView
                                                   incRayIntersectsGround);
         }
 
-        for(int a=0; a < 2*angularIntegrationPointsPerHalfRevolution; ++a)
+        // Direction to the source of incident ray
+        const vec3 incDir = vec3(cos(azimuth)*sinIncZenithAngle,
+                                 sin(azimuth)*sinIncZenithAngle,
+                                 cosIncZenithAngle);
+
+        vec4 incidentRadiance = vec4(0);
+        // Only for scatteringOrder==2 we consider radiation from ground in a separate run
+        if(radiationIsFromGroundOnly || scatteringOrder>2)
         {
-            const float azimuth = (a+0.5)*dAzimuth;
-            // Direction to the source of incident ray
-            const vec3 incDir = vec3(cos(azimuth)*sinIncZenithAngle,
-                                     sin(azimuth)*sinIncZenithAngle,
-                                     cosIncZenithAngle);
-            const float dSolidAngle = dAzimuth*dZenAng*sinIncZenithAngle;
+            // XXX: keep in sync with the same code in zeroth order rendering shader, but don't
+            //      forget about the difference in the usage of viewDir vs incDir.
 
-            vec4 incidentRadiance = vec4(0);
-            // Only for scatteringOrder==2 we consider radiation from ground in a separate run
-            if(radiationIsFromGroundOnly || scatteringOrder>2)
-            {
-                // XXX: keep in sync with the same code in zeroth order rendering shader, but don't
-                //      forget about the difference in the usage of viewDir vs incDir.
-
-                // Normal to ground at the point where incident light originates on the ground, with current incDir
-                const vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+incDir*distToGround);
-                const vec4 groundIrradiance = irradiance(dot(groundNormal, sunDir), 0);
-                // Radiation scattered by the ground
-                const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-                incidentRadiance += transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
-            }
-            if(!radiationIsFromGroundOnly)
-            {
-                const float dotIncSun = dot(incDir,sunDir);
-                // Radiation scattered by the atmosphere
-                incidentRadiance += scattering(cosSunZenithAngle, incDir.z, dotIncSun, altitude,
-                                              incRayIntersectsGround, scatteringOrder-1);
-            }
-
-            const float dotViewInc = dot(viewDir, incDir);
-            scatteringDensity += dSolidAngle * incidentRadiance * totalScatteringCoefficient(altitude, dotViewInc);
+            // Normal to ground at the point where incident light originates on the ground, with current incDir
+            const vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+incDir*distToGround);
+            const vec4 groundIrradiance = irradiance(dot(groundNormal, sunDir), 0);
+            // Radiation scattered by the ground
+            const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
+            incidentRadiance += transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
         }
+        if(!radiationIsFromGroundOnly)
+        {
+            const float dotIncSun = dot(incDir,sunDir);
+            // Radiation scattered by the atmosphere
+            incidentRadiance += scattering(cosSunZenithAngle, incDir.z, dotIncSun, altitude,
+                                          incRayIntersectsGround, scatteringOrder-1);
+        }
+
+        const float dotViewInc = dot(viewDir, incDir);
+        scatteringDensity += dSolidAngle * incidentRadiance * totalScatteringCoefficient(altitude, dotViewInc);
     }
     return scatteringDensity;
 }
