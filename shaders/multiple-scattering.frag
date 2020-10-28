@@ -25,21 +25,16 @@ vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosView
     // TODO:At the very least, the phase functions should be lowpass-filtered to avoid aliasing, before
     //       sampling them here.
 
-    const float goldenRatio=1.6180339887499;
-    const float dSolidAngle = 4*PI/angularIntegrationPoints;
+    const float dSolidAngle = sphereIntegrationSolidAngleDifferential(angularIntegrationPoints);
 
     vec4 scatteringDensity = vec4(0);
     // Iterate over all incident directions
-    // NOTE: directionIndex must be a half-integer: the range is [0.5, angularIntegrationPoints-0.5]
-    // Explanation of the Fibonacci grid generation can be seen at https://stackoverflow.com/a/44164075/673852
     for(int k=0; k<angularIntegrationPoints; ++k)
     {
-        const float directionIndex=k+0.5;
-        const float zenithAngle=acos(clamp(1-(2.*directionIndex)/angularIntegrationPoints, -1.,1.));
-        const float azimuth=directionIndex*(2*PI*goldenRatio);
+        // Direction to the source of incident ray
+        const vec3 incDir = sphereIntegrationSampleDir(k, angularIntegrationPoints);
+        const float cosIncZenithAngle=incDir.z;
 
-        const float cosIncZenithAngle=cos(zenithAngle);
-        const float sinIncZenithAngle=sin(zenithAngle);
         const bool incRayIntersectsGround=rayIntersectsGround(cosIncZenithAngle, altitude);
 
         float distToGround=0;
@@ -50,11 +45,6 @@ vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosView
             transmittanceToGround = transmittance(cosIncZenithAngle, altitude, distToGround,
                                                   incRayIntersectsGround);
         }
-
-        // Direction to the source of incident ray
-        const vec3 incDir = vec3(cos(azimuth)*sinIncZenithAngle,
-                                 sin(azimuth)*sinIncZenithAngle,
-                                 cosIncZenithAngle);
 
         vec4 incidentRadiance = vec4(0);
         // Only for scatteringOrder==2 we consider radiation from ground in a separate run

@@ -180,3 +180,20 @@ float sunVisibilityDueToMoon(const vec3 camera, const vec3 sunDir, const vec3 mo
 {
     return visibleSolidAngleOfSun(camera,sunDir,moonPos)/(PI*sqr(sunAngularRadius));
 }
+
+float sphereIntegrationSolidAngleDifferential(const int pointCountOnSphere)
+{
+    return 4*PI/angularIntegrationPoints;
+}
+vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere)
+{
+    const float goldenRatio=1.6180339887499;
+    // The range of n is 0.5, 1.5, ..., pointCountOnSphere-0.5
+    const float n=index+0.5;
+    // Explanation of the Fibonacci grid generation can be seen at https://stackoverflow.com/a/44164075/673852
+    const float zenithAngle=acos(clamp(1-(2.*n)/pointCountOnSphere, -1.,1.));
+    const float azimuth=n*(2*PI*goldenRatio);
+    return vec3(cos(azimuth)*sin(zenithAngle),
+                sin(azimuth)*sin(zenithAngle),
+                cos(zenithAngle));
+}

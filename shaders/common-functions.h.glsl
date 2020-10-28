@@ -15,6 +15,8 @@ float pointAltitude(vec3 point);
 vec4 rayleighPhaseFunction(float dotViewSun);
 float sunVisibility(const float cosSunZenithAngle, float altitude);
 float sunVisibilityDueToMoon(const vec3 camera, const vec3 sunDir, const vec3 moonDir);
+vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere);
+float sphereIntegrationSolidAngleDifferential(const int pointCountOnSphere);
 
 bool debugDataPresent();
 vec4 debugData();
