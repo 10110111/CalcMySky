@@ -13,12 +13,14 @@
 static auto curveColor() { return QColor(0x3f,0x3d,0x99); }
 static auto textColor() { return QColor(255,255,255); }
 // These tick metrics are in units of font size (height for x ticks, 'x' width for y ticks)
-constexpr double xTickSpaceUnderLabel=0.5;
-constexpr double xTickSpaceAboveLabel=0.1;
+constexpr double xTickSpaceUnderLabel=0.3;
+constexpr double xTickSpaceAboveLabel=0.3;
 constexpr double xTickLineLength=0.5;
 constexpr double yTickSpaceLeft=1.0;
-constexpr double yTickSpaceRight=1.0;
+constexpr double yTickSpaceRight=0.7;
 constexpr double yTickLineLength=1;
+constexpr double yAxisSpaceLeftOfLabel=0.5;
+constexpr double yAxisSpaceAboveLabel=0.5;
 constexpr double topMargin=2;
 constexpr double rightMargin=3;
 
@@ -107,16 +109,29 @@ void RadiancePlot::setData(const float* wavelengths, const float* radiances, con
 
 QMarginsF RadiancePlot::calcPlotMargins(QPainter const& p, std::vector<std::pair<float,QString>> const& ticksY) const
 {
-    const QFontMetricsF fm(p.font());
+    auto td=makeQTextDoc();
     double maxYTickLabelWidth=0;
     for(const auto& [_,tick] : ticksY)
-        if(const auto w=fm.width(tick); maxYTickLabelWidth<w)
+    {
+        td->setHtml(tick);
+        if(const auto w=td->size().width(); maxYTickLabelWidth<w)
             maxYTickLabelWidth=w;
+    }
+    const QFontMetricsF fm(p.font());
     const auto left   = (yTickSpaceLeft+yTickSpaceRight+yTickLineLength) * fm.width('x')+maxYTickLabelWidth;
     const auto bottom = fm.height()*(xTickSpaceUnderLabel+1+xTickSpaceAboveLabel+xTickLineLength);
     const auto top    = fm.height()*topMargin;
     const auto right  = fm.width('x')*rightMargin;
     return {left,top,right,bottom};
+}
+
+std::unique_ptr<QTextDocument> RadiancePlot::makeQTextDoc() const
+{
+    auto td=std::make_unique<QTextDocument>();
+    td->setDefaultFont(font());
+    td->setDocumentMargin(0);
+    td->setDefaultStyleSheet(QString("body{color: %1;}").arg(textColor().name()));
+    return td;
 }
 
 void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> const& ticksX,
@@ -129,39 +144,56 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
     p.resetTransform();
     const QFontMetricsF fm(p.font());
     const auto charWidth=fm.width('x');
+    const auto td=makeQTextDoc();
     // Y ticks
     {
         const auto axisPos=m.dx()+m.m11()*xMin;
         for(const auto& [y, label] : ticksY)
         {
-            p.drawText(QPointF(charWidth*yTickSpaceLeft, m.dy()+m.m22()*y+fm.height()/2), label);
-            p.drawLine(QPointF(axisPos-yTickLineLength*charWidth, m.dy()+m.m22()*y),
-                       QPointF(axisPos, m.dy()+m.m22()*y));
+            const auto tickY = m.dy()+m.m22()*y;
+
+            td->setHtml(label);
+            // Right-justifying the label
+            const auto labelX = axisPos - (yTickLineLength+yTickSpaceRight)*charWidth - td->size().width();
+            p.save();
+             p.translate(labelX, tickY - td->size().height()/2);
+             td->drawContents(&p);
+            p.restore();
+
+            p.drawLine(QPointF(axisPos-yTickLineLength*charWidth, tickY),
+                       QPointF(axisPos, tickY));
         }
         p.drawLine(QPointF(axisPos, m.dy()+m.m22()*yMin), QPointF(axisPos, m.dy()+m.m22()*yMax));
-        QTextDocument td;
-        td.setDefaultFont(p.font());
-        td.setDefaultStyleSheet(QString("body{color: %1;}").arg(textColor().name()));
-        td.setHtml(tr("<body>radiance,\nW&middot;m<sup>-2</sup>&#8239;sr<sup>-1</sup>&#8239;nm<sup>-1</sup>, at azimuth %1&deg;, elevation %2&deg;</body>")
+        td->setHtml(tr("<body>radiance,\nW&middot;m<sup>-2</sup>&#8239;sr<sup>-1</sup>&#8239;nm<sup>-1</sup>,"
+                       " at azimuth %1&deg;, elevation %2&deg;</body>")
                     .arg(azimuth).arg(elevation));
         p.save();
-        td.drawContents(&p);
+         p.translate(yAxisSpaceLeftOfLabel*charWidth, yAxisSpaceAboveLabel*fm.height());
+         td->drawContents(&p);
         p.restore();
     }
     // X ticks
     {
         const auto axisPos=m.dy();
-        const auto tickPosY=height()-1-fm.height()*xTickSpaceUnderLabel;
+        const auto tickBottomY = axisPos + xTickLineLength*fm.height();
+        const auto labelPosY = tickBottomY + fm.height()*xTickSpaceAboveLabel;
         for(const auto& [x, label] : ticksX)
         {
-            p.drawText(QPointF(m.dx()+m.m11()*x-fm.width(label)/2, tickPosY), label);
-            p.drawLine(QPointF(m.dx()+m.m11()*x, axisPos+xTickLineLength*fm.height()),
-                       QPointF(m.dx()+m.m11()*x, axisPos));
+            const auto tickX = m.dx()+m.m11()*x;
+            td->setHtml(label);
+            p.save();
+             p.translate(tickX - td->size().width()/2, labelPosY);
+             td->drawContents(&p);
+            p.restore();
+            p.drawLine(QPointF(tickX, tickBottomY), QPointF(tickX, axisPos));
         }
         p.drawLine(QPointF(m.dx()+m.m11()*xMin, axisPos), QPointF(m.dx()+m.m11()*xMax, axisPos));
-        const auto xAxisLabel=tr(u8"\u03bb, nm");
+        td->setHtml(tr(u8"<body>\u03bb, nm</body>"));
         // FIXME: this choice of X coordinate can overlap with the rightmost tick label
-        p.drawText(QPointF(m.dx()+m.m11()*xMax-fm.width(xAxisLabel)/2, tickPosY), xAxisLabel);
+        p.save();
+         p.translate(m.dx()+m.m11()*xMax - td->size().width()/2, labelPosY);
+         td->drawContents(&p);
+        p.restore();
     }
     p.restore();
 }
@@ -196,18 +228,68 @@ static std::vector<float> generateTicks(const float min, const float max)
     return ticks;
 }
 
-static QString formatTick(const float value)
-{
-    return QString::number(value, 'g', 5);
-}
-
 std::vector<std::pair<float,QString>> RadiancePlot::genTicks(std::vector<float> const& points, const float min) const
 {
     std::vector<std::pair<float,QString>> output;
     const auto minmax=std::minmax_element(points.begin(), points.end());
     const auto tickValues=generateTicks(std::isnan(min) ? *minmax.first : min, *minmax.second);
     for(const auto v : tickValues)
-        output.push_back({v,formatTick(v)});
+    {
+        const auto num = std::abs(v);
+
+        auto formatted=QString::number(num, 'g', 5);
+        // Special case: avoid 0.000xyz in favor of x.yze-4, and 0.000x in favor of xe-4
+        formatted.replace(QRegularExpression("^0\\.000([0-9])([0-9]+)$"), "\\1.\\2e-4");
+        formatted.replace(QRegularExpression("^0\\.000([0-9])$"), "\\1e-4");
+
+        output.push_back({v,formatted});
+    }
+
+	{
+		// Make sequences like {2.5, 3, 3.5, 4} have consistent number of digits
+		bool haveOneDigit=false, haveTwoDigit=false;
+		for(const auto& [_, tick] : output)
+		{
+			if(tick.contains(QRegularExpression("^[0-9](?:e.*)?$")))
+				haveOneDigit=true;
+			if(tick.contains(QRegularExpression("^[0-9]\\.[0-9](?:e.*)?$")))
+				haveTwoDigit=true;
+		}
+		if(haveOneDigit && haveTwoDigit)
+		{
+			for(auto& [_, tick] : output)
+			{
+				if(!tick.contains(QRegularExpression("^[0-9](?:e.*)?$")))
+					continue;
+				tick.insert(1, ".0");
+			}
+		}
+	}
+	{
+		// Make the sequences like {0.02, 0.025, 0.03, 0.035} have consistent number of digits
+		int longestWithZeroHead=0;
+		for(const auto& [_, tick] : output)
+		{
+			if(tick.contains(QLatin1Char('e')))
+				continue;
+			if(tick.startsWith("0.") && longestWithZeroHead < tick.size())
+				longestWithZeroHead=tick.size();
+		}
+		for(auto& [_, tick] : output)
+		{
+			if(tick.contains(QLatin1Char('e')))
+				continue;
+			if(tick.startsWith("0.") && tick.size() < longestWithZeroHead)
+				tick.append(QLatin1Char('0'));
+		}
+	}
+
+    for(auto& [value, tick] : output)
+    {
+        tick.replace(QRegularExpression("^(-?[0-9](?:\\.[0-9]+)?)e+?(-?)0?([0-9]+)$"), "\\1&times;10<sup>\\2\\3</sup>");
+        tick = QString("<body>%1%2</body>").arg(value<0?"-":"", tick);
+    }
+
     return output;
 }
 
