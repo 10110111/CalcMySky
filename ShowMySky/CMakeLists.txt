@@ -13,6 +13,6 @@ add_executable(showmysky
                 ../common/Spectrum.cpp
                 ../common/util.cpp
                 ../config.h)
-target_link_libraries(showmysky Qt5::Core Qt5::Widgets Qt5::OpenGL)
+target_link_libraries(showmysky Qt5::Core Qt5::Widgets Qt5::OpenGL Qt5::Svg)
 
 install(TARGETS showmysky DESTINATION "${installBinDir}")

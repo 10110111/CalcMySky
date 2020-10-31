@@ -7,6 +7,7 @@
 #include <QFileDialog>
 #include <QTextStream>
 #include <QTextDocument>
+#include <QSvgGenerator>
 #include <QRegularExpression>
 #include "../common/cie-xyzw-functions.hpp"
 
@@ -296,7 +297,12 @@ std::vector<std::pair<float,QString>> RadiancePlot::genTicks(std::vector<float> 
 void RadiancePlot::paintEvent(QPaintEvent *event)
 {
     QPainter p(this);
-    p.fillRect(event->rect(),backgroundColor());
+    draw(p, event->rect());
+}
+
+void RadiancePlot::draw(QPainter& p, QRect const& updateRect)
+{
+    p.fillRect(updateRect,backgroundColor());
 
     if(wavelengths.empty())
     {
@@ -362,8 +368,20 @@ void RadiancePlot::saveSpectrum()
 {
     if(wavelengths.empty()) return;
 
-    const auto path=QFileDialog::getSaveFileName(this, tr("Save spectrum"), {}, tr("CSV tables (*.csv)"));
+    QString selectedFilter;
+    const auto csvFilter=tr("CSV tables (*.csv)");
+    const auto svgFilter=tr("SVG images (experimental) (*.svg)");
+    const auto path=QFileDialog::getSaveFileName(this, tr("Save spectrum"), {}, QString("%1;;%2").arg(csvFilter,svgFilter),
+                                                 &selectedFilter);
     if(path.isNull()) return;
+    if(selectedFilter==svgFilter)
+    {
+        QSvgGenerator svggen;
+        svggen.setFileName(path);
+        QPainter p(&svggen);
+        draw(p, rect());
+        return;
+    }
 
     QFile file(path);
     if(!file.open(QFile::WriteOnly))

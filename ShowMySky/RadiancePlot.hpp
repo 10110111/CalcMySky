@@ -26,6 +26,7 @@ private:
                   float xMin, float xMax, float yMin, float yMax) const;
     std::vector<std::pair<float,QString>> genTicks(std::vector<float> const& values, const float min=NAN) const;
     std::unique_ptr<QTextDocument> makeQTextDoc() const;
+    void draw(QPainter& p, QRect const& updateRect);
     void saveSpectrum();
 };
 
