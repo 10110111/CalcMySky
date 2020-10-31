@@ -5,7 +5,6 @@ foreach(testNum RANGE 1 4)
 endforeach()
 
 add_executable(test-Fourier-interpolation test-Fourier-interpolation.cpp)
-target_link_libraries(test-Spectrum Qt5::Core)
 foreach(testId "identity transformation" "integral upsampling" "fractional upsampling")
     add_test(NAME "\"Fourier interpolation,  odd-length input, ${testId}\"" COMMAND test-Fourier-interpolation ${testId} odd)
     add_test(NAME "\"Fourier interpolation, even-length input, ${testId}\"" COMMAND test-Fourier-interpolation ${testId} even)
