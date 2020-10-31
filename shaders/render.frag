@@ -81,7 +81,7 @@ void main()
         const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
         radiance=transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
     }
-    else if(dotViewSun>cos(sunAngularRadius) && dotViewMoon<cos(moonAngularRadius))
+    else if(dotViewSun>cos(sunAngularRadius))
     {
         radiance=transmittanceToAtmosphereBorder(viewDir.z, altitude)*solarRadiance();
     }
