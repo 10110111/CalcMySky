@@ -10,4 +10,7 @@ foreach(testId "identity transformation" "integral upsampling" "fractional upsam
     add_test(NAME "\"Fourier interpolation, even-length input, ${testId}\"" COMMAND test-Fourier-interpolation ${testId} even)
 endforeach()
 
+add_executable(test-Spline-interpolation test-Spline-interpolation.cpp)
+add_test(NAME "\"Spline interpolation\"" COMMAND test-Spline-interpolation)
+
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose)
