@@ -4,4 +4,11 @@ foreach(testNum RANGE 1 4)
     add_test(NAME "\"Spectrum test ${testNum}\"" COMMAND test-Spectrum ${testNum})
 endforeach()
 
+add_executable(test-Fourier-interpolation test-Fourier-interpolation.cpp)
+target_link_libraries(test-Spectrum Qt5::Core)
+foreach(testId "identity transformation" "integral upsampling" "fractional upsampling")
+    add_test(NAME "\"Fourier interpolation,  odd-length input, ${testId}\"" COMMAND test-Fourier-interpolation ${testId} odd)
+    add_test(NAME "\"Fourier interpolation, even-length input, ${testId}\"" COMMAND test-Fourier-interpolation ${testId} even)
+endforeach()
+
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose)
