@@ -332,7 +332,8 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
     return description;
 }
 
-AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
+AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, const AtmosphereParameters::SkipSpectra skipSpectrum,
+                                             QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
 {
     AtmosphereParameters::Absorber description(name, atmo);
 
@@ -363,9 +364,12 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, Q
         if(key=="number density")
             description.numberDensity=readGLSLFunctionBody(stream,filename,++lineNumber);
         else if(key=="cross section")
-            description.absorptionCrossSection=getSpectrum(atmo.allWavelengths,value,0,10,filename,lineNumber);
+        {
+            if(!skipSpectrum)
+                description.absorptionCrossSection=getSpectrum(atmo.allWavelengths,value,0,10,filename,lineNumber);
+        }
     }
-    if(!description.valid())
+    if(!description.valid(skipSpectrum))
     {
         std::cerr << "Description of absorber \"" << name << "\" is incomplete\n";
         throw MustQuit{};
@@ -376,7 +380,7 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, Q
 
 }
 
-void AtmosphereParameters::parse(QString const& atmoDescrFileName)
+void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpectra skipSpectra)
 {
     QFile atmoDescr(atmoDescrFileName);
     if(!atmoDescr.open(QIODevice::ReadOnly))
@@ -480,7 +484,10 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
         else if(key=="wavelengths")
             allWavelengths=getWavelengthRange(value,100,100'000,atmoDescrFileName,lineNumber);
         else if(key=="solar irradiance at toa")
-            solarIrradianceAtTOA=getSpectrum(allWavelengths,value,0,1e3,atmoDescrFileName,lineNumber);
+        {
+            if(!skipSpectra)
+                solarIrradianceAtTOA=getSpectrum(allWavelengths,value,0,1e3,atmoDescrFileName,lineNumber);
+        }
         else if(key.contains(scattererDescriptionKey))
         {
             const auto& name=scattererDescriptionKey.cap(1);
@@ -493,12 +500,13 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
             scatterers.emplace_back(parseScatterer(stream, name, allTexturesAreRadiance, atmoDescrFileName,++lineNumber));
         }
         else if(key.contains(absorberDescriptionKey))
-            absorbers.emplace_back(parseAbsorber(*this, stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
+            absorbers.emplace_back(parseAbsorber(*this, skipSpectra, stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
         else if(key=="scattering orders")
             scatteringOrdersToCompute=getQuantity(value,1,100, DimensionlessQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="ground albedo")
         {
-            groundAlbedo=getSpectrum(allWavelengths, value, 0, 1, atmoDescrFileName, lineNumber);
+            if(!skipSpectra)
+                groundAlbedo=getSpectrum(allWavelengths, value, 0, 1, atmoDescrFileName, lineNumber);
         }
         else
             std::cerr << "WARNING: Unknown key: " << key << "\n";
@@ -517,12 +525,12 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
         std::cerr << "Wavelengths aren't specified in atmosphere description\n";
         throw MustQuit{};
     }
-    if(solarIrradianceAtTOA.empty())
+    if(solarIrradianceAtTOA.empty() && !skipSpectra)
     {
         std::cerr << "Solar irradiance at TOA isn't specified in atmosphere description\n";
         throw MustQuit{};
     }
-    if(groundAlbedo.empty())
+    if(groundAlbedo.empty() && !skipSpectra)
     {
         std::cerr << "Warning: ground albedo was not specified, assuming 100% white.\n";
         groundAlbedo=std::vector<glm::vec4>(allWavelengths.size(), glm::vec4(1));

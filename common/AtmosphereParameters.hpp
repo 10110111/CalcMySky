@@ -9,6 +9,9 @@
 
 struct AtmosphereParameters
 {
+    // We don't copy external spectra into output directory, so the renderer needs to skip loading them
+    DEFINE_EXPLICIT_BOOL(SkipSpectra);
+
     class ParsingError : public Error
     {
         QString message;
@@ -55,10 +58,10 @@ struct AtmosphereParameters
             : name(name)
             , atmo(atmo)
         {}
-        bool valid() const
+        bool valid(const SkipSpectra spectrumSkipped) const
         {
             return !numberDensity.isEmpty() &&
-                   absorptionCrossSection.size()==atmo.allWavelengths.size() &&
+                   (spectrumSkipped || absorptionCrossSection.size()==atmo.allWavelengths.size()) &&
                    !name.isEmpty();
         }
         glm::vec4 crossSection(glm::vec4 const wavelengths) const
@@ -101,7 +104,7 @@ struct AtmosphereParameters
     static constexpr char NO_ECLIPSED_DOUBLE_SCATTERING_TEXTURES_DIRECTIVE[]="no eclipsed double scattering textures";
 
 
-    void parse(QString const& atmoDescrFileName);
+    void parse(QString const& atmoDescrFileName, SkipSpectra skipSpectra=SkipSpectra{false});
     // XXX: keep in sync with those in previewer and renderer
     auto scatTexWidth()  const { return GLsizei(scatteringTextureSize[0]); }
     auto scatTexHeight() const { return GLsizei(scatteringTextureSize[1]*scatteringTextureSize[2]); }

@@ -86,7 +86,7 @@ int main(int argc, char** argv)
         windowSize=app.primaryScreen()->size()/1.6;
         handleCmdLine();
         AtmosphereParameters params;
-        params.parse(pathToData + "/params.atmo");
+        params.parse(pathToData + "/params.atmo", AtmosphereParameters::SkipSpectra{true});
 
         const auto tools=new ToolsWidget(params.atmosphereHeight);
         const auto glWidget=new GLWidget(pathToData, params, tools);
