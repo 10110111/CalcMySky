@@ -24,10 +24,8 @@ install:
   - cmd: cmake --build . --target install
 
 before_build:
-  - cmd: cd C:/projects
-  - cmd: md build
-  - cmd: cd build
-  - cmd: cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="%QT_BASEDIR%/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=. ../CalcMySky
+  - cmd: cd C:/projects && mkdir build && mkdir install && cd build
+  - cmd: cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="%QT_BASEDIR%/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky
 
 build_script:
     - cmd: cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
@@ -41,7 +39,8 @@ for:
       - configuration: Release
   after_build:
     - cmd: cmake --build . --config %configuration% --target install
-    - cmd: 7z a CalcMySky.zip CalcMySky
+    - cmd: 7z a CalcMySky.zip ../install/CalcMySky
+    - cmd: 7z l CalcMySky.zip
     - cmd: appveyor PushArtifact CalcMySky.zip
 -
   matrix:
