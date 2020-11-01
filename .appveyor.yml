@@ -22,8 +22,14 @@ install:
   - ps: (new-object net.webclient).DownloadFile("https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.zip", 'C:/eigen-src.zip')
   - ps: expand-archive 'C:/eigen-src.zip' -destinationpath 'C:\'
 # Install Eigen into its final prefix
-  - cmd: cd C:\eigen-3.3.7 && mkdir build && cd build && cmake -G "%CMAKE_GENERATOR%" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=C:/eigen ..
-  - cmd: cmake --build . --target install
+  - cmd: cd C:\eigen-3.3.7
+# The following commented out command is toooo sloooow at the configuration stage. So we install the
+# headers manually, and also create a simple CMake config file that's sufficient for our needs.
+# Use this general command if you need to use newer Eigen version or if our config file ceases to be not sufficient:
+#  - cmd: mkdir build && cd build && cmake -G "%CMAKE_GENERATOR%" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=C:/eigen .. && cmake --build . --target install
+  - cmd: bash -c "mkdir -pv /c/eigen/{include/eigen3,share/eigen3/cmake}"
+  - cmd: bash -c "find Eigen unsupported/Eigen -not -name '*.txt' | tar cf - -T - | tar xf - -C /c/eigen/include/eigen3"
+  - cmd: bash -c "echo $'find_path(EIGEN3_INCLUDE_DIR Eigen/Core PATHS c:/eigen/include/eigen3)\nif(EIGEN3_INCLUDE_DIR)\nset(Eigen3_FOUND 1)\nelse()\nset(Eigen3_FOUND 0)\nendif()\n' > /c/eigen/share/eigen3/cmake/Eigen3Config.cmake"
 
 before_build:
   - cmd: cd C:/projects && mkdir build && mkdir install && cd build
