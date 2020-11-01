@@ -12,10 +12,16 @@ scattering texture size for altitude: 64
 eclipsed scattering texture size for relative azimuth: 32
 eclipsed scattering texture size for VZA: 128
 
+eclipsed double scattering texture size for relative azimuth: 16
+eclipsed double scattering texture size for VZA: 128
+eclipsed double scattering texture size for SZA: 16
+eclipsed double scattering number of azimuth pairs to sample: 2
+eclipsed double scattering number of elevation pairs to sample: 10
+
 transmittance integration points: 500
 radial integration points: 50
-angular integration points per half revolution: 16
-angular integration points per half revolution for eclipse: 16
+angular integration points: 512
+angular integration points for eclipse: 512
 scattering orders: 4
 
 Earth-Sun distance: 1.01208 AU # on 2017-08-21 at 12:12:12 UTC
