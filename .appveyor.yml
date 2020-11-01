@@ -11,6 +11,8 @@ configuration:
 #  - Debug
 
 install:
+# Make sure we get the bash that comes with git, not WSL bash
+  - ps: $env:Path = "C:\Program Files\Git\bin;$env:Path"
 # Get and extract GLM
   - ps: new-item -itemtype directory -path C:\glm | out-null
   - ps: (new-object net.webclient).DownloadFile("https://github.com/g-truc/glm/releases/download/0.9.9.7/glm-0.9.9.7.zip", 'C:/glm.zip')
