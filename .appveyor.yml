@@ -39,6 +39,7 @@ for:
       - configuration: Release
   after_build:
     - cmd: cmake --build . --config %configuration% --target install
+    - cmd: bash -c 'cp -rv ../CalcMySky/examples ../install/CalcMySky'
     - cmd: 7z a CalcMySky.zip ../install/CalcMySky
     - cmd: 7z l CalcMySky.zip
     - cmd: appveyor PushArtifact CalcMySky.zip
