@@ -987,6 +987,8 @@ int main(int argc, char** argv)
             QTextStream out(&file);
             if(opts.saveResultAsRadiance)
                 out << AtmosphereParameters::ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE << "\n";
+            if(opts.dbgNoEDSTextures)
+                out << AtmosphereParameters::NO_ECLIPSED_DOUBLE_SCATTERING_TEXTURES_DIRECTIVE << "\n";
             out << atmo.descriptionFileText;
             out.flush();
             file.close();

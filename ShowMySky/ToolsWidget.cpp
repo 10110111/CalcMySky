@@ -213,6 +213,12 @@ void ToolsWidget::updateParameters(AtmosphereParameters const& params)
                 { emit setScattererEnabled(name, state==Qt::Checked); });
         scatterers.push_back(checkbox);
     }
+
+    if(params.noEclipsedDoubleScatteringTextures)
+    {
+        onTheFlyPrecompDoubleScatteringEnabled_->setChecked(true);
+        onTheFlyPrecompDoubleScatteringEnabled_->setDisabled(true);
+    }
 }
 
 void ToolsWidget::onLoadProgress(QString const& currentActivity, const int stepsDone, const int stepsToDo)

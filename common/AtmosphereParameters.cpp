@@ -401,6 +401,11 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName)
             allTexturesAreRadiance=true;
             continue;
         }
+        if(codeAndComment[0]==NO_ECLIPSED_DOUBLE_SCATTERING_TEXTURES_DIRECTIVE)
+        {
+            noEclipsedDoubleScatteringTextures=true;
+            continue;
+        }
 
         const auto keyValue=codeAndComment[0].split(':');
         if(keyValue.size()!=2)

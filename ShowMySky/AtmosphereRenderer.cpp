@@ -451,35 +451,38 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
 
     eclipsedDoubleScatteringTexturesLower_.clear();
     eclipsedDoubleScatteringTexturesUpper_.clear();
-    for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+    if(!params_.noEclipsedDoubleScatteringTextures)
     {
-        if(countStepsOnly)
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
         {
-            ++totalLoadingStepsToDo_;
-            continue;
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+                continue;
+            }
+
+            auto& texL=*eclipsedDoubleScatteringTexturesLower_.emplace_back(newTex(QOpenGLTexture::Target3D));
+            texL.setMinificationFilter(texFilter);
+            texL.setMagnificationFilter(texFilter);
+            // relative azimuth
+            texL.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
+            // VZA
+            texL.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+            // SZA
+            texL.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+
+            auto& texU=*eclipsedDoubleScatteringTexturesUpper_.emplace_back(newTex(QOpenGLTexture::Target3D));
+            texU.setMinificationFilter(texFilter);
+            texU.setMagnificationFilter(texFilter);
+            // relative azimuth
+            texU.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
+            // VZA
+            texU.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+            // SZA
+            texU.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+            load4DTexAltitudeSlicePair(QString("%1/eclipsed-double-scattering-wlset%2.f32").arg(pathToData_).arg(wlSetIndex), texL, texU, altCoord);
+            tick(++loadingStepsDone_);
         }
-
-        auto& texL=*eclipsedDoubleScatteringTexturesLower_.emplace_back(newTex(QOpenGLTexture::Target3D));
-        texL.setMinificationFilter(texFilter);
-        texL.setMagnificationFilter(texFilter);
-        // relative azimuth
-        texL.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
-        // VZA
-        texL.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
-        // SZA
-        texL.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
-
-        auto& texU=*eclipsedDoubleScatteringTexturesUpper_.emplace_back(newTex(QOpenGLTexture::Target3D));
-        texU.setMinificationFilter(texFilter);
-        texU.setMagnificationFilter(texFilter);
-        // relative azimuth
-        texU.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
-        // VZA
-        texU.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
-        // SZA
-        texU.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
-        load4DTexAltitudeSlicePair(QString("%1/eclipsed-double-scattering-wlset%2.f32").arg(pathToData_).arg(wlSetIndex), texL, texU, altCoord);
-        tick(++loadingStepsDone_);
     }
 
     eclipsedDoubleScatteringPrecomputationTargetTextures_.clear();
@@ -1268,6 +1271,8 @@ void AtmosphereRenderer::renderMultipleScattering()
             }
             else
             {
+                assert(!params_.noEclipsedDoubleScatteringTextures);
+
                 auto& texLower=*eclipsedDoubleScatteringTexturesLower_[wlSetIndex];
                 texLower.setMinificationFilter(texFilter);
                 texLower.setMagnificationFilter(texFilter);
@@ -1348,7 +1353,8 @@ void AtmosphereRenderer::draw()
     }
     else
     {
-        assert(numAltIntervalsInEclipsed4DTexture_==numAltIntervalsIn4DTexture_); // if we want to support them being different, then altCoord must be calculated separately
+        if(!params_.noEclipsedDoubleScatteringTextures)
+            assert(numAltIntervalsInEclipsed4DTexture_==numAltIntervalsIn4DTexture_); // if we want to support them being different, then altCoord must be calculated separately
         updateAltitudeTexCoords(altCoord);
         updateEclipsedAltitudeTexCoords(altCoord);
     }
