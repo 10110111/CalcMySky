@@ -176,6 +176,7 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+            .replace(QRegExp("\\b(RENDERING_ANY_ZERO_SCATTERING)\\b"), "1 /*\\1*/")
             .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "zero-order scattering rendering shader program",
@@ -185,6 +186,40 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
         if(filename==viewDirFuncFileName) continue;
 
         const auto filePath=QString("%1/shaders/zero-order-scattering/%2/%3")
+                                .arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename);
+        std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
+        QFile file(filePath);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
+void saveEclipsedZeroOrderScatteringRenderingShader(const unsigned texIndex)
+{
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+            .replace(QRegExp("\\b(RENDERING_ANY_ZERO_SCATTERING)\\b"), "1 /*\\1*/")
+            .replace(QRegExp("\\b(RENDERING_ECLIPSED_ZERO_SCATTERING)\\b"), "1 /*\\1*/");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "eclipsed zero-order scattering rendering shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& [filename, src] : sourcesToSave)
+    {
+        if(filename==viewDirFuncFileName) continue;
+
+        const auto filePath=QString("%1/shaders/eclipsed-zero-order-scattering/%2/%3")
                                 .arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
@@ -966,6 +1001,7 @@ int main(int argc, char** argv)
         for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
         {
             createDirs(atmo.textureOutputDir+"/shaders/zero-order-scattering/"+std::to_string(texIndex));
+            createDirs(atmo.textureOutputDir+"/shaders/eclipsed-zero-order-scattering/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputed/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputation/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
@@ -1059,6 +1095,7 @@ int main(int argc, char** argv)
                                                                         toString(radianceToLuminance(texIndex)) + ";\n";
 
             saveZeroOrderScatteringRenderingShader(texIndex);
+            saveEclipsedZeroOrderScatteringRenderingShader(texIndex);
 
             {
                 std::cerr << indentOutput() << "Computing parts of scattering order 1:\n";

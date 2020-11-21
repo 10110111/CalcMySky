@@ -106,6 +106,7 @@ private:
     float eclipsedDoubleScatteringAltitudeAlphaUpper_=-1;
 
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
+    std::vector<ShaderProgPtr> eclipsedZeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> multipleScatteringPrograms_;
     // Indexed as singleScatteringPrograms_[renderMode][scattererName][wavelengthSetIndex]
     using ScatteringProgramsMap=std::map<ScattererName,std::vector<ShaderProgPtr>>;

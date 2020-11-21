@@ -851,6 +851,26 @@ void main()
         tick(++loadingStepsDone_);
     }
 
+    eclipsedZeroOrderScatteringPrograms_.clear();
+    for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+    {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo_;
+            continue;
+        }
+
+        auto& program=*eclipsedZeroOrderScatteringPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+        const auto wlDir=QString("%1/shaders/eclipsed-zero-order-scattering/%2").arg(pathToData_).arg(wlSetIndex);
+        std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
+        for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+            addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+        addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
+        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for eclipsed zero-order scattering"), commonVertexShaderSrc);
+        link(program, tr("eclipsed zero-order scattering shader program"));
+        tick(++loadingStepsDone_);
+    }
+
     if(countStepsOnly)
     {
         ++totalLoadingStepsToDo_;
@@ -1009,22 +1029,37 @@ bool AtmosphereRenderer::canGrabRadiance() const
 
 void AtmosphereRenderer::renderZeroOrderScattering()
 {
-    for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
-    {
-        if(!radianceRenderBuffers_.empty())
-            gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
-        auto& prog=*zeroOrderScatteringPrograms_[wlSetIndex];
-        prog.bind();
-        prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-        prog.setUniformValue("zoomFactor", tools_->zoomFactor());
-        prog.setUniformValue("sunDirection", toQVector(sunDirection()));
-        transmittanceTextures_[wlSetIndex]->bind(0);
-        prog.setUniformValue("transmittanceTexture", 0);
-        irradianceTextures_[wlSetIndex]->bind(1);
-        prog.setUniformValue("irradianceTexture",1);
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(!radianceRenderBuffers_.empty())
+                gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
+            if(tools_->usingEclipseShader())
+            {
+                auto& prog=*eclipsedZeroOrderScatteringPrograms_[wlSetIndex];
+                prog.bind();
+                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
+                prog.setUniformValue("moonPosition", toQVector(moonPosition()));
+                prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                transmittanceTextures_[wlSetIndex]->bind(0);
+                prog.setUniformValue("transmittanceTexture", 0);
+            }
+            else
+            {
+                auto& prog=*zeroOrderScatteringPrograms_[wlSetIndex];
+                prog.bind();
+                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                transmittanceTextures_[wlSetIndex]->bind(0);
+                prog.setUniformValue("transmittanceTexture", 0);
+                irradianceTextures_[wlSetIndex]->bind(1);
+                prog.setUniformValue("irradianceTexture",1);
+            }
 
-        gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    }
+            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
 }
 
 

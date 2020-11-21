@@ -4,12 +4,13 @@
 #include "const.h.glsl"
 #include "calc-view-dir.h.glsl"
 #include_if(RENDERING_ANY_SINGLE_SCATTERING) "phase-functions.h.glsl"
-#include_if(RENDERING_ZERO_SCATTERING) "common-functions.h.glsl"
+#include_if(RENDERING_ANY_ZERO_SCATTERING) "common-functions.h.glsl"
 #include_if(RENDERING_ANY_NORMAL_SINGLE_SCATTERING) "single-scattering.h.glsl"
 #include_if(RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING) "single-scattering-eclipsed.h.glsl"
 #include "texture-coordinates.h.glsl"
 #include "radiance-to-luminance.h.glsl"
-#include_if(RENDERING_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
+#include_if(RENDERING_ANY_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
+#include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
 
 uniform sampler3D scatteringTexture;
 uniform sampler2D eclipsedScatteringTexture;
@@ -62,7 +63,6 @@ void main()
 
     const vec3 zenith=vec3(0,0,1);
     const float dotViewSun=dot(viewDir,sunDirection);
-    const float dotViewMoon=dot(viewDir,moonPosition-cameraPosition);
 
     const vec3 sunXY=vec3(normalize(sunDirection.xy),0);
     const vec3 viewXY=vec3(normalize(viewDir.xy),0);
@@ -82,6 +82,34 @@ void main()
         radiance=transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
     }
     else if(dotViewSun>cos(sunAngularRadius))
+    {
+        radiance=transmittanceToAtmosphereBorder(viewDir.z, altitude)*solarRadiance();
+    }
+    else
+    {
+        discard;
+    }
+    luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
+#elif RENDERING_ECLIPSED_ZERO_SCATTERING
+    vec4 radiance;
+    const float dotViewMoon=dot(viewDir,normalize(moonPosition-cameraPosition));
+    if(viewRayIntersectsGround)
+    {
+        // XXX: keep in sync with the similar code in non-eclipsed zero scattering rendering.
+        const float distToGround = distanceToGround(viewDir.z, altitude);
+        const vec4 transmittanceToGround=transmittance(viewDir.z, altitude, distToGround, viewRayIntersectsGround);
+        const vec3 pointOnGround = zenith*altitude+viewDir*distToGround;
+        const vec4 directGroundIrradiance = calcEclipsedDirectGroundIrradiance(pointOnGround, sunDirection, moonPosition);
+        // FIXME: add first-order indirect irradiance too: it's done in non-eclipsed irradiance (in the same
+        // conditions: when limited to 2 orders). This should be calculated at the same time when second order
+        // is: all the infrastructure is already there.
+        const vec4 groundIrradiance = directGroundIrradiance;
+        // Radiation scattered by the ground
+        const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
+        radiance=transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
+    }
+    else if(dotViewSun>cos(sunAngularRadius) && dotViewMoon<cos(moonAngularRadius))
     {
         radiance=transmittanceToAtmosphereBorder(viewDir.z, altitude)*solarRadiance();
     }

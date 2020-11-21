@@ -4,29 +4,15 @@
 #include "const.h.glsl"
 #include "phase-functions.h.glsl"
 #include "common-functions.h.glsl"
-#include "direct-irradiance.h.glsl"
 #include "texture-coordinates.h.glsl"
 #include "radiance-to-luminance.h.glsl"
+#include "eclipsed-direct-irradiance.h.glsl"
 #include "texture-sampling-functions.h.glsl"
 #include "single-scattering-eclipsed.h.glsl"
 #include "total-scattering-coefficient.h.glsl"
 
 in vec3 position;
 out vec4 partialRadiance;
-
-vec4 calcEclipsedDirectGroundIrradiance(const vec3 pointOnGround, const vec3 sunDir, const vec3 moonPos)
-{
-    const float altitude=0; // we are on the ground, after all
-    const vec3 zenith=normalize(pointOnGround-earthCenter);
-    const float cosSunZenithAngle=dot(sunDir,zenith);
-
-    const float visibility=sunVisibilityDueToMoon(pointOnGround, sunDir, moonPos)
-                                                    *
-                      // FIXME: this ignores orientation of the crescent of eclipsed Sun WRT horizon
-                                    sunVisibility(cosSunZenithAngle, altitude);
-
-    return visibility * computeDirectGroundIrradiance(cosSunZenithAngle, altitude);
-}
 
 vec4 computeDoubleScatteringEclipsedDensitySample(const int directionIndex, const vec3 cameraViewDir, const vec3 scatterer,
                                                   const vec3 sunDir, const vec3 moonPos)

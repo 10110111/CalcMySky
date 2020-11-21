@@ -98,12 +98,6 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
                  const bool eclipseEnabled = state==Qt::Checked;
                  moonElevation_->setEnabled(eclipseEnabled);
                  moonAzimuth_->setEnabled(eclipseEnabled);
-                 // TODO: remove this disabling code after we implement zero-order scattering in eclipsed mode
-                 if(eclipseEnabled)
-                 {
-                     zeroOrderScatteringEnabled_->setChecked(false);
-                 }
-                 zeroOrderScatteringEnabled_->setEnabled(!eclipseEnabled);
             });
     triggerStateChanged(usingEclipseShader_);
 
