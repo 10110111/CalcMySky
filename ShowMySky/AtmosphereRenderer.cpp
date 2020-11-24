@@ -1612,25 +1612,6 @@ void AtmosphereRenderer::resizeEvent(const int width, const int height)
     }
 }
 
-void AtmosphereRenderer::mouseMove(const int x, const int y)
-{
-    constexpr double scale=500;
-    switch(dragMode_)
-    {
-    case DragMode::Sun:
-    {
-        const auto oldZA=tools_->sunZenithAngle(), oldAz=tools_->sunAzimuth();
-        tools_->setSunZenithAngle(std::clamp(oldZA - (prevMouseY_-y)/scale, 0., M_PI));
-        tools_->setSunAzimuth(std::clamp(oldAz - (prevMouseX_-x)/scale, -M_PI, M_PI));
-        break;
-    }
-    default:
-        break;
-    }
-    prevMouseX_=x;
-    prevMouseY_=y;
-}
-
 void AtmosphereRenderer::setScattererEnabled(QString const& name, const bool enable)
 {
     scatterersEnabledStates_[name]=enable;

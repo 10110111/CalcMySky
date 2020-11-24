@@ -31,12 +31,6 @@ public:
         Color888,    //!< 24-bit color (AKA True color)
         Color101010, //!< 30-bit color (AKA Deep color)
     };
-    enum class DragMode
-    {
-        None,
-        Sun,
-        Camera,
-    };
 
     struct SpectralRadiance
     {
@@ -64,8 +58,6 @@ public:
     bool readyToRender() const { return readyToRender_; }
 
     void draw();
-    void setDragMode(DragMode mode, int x=0, int y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
-    void mouseMove(int x, int y);
     void resizeEvent(int width, int height);
     void setScattererEnabled(QString const& name, bool enable);
     void reloadShaders();
@@ -119,9 +111,6 @@ private:
     ShaderProgPtr luminanceToScreenRGB_;
     ShaderProgPtr viewDirectionGetterProgram_;
     std::map<ScattererName,bool> scatterersEnabledStates_;
-
-    DragMode dragMode_=DragMode::None;
-    int prevMouseX_, prevMouseY_;
 
     int numAltIntervalsIn4DTexture_;
     int numAltIntervalsInEclipsed4DTexture_;

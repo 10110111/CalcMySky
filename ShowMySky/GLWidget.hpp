@@ -16,6 +16,15 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
     QString pathToData;
     ToolsWidget* tools;
     QPoint lastRadianceCapturePosition{-1,-1};
+
+    enum class DragMode
+    {
+        None,
+        Sun,
+        Camera,
+    } dragMode_=DragMode::None;
+    int prevMouseX_, prevMouseY_;
+
 public:
     explicit GLWidget(QString const& pathToData, AtmosphereParameters const& params,
                       ToolsWidget* tools, QWidget* parent=nullptr);
@@ -33,6 +42,7 @@ private:
     void reloadShaders();
     void updateSpectralRadiance(QPoint const& pixelPos);
     void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
+    void setDragMode(DragMode mode, int x=0, int y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
 
 signals:
     void frameFinished(long long timeInUS);

@@ -95,7 +95,21 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
-    renderer->mouseMove(event->x(), event->y());
+    constexpr double scale=500;
+    switch(dragMode_)
+    {
+    case DragMode::Sun:
+    {
+        const auto oldZA=tools->sunZenithAngle(), oldAz=tools->sunAzimuth();
+        tools->setSunZenithAngle(std::clamp(oldZA - (prevMouseY_-event->y())/scale, 0., M_PI));
+        tools->setSunAzimuth(std::clamp(oldAz - (prevMouseX_-event->x())/scale, -M_PI, M_PI));
+        break;
+    }
+    default:
+        break;
+    }
+    prevMouseX_=event->x();
+    prevMouseY_=event->y();
     update();
 }
 
@@ -108,14 +122,14 @@ void GLWidget::mousePressEvent(QMouseEvent* event)
     }
 
     if(event->modifiers() & Qt::ControlModifier)
-        renderer->setDragMode(AtmosphereRenderer::DragMode::Sun, event->x(), event->y());
+        setDragMode(DragMode::Sun, event->x(), event->y());
     else
-        renderer->setDragMode(AtmosphereRenderer::DragMode::Camera, event->x(), event->y());
+        setDragMode(DragMode::Camera, event->x(), event->y());
 }
 
 void GLWidget::mouseReleaseEvent(QMouseEvent*)
 {
-    renderer->setDragMode(AtmosphereRenderer::DragMode::None);
+    setDragMode(DragMode::None);
 }
 
 void GLWidget::reloadShaders()
