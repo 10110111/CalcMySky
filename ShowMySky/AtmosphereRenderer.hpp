@@ -67,7 +67,7 @@ public:
 signals:
     void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
-private:
+private: // variables
     ToolsWidget* tools_;
     AtmosphereParameters params_;
     QString pathToData_;
@@ -117,6 +117,7 @@ private:
 
     bool readyToRender_=false;
 
+private: // methods
     DEFINE_EXPLICIT_BOOL(CountStepsOnly);
     void loadTextures(CountStepsOnly countStepsOnly);
     void reloadScatteringTextures(CountStepsOnly countStepsOnly);
