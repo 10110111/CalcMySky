@@ -508,28 +508,20 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
 
 void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
 {
-    constexpr char commonVertexShaderSrc[]=R"(
-#version 330
-in vec3 vertex;
-out vec3 position;
-void main()
-{
-    position=vertex;
-    gl_Position=vec4(position,1);
-}
-)";
-    const QByteArray viewDirShaderSrc=1+R"(
-#version 330
-in vec3 position;
-uniform float zoomFactor;
-const float PI=3.1415926535897932;
-vec3 calcViewDir()
-{
-    vec2 pos=position.xy/zoomFactor;
-    return vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
-                sin(pos.x*PI)*cos(pos.y*(PI/2)),
-                sin(pos.y*(PI/2)));
-})";
+    QOpenGLShader viewDirVertShader(QOpenGLShader::Vertex);
+    QOpenGLShader viewDirFragShader(QOpenGLShader::Fragment);
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else
+    {
+        if(!viewDirVertShader.compileSourceCode(viewDirVertShaderSrc_))
+            throw DataLoadError{QObject::tr("Failed to compile view direction vertex shader:\n%2").arg(viewDirVertShader.log())};
+        if(!viewDirFragShader.compileSourceCode(viewDirFragShaderSrc_))
+            throw DataLoadError{QObject::tr("Failed to compile view direction fragment shader:\n%2").arg(viewDirFragShader.log())};
+        tick(++loadingStepsDone_);
+    }
 
     singleScatteringPrograms_.clear();
     for(int renderMode=0; renderMode<SSRM_COUNT; ++renderMode)
@@ -559,10 +551,8 @@ vec3 calcViewDir()
                     for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                         addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-                    addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-
-                    addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scatterer.name),
-                                  commonVertexShaderSrc);
+                    program.addShader(&viewDirFragShader);
+                    program.addShader(&viewDirVertShader);
 
                     link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
                     tick(++loadingStepsDone_);
@@ -584,10 +574,8 @@ vec3 calcViewDir()
                 for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                     addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-                addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-
-                addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scatterer.name),
-                              commonVertexShaderSrc);
+                program.addShader(&viewDirFragShader);
+                program.addShader(&viewDirVertShader);
 
                 link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
                 tick(++loadingStepsDone_);
@@ -623,10 +611,8 @@ vec3 calcViewDir()
                     for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                         addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-                    addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-
-                    addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scatterer.name),
-                                  commonVertexShaderSrc);
+                    program.addShader(&viewDirFragShader);
+                    program.addShader(&viewDirVertShader);
 
                     link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
                     tick(++loadingStepsDone_);
@@ -649,15 +635,36 @@ vec3 calcViewDir()
                 for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                     addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-                addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-
-                addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scatterer.name),
-                              commonVertexShaderSrc);
+                program.addShader(&viewDirFragShader);
+                program.addShader(&viewDirVertShader);
 
                 link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
                 tick(++loadingStepsDone_);
             }
         }
+    }
+
+    static constexpr const char* precomputationProgramsVertShaderSrc=1+R"(
+#version 330
+in vec3 vertex;
+out vec3 position;
+void main()
+{
+    position=vertex;
+    gl_Position=vec4(position,1);
+}
+)";
+    QOpenGLShader precomputationProgramsVertShader(QOpenGLShader::Vertex);
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else
+    {
+        if(!precomputationProgramsVertShader.compileSourceCode(precomputationProgramsVertShaderSrc))
+            throw DataLoadError{QObject::tr("Failed to compile vertex shader for on-the-fly precomputation of eclipsed scattering:\n%2")
+                                    .arg(precomputationProgramsVertShader.log())};
+        tick(++loadingStepsDone_);
     }
 
     eclipsedSingleScatteringPrecomputationPrograms_=std::make_unique<ScatteringProgramsMap>();
@@ -681,8 +688,7 @@ vec3 calcViewDir()
             for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                 addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-            addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for scatterer \"%1\"").arg(scatterer.name),
-                          commonVertexShaderSrc);
+            program.addShader(&precomputationProgramsVertShader);
 
             link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
             tick(++loadingStepsDone_);
@@ -706,8 +712,8 @@ vec3 calcViewDir()
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
             addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-        addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader"), commonVertexShaderSrc);
+        program.addShader(&viewDirFragShader);
+        program.addShader(&viewDirVertShader);
 
         link(program, tr("precomputed eclipsed double scattering shader program"));
         tick(++loadingStepsDone_);
@@ -730,8 +736,7 @@ vec3 calcViewDir()
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
             addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-        addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader"), commonVertexShaderSrc);
+        program.addShader(&precomputationProgramsVertShader);
 
         link(program, tr("on-the-fly eclipsed double scattering shader program"));
         tick(++loadingStepsDone_);
@@ -805,8 +810,8 @@ void main()
             std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
             for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
-            addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-            addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for multiple scattering"), commonVertexShaderSrc);
+            program.addShader(&viewDirFragShader);
+            program.addShader(&viewDirVertShader);
             link(program, tr("multiple scattering shader program"));
             tick(++loadingStepsDone_);
         }
@@ -824,8 +829,8 @@ void main()
             std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
             for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
-            addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-            addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for multiple scattering"), commonVertexShaderSrc);
+            program.addShader(&viewDirFragShader);
+            program.addShader(&viewDirVertShader);
             link(program, tr("multiple scattering shader program"));
             tick(++loadingStepsDone_);
         }
@@ -845,8 +850,8 @@ void main()
         std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
-        addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for zero-order scattering"), commonVertexShaderSrc);
+        program.addShader(&viewDirFragShader);
+        program.addShader(&viewDirVertShader);
         link(program, tr("zero-order scattering shader program"));
         tick(++loadingStepsDone_);
     }
@@ -865,8 +870,8 @@ void main()
         std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
-        addShaderCode(program,QOpenGLShader::Fragment,"viewDir function shader",viewDirShaderSrc);
-        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for eclipsed zero-order scattering"), commonVertexShaderSrc);
+        program.addShader(&viewDirFragShader);
+        program.addShader(&viewDirVertShader);
         link(program, tr("eclipsed zero-order scattering shader program"));
         tick(++loadingStepsDone_);
     }
@@ -879,8 +884,8 @@ void main()
     {
         viewDirectionGetterProgram_=std::make_unique<QOpenGLShaderProgram>();
         auto& program=*viewDirectionGetterProgram_;
-        addShaderCode(program, QOpenGLShader::Vertex, tr("vertex shader for view direction getter"), commonVertexShaderSrc);
-        addShaderCode(program, QOpenGLShader::Fragment, tr("viewDir function shader"), viewDirShaderSrc);
+        program.addShader(&viewDirFragShader);
+        program.addShader(&viewDirVertShader);
         addShaderCode(program, QOpenGLShader::Fragment, tr("fragment shader for view direction getter"), 1+R"(
 #version 330
 
@@ -1510,13 +1515,16 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
 {
 }
 
-void AtmosphereRenderer::loadData()
+void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc)
 {
     readyToRender_=false;
     loadingStepsDone_=0;
     totalLoadingStepsToDo_=0;
 
     clearResources();
+
+    viewDirVertShaderSrc_=std::move(viewDirVertShaderSrc);
+    viewDirFragShaderSrc_=std::move(viewDirFragShaderSrc);
 
     for(const auto& scatterer : params_.scatterers)
         scatterersEnabledStates_[scatterer.name]=true;

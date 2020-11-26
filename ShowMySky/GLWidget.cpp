@@ -41,7 +41,30 @@ void GLWidget::initializeGL()
     connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
     try
     {
-        renderer->loadData();
+        static constexpr const char* viewDirVertShaderSrc=1+R"(
+#version 330
+in vec3 vertex;
+out vec3 position;
+void main()
+{
+    position=vertex;
+    gl_Position=vec4(position,1);
+}
+)";
+        static constexpr const char* viewDirFragShaderSrc=1+R"(
+#version 330
+in vec3 position;
+uniform float zoomFactor;
+const float PI=3.1415926535897932;
+vec3 calcViewDir()
+{
+    vec2 pos=position.xy/zoomFactor;
+    return vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
+                sin(pos.x*PI)*cos(pos.y*(PI/2)),
+                sin(pos.y*(PI/2)));
+}
+)";
+        renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc);
     }
     catch(Error const& ex)
     {
