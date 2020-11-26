@@ -64,7 +64,9 @@ vec3 calcViewDir()
                 sin(pos.y*(PI/2)));
 }
 )";
-        renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc);
+        renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc,
+                           [tools=tools](QOpenGLShaderProgram& program)
+                           { program.setUniformValue("zoomFactor", tools->zoomFactor()); });
     }
     catch(Error const& ex)
     {

@@ -999,7 +999,7 @@ auto AtmosphereRenderer::getViewDirection(QPoint const& pixelPos) const -> Direc
 {
     gl.glBindVertexArray(vao_);
     viewDirectionGetterProgram_->bind();
-    viewDirectionGetterProgram_->setUniformValue("zoomFactor", tools_->zoomFactor());
+    applyViewDirectionUniforms_(*viewDirectionGetterProgram_);
     gl.glBindFramebuffer(GL_FRAMEBUFFER, viewDirectionFBO_);
     gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     gl.glBindVertexArray(0);
@@ -1045,7 +1045,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
                 prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                 prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
                 prog.setUniformValue("moonPosition", toQVector(moonPosition()));
-                prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                applyViewDirectionUniforms_(prog);
                 prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                 transmittanceTextures_[wlSetIndex]->bind(0);
                 prog.setUniformValue("transmittanceTexture", 0);
@@ -1055,7 +1055,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
                 auto& prog=*zeroOrderScatteringPrograms_[wlSetIndex];
                 prog.bind();
                 prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                applyViewDirectionUniforms_(prog);
                 prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                 transmittanceTextures_[wlSetIndex]->bind(0);
                 prog.setUniformValue("transmittanceTexture", 0);
@@ -1127,7 +1127,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                     prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
                     prog.setUniformValue("moonPosition", toQVector(moonPosition()));
-                    prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                    applyViewDirectionUniforms_(prog);
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
@@ -1148,7 +1148,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     auto& prog=*singleScatteringPrograms_[renderMode]->at(scatterer.name)[wlSetIndex];
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                    prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                    applyViewDirectionUniforms_(prog);
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
@@ -1169,7 +1169,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     auto& prog=*eclipsedSingleScatteringPrograms_[renderMode]->at(scatterer.name)[wlSetIndex];
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                    prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                    applyViewDirectionUniforms_(prog);
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     {
                         auto& tex=*eclipsedSingleScatteringPrecomputationTextures_.at(scatterer.name)[wlSetIndex];
@@ -1193,7 +1193,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     auto& prog=*singleScatteringPrograms_[renderMode]->at(scatterer.name)[wlSetIndex];
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                    prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                    applyViewDirectionUniforms_(prog);
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     {
                         auto& tex=*singleScatteringTextures_.at(scatterer.name)[wlSetIndex];
@@ -1214,7 +1214,7 @@ void AtmosphereRenderer::renderSingleScattering()
             auto& prog=*singleScatteringPrograms_[renderMode]->at(scatterer.name).front();
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-            prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+            applyViewDirectionUniforms_(prog);
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             {
                 auto& tex=*singleScatteringTextures_.at(scatterer.name).front();
@@ -1233,7 +1233,7 @@ void AtmosphereRenderer::renderSingleScattering()
             auto& prog=*eclipsedSingleScatteringPrograms_[renderMode]->at(scatterer.name).front();
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-            prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+            applyViewDirectionUniforms_(prog);
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             {
                 auto& tex=*eclipsedSingleScatteringPrecomputationTextures_.at(scatterer.name).front();
@@ -1293,7 +1293,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             auto& prog=*eclipsedDoubleScatteringPrecomputedPrograms_[wlSetIndex];
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-            prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+            applyViewDirectionUniforms_(prog);
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
 
             if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
@@ -1338,7 +1338,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             auto& prog=*multipleScatteringPrograms_.front();
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-            prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+            applyViewDirectionUniforms_(prog);
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
 
             auto& tex=*multipleScatteringTextures_.front();
@@ -1359,7 +1359,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                 auto& prog=*multipleScatteringPrograms_[wlSetIndex];
                 prog.bind();
                 prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                prog.setUniformValue("zoomFactor", tools_->zoomFactor());
+                applyViewDirectionUniforms_(prog);
                 prog.setUniformValue("sunDirection", toQVector(sunDirection()));
 
                 auto& tex=*multipleScatteringTextures_[wlSetIndex];
@@ -1515,7 +1515,8 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
 {
 }
 
-void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc)
+void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
+                                  std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms)
 {
     readyToRender_=false;
     loadingStepsDone_=0;
@@ -1525,6 +1526,7 @@ void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray vi
 
     viewDirVertShaderSrc_=std::move(viewDirVertShaderSrc);
     viewDirFragShaderSrc_=std::move(viewDirFragShaderSrc);
+    applyViewDirectionUniforms_=std::move(applyViewDirectionUniforms);
 
     for(const auto& scatterer : params_.scatterers)
         scatterersEnabledStates_[scatterer.name]=true;

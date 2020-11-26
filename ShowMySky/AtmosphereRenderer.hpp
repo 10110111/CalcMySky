@@ -54,7 +54,8 @@ public:
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
-    void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc);
+    void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
+                  std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms);
     bool readyToRender() const { return readyToRender_; }
 
     void draw();
@@ -75,6 +76,7 @@ private: // variables
     QString currentActivity_;
 
     QByteArray viewDirVertShaderSrc_, viewDirFragShaderSrc_;
+    std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms_;
 
     GLuint vao_=0, vbo_=0, mainFBO_=0, viewDirectionFBO_=0;
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;
