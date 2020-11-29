@@ -78,7 +78,7 @@ private: // variables
     QByteArray viewDirVertShaderSrc_, viewDirFragShaderSrc_;
     std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms_;
 
-    GLuint vao_=0, vbo_=0, luminanceFBO_=0, viewDirectionFBO_=0;
+    GLuint vao_=0, vbo_=0, luminanceRadianceFBO_=0, viewDirectionFBO_=0;
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;
     GLuint eclipseDoubleScatteringPrecomputationFBO_=0;
     // Lower and upper altitude slices from the 4D texture
@@ -94,7 +94,7 @@ private: // variables
     TexturePtr eclipsedDoubleScatteringPrecomputationScratchTexture_;
     std::vector<TexturePtr> eclipsedDoubleScatteringPrecomputationTargetTextures_;
     QOpenGLTexture bayerPatternTexture_;
-    QOpenGLTexture luminanceFBOTexture_;
+    QOpenGLTexture luminanceRenderTargetTexture_;
     QSize viewportSize_;
     float loadedAltitudeURTexCoordRange_[2]={NAN,NAN};
     float loadedEclipsedDoubleScatteringAltitudeURTexCoordRange_[2]={NAN,NAN};
