@@ -11,7 +11,7 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
 {
     Q_OBJECT
 
-    std::unique_ptr<AtmosphereRenderer> renderer;
+    std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
     QOpenGLTexture bayerPatternTexture_;
     AtmosphereParameters params;

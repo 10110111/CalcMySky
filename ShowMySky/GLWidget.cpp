@@ -83,13 +83,13 @@ void GLWidget::initializeGL()
                                     .arg(QSurfaceFormat::defaultFormat().minorVersion())};
     }
 
-    renderer.reset(new AtmosphereRenderer(*this,pathToData,params,tools));
+    renderer.reset(new ShowMySky::AtmosphereRenderer(*this,pathToData,params,tools));
     tools->updateParameters(params);
     const auto update=qOverload<>(&GLWidget::update);
-    connect(renderer.get(), &AtmosphereRenderer::needRedraw, this, update);
-    connect(renderer.get(), &AtmosphereRenderer::loadProgress, this, &GLWidget::onLoadProgress);
+    connect(renderer.get(), &ShowMySky::AtmosphereRenderer::needRedraw, this, update);
+    connect(renderer.get(), &ShowMySky::AtmosphereRenderer::loadProgress, this, &GLWidget::onLoadProgress);
     connect(tools, &ToolsWidget::settingChanged, this, update);
-    connect(tools, &ToolsWidget::setScattererEnabled, renderer.get(), &AtmosphereRenderer::setScattererEnabled);
+    connect(tools, &ToolsWidget::setScattererEnabled, renderer.get(), &ShowMySky::AtmosphereRenderer::setScattererEnabled);
     connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
     try
     {
@@ -166,6 +166,8 @@ vec3 calcViewDir()
         renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc,
                            [tools=tools](QOpenGLShaderProgram& program)
                            { program.setUniformValue("zoomFactor", tools->zoomFactor()); });
+        if(renderer->readyToRender())
+            tools->setCanGrabRadiance(renderer->canGrabRadiance());
     }
     catch(Error const& ex)
     {

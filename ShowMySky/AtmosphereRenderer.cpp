@@ -16,8 +16,9 @@
 #include "../common/const.hpp"
 #include "../common/util.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
-#include "ToolsWidget.hpp"
+#include "Settings.hpp"
 
+using namespace ShowMySky;
 namespace fs=std::filesystem;
 
 namespace
@@ -1402,7 +1403,7 @@ void AtmosphereRenderer::setupRenderTarget()
 }
 
 AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData,
-                                       AtmosphereParameters const& params, ToolsWidget* tools)
+                                       AtmosphereParameters const& params, Settings* tools)
     : gl(gl)
     , tools_(tools)
     , params_(params)
@@ -1446,7 +1447,6 @@ void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray vi
                               .arg(multipleScatteringTextures_.size())};
     }
 
-    tools_->setCanGrabRadiance(canGrabRadiance());
     readyToRender_=true;
 }
 

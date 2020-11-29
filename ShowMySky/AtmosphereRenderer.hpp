@@ -13,7 +13,10 @@
 #include "../common/types.hpp"
 #include "../common/AtmosphereParameters.hpp"
 
-class ToolsWidget;
+namespace ShowMySky
+{
+
+class Settings;
 class AtmosphereRenderer : public QObject
 {
     Q_OBJECT
@@ -41,13 +44,17 @@ public:
         float elevation;
     };
 
-    AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, AtmosphereParameters const& params, ToolsWidget* tools);
+    AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl,
+                       QString const& pathToData,
+                       AtmosphereParameters const& params,
+                       Settings* tools);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
     void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
                   std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms);
     bool readyToRender() const { return readyToRender_; }
+    bool canGrabRadiance() const;
     GLuint getLuminanceTexture() { return luminanceRenderTargetTexture_.textureId(); };
 
     void draw();
@@ -61,7 +68,7 @@ signals:
     void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
 private: // variables
-    ToolsWidget* tools_;
+    Settings* tools_;
     AtmosphereParameters params_;
     QString pathToData_;
     int totalLoadingStepsToDo_=-1, loadingStepsDone_=0;
@@ -141,10 +148,11 @@ private: // methods
     void renderSingleScattering();
     void renderMultipleScattering();
     void clearRadianceFrames();
-    bool canGrabRadiance() const;
 
 signals:
     void needRedraw();
 };
+
+}
 
 #endif

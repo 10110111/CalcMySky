@@ -10,10 +10,11 @@
 #include "AtmosphereRenderer.hpp"
 #include "RadiancePlot.hpp"
 #include "GLWidget.hpp"
+#include "Settings.hpp"
 
 class QCheckBox;
 
-class ToolsWidget : public QDockWidget
+class ToolsWidget : public QDockWidget, public ShowMySky::Settings
 {
     Q_OBJECT
 
@@ -45,23 +46,23 @@ class ToolsWidget : public QDockWidget
 public:
     ToolsWidget(double maxAltitude, QWidget* parent=nullptr);
 
-    GLWidget::DitheringMode ditheringMode() const { return static_cast<GLWidget::DitheringMode>(ditheringMode_->currentIndex()); }
-    double altitude()       const { return altitude_->value(); }
-    double sunAzimuth()     const { return degree*sunAzimuth_->value(); }
-    double sunZenithAngle() const { return degree*(90-sunElevation_->value()); }
-    double moonAzimuth()     const { return degree*moonAzimuth_->value(); }
-    double moonZenithAngle() const { return degree*(90-moonElevation_->value()); }
+    double altitude()       override { return altitude_->value(); }
+    double sunAzimuth()     override { return degree*sunAzimuth_->value(); }
+    double sunZenithAngle() override { return degree*(90-sunElevation_->value()); }
+    double moonAzimuth()     override { return degree*moonAzimuth_->value(); }
+    double moonZenithAngle() override { return degree*(90-moonElevation_->value()); }
     float zoomFactor() const { return zoomFactor_->value(); }
-    bool onTheFlySingleScatteringEnabled() const { return onTheFlySingleScatteringEnabled_->isChecked(); }
-    bool onTheFlyPrecompDoubleScatteringEnabled() const { return onTheFlyPrecompDoubleScatteringEnabled_->isChecked(); }
-    bool zeroOrderScatteringEnabled() const { return zeroOrderScatteringEnabled_->isChecked(); }
-    bool singleScatteringEnabled() const { return singleScatteringEnabled_->isChecked(); }
-    bool multipleScatteringEnabled() const { return multipleScatteringEnabled_->isChecked(); }
-    bool textureFilteringEnabled() const { return textureFilteringEnabled_->isChecked(); }
-    bool usingEclipseShader() const { return usingEclipseShader_->isChecked(); }
+    bool onTheFlySingleScatteringEnabled() override { return onTheFlySingleScatteringEnabled_->isChecked(); }
+    bool onTheFlyPrecompDoubleScatteringEnabled() override { return onTheFlyPrecompDoubleScatteringEnabled_->isChecked(); }
+    bool zeroOrderScatteringEnabled() override { return zeroOrderScatteringEnabled_->isChecked(); }
+    bool singleScatteringEnabled() override { return singleScatteringEnabled_->isChecked(); }
+    bool multipleScatteringEnabled() override { return multipleScatteringEnabled_->isChecked(); }
+    bool textureFilteringEnabled() override { return textureFilteringEnabled_->isChecked(); }
+    bool usingEclipseShader() override { return usingEclipseShader_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }
+    GLWidget::DitheringMode ditheringMode() const { return static_cast<GLWidget::DitheringMode>(ditheringMode_->currentIndex()); }
 
-    bool handleSpectralRadiance(AtmosphereRenderer::SpectralRadiance const& spectrum);
+    bool handleSpectralRadiance(ShowMySky::AtmosphereRenderer::SpectralRadiance const& spectrum);
     void setCanGrabRadiance(bool can);
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);
