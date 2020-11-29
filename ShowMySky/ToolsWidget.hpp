@@ -9,6 +9,7 @@
 #include "Manipulator.hpp"
 #include "AtmosphereRenderer.hpp"
 #include "RadiancePlot.hpp"
+#include "GLWidget.hpp"
 
 class QCheckBox;
 
@@ -44,7 +45,7 @@ class ToolsWidget : public QDockWidget
 public:
     ToolsWidget(double maxAltitude, QWidget* parent=nullptr);
 
-    AtmosphereRenderer::DitheringMode ditheringMode() const { return static_cast<AtmosphereRenderer::DitheringMode>(ditheringMode_->currentIndex()); }
+    GLWidget::DitheringMode ditheringMode() const { return static_cast<GLWidget::DitheringMode>(ditheringMode_->currentIndex()); }
     double altitude()       const { return altitude_->value(); }
     double sunAzimuth()     const { return degree*sunAzimuth_->value(); }
     double sunZenithAngle() const { return degree*(90-sunElevation_->value()); }

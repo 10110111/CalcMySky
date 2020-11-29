@@ -23,15 +23,6 @@ class AtmosphereRenderer : public QObject
     using ScattererName=QString;
     QOpenGLFunctions_3_3_Core& gl;
 public:
-    enum class DitheringMode
-    {
-        Disabled,    //!< Dithering disabled, will leave the infamous color bands
-        Color565,    //!< 16-bit color (AKA High color) with R5_G6_B5 layout
-        Color666,    //!< TN+film typical color depth in TrueColor mode
-        Color888,    //!< 24-bit color (AKA True color)
-        Color101010, //!< 30-bit color (AKA Deep color)
-    };
-
     struct SpectralRadiance
     {
         std::vector<float> wavelengths; // nm
@@ -57,6 +48,7 @@ public:
     void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
                   std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms);
     bool readyToRender() const { return readyToRender_; }
+    GLuint getLuminanceTexture() { return luminanceRenderTargetTexture_.textureId(); };
 
     void draw();
     void resizeEvent(int width, int height);
@@ -93,7 +85,6 @@ private: // variables
     std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures_;
     TexturePtr eclipsedDoubleScatteringPrecomputationScratchTexture_;
     std::vector<TexturePtr> eclipsedDoubleScatteringPrecomputationTargetTextures_;
-    QOpenGLTexture bayerPatternTexture_;
     QOpenGLTexture luminanceRenderTargetTexture_;
     QSize viewportSize_;
     float loadedAltitudeURTexCoordRange_[2]={NAN,NAN};
@@ -112,7 +103,6 @@ private: // variables
     std::vector<ShaderProgPtr> eclipsedDoubleScatteringPrecomputationPrograms_;
     // Indexed as eclipsedSingleScatteringPrecomputationPrograms_[scattererName][wavelengthSetIndex]
     std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms_;
-    ShaderProgPtr luminanceToScreenRGB_;
     ShaderProgPtr viewDirectionGetterProgram_;
     std::map<ScattererName,bool> scatterersEnabledStates_;
 
@@ -139,8 +129,6 @@ private: // methods
     glm::dvec3 moonPosition() const;
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
-    QVector3D rgbMaxValue() const;
-    void makeBayerPatternTexture();
     glm::ivec2 loadTexture2D(QString const& path);
     void loadTexture4D(QString const& path, float altitudeCoord);
     void load4DTexAltitudeSlicePair(QString const& path, QOpenGLTexture& texLower, QOpenGLTexture& texUpper, float altitudeCoord);
