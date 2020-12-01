@@ -104,6 +104,7 @@ uniform sampler2D luminanceXYZW;
 in vec2 texCoord;
 out vec4 color;
 
+uniform bool gradualClipping;
 uniform vec3 rgbMaxValue;
 uniform sampler2D bayerPattern;
 vec3 dither(vec3 c)
@@ -117,14 +118,20 @@ vec3 dither(vec3 c)
     return (head+1.-step(tail,bayer))/rgbMaxValue;
 }
 
+vec3 clip(vec3 rgb)
+{
+    return sqrt(tanh(rgb*rgb));
+}
+
 void main()
 {
+    vec3 XYZ=texture(luminanceXYZW, texCoord).xyz;
     const mat3 XYZ2sRGBl=mat3(vec3(3.2406,-0.9689,0.0557),
                               vec3(-1.5372,1.8758,-0.204),
                               vec3(-0.4986,0.0415,1.057));
-    vec3 XYZ=texture(luminanceXYZW, texCoord).xyz;
-    vec3 rgb=XYZ2sRGBl*XYZ;
-    vec3 srgb=pow(rgb*exposure, vec3(1/2.2));
+    vec3 rgb=XYZ2sRGBl*XYZ*exposure;
+    vec3 clippedRGB = gradualClipping ? clip(rgb) : clamp(rgb, 0., 1.);
+    vec3 srgb=pow(clippedRGB, vec3(1/2.2));
     color=vec4(dither(srgb),1);
 }
 )");
@@ -199,6 +206,7 @@ void GLWidget::paintGL()
     bayerPatternTexture_.bind(1);
     luminanceToScreenRGB_->setUniformValue("bayerPattern", 1);
     luminanceToScreenRGB_->setUniformValue("rgbMaxValue", rgbMaxValue());
+    luminanceToScreenRGB_->setUniformValue("gradualClipping", tools->gradualClippingEnabled());
     luminanceToScreenRGB_->setUniformValue("exposure", tools->exposure());
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
