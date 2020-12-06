@@ -286,7 +286,7 @@ std::vector<std::pair<float,QString>> RadiancePlot::genTicks(std::vector<float> 
 
     for(auto& [value, tick] : output)
     {
-        tick.replace(QRegularExpression("^(-?[0-9](?:\\.[0-9]+)?)e+?(-?)0?([0-9]+)$"), "\\1&times;10<sup>\\2\\3</sup>");
+        tick.replace(QRegularExpression("^(-?[0-9](?:\\.[0-9]+)?)e\\+?(-?)0?([0-9]+)$"), "\\1&times;10<sup>\\2\\3</sup>");
         tick = QString("<body>%1%2</body>").arg(value<0?"-":"", tick);
     }
 
