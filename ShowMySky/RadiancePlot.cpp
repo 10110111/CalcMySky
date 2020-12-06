@@ -88,6 +88,12 @@ static QBrush makeSpectrumBrush()
     return gradient;
 }
 
+static QString eNotationToTenNotation(QString num)
+{
+    num.replace(QRegularExpression("^(-?[0-9](?:\\.[0-9]+)?)e\\+?(-?)0?([0-9]+)$"), "\\1&times;10<sup>\\2\\3</sup>");
+    return num;
+}
+
 RadiancePlot::RadiancePlot(QWidget* parent)
     : QWidget(parent)
 {
@@ -104,7 +110,25 @@ void RadiancePlot::setData(const float* wavelengths, const float* radiances, con
     std::copy_n(radiances, size, this->radiances.data());
     this->azimuth=azimuth;
     this->elevation=elevation;
+
+    this->luminance=calcLuminance();
+
     update();
+}
+
+float RadiancePlot::calcLuminance() const
+{
+    float lum=0;
+    // Using midpoint rule
+    for(unsigned i=1; i<wavelengths.size(); ++i)
+    {
+        const auto lambda = (wavelengths[i] + wavelengths[i-1]) / 2;
+        const auto dlambda = wavelengths[i] - wavelengths[i-1];
+        const auto meanRadiance = (radiances[i] + radiances[i-1]) / 2;
+        const auto spectralLuminance = 683.002f * wavelengthToXYZW(lambda).y;
+        lum += spectralLuminance*meanRadiance*dlambda;
+    }
+    return lum;
 }
 
 QMarginsF RadiancePlot::calcPlotMargins(QPainter const& p, std::vector<std::pair<float,QString>> const& ticksY) const
@@ -171,6 +195,18 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
          p.translate(yAxisSpaceLeftOfLabel*charWidth, yAxisSpaceAboveLabel*fm.height());
          td->drawContents(&p);
         p.restore();
+
+        const auto axisLabelWidth = td->size().width();
+        const auto lumFormatted = eNotationToTenNotation(QString::number(luminance, 'g', 4));
+        td->setHtml(tr("<body>luminance: %1 cd&#x2215;m<sup>2</sup></body>").arg(lumFormatted));
+        const auto luminanceLabelWidth = td->size().width() + rightMargin*charWidth;
+        if(axisLabelWidth + luminanceLabelWidth + 5*charWidth < width())
+        {
+            p.save();
+             p.translate(width() - luminanceLabelWidth, yAxisSpaceAboveLabel*fm.height());
+             td->drawContents(&p);
+            p.restore();
+        }
     }
     // X ticks
     {
@@ -286,7 +322,7 @@ std::vector<std::pair<float,QString>> RadiancePlot::genTicks(std::vector<float> 
 
     for(auto& [value, tick] : output)
     {
-        tick.replace(QRegularExpression("^(-?[0-9](?:\\.[0-9]+)?)e\\+?(-?)0?([0-9]+)$"), "\\1&times;10<sup>\\2\\3</sup>");
+        tick=eNotationToTenNotation(tick);
         tick = QString("<body>%1%2</body>").arg(value<0?"-":"", tick);
     }
 

@@ -9,6 +9,7 @@ class QTextDocument;
 class RadiancePlot : public QWidget
 {
     std::vector<float> wavelengths, radiances;
+    float luminance;
     float azimuth=NAN, elevation=NAN;
 public:
     RadiancePlot(QWidget* parent=nullptr);
@@ -27,6 +28,7 @@ private:
     std::vector<std::pair<float,QString>> genTicks(std::vector<float> const& values, const float min=NAN) const;
     std::unique_ptr<QTextDocument> makeQTextDoc() const;
     void saveSpectrum();
+    float calcLuminance() const;
 };
 
 #endif
