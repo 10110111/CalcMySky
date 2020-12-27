@@ -43,7 +43,7 @@ void triggerStateChanged(QCheckBox* cb)
 
 }
 
-ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
+ToolsWidget::ToolsWidget(QWidget*const parent)
     : QDockWidget(parent)
 {
     setWindowTitle(tr("Tools"));
@@ -52,7 +52,8 @@ ToolsWidget::ToolsWidget(const double maxAltitude, QWidget*const parent)
     mainWidget->setLayout(layout);
     setWidget(mainWidget);
 
-    altitude_     = addManipulator(layout, this, tr("&Altitude"), 0, maxAltitude, 50, 2, " m");
+    altitude_     = addManipulator(layout, this, tr("&Altitude"), 0, 100/*will be changed after loading of atmosphere description*/,
+                                                                 50, 2, " m");
     exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
     sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, 45, 3, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 3, QChar(0x00b0));
@@ -187,6 +188,8 @@ void ToolsWidget::showFrameRate(const long long frameTimeInUS)
 
 void ToolsWidget::updateParameters(AtmosphereParameters const& params)
 {
+    altitude_->setMax(params.atmosphereHeight);
+
     for(QCheckBox*const checkbox : scatterers)
         delete checkbox;
     scatterers.clear();

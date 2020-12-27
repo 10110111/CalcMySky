@@ -88,7 +88,7 @@ int main(int argc, char** argv)
         AtmosphereParameters params;
         params.parse(pathToData + "/params.atmo", AtmosphereParameters::SkipSpectra{true});
 
-        const auto tools=new ToolsWidget(params.atmosphereHeight);
+        const auto tools=new ToolsWidget;
         const auto glWidget=new GLWidget(pathToData, params, tools);
         const auto mainWin=new MainWindow(tools);
 

@@ -45,7 +45,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QProgressBar*const loadProgressBar_=new QProgressBar;
     QVector<QCheckBox*> scatterers;
 public:
-    ToolsWidget(double maxAltitude, QWidget* parent=nullptr);
+    ToolsWidget(QWidget* parent=nullptr);
 
     double altitude()       override { return altitude_->value(); }
     double sunAzimuth()     override { return degree*sunAzimuth_->value(); }
