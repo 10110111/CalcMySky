@@ -28,6 +28,8 @@ include_directories(${CMAKE_BINARY_DIR})
 if(WIN32)
     set(shadersDestPath "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}")
     set(installBinDir "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}")
+    set(installLibDir "${installBinDir}")
+    set(installIncDir "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}/include")
 
     # Deploy Qt
     foreach(lib Core Widgets Gui)
@@ -39,6 +41,8 @@ else()
     include(GNUInstallDirs)
     set(shadersDestPath "${CMAKE_INSTALL_DATAROOTDIR}/${CMAKE_PROJECT_NAME}")
     set(installBinDir "${CMAKE_INSTALL_BINDIR}")
+    set(installLibDir "${CMAKE_INSTALL_LIBDIR}")
+    set(installIncDir "${CMAKE_INSTALL_INCLUDEDIR}")
 endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")

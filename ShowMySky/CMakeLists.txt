@@ -32,3 +32,5 @@ add_executable(${showmyskyTarget}
 target_link_libraries(${showmyskyTarget} Qt5::Core Qt5::Widgets Qt5::OpenGL)
 
 install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
+install(TARGETS ShowMySky DESTINATION "${installLibDir}")
+install(FILES api/AtmosphereRenderer.hpp api/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")
