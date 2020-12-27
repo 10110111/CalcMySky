@@ -16,7 +16,7 @@ class QOpenGLFunctions_3_3_Core;
 namespace ShowMySky
 {
 
-class IAtmosphereRenderer
+class AtmosphereRenderer
 {
 public:
     struct SpectralRadiance
@@ -47,7 +47,7 @@ public:
     virtual SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const = 0;
     virtual Direction getViewDirection(QPoint const& pixelPos) const = 0;
     virtual QObject* asQObject() = 0;
-    virtual ~IAtmosphereRenderer() = default;
+    virtual ~AtmosphereRenderer() = default;
 
     // Debug methods
     virtual void reloadShaders() = 0;
@@ -61,7 +61,7 @@ public:
 
 extern "C"
 {
-ShowMySky::IAtmosphereRenderer*
+ShowMySky::AtmosphereRenderer*
     ShowMySky_AtmosphereRenderer_create(QOpenGLFunctions_3_3_Core* gl,
                                         QString const* pathToData,
                                         ShowMySky::Settings* tools);

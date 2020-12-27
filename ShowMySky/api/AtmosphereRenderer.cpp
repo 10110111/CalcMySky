@@ -1,7 +1,7 @@
-#include "IAtmosphereRenderer.hpp"
 #include "AtmosphereRenderer.hpp"
+#include "../AtmosphereRenderer.hpp"
 
-ShowMySky::IAtmosphereRenderer* ShowMySky_AtmosphereRenderer_create(QOpenGLFunctions_3_3_Core* gl,
+ShowMySky::AtmosphereRenderer* ShowMySky_AtmosphereRenderer_create(QOpenGLFunctions_3_3_Core* gl,
                                                                     QString const* pathToData,
                                                                     ShowMySky::Settings* tools)
 {

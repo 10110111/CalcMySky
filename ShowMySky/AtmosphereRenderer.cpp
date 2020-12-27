@@ -16,7 +16,7 @@
 #include "../common/const.hpp"
 #include "../common/util.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
-#include "Settings.hpp"
+#include "api/Settings.hpp"
 
 namespace fs=std::filesystem;
 

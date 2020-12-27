@@ -12,9 +12,9 @@
 #include <QOpenGLFunctions_3_3_Core>
 #include "../common/types.hpp"
 #include "../common/AtmosphereParameters.hpp"
-#include "IAtmosphereRenderer.hpp"
+#include "api/AtmosphereRenderer.hpp"
 
-class AtmosphereRenderer : public QObject, public ShowMySky::IAtmosphereRenderer
+class AtmosphereRenderer : public QObject, public ShowMySky::AtmosphereRenderer
 {
     Q_OBJECT
 

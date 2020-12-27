@@ -5,7 +5,7 @@
 #include <QOpenGLWidget>
 #include <QOpenGLTexture>
 #include <QOpenGLFunctions_3_3_Core>
-#include "IAtmosphereRenderer.hpp"
+#include "AtmosphereRenderer.hpp"
 #include "../common/AtmosphereParameters.hpp"
 
 class ToolsWidget;
@@ -13,7 +13,7 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
 {
     Q_OBJECT
 
-    std::unique_ptr<ShowMySky::IAtmosphereRenderer> renderer;
+    std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
     QOpenGLTexture bayerPatternTexture_;
     QString pathToData;

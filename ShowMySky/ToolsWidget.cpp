@@ -141,7 +141,7 @@ void ToolsWidget::showRadiancePlot()
     radiancePlot_->show();
 }
 
-bool ToolsWidget::handleSpectralRadiance(ShowMySky::IAtmosphereRenderer::SpectralRadiance const& spectrum)
+bool ToolsWidget::handleSpectralRadiance(ShowMySky::AtmosphereRenderer::SpectralRadiance const& spectrum)
 {
     if(!radiancePlot_ || !radiancePlot_->isVisible()) return false;
     radiancePlot_->setData(spectrum.wavelengths.data(), spectrum.radiances.data(), spectrum.wavelengths.size(),
