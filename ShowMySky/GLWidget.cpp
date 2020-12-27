@@ -6,6 +6,7 @@
 #include "../common/util.hpp"
 #include "util.hpp"
 #include "ToolsWidget.hpp"
+#include "AtmosphereRenderer.hpp"
 
 GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* parent)
     : QOpenGLWidget(parent)
@@ -84,9 +85,9 @@ void GLWidget::initializeGL()
 
     try
     {
-        renderer.reset(new ShowMySky::AtmosphereRenderer(*this,pathToData,tools));
-        tools->updateParameters(renderer->atmosphereParameters());
-        connect(renderer.get(), &ShowMySky::AtmosphereRenderer::loadProgress, this, &GLWidget::onLoadProgress);
+        renderer.reset(ShowMySky_AtmosphereRenderer_create(this,&pathToData,tools));
+        tools->updateParameters(static_cast<AtmosphereRenderer*>(renderer.get())->atmosphereParameters());
+        connect(renderer->asQObject(), SIGNAL(loadProgress(QString const&,int,int)), this, SLOT(onLoadProgress(QString const&,int,int)));
         connect(tools, &ToolsWidget::settingChanged, this, qOverload<>(&GLWidget::update));
         connect(tools, &ToolsWidget::setScattererEnabled, this, [this,renderer=renderer.get()](QString const& name, const bool enable)
                 { renderer->setScattererEnabled(name, enable); update(); });

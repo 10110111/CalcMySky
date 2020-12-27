@@ -7,6 +7,7 @@ add_executable(showmysky
                 ToolsWidget.cpp
                 Manipulator.cpp
                 RadiancePlot.cpp
+                IAtmosphereRenderer.cpp
                 AtmosphereRenderer.cpp
                 ../common/EclipsedDoubleScatteringPrecomputer.cpp
                 ../common/AtmosphereParameters.cpp

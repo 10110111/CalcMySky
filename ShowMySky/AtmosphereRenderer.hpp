@@ -12,12 +12,9 @@
 #include <QOpenGLFunctions_3_3_Core>
 #include "../common/types.hpp"
 #include "../common/AtmosphereParameters.hpp"
+#include "IAtmosphereRenderer.hpp"
 
-namespace ShowMySky
-{
-
-class Settings;
-class AtmosphereRenderer : public QObject
+class AtmosphereRenderer : public QObject, public ShowMySky::IAtmosphereRenderer
 {
     Q_OBJECT
 
@@ -26,49 +23,34 @@ class AtmosphereRenderer : public QObject
     using ScattererName=QString;
     QOpenGLFunctions_3_3_Core& gl;
 public:
-    struct SpectralRadiance
-    {
-        std::vector<float> wavelengths; // nm
-        std::vector<float> radiances;   // W/(m^2*sr*nm)
-        // Direction from which this radiance was measured
-        float azimuth;   // degrees
-        float elevation; // degrees
-
-        auto size() const { return wavelengths.size(); }
-        bool empty() const { return wavelengths.empty(); }
-    };
-
-    struct Direction
-    {
-        float azimuth;
-        float elevation;
-    };
 
     AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl,
                        QString const& pathToData,
-                       Settings* tools);
+                       ShowMySky::Settings* tools);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
     void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                  std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms);
-    bool readyToRender() const { return readyToRender_; }
-    bool canGrabRadiance() const;
-    GLuint getLuminanceTexture() { return luminanceRenderTargetTexture_.textureId(); };
+                  std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms) override;
+    bool readyToRender() const override { return readyToRender_; }
+    bool canGrabRadiance() const override;
+    GLuint getLuminanceTexture() override { return luminanceRenderTargetTexture_.textureId(); };
 
-    void draw();
-    void resizeEvent(int width, int height);
-    void setScattererEnabled(QString const& name, bool enable);
-    void reloadShaders();
-    SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const;
-    Direction getViewDirection(QPoint const& pixelPos) const;
+    void draw() override;
+    void resizeEvent(int width, int height) override;
+    SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const override;
+    Direction getViewDirection(QPoint const& pixelPos) const override;
+    QObject* asQObject() override { return this; }
+
+    void setScattererEnabled(QString const& name, bool enable) override;
+    void reloadShaders() override;
     AtmosphereParameters const& atmosphereParameters() const { return params_; }
 
 signals:
-    void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
+    void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo) override;
 
 private: // variables
-    Settings* tools_;
+    ShowMySky::Settings* tools_;
     AtmosphereParameters params_;
     QString pathToData_;
     int totalLoadingStepsToDo_=-1, loadingStepsDone_=0;
@@ -149,7 +131,5 @@ private: // methods
     void renderMultipleScattering();
     void clearRadianceFrames();
 };
-
-}
 
 #endif

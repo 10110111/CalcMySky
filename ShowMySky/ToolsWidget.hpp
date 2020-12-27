@@ -7,7 +7,6 @@
 #include <QComboBox>
 #include <QCheckBox>
 #include "Manipulator.hpp"
-#include "AtmosphereRenderer.hpp"
 #include "RadiancePlot.hpp"
 #include "GLWidget.hpp"
 #include "Settings.hpp"
@@ -64,7 +63,7 @@ public:
     float exposure() const { return std::pow(10., exposure_->value()); }
     GLWidget::DitheringMode ditheringMode() const { return static_cast<GLWidget::DitheringMode>(ditheringMode_->currentIndex()); }
 
-    bool handleSpectralRadiance(ShowMySky::AtmosphereRenderer::SpectralRadiance const& spectrum);
+    bool handleSpectralRadiance(ShowMySky::IAtmosphereRenderer::SpectralRadiance const& spectrum);
     void setCanGrabRadiance(bool can);
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);

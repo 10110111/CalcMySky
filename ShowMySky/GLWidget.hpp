@@ -3,15 +3,17 @@
 
 #include <memory>
 #include <QOpenGLWidget>
+#include <QOpenGLTexture>
 #include <QOpenGLFunctions_3_3_Core>
-#include "AtmosphereRenderer.hpp"
+#include "IAtmosphereRenderer.hpp"
+#include "../common/AtmosphereParameters.hpp"
 
 class ToolsWidget;
 class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
 {
     Q_OBJECT
 
-    std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
+    std::unique_ptr<ShowMySky::IAtmosphereRenderer> renderer;
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
     QOpenGLTexture bayerPatternTexture_;
     QString pathToData;
@@ -55,8 +57,10 @@ private:
     QVector3D rgbMaxValue() const;
     void makeBayerPatternTexture();
     void updateSpectralRadiance(QPoint const& pixelPos);
-    void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
     void setDragMode(DragMode mode, int x=0, int y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
+
+private slots:
+    void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
 signals:
     void frameFinished(long long timeInUS);

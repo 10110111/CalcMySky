@@ -18,7 +18,6 @@
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
 #include "Settings.hpp"
 
-using namespace ShowMySky;
 namespace fs=std::filesystem;
 
 namespace
@@ -1402,7 +1401,7 @@ void AtmosphereRenderer::setupRenderTarget()
     resizeEvent(width,height);
 }
 
-AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, Settings* tools)
+AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, ShowMySky::Settings* tools)
     : gl(gl)
     , tools_(tools)
     , pathToData_(pathToData)
