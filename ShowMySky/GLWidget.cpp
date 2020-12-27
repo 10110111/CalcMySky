@@ -85,6 +85,17 @@ void GLWidget::initializeGL()
 
     try
     {
+        if(!ShowMySky_AtmosphereRenderer_create)
+        {
+            QLibrary showMySky("ShowMySky");
+            if(!showMySky.load())
+                throw DataLoadError(tr("Failed to load ShowMySky library"));
+            ShowMySky_AtmosphereRenderer_create=reinterpret_cast<decltype(ShowMySky_AtmosphereRenderer_create)>(
+                                                showMySky.resolve("ShowMySky_AtmosphereRenderer_create"));
+            if(!ShowMySky_AtmosphereRenderer_create)
+                throw DataLoadError(tr("Failed to resolve the function to create AtmosphereRenderer"));
+        }
+
         renderer.reset(ShowMySky_AtmosphereRenderer_create(this,&pathToData,tools));
         tools->updateParameters(static_cast<AtmosphereRenderer*>(renderer.get())->atmosphereParameters());
         connect(renderer->asQObject(), SIGNAL(loadProgress(QString const&,int,int)), this, SLOT(onLoadProgress(QString const&,int,int)));

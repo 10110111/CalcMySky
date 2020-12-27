@@ -20,6 +20,7 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
     ToolsWidget* tools;
     GLuint vao_=0, vbo_=0;
     QPoint lastRadianceCapturePosition{-1,-1};
+    decltype(::ShowMySky_AtmosphereRenderer_create)* ShowMySky_AtmosphereRenderer_create=nullptr;
 
     enum class DragMode
     {

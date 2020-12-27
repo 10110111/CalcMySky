@@ -29,6 +29,6 @@ add_executable(${showmyskyTarget}
                 RadiancePlot.cpp
                 ../common/Spectrum.cpp
               )
-target_link_libraries(${showmyskyTarget} Qt5::Core Qt5::Widgets Qt5::OpenGL ShowMySky)
+target_link_libraries(${showmyskyTarget} Qt5::Core Qt5::Widgets Qt5::OpenGL)
 
 install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
