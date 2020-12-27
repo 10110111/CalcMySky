@@ -1,5 +1,25 @@
 add_definitions(-D_USE_MATH_DEFINES)
-add_executable(showmysky
+add_library(ShowMySky SHARED
+             api/AtmosphereRenderer.cpp
+             AtmosphereRenderer.cpp
+             util.cpp
+             ../common/EclipsedDoubleScatteringPrecomputer.cpp
+             ../common/AtmosphereParameters.cpp
+             ../common/Spectrum.cpp
+             ../common/util.cpp
+             ../config.h)
+target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
+target_link_libraries(ShowMySky Qt5::Core Qt5::OpenGL)
+
+if(WIN32)
+    # For some reason, showmysky target name conflicts with ShowMySky target,
+    # even though on the filesystem they should result in names differing more
+    # than by case: showmysky.exe and ShowMySky.dll
+    set(showmyskyTarget showmysky.exe)
+else()
+    set(showmyskyTarget showmysky)
+endif()
+add_executable(${showmyskyTarget}
                 main.cpp
                 util.cpp
                 GLWidget.cpp
@@ -7,13 +27,8 @@ add_executable(showmysky
                 ToolsWidget.cpp
                 Manipulator.cpp
                 RadiancePlot.cpp
-                api/AtmosphereRenderer.cpp
-                AtmosphereRenderer.cpp
-                ../common/EclipsedDoubleScatteringPrecomputer.cpp
-                ../common/AtmosphereParameters.cpp
                 ../common/Spectrum.cpp
-                ../common/util.cpp
-                ../config.h)
-target_link_libraries(showmysky Qt5::Core Qt5::Widgets Qt5::OpenGL)
+              )
+target_link_libraries(${showmyskyTarget} Qt5::Core Qt5::Widgets Qt5::OpenGL ShowMySky)
 
-install(TARGETS showmysky DESTINATION "${installBinDir}")
+install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")

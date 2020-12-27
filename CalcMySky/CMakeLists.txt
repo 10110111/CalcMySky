@@ -9,6 +9,7 @@ add_executable(calcmysky
                 ../common/EclipsedDoubleScatteringPrecomputer.cpp
                 ../common/util.cpp
                 ../config.h)
+target_compile_definitions(calcmysky PRIVATE -DSHOWMYSKY_COMPILING_CALCMYSKY)
 target_link_libraries(calcmysky Qt5::Core Qt5::OpenGL)
 
 install(TARGETS calcmysky DESTINATION "${installBinDir}")

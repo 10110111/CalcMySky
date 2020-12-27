@@ -9,6 +9,15 @@
 
 #include "Settings.hpp"
 
+#ifdef SHOWMYSKY_COMPILING_SHARED_LIB
+# define SHOWMYSKY_DLL_PUBLIC Q_DECL_EXPORT
+#elif defined SHOWMYSKY_COMPILING_CALCMYSKY
+# define SHOWMYSKY_DLL_PUBLIC
+#else
+# define SHOWMYSKY_DLL_PUBLIC Q_DECL_IMPORT
+#endif
+
+
 class QString;
 class QOpenGLShaderProgram;
 class QOpenGLFunctions_3_3_Core;
@@ -61,7 +70,7 @@ public:
 
 extern "C"
 {
-ShowMySky::AtmosphereRenderer*
+SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
     ShowMySky_AtmosphereRenderer_create(QOpenGLFunctions_3_3_Core* gl,
                                         QString const* pathToData,
                                         ShowMySky::Settings* tools);
