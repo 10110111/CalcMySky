@@ -83,16 +83,17 @@ void GLWidget::initializeGL()
                                     .arg(QSurfaceFormat::defaultFormat().minorVersion())};
     }
 
-    renderer.reset(new ShowMySky::AtmosphereRenderer(*this,pathToData,params,tools));
-    tools->updateParameters(params);
-    const auto update=qOverload<>(&GLWidget::update);
-    connect(renderer.get(), &ShowMySky::AtmosphereRenderer::needRedraw, this, update);
-    connect(renderer.get(), &ShowMySky::AtmosphereRenderer::loadProgress, this, &GLWidget::onLoadProgress);
-    connect(tools, &ToolsWidget::settingChanged, this, update);
-    connect(tools, &ToolsWidget::setScattererEnabled, renderer.get(), &ShowMySky::AtmosphereRenderer::setScattererEnabled);
-    connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
     try
     {
+        renderer.reset(new ShowMySky::AtmosphereRenderer(*this,pathToData,params,tools));
+        tools->updateParameters(params);
+        const auto update=qOverload<>(&GLWidget::update);
+        connect(renderer.get(), &ShowMySky::AtmosphereRenderer::needRedraw, this, update);
+        connect(renderer.get(), &ShowMySky::AtmosphereRenderer::loadProgress, this, &GLWidget::onLoadProgress);
+        connect(tools, &ToolsWidget::settingChanged, this, update);
+        connect(tools, &ToolsWidget::setScattererEnabled, renderer.get(), &ShowMySky::AtmosphereRenderer::setScattererEnabled);
+        connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
+
         makeBayerPatternTexture();
         setupBuffers();
 
