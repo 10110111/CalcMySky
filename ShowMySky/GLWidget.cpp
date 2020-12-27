@@ -192,6 +192,7 @@ void GLWidget::onLoadProgress(QString const& currentActivity, const int stepsDon
 
 void GLWidget::paintGL()
 {
+    if(!renderer) return;
     if(!isVisible()) return;
     if(!renderer->readyToRender()) return;
 
@@ -221,11 +222,13 @@ void GLWidget::paintGL()
 
 void GLWidget::resizeGL(int w, int h)
 {
+    if(!renderer) return;
     renderer->resizeEvent(w,h);
 }
 
 void GLWidget::updateSpectralRadiance(QPoint const& pixelPos)
 {
+    if(!renderer) return;
     makeCurrent();
     if(const auto spectrum=renderer->getPixelSpectralRadiance(pixelPos); !spectrum.empty())
     {
@@ -304,6 +307,7 @@ void GLWidget::setupBuffers()
 
 void GLWidget::reloadShaders()
 {
+    if(!renderer) return;
     makeCurrent();
     renderer->reloadShaders();
     update();
