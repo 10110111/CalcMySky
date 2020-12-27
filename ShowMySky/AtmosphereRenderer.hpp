@@ -148,9 +148,6 @@ private: // methods
     void renderSingleScattering();
     void renderMultipleScattering();
     void clearRadianceFrames();
-
-signals:
-    void needRedraw();
 };
 
 }

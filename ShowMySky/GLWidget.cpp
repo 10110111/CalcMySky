@@ -87,11 +87,10 @@ void GLWidget::initializeGL()
     {
         renderer.reset(new ShowMySky::AtmosphereRenderer(*this,pathToData,params,tools));
         tools->updateParameters(params);
-        const auto update=qOverload<>(&GLWidget::update);
-        connect(renderer.get(), &ShowMySky::AtmosphereRenderer::needRedraw, this, update);
         connect(renderer.get(), &ShowMySky::AtmosphereRenderer::loadProgress, this, &GLWidget::onLoadProgress);
-        connect(tools, &ToolsWidget::settingChanged, this, update);
-        connect(tools, &ToolsWidget::setScattererEnabled, renderer.get(), &ShowMySky::AtmosphereRenderer::setScattererEnabled);
+        connect(tools, &ToolsWidget::settingChanged, this, qOverload<>(&GLWidget::update));
+        connect(tools, &ToolsWidget::setScattererEnabled, this, [this,renderer=renderer.get()](QString const& name, const bool enable)
+                { renderer->setScattererEnabled(name, enable); update(); });
         connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
 
         makeBayerPatternTexture();

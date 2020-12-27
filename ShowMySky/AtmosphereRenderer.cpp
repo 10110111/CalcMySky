@@ -1521,7 +1521,6 @@ void AtmosphereRenderer::resizeEvent(const int width, const int height)
 void AtmosphereRenderer::setScattererEnabled(QString const& name, const bool enable)
 {
     scatterersEnabledStates_[name]=enable;
-    emit needRedraw();
 }
 
 void AtmosphereRenderer::reloadShaders()
