@@ -14,7 +14,6 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
     std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
     QOpenGLTexture bayerPatternTexture_;
-    AtmosphereParameters params;
     QString pathToData;
     ToolsWidget* tools;
     GLuint vao_=0, vbo_=0;
@@ -39,8 +38,7 @@ public:
     };
 
 public:
-    explicit GLWidget(QString const& pathToData, AtmosphereParameters const& params,
-                      ToolsWidget* tools, QWidget* parent=nullptr);
+    explicit GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* parent=nullptr);
     ~GLWidget();
 
 protected:

@@ -7,10 +7,9 @@
 #include "util.hpp"
 #include "ToolsWidget.hpp"
 
-GLWidget::GLWidget(QString const& pathToData, AtmosphereParameters const& params, ToolsWidget* tools, QWidget* parent)
+GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* parent)
     : QOpenGLWidget(parent)
     , bayerPatternTexture_(QOpenGLTexture::Target2D)
-    , params(params)
     , pathToData(pathToData)
     , tools(tools)
 {
@@ -85,8 +84,8 @@ void GLWidget::initializeGL()
 
     try
     {
-        renderer.reset(new ShowMySky::AtmosphereRenderer(*this,pathToData,params,tools));
-        tools->updateParameters(params);
+        renderer.reset(new ShowMySky::AtmosphereRenderer(*this,pathToData,tools));
+        tools->updateParameters(renderer->atmosphereParameters());
         connect(renderer.get(), &ShowMySky::AtmosphereRenderer::loadProgress, this, &GLWidget::onLoadProgress);
         connect(tools, &ToolsWidget::settingChanged, this, qOverload<>(&GLWidget::update));
         connect(tools, &ToolsWidget::setScattererEnabled, this, [this,renderer=renderer.get()](QString const& name, const bool enable)

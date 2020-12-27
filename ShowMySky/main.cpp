@@ -85,11 +85,9 @@ int main(int argc, char** argv)
     {
         windowSize=app.primaryScreen()->size()/1.6;
         handleCmdLine();
-        AtmosphereParameters params;
-        params.parse(pathToData + "/params.atmo", AtmosphereParameters::SkipSpectra{true});
 
         const auto tools=new ToolsWidget;
-        const auto glWidget=new GLWidget(pathToData, params, tools);
+        const auto glWidget=new GLWidget(pathToData, tools);
         const auto mainWin=new MainWindow(tools);
 
         mainWin->setAttribute(Qt::WA_DeleteOnClose);

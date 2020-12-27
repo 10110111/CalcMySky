@@ -46,7 +46,6 @@ public:
 
     AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl,
                        QString const& pathToData,
-                       AtmosphereParameters const& params,
                        Settings* tools);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
@@ -63,6 +62,7 @@ public:
     void reloadShaders();
     SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const;
     Direction getViewDirection(QPoint const& pixelPos) const;
+    AtmosphereParameters const& atmosphereParameters() const { return params_; }
 
 signals:
     void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);

@@ -1402,14 +1402,13 @@ void AtmosphereRenderer::setupRenderTarget()
     resizeEvent(width,height);
 }
 
-AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData,
-                                       AtmosphereParameters const& params, Settings* tools)
+AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, Settings* tools)
     : gl(gl)
     , tools_(tools)
-    , params_(params)
     , pathToData_(pathToData)
     , luminanceRenderTargetTexture_(QOpenGLTexture::Target2D)
 {
+    params_.parse(pathToData + "/params.atmo", AtmosphereParameters::SkipSpectra{true});
 }
 
 void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
