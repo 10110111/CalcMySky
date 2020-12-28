@@ -30,6 +30,10 @@ add_executable(${showmyskyTarget}
                 ../common/Spectrum.cpp
               )
 target_link_libraries(${showmyskyTarget} Qt5::Core Qt5::Widgets Qt5::OpenGL)
+if(WIN32)
+    # Addition to the above hack: remove extraneous .exe
+    set_target_properties(${showmyskyTarget} PROPERTIES SUFFIX "")
+endif()
 
 install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
 install(TARGETS ShowMySky DESTINATION "${installLibDir}")
