@@ -26,7 +26,8 @@ public:
 
     AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl,
                        QString const& pathToData,
-                       ShowMySky::Settings* tools);
+                       ShowMySky::Settings* tools,
+                       std::function<void(QOpenGLShaderProgram&)> drawSurface);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
@@ -51,6 +52,7 @@ signals:
 
 private: // variables
     ShowMySky::Settings* tools_;
+    std::function<void(QOpenGLShaderProgram&)> drawSurface;
     AtmosphereParameters params_;
     QString pathToData_;
     int totalLoadingStepsToDo_=-1, loadingStepsDone_=0;

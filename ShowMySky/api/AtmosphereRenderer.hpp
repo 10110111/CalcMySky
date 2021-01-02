@@ -73,7 +73,8 @@ extern "C"
 SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
     ShowMySky_AtmosphereRenderer_create(QOpenGLFunctions_3_3_Core* gl,
                                         QString const* pathToData,
-                                        ShowMySky::Settings* tools);
+                                        ShowMySky::Settings* tools,
+                                        std::function<void(QOpenGLShaderProgram&)> const* drawSurface);
 }
 
 #endif

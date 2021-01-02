@@ -96,7 +96,12 @@ void GLWidget::initializeGL()
                 throw DataLoadError(tr("Failed to resolve the function to create AtmosphereRenderer"));
         }
 
-        renderer.reset(ShowMySky_AtmosphereRenderer_create(this,&pathToData,tools));
+        const std::function drawSurface=[this](QOpenGLShaderProgram&){
+            glBindVertexArray(vao_);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            glBindVertexArray(0);
+        };
+        renderer.reset(ShowMySky_AtmosphereRenderer_create(this,&pathToData,tools,&drawSurface));
         tools->updateParameters(static_cast<AtmosphereRenderer*>(renderer.get())->atmosphereParameters());
         connect(renderer->asQObject(), SIGNAL(loadProgress(QString const&,int,int)), this, SLOT(onLoadProgress(QString const&,int,int)));
         connect(tools, &ToolsWidget::settingChanged, this, qOverload<>(&GLWidget::update));

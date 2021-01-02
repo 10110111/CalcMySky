@@ -904,12 +904,10 @@ auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) const 
 
 auto AtmosphereRenderer::getViewDirection(QPoint const& pixelPos) const -> Direction
 {
-    gl.glBindVertexArray(vao_);
     viewDirectionGetterProgram_->bind();
     applyViewDirectionUniforms_(*viewDirectionGetterProgram_);
     gl.glBindFramebuffer(GL_FRAMEBUFFER, viewDirectionFBO_);
-    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl.glBindVertexArray(0);
+    drawSurface(*viewDirectionGetterProgram_);
     GLfloat viewDir[3]={NAN,NAN,NAN};
     gl.glReadPixels(pixelPos.x(), viewportSize_.height()-pixelPos.y()-1, 1,1, GL_RGB, GL_FLOAT, viewDir);
 
@@ -956,6 +954,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
                 prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                 transmittanceTextures_[wlSetIndex]->bind(0);
                 prog.setUniformValue("transmittanceTexture", 0);
+                drawSurface(prog);
             }
             else
             {
@@ -968,15 +967,15 @@ void AtmosphereRenderer::renderZeroOrderScattering()
                 prog.setUniformValue("transmittanceTexture", 0);
                 irradianceTextures_[wlSetIndex]->bind(1);
                 prog.setUniformValue("irradianceTexture",1);
+                drawSurface(prog);
             }
-
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
 }
 
 
 void AtmosphereRenderer::precomputeEclipsedSingleScattering()
 {
+    gl.glBindVertexArray(vao_);
     // TODO: avoid redoing it if Sun elevation and Moon elevation and relative azimuth haven't changed
     for(const auto& scatterer : params_.scatterers)
     {
@@ -1005,6 +1004,7 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
                 gl.glEnablei(GL_BLEND, 0);
         }
     }
+    gl.glBindVertexArray(0);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,luminanceRadianceFBO_);
     gl.glEnablei(GL_BLEND, 0);
 }
@@ -1039,7 +1039,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
 
-                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                    drawSurface(prog);
                 }
             }
             else
@@ -1060,7 +1060,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
 
-                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                    drawSurface(prog);
                 }
             }
         }
@@ -1087,7 +1087,7 @@ void AtmosphereRenderer::renderSingleScattering()
                         prog.setUniformValue("eclipsedScatteringTexture", 0);
                     }
 
-                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                    drawSurface(prog);
                 }
             }
             else
@@ -1112,7 +1112,7 @@ void AtmosphereRenderer::renderSingleScattering()
                         prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
                     }
 
-                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                    drawSurface(prog);
                 }
             }
         }
@@ -1133,7 +1133,7 @@ void AtmosphereRenderer::renderSingleScattering()
             prog.setUniformValue("scatteringTexture", 0);
             prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
 
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            drawSurface(prog);
         }
         else if(tools_->usingEclipseShader())
         {
@@ -1151,7 +1151,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 prog.setUniformValue("eclipsedScatteringTexture", 0);
             }
 
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            drawSurface(prog);
         }
     }
 }
@@ -1162,6 +1162,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
 
     gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseDoubleScatteringPrecomputationFBO_);
     gl.glDisablei(GL_BLEND, 0);
+    gl.glBindVertexArray(vao_);
     for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
     {
         auto& prog=*eclipsedDoubleScatteringPrecomputationPrograms_[wlSetIndex];
@@ -1181,6 +1182,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
                         params_.eclipsedDoubleScatteringTextureSize[0], params_.eclipsedDoubleScatteringTextureSize[1], 1,
                         0,GL_RGBA,GL_FLOAT,precomputer.texture().data());
     }
+    gl.glBindVertexArray(0);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,luminanceRadianceFBO_);
     gl.glEnablei(GL_BLEND, 0);
 }
@@ -1235,7 +1237,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                 prog.setUniformValue("eclipsedDoubleScatteringAltitudeAlphaUpper", eclipsedDoubleScatteringAltitudeAlphaUpper_);
                 prog.setUniformValue("eclipsedDoubleScatteringTextureSize", toQVector(glm::vec3(params_.eclipsedDoubleScatteringTextureSize)));
             }
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            drawSurface(prog);
         }
     }
     else
@@ -1254,7 +1256,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             tex.bind(0);
             prog.setUniformValue("scatteringTexture", 0);
             prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            drawSurface(prog);
         }
         else
         {
@@ -1275,7 +1277,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                 tex.bind(0);
                 prog.setUniformValue("scatteringTexture", 0);
                 prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
-                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                drawSurface(prog);
             }
         }
     }
@@ -1309,7 +1311,6 @@ void AtmosphereRenderer::draw()
     GLint targetFBO=-1;
     gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFBO);
 
-    gl.glBindVertexArray(vao_);
     {
         gl.glBindFramebuffer(GL_FRAMEBUFFER,luminanceRadianceFBO_);
         if(canGrabRadiance())
@@ -1333,7 +1334,6 @@ void AtmosphereRenderer::draw()
 
         gl.glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
     }
-    gl.glBindVertexArray(0);
 }
 
 void AtmosphereRenderer::setupRenderTarget()
@@ -1401,9 +1401,11 @@ void AtmosphereRenderer::setupRenderTarget()
     resizeEvent(width,height);
 }
 
-AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData, ShowMySky::Settings* tools)
+AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData,
+                                       ShowMySky::Settings* tools, std::function<void(QOpenGLShaderProgram&)> drawSurface)
     : gl(gl)
     , tools_(tools)
+    , drawSurface(drawSurface)
     , pathToData_(pathToData)
     , luminanceRenderTargetTexture_(QOpenGLTexture::Target2D)
 {
