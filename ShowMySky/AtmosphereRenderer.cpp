@@ -917,7 +917,7 @@ auto AtmosphereRenderer::getViewDirection(QPoint const& pixelPos) const -> Direc
     return Direction{azimuth, elevation};
 }
 
-void AtmosphereRenderer::clearRadianceFrames()
+void AtmosphereRenderer::prepareRadianceFrames(const bool clear)
 {
     if(radianceRenderBuffers_.empty()) return;
 
@@ -925,7 +925,8 @@ void AtmosphereRenderer::clearRadianceFrames()
     {
         gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
         gl.glDrawBuffers(2, std::array<GLenum,2>{GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1}.data());
-        gl.glClearBufferfv(GL_COLOR, 1, std::array<GLfloat,4>{0,0,0,0}.data());
+        if(clear)
+            gl.glClearBufferfv(GL_COLOR, 1, std::array<GLfloat,4>{0,0,0,0}.data());
     }
 }
 
@@ -1283,7 +1284,7 @@ void AtmosphereRenderer::renderMultipleScattering()
     }
 }
 
-void AtmosphereRenderer::draw()
+void AtmosphereRenderer::draw(const bool clear)
 {
     if(!readyToRender_) return;
     // Don't try to draw while we're still loading something. We can come here in
@@ -1315,11 +1316,14 @@ void AtmosphereRenderer::draw()
         gl.glBindFramebuffer(GL_FRAMEBUFFER,luminanceRadianceFBO_);
         if(canGrabRadiance())
         {
-            clearRadianceFrames(); // also calls glDrawBuffers
+            prepareRadianceFrames(clear);
             gl.glEnablei(GL_BLEND, 1);
         }
-        gl.glClearColor(0,0,0,0);
-        gl.glClear(GL_COLOR_BUFFER_BIT);
+        if(clear)
+        {
+            gl.glClearColor(0,0,0,0);
+            gl.glClear(GL_COLOR_BUFFER_BIT);
+        }
         gl.glEnablei(GL_BLEND, 0);
         {
             gl.glBlendFunc(GL_ONE, GL_ONE);

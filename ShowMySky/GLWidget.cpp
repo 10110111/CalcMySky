@@ -213,7 +213,7 @@ void GLWidget::paintGL()
     if(!renderer->readyToRender()) return;
 
     const auto t0=std::chrono::steady_clock::now();
-    renderer->draw();
+    renderer->draw(true);
 
     glBindVertexArray(vao_);
     luminanceToScreenRGB_->bind();

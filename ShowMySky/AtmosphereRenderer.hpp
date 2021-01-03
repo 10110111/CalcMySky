@@ -37,7 +37,7 @@ public:
     bool canGrabRadiance() const override;
     GLuint getLuminanceTexture() override { return luminanceRenderTargetTexture_.textureId(); };
 
-    void draw() override;
+    void draw(bool clear) override;
     void resizeEvent(int width, int height) override;
     SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const override;
     Direction getViewDirection(QPoint const& pixelPos) const override;
@@ -131,7 +131,7 @@ private: // methods
     void renderZeroOrderScattering();
     void renderSingleScattering();
     void renderMultipleScattering();
-    void clearRadianceFrames();
+    void prepareRadianceFrames(bool clear);
 };
 
 #endif
