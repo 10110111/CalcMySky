@@ -36,7 +36,7 @@ public:
         float azimuth;   // degrees
         float elevation; // degrees
 
-        auto size() const { return wavelengths.size(); }
+        unsigned size() const { return wavelengths.size(); }
         bool empty() const { return wavelengths.empty(); }
     };
 
