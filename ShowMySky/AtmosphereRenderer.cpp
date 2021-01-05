@@ -1284,7 +1284,7 @@ void AtmosphereRenderer::renderMultipleScattering()
     }
 }
 
-void AtmosphereRenderer::draw(const bool clear)
+void AtmosphereRenderer::draw(const double brightness, const bool clear)
 {
     if(!readyToRender_) return;
     // Don't try to draw while we're still loading something. We can come here in
@@ -1326,7 +1326,8 @@ void AtmosphereRenderer::draw(const bool clear)
         }
         gl.glEnablei(GL_BLEND, 0);
         {
-            gl.glBlendFunc(GL_ONE, GL_ONE);
+            gl.glBlendFunc(GL_CONSTANT_COLOR, GL_ONE);
+            gl.glBlendColor(brightness, brightness, brightness, brightness);
             if(tools_->zeroOrderScatteringEnabled())
                 renderZeroOrderScattering();
             if(tools_->singleScatteringEnabled())

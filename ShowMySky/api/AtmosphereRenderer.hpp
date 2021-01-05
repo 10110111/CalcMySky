@@ -51,7 +51,7 @@ public:
     virtual bool readyToRender() const = 0;
     virtual bool canGrabRadiance() const = 0;
     virtual GLuint getLuminanceTexture() = 0;
-    virtual void draw(bool clear) = 0;
+    virtual void draw(double brightness, bool clear) = 0;
     virtual void resizeEvent(int width, int height) = 0;
     virtual SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const = 0;
     virtual Direction getViewDirection(QPoint const& pixelPos) const = 0;
