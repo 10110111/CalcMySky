@@ -39,8 +39,8 @@ public:
 
     void draw(double brightness, bool clear) override;
     void resizeEvent(int width, int height) override;
-    SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const override;
-    Direction getViewDirection(QPoint const& pixelPos) const override;
+    SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) override;
+    Direction getViewDirection(QPoint const& pixelPos) override;
     QObject* asQObject() override { return this; }
 
     void setScattererEnabled(QString const& name, bool enable) override;
@@ -52,7 +52,7 @@ signals:
 
 private: // variables
     ShowMySky::Settings* tools_;
-    std::function<void(QOpenGLShaderProgram&)> drawSurface;
+    std::function<void(QOpenGLShaderProgram&)> drawSurfaceCallback;
     AtmosphereParameters params_;
     QString pathToData_;
     int totalLoadingStepsToDo_=-1, loadingStepsDone_=0;
@@ -112,6 +112,7 @@ private: // methods
     void clearResources();
     void tick(int loadingStepsDone);
     void reportLoadingFinished();
+    void drawSurface(QOpenGLShaderProgram& prog);
 
     double altitudeUnitRangeTexCoord() const;
     double moonAngularRadius() const;

@@ -912,7 +912,7 @@ double AtmosphereRenderer::moonAngularRadius() const
     return moonRadius/cameraMoonDistance();
 }
 
-auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) const -> SpectralRadiance
+auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) -> SpectralRadiance
 {
     if(radianceRenderBuffers_.empty()) return {};
     if(pixelPos.x()<0 || pixelPos.y()<0 || pixelPos.x()>=viewportSize_.width() || pixelPos.y()>=viewportSize_.height())
@@ -942,7 +942,7 @@ auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) const 
     return output;
 }
 
-auto AtmosphereRenderer::getViewDirection(QPoint const& pixelPos) const -> Direction
+auto AtmosphereRenderer::getViewDirection(QPoint const& pixelPos) -> Direction
 {
     viewDirectionGetterProgram_->bind();
     applyViewDirectionUniforms_(*viewDirectionGetterProgram_);
@@ -1465,7 +1465,7 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
                                        ShowMySky::Settings* tools, std::function<void(QOpenGLShaderProgram&)> drawSurface)
     : gl(gl)
     , tools_(tools)
-    , drawSurface(drawSurface)
+    , drawSurfaceCallback(drawSurface)
     , pathToData_(pathToData)
     , luminanceRenderTargetTexture_(QOpenGLTexture::Target2D)
 {
@@ -1552,6 +1552,12 @@ void AtmosphereRenderer::clearResources()
     }
     if(!radianceRenderBuffers_.empty())
         gl.glDeleteRenderbuffers(radianceRenderBuffers_.size(), radianceRenderBuffers_.data());
+}
+
+void AtmosphereRenderer::drawSurface(QOpenGLShaderProgram& prog)
+{
+    OGL_TRACE();
+    drawSurfaceCallback(prog);
 }
 
 void AtmosphereRenderer::resizeEvent(const int width, const int height)

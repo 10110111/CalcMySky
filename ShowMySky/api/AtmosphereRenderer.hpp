@@ -53,8 +53,8 @@ public:
     virtual GLuint getLuminanceTexture() = 0;
     virtual void draw(double brightness, bool clear) = 0;
     virtual void resizeEvent(int width, int height) = 0;
-    virtual SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) const = 0;
-    virtual Direction getViewDirection(QPoint const& pixelPos) const = 0;
+    virtual SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) = 0;
+    virtual Direction getViewDirection(QPoint const& pixelPos) = 0;
     virtual QObject* asQObject() = 0;
     virtual ~AtmosphereRenderer() = default;
 
