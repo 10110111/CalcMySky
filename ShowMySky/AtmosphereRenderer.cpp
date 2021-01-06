@@ -10,6 +10,7 @@
 #include <iostream>
 #include <filesystem>
 #include <QFile>
+#include <QDebug>
 #include <QRegularExpression>
 
 #include "util.hpp"
@@ -95,12 +96,14 @@ void AtmosphereRenderer::updateEclipsedAltitudeTexCoords(const float altitudeCoo
 
 void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord)
 {
+    auto log=qDebug().nospace();
+
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         throw DataLoadError{tr("GL error on entry to loadTexture4D(\"%1\"): %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
-    std::cerr << "Loading texture from \"" << path << "\"... ";
+    log << "Loading texture from " << path << "... ";
     QFile file(path);
     if(!file.open(QFile::ReadOnly))
         throw DataLoadError{tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
@@ -114,7 +117,7 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
                                 .arg(path).arg(file.errorString())};
         }
     }
-    std::cerr << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
+    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
 
     if(const qint64 expectedFileSize = sizeof(GLfloat)*4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] + file.pos();
        expectedFileSize != file.size())
@@ -137,7 +140,7 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCountToRead]);
     {
         const qint64 offset=file.pos()+subpixelReadOffset*sizeof subpixels[0];
-        std::cerr << "skipping to offset " << offset << "... ";
+        log << "skipping to offset " << offset << "... ";
         if(!file.seek(offset))
         {
             throw DataLoadError{tr("Failed to seek to offset %1 in file \"%2\": %3")
@@ -161,18 +164,20 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
 
-    std::cerr << "done\n";
+    log << "done";
 }
 
 void AtmosphereRenderer::load4DTexAltitudeSlicePair(QString const& path, QOpenGLTexture& texLower,
                                                     QOpenGLTexture& texUpper, const float altitudeCoord)
 {
+    auto log=qDebug().nospace();
+
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         throw DataLoadError{tr("GL error on entry to load4DTexAltitudeSlicePair(\"%1\"): %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
-    std::cerr << "Loading texture from \"" << path << "\"... ";
+    log << "Loading texture from " << path << "... ";
     QFile file(path);
     if(!file.open(QFile::ReadOnly))
         throw DataLoadError{tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
@@ -186,7 +191,7 @@ void AtmosphereRenderer::load4DTexAltitudeSlicePair(QString const& path, QOpenGL
                                 .arg(path).arg(file.errorString())};
         }
     }
-    std::cerr << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
+    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
 
     if(const qint64 expectedFileSize = sizeof(GLfloat)*4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] + file.pos();
        expectedFileSize != file.size())
@@ -215,7 +220,7 @@ void AtmosphereRenderer::load4DTexAltitudeSlicePair(QString const& path, QOpenGL
     const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCountToRead]);
     {
         const qint64 offset=file.pos()+subpixelReadOffset*sizeof subpixels[0];
-        std::cerr << "skipping to offset " << offset << "... ";
+        log << "skipping to offset " << offset << "... ";
         if(!file.seek(offset))
         {
             throw DataLoadError{tr("Failed to seek to offset %1 in file \"%2\": %3")
@@ -249,17 +254,19 @@ void AtmosphereRenderer::load4DTexAltitudeSlicePair(QString const& path, QOpenGL
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
 
-    std::cerr << "done\n";
+    log << "done";
 }
 
 glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
 {
+    auto log=qDebug().nospace();
+
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         throw DataLoadError{tr("GL error on entry to loadTexture2D(\"%1\"): %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
-    std::cerr << "Loading texture from \"" << path << "\"... ";
+    log << "Loading texture from " << path << "... ";
     QFile file(path);
     if(!file.open(QFile::ReadOnly))
         throw DataLoadError{tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
@@ -274,7 +281,7 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
         }
     }
     const auto subpixelCount = 4*uint64_t(sizes[0])*sizes[1];
-    std::cerr << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "... ";
+    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "... ";
 
     if(const qint64 expectedFileSize = subpixelCount*sizeof(GLfloat)+file.pos();
        expectedFileSize != file.size())
@@ -300,7 +307,7 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
         throw DataLoadError{tr("GL error in loadTexture2D(\"%1\") after glTexImage2D() call: %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
-    std::cerr << "done\n";
+    log << "done";
     return {sizes[0], sizes[1]};
 }
 
@@ -542,7 +549,7 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
                                                                                        .arg(singleScatteringRenderModeNames[renderMode])
                                                                                        .arg(wlSetIndex)
                                                                                        .arg(scatterer.name);
-                    std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
+                    qDebug().nospace() << "Loading shaders from " << scatDir << "...";
                     auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                     for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -566,7 +573,7 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
                 const auto scatDir=QString("%1/shaders/single-scattering/%2/%3").arg(pathToData_)
                                                                                 .arg(singleScatteringRenderModeNames[renderMode])
                                                                                 .arg(scatterer.name);
-                std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
+                qDebug().nospace() << "Loading shaders from " << scatDir << "...";
                 auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
                 for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
                     addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
@@ -602,7 +609,7 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
                                                                                                 .arg(singleScatteringRenderModeNames[renderMode])
                                                                                                 .arg(wlSetIndex)
                                                                                                 .arg(scatterer.name);
-                    std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
+                    qDebug().nospace() << "Loading shaders from " << scatDir << "...";
                     auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                     for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -626,7 +633,7 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
                 const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/%2/%3").arg(pathToData_)
                                                                                             .arg(singleScatteringRenderModeNames[renderMode])
                                                                                             .arg(scatterer.name);
-                std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
+                qDebug().nospace() << "Loading shaders from " << scatDir << "...";
                 auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
                 for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -679,7 +686,7 @@ void main()
             const auto scatDir=QString("%1/shaders/single-scattering-eclipsed/precomputation/%3/%4").arg(pathToData_)
                                                                                                     .arg(wlSetIndex)
                                                                                                     .arg(scatterer.name);
-            std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
+            qDebug().nospace() << "Loading shaders from " << scatDir << "...";
             auto& program=*programs.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
             for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -703,7 +710,7 @@ void main()
         }
 
         const auto scatDir=QString("%1/shaders/double-scattering-eclipsed/precomputed/%2").arg(pathToData_).arg(wlSetIndex);
-        std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
+        qDebug().nospace() << "Loading shaders from " << scatDir << "...";
         auto& program=*eclipsedDoubleScatteringPrecomputedPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -727,7 +734,7 @@ void main()
         }
 
         const auto scatDir=QString("%1/shaders/double-scattering-eclipsed/precomputation/%2").arg(pathToData_).arg(wlSetIndex);
-        std::cerr << "Loading shaders from " << scatDir.toStdString() << "...\n";
+        qDebug().nospace() << "Loading shaders from " << scatDir << "...";
         auto& program=*eclipsedDoubleScatteringPrecomputationPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
@@ -752,7 +759,7 @@ void main()
 
             auto& program=*multipleScatteringPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
             const auto wlDir=QString("%1/shaders/multiple-scattering/%2").arg(pathToData_).arg(wlSetIndex);
-            std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
+            qDebug().nospace() << "Loading shaders from " << wlDir << "...";
             for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
             program.addShader(&viewDirFragShader);
@@ -771,7 +778,7 @@ void main()
         {
             auto& program=*multipleScatteringPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
             const auto wlDir=pathToData_+"/shaders/multiple-scattering/";
-            std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
+            qDebug().nospace() << "Loading shaders from " << wlDir << "...";
             for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
             program.addShader(&viewDirFragShader);
@@ -792,7 +799,7 @@ void main()
 
         auto& program=*zeroOrderScatteringPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
         const auto wlDir=QString("%1/shaders/zero-order-scattering/%2").arg(pathToData_).arg(wlSetIndex);
-        std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
+        qDebug().nospace() << "Loading shaders from " << wlDir << "...";
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
         program.addShader(&viewDirFragShader);
@@ -812,7 +819,7 @@ void main()
 
         auto& program=*eclipsedZeroOrderScatteringPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
         const auto wlDir=QString("%1/shaders/eclipsed-zero-order-scattering/%2").arg(pathToData_).arg(wlSetIndex);
-        std::cerr << "Loading shaders from " << wlDir.toStdString() << "...\n";
+        qDebug().nospace() << "Loading shaders from " << wlDir << "...";
         for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
         program.addShader(&viewDirFragShader);
