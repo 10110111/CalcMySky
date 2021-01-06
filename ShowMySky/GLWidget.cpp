@@ -96,7 +96,9 @@ void GLWidget::initializeGL()
                 throw DataLoadError(tr("Failed to resolve the function to create AtmosphereRenderer"));
         }
 
-        const std::function drawSurface=[this](QOpenGLShaderProgram&){
+        const std::function drawSurface=[this](QOpenGLShaderProgram& program)
+        {
+            program.setUniformValue("zoomFactor", tools->zoomFactor());
             glBindVertexArray(vao_);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             glBindVertexArray(0);
@@ -186,9 +188,7 @@ vec3 calcViewDir()
                 sin(pos.y*(PI/2)));
 }
 )";
-        renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc,
-                           [tools=tools](QOpenGLShaderProgram& program)
-                           { program.setUniformValue("zoomFactor", tools->zoomFactor()); });
+        renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc);
         if(renderer->readyToRender())
             tools->setCanGrabRadiance(renderer->canGrabRadiance());
     }

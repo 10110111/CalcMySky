@@ -1460,8 +1460,7 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     params_.parse(pathToData + "/params.atmo", AtmosphereParameters::SkipSpectra{true});
 }
 
-void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                                  std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms)
+void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc)
 {
     readyToRender_=false;
     loadingStepsDone_=0;
@@ -1471,7 +1470,6 @@ void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray vi
 
     viewDirVertShaderSrc_=std::move(viewDirVertShaderSrc);
     viewDirFragShaderSrc_=std::move(viewDirFragShaderSrc);
-    applyViewDirectionUniforms_=std::move(applyViewDirectionUniforms);
 
     for(const auto& scatterer : params_.scatterers)
         scatterersEnabledStates_[scatterer.name]=true;
@@ -1545,7 +1543,6 @@ void AtmosphereRenderer::clearResources()
 void AtmosphereRenderer::drawSurface(QOpenGLShaderProgram& prog)
 {
     OGL_TRACE();
-    applyViewDirectionUniforms_(prog);
     drawSurfaceCallback(prog);
 }
 

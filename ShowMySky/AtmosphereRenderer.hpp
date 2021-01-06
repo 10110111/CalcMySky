@@ -31,8 +31,7 @@ public:
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
-    void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                  std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms) override;
+    void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc) override;
     bool readyToRender() const override { return readyToRender_; }
     bool canGrabRadiance() const override;
     GLuint getLuminanceTexture() override { return luminanceRenderTargetTexture_.textureId(); };
@@ -59,7 +58,6 @@ private: // variables
     QString currentActivity_;
 
     QByteArray viewDirVertShaderSrc_, viewDirFragShaderSrc_;
-    std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms_;
 
     GLuint vao_=0, vbo_=0, luminanceRadianceFBO_=0, viewDirectionFBO_=0;
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;

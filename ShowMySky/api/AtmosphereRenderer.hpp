@@ -46,8 +46,7 @@ public:
         float elevation;
     };
 public:
-    virtual void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                          std::function<void(QOpenGLShaderProgram&)> applyViewDirectionUniforms) = 0;
+    virtual void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc) = 0;
     virtual bool readyToRender() const = 0;
     virtual bool canGrabRadiance() const = 0;
     virtual GLuint getLuminanceTexture() = 0;
