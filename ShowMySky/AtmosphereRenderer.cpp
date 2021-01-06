@@ -33,6 +33,42 @@ auto newTex(QOpenGLTexture::Target target)
     return std::make_unique<QOpenGLTexture>(target);
 }
 
+[[maybe_unused]] PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert;
+void oglDebugMessageInsert([[maybe_unused]] const char*const message)
+{
+#ifndef NDEBUG
+    if(!glDebugMessageInsert)
+        glDebugMessageInsert=reinterpret_cast<PFNGLDEBUGMESSAGEINSERTPROC>
+            (QOpenGLContext::currentContext()->getProcAddress("glDebugMessageInsert"));
+
+    if(!glDebugMessageInsert)
+        return;
+
+    glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_NOTIFICATION, -1, message);
+#endif
+}
+
+class OGLTrace
+{
+    std::string action;
+public:
+    OGLTrace(const std::string& action)
+        : action(action)
+    {
+        oglDebugMessageInsert(("Begin "+action).c_str());
+    }
+    ~OGLTrace()
+    {
+        oglDebugMessageInsert(("End "+action).c_str());
+    }
+};
+
+#ifndef NDEBUG
+# define OGL_TRACE() [[maybe_unused]] OGLTrace t(Q_FUNC_INFO);
+#else
+# define OGL_TRACE()
+#endif
+
 }
 
 void AtmosphereRenderer::updateAltitudeTexCoords(const float altitudeCoord, double* floorAltIndexOut)
@@ -270,6 +306,8 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
 
 void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
 {
+    OGL_TRACE();
+
     while(gl.glGetError()!=GL_NO_ERROR);
 
     gl.glActiveTexture(GL_TEXTURE0);
@@ -812,6 +850,8 @@ void main()
 
 void AtmosphereRenderer::setupBuffers()
 {
+    OGL_TRACE();
+
     gl.glGenVertexArrays(1, &vao_);
     gl.glBindVertexArray(vao_);
     gl.glGenBuffers(1, &vbo_);
@@ -940,6 +980,7 @@ bool AtmosphereRenderer::canGrabRadiance() const
 
 void AtmosphereRenderer::renderZeroOrderScattering()
 {
+        OGL_TRACE();
         for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
         {
             if(!radianceRenderBuffers_.empty())
@@ -976,6 +1017,8 @@ void AtmosphereRenderer::renderZeroOrderScattering()
 
 void AtmosphereRenderer::precomputeEclipsedSingleScattering()
 {
+    OGL_TRACE();
+
     gl.glBindVertexArray(vao_);
     // TODO: avoid redoing it if Sun elevation and Moon elevation and relative azimuth haven't changed
     for(const auto& scatterer : params_.scatterers)
@@ -1012,6 +1055,8 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
 
 void AtmosphereRenderer::renderSingleScattering()
 {
+    OGL_TRACE();
+
     if(tools_->usingEclipseShader())
         precomputeEclipsedSingleScattering();
 
@@ -1190,6 +1235,8 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
 
 void AtmosphereRenderer::renderMultipleScattering()
 {
+    OGL_TRACE();
+
     const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
     if(tools_->usingEclipseShader())
     {
@@ -1286,6 +1333,8 @@ void AtmosphereRenderer::renderMultipleScattering()
 
 void AtmosphereRenderer::draw(const double brightness, const bool clear)
 {
+    OGL_TRACE();
+
     if(!readyToRender_) return;
     // Don't try to draw while we're still loading something. We can come here in
     // this state when e.g. progress reporting code results in a resize event.
@@ -1294,6 +1343,8 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
     const auto altCoord=altitudeUnitRangeTexCoord();
     if(altCoord < loadedAltitudeURTexCoordRange_[0] || altCoord > loadedAltitudeURTexCoordRange_[1])
     {
+        [[maybe_unused]] OGLTrace t("reloading textures");
+
         currentActivity_=tr("Reloading textures due to altitude getting out of the currently loaded layers...");
         totalLoadingStepsToDo_=0;
         reloadScatteringTextures(CountStepsOnly{true});
@@ -1308,6 +1359,8 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
         updateAltitudeTexCoords(altCoord);
         updateEclipsedAltitudeTexCoords(altCoord);
     }
+
+    oglDebugMessageInsert("AtmosphereRenderer::draw() begins drawing");
 
     GLint targetFBO=-1;
     gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFBO);
@@ -1343,6 +1396,8 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
 
 void AtmosphereRenderer::setupRenderTarget()
 {
+    OGL_TRACE();
+
     gl.glGenFramebuffers(1,&luminanceRadianceFBO_);
     luminanceRenderTargetTexture_.setMinificationFilter(QOpenGLTexture::Nearest);
     luminanceRenderTargetTexture_.setMagnificationFilter(QOpenGLTexture::Nearest);
@@ -1501,6 +1556,8 @@ void AtmosphereRenderer::clearResources()
 
 void AtmosphereRenderer::resizeEvent(const int width, const int height)
 {
+    OGL_TRACE();
+
     viewportSize_=QSize(width,height);
     if(!luminanceRadianceFBO_) return;
 
@@ -1530,6 +1587,8 @@ void AtmosphereRenderer::setScattererEnabled(QString const& name, const bool ena
 
 void AtmosphereRenderer::reloadShaders()
 {
+    OGL_TRACE();
+
     currentActivity_=tr("Reloading shaders...");
     totalLoadingStepsToDo_=0;
     loadShaders(CountStepsOnly{true});
