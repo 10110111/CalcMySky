@@ -980,38 +980,38 @@ bool AtmosphereRenderer::canGrabRadiance() const
 
 void AtmosphereRenderer::renderZeroOrderScattering()
 {
-        OGL_TRACE();
-        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+    OGL_TRACE();
+    for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+    {
+        if(!radianceRenderBuffers_.empty())
+            gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
+        if(tools_->usingEclipseShader())
         {
-            if(!radianceRenderBuffers_.empty())
-                gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
-            if(tools_->usingEclipseShader())
-            {
-                auto& prog=*eclipsedZeroOrderScatteringPrograms_[wlSetIndex];
-                prog.bind();
-                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
-                prog.setUniformValue("moonPosition", toQVector(moonPosition()));
-                applyViewDirectionUniforms_(prog);
-                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
-                transmittanceTextures_[wlSetIndex]->bind(0);
-                prog.setUniformValue("transmittanceTexture", 0);
-                drawSurface(prog);
-            }
-            else
-            {
-                auto& prog=*zeroOrderScatteringPrograms_[wlSetIndex];
-                prog.bind();
-                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                applyViewDirectionUniforms_(prog);
-                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
-                transmittanceTextures_[wlSetIndex]->bind(0);
-                prog.setUniformValue("transmittanceTexture", 0);
-                irradianceTextures_[wlSetIndex]->bind(1);
-                prog.setUniformValue("irradianceTexture",1);
-                drawSurface(prog);
-            }
+            auto& prog=*eclipsedZeroOrderScatteringPrograms_[wlSetIndex];
+            prog.bind();
+            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+            prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
+            prog.setUniformValue("moonPosition", toQVector(moonPosition()));
+            applyViewDirectionUniforms_(prog);
+            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            transmittanceTextures_[wlSetIndex]->bind(0);
+            prog.setUniformValue("transmittanceTexture", 0);
+            drawSurface(prog);
         }
+        else
+        {
+            auto& prog=*zeroOrderScatteringPrograms_[wlSetIndex];
+            prog.bind();
+            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+            applyViewDirectionUniforms_(prog);
+            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            transmittanceTextures_[wlSetIndex]->bind(0);
+            prog.setUniformValue("transmittanceTexture", 0);
+            irradianceTextures_[wlSetIndex]->bind(1);
+            prog.setUniformValue("irradianceTexture",1);
+            drawSurface(prog);
+        }
+    }
 }
 
 
