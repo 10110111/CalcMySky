@@ -89,19 +89,19 @@ Spectrum Spectrum::parseFromCSV(QByteArray const& data, QString const& filename,
     {
         const auto keyval=lines[i].split(',');
         if(keyval.size()!=2)
-            throw ParsingError{QString("bad spectrum line: expected \"key,value\" pair, got \"%1\"").arg(lines[i].constData()),filename,lineNumber};
+            throw ParsingError{filename,lineNumber,QString("bad spectrum line: expected \"key,value\" pair, got \"%1\"").arg(lines[i].constData())};
         bool okWL=false, okVal=false;
         const auto wavelength=keyval[0].toDouble(&okWL);
         const auto value=keyval[1].toDouble(&okVal);
         if(!okWL || !okVal)
-            throw ParsingError{"failed to parse numbers",filename,lineNumber};
+            throw ParsingError{filename,lineNumber,"failed to parse numbers"};
         if(!(wavelengths.empty() || wavelengths.back() < wavelength))
-            throw ParsingError{"wavelengths don't grow monotonically as they should",filename,lineNumber};
+            throw ParsingError{filename,lineNumber,"wavelengths don't grow monotonically as they should"};
         wavelengths.push_back(wavelength);
         values.push_back(value);
     }
     if(values.empty())
-        throw ParsingError{"Read empty spectrum",filename,lineNumber};
+        throw ParsingError{filename,lineNumber,"Read empty spectrum"};
     return {std::move(wavelengths), std::move(values)};
 }
 

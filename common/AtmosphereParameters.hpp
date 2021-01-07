@@ -12,16 +12,6 @@ struct AtmosphereParameters
     // We don't copy external spectra into output directory, so the renderer needs to skip loading them
     DEFINE_EXPLICIT_BOOL(SkipSpectra);
 
-    class ParsingError : public ShowMySky::Error
-    {
-        QString message;
-    public:
-        ParsingError(QString const& filename, int lineNum, QString const& message)
-            : message(QString("%1:%2: %3").arg(filename).arg(lineNum).arg(message))
-        {}
-        QString errorType() const override { return QObject::tr("Parsing error"); }
-        QString what() const override { return message; }
-    };
     struct Scatterer
     {
         GLfloat crossSectionAt1um = NAN;

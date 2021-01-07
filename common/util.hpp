@@ -64,7 +64,7 @@ class ParsingError : public ShowMySky::Error
     QString filename;
     int lineNumber;
 public:
-    ParsingError(QString const& message, QString const& filename, int lineNumber)
+    ParsingError(QString const& filename, int lineNumber, QString const& message)
         : message(message), filename(filename), lineNumber(lineNumber) {}
     QString errorType() const override { return QObject::tr("Parsing error"); }
     QString what() const override { return QString("%1:%2: %3)").arg(filename).arg(lineNumber).arg(message); }

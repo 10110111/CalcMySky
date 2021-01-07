@@ -1125,11 +1125,6 @@ int main(int argc, char** argv)
         std::cerr << ex.what() << "\n";
         return 1;
     }
-    catch(AtmosphereParameters::ParsingError const& ex)
-    {
-        std::cerr << ex.what() << "\n";
-        return 1;
-    }
     catch(ShowMySky::Error const& ex)
     {
         std::cerr << QObject::tr("Error: %1\n").arg(ex.what());

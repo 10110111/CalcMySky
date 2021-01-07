@@ -29,7 +29,7 @@ inline PhaseFunctionType parsePhaseFunctionType(QString const& type, QString con
     if(type=="general")    return PhaseFunctionType::General;
     if(type=="achromatic") return PhaseFunctionType::Achromatic;
     if(type=="smooth")     return PhaseFunctionType::Smooth;
-    throw ParsingError(QObject::tr("bad phase function type %1").arg(type), filename, lineNumber);
+    throw ParsingError(filename, lineNumber, QObject::tr("bad phase function type %1").arg(type));
 }
 
 enum SingleScatteringRenderMode
