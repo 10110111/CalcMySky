@@ -6,6 +6,7 @@
 #include <QString>
 #include <QVector3D>
 #include <QOpenGLFunctions_3_3_Core>
+#include "../ShowMySky/api/Exception.hpp"
 
 #define DEFINE_EXPLICIT_BOOL(Type)          \
 struct Type                                 \
@@ -21,14 +22,7 @@ inline QVector3D toQVector(glm::dvec3 const& v) { return QVector3D(v.x, v.y, v.z
 
 struct MustQuit{ int exitCode=1; };
 
-class Error
-{
-public:
-    virtual QString errorType() const = 0;
-    virtual QString what() const = 0;
-};
-
-class InitializationError : public Error
+class InitializationError : public ShowMySky::Error
 {
     QString message;
 public:
@@ -37,7 +31,7 @@ public:
     QString what() const override { return message; }
 };
 
-class OpenGLError : public Error
+class OpenGLError : public ShowMySky::Error
 {
     QString message;
 public:
@@ -46,7 +40,7 @@ public:
     QString what() const override { return message; }
 };
 
-class DataLoadError : public Error
+class DataLoadError : public ShowMySky::Error
 {
     QString message;
 public:
@@ -55,7 +49,7 @@ public:
     QString what() const override { return message; }
 };
 
-class BadCommandLine : public Error
+class BadCommandLine : public ShowMySky::Error
 {
     QString message;
 public:
@@ -64,7 +58,7 @@ public:
     QString what() const override { return message; }
 };
 
-class ParsingError : public Error
+class ParsingError : public ShowMySky::Error
 {
     QString message;
     QString filename;

@@ -100,7 +100,7 @@ int main(int argc, char** argv)
             tools->setFloating(true);
         return app.exec();
     }
-    catch(Error const& ex)
+    catch(ShowMySky::Error const& ex)
     {
         QMessageBox::critical(nullptr, ex.errorType(), ex.what());
         return 1;

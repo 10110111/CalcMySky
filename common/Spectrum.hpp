@@ -9,7 +9,7 @@
 class Spectrum
 {
 public:
-    class ResamplingError : public Error
+    class ResamplingError : public ShowMySky::Error
     {
         QString message;
     public:

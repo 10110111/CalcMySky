@@ -192,7 +192,7 @@ vec3 calcViewDir()
         if(renderer->readyToRender())
             tools->setCanGrabRadiance(renderer->canGrabRadiance());
     }
-    catch(Error const& ex)
+    catch(ShowMySky::Error const& ex)
     {
         QMessageBox::critical(this, ex.errorType(), ex.what());
     }

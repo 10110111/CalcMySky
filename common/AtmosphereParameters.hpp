@@ -12,7 +12,7 @@ struct AtmosphereParameters
     // We don't copy external spectra into output directory, so the renderer needs to skip loading them
     DEFINE_EXPLICIT_BOOL(SkipSpectra);
 
-    class ParsingError : public Error
+    class ParsingError : public ShowMySky::Error
     {
         QString message;
     public:

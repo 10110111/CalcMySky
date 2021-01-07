@@ -37,4 +37,4 @@ endif()
 
 install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
 install(TARGETS ShowMySky DESTINATION "${installLibDir}")
-install(FILES api/AtmosphereRenderer.hpp api/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")
+install(FILES api/Exception.hpp api/AtmosphereRenderer.hpp api/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")

@@ -1130,7 +1130,7 @@ int main(int argc, char** argv)
         std::cerr << ex.what() << "\n";
         return 1;
     }
-    catch(Error const& ex)
+    catch(ShowMySky::Error const& ex)
     {
         std::cerr << QObject::tr("Error: %1\n").arg(ex.what());
         return 1;

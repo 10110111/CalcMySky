@@ -8,6 +8,7 @@
 #include <qopengl.h>
 
 #include "Settings.hpp"
+#include "Exception.hpp"
 
 #ifdef SHOWMYSKY_COMPILING_SHARED_LIB
 # define SHOWMYSKY_DLL_PUBLIC Q_DECL_EXPORT
