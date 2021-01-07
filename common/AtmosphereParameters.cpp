@@ -114,9 +114,9 @@ double getQuantity(QString const& value, const double min, const double max, Qua
     auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z^-0-9]*)");
     if(!regex.exactMatch(value))
     {
-        std::cerr << filename << ":" << lineNumber << ": " << errorMessagePrefix << "bad format of " << quantity.name()
-                  << " quantity. Must be `NUMBER UNIT', e.g. `30.2 " << quantity.basicUnit() << "' (without the quotes).\n";
-        throw MustQuit{};
+        throw ParsingError{filename,lineNumber,
+            (errorMessagePrefix+"bad format of %1 quantity. Must be `NUMBER UNIT', e.g. `30.2 %2' (without the quotes).")
+                .arg(QString::fromStdString(quantity.name())).arg(quantity.basicUnit())};
     }
     bool ok;
     const auto x=regex.cap(1).toDouble(&ok);
@@ -127,21 +127,20 @@ double getQuantity(QString const& value, const double min, const double max, Qua
     const auto scaleIt=units.find(unit);
     if(scaleIt==units.end())
     {
-        std::cerr << filename << ":" << lineNumber << ": unrecognized " << quantity.name() << " unit " << unit << ". Can be one of ";
+        auto msg=QString("unrecognized %1 unit %2. Can be one of ").arg(QString::fromStdString(quantity.name())).arg(unit);
         for(auto it=units.begin(); it!=units.end(); ++it)
         {
-            if(it!=units.begin()) std::cerr << ',';
-            std::cerr << it->first;
+            if(it!=units.begin()) msg += ',';
+            msg += it->first;
         }
-        std::cerr << ".\n";
-        throw MustQuit{};
+        msg += '.';
+        throw ParsingError{filename,lineNumber,msg};
     }
     const auto finalX = x * scaleIt->second;
     if(finalX<min || finalX>max)
     {
-        std::cerr << filename << ":" << lineNumber << ": value " << finalX << " " << quantity.basicUnit()
-                  << " is out of range. Valid range is [" << min << ".." << max << "] " << quantity.basicUnit() << ".\n";
-        throw MustQuit{};
+        throw ParsingError{filename,lineNumber,QString("value %1 %2 is out of range. Valid range is [%3..%4] %5.")
+                                                .arg(finalX).arg(quantity.basicUnit()).arg(min).arg(max).arg(quantity.basicUnit())};
     }
     return finalX;
 }
@@ -196,9 +195,8 @@ std::vector<glm::vec4> getSpectrum(std::vector<glm::vec4> const& allWavelengths,
     const auto items=line.split(',');
     if(checkSize && size_t(items.size()) != allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem)
     {
-            std::cerr << filename << ":" << lineNumber << ": spectrum has " << items.size() << " entries, but there are "
-                      << allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem << " wavelengths\n";
-            throw MustQuit{};
+        throw ParsingError{filename,lineNumber,QString("spectrum has %1 entries, but there are %2 wavelengths")
+            .arg(items.size()).arg(allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem)};
     }
     if(items.size()%4)
         throw ParsingError{filename,lineNumber,"spectrum length must be a multiple of 4"};
@@ -323,8 +321,7 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
     }
     if(!description.valid())
     {
-        std::cerr << "Description of scatterer \"" << name << "\" is incomplete\n";
-        throw MustQuit{};
+        throw ParsingError{filename,lineNumber,QString("Description of scatterer \"%1\" is incomplete").arg(name)};
     }
 
     return description;
@@ -369,8 +366,7 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, c
     }
     if(!description.valid(skipSpectrum))
     {
-        std::cerr << "Description of absorber \"" << name << "\" is incomplete\n";
-        throw MustQuit{};
+        throw ParsingError{filename,lineNumber,QString("Description of absorber \"%1\" is incomplete").arg(name)};
     }
 
     return description;
@@ -383,8 +379,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
     QFile atmoDescr(atmoDescrFileName);
     if(!atmoDescr.open(QIODevice::ReadOnly))
     {
-        std::cerr << "Failed to open atmosphere description file: " << atmoDescr.errorString() << '\n';
-        throw MustQuit{};
+        throw DataLoadError{QString("Failed to open atmosphere description file: %1").arg(atmoDescr.errorString())};
     }
     descriptionFileText=atmoDescr.readAll();
     QTextStream stream(&descriptionFileText, QIODevice::ReadOnly);
@@ -412,8 +407,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
         const auto keyValue=codeAndComment[0].split(':');
         if(keyValue.size()!=2)
         {
-            std::cerr << atmoDescrFileName << ":" << lineNumber << ": error: not a key:value pair\n";
-            throw MustQuit{};
+            throw ParsingError{atmoDescrFileName,lineNumber, "error: not a key:value pair"};
         }
 
         constexpr auto GLSIZEI_MAX = std::numeric_limits<GLsizei>::max();
@@ -439,10 +433,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
         {
             const auto integer=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
             if(integer%2)
-            {
-                std::cerr << atmoDescrFileName << ":" << lineNumber << ": value for \"" << key << "\" must be even (shaders rely on this)\n";
-                throw MustQuit{};
-            }
+                throw ParsingError{atmoDescrFileName,lineNumber,QString("value for \"%1\" must be even (shaders rely on this)").arg(key)};
             scatteringTextureSize[0]=integer;
         }
         else if(key=="scattering texture size for dot(view,sun)")
@@ -492,8 +483,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
             if(std::find_if(scatterers.begin(), scatterers.end(),
                             [&](const auto& existing) { return existing.name==name; }) != scatterers.end())
             {
-                std::cerr << atmoDescrFileName << ":" << lineNumber << ": duplicate scatterer \"" << name << "\"\n";
-                throw MustQuit{};
+                throw ParsingError{atmoDescrFileName,lineNumber, QString("duplicate scatterer \"%1\"").arg(name)};
             }
             scatterers.emplace_back(parseScatterer(stream, name, allTexturesAreRadiance, atmoDescrFileName,++lineNumber));
         }
@@ -515,18 +505,15 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
 
     if(!stream.atEnd())
     {
-        std::cerr << atmoDescrFileName << ":" << lineNumber << ": error: failed to read file\n";
-        throw MustQuit{};
+        throw ParsingError{atmoDescrFileName,lineNumber, "error: failed to read file"};
     }
     if(allWavelengths.empty())
     {
-        std::cerr << "Wavelengths aren't specified in atmosphere description\n";
-        throw MustQuit{};
+        throw DataLoadError{"Wavelengths aren't specified in atmosphere description"};
     }
     if(solarIrradianceAtTOA.empty() && !skipSpectra)
     {
-        std::cerr << "Solar irradiance at TOA isn't specified in atmosphere description\n";
-        throw MustQuit{};
+        throw DataLoadError{"Solar irradiance at TOA isn't specified in atmosphere description"};
     }
     if(groundAlbedo.empty() && !skipSpectra)
     {
