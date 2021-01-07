@@ -1,5 +1,6 @@
 #include "AtmosphereParameters.hpp"
 #include <optional>
+#include <QDebug>
 #include "Spectrum.hpp"
 #include "const.hpp"
 
@@ -497,7 +498,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
                 groundAlbedo=getSpectrum(allWavelengths, value, 0, 1, atmoDescrFileName, lineNumber);
         }
         else
-            std::cerr << "WARNING: Unknown key: " << key << "\n";
+            qWarning() << "Unknown key:" << key;
     }
     eclipsedDoubleScatteringTextureSize[3]=scatteringTextureSize[3];
 
@@ -517,7 +518,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
     }
     if(groundAlbedo.empty() && !skipSpectra)
     {
-        std::cerr << "Warning: ground albedo was not specified, assuming 100% white.\n";
+        qWarning() << "Ground albedo was not specified, assuming 100% white.";
         groundAlbedo=std::vector<glm::vec4>(allWavelengths.size(), glm::vec4(1));
     }
 }
