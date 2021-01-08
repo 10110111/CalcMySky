@@ -30,6 +30,8 @@ public:
     // ShowMySky's caller code needs to decide whether it's time to use the eclipse
     // shaders—depending on sky configuration and performance requirements
     virtual bool usingEclipseShader() = 0;
+
+    virtual ~Settings() = default;
 };
 
 }
