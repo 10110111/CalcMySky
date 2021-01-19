@@ -276,7 +276,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
     {
         const auto oldZA=tools->sunZenithAngle(), oldAz=tools->sunAzimuth();
         tools->setSunZenithAngle(std::clamp(oldZA - (prevMouseY_-event->y())*M_PI/height()/tools->zoomFactor(), 0., M_PI));
-        tools->setSunAzimuth(std::clamp(oldAz - (prevMouseX_-event->x())*2*M_PI/width()/tools->zoomFactor(), -M_PI, M_PI));
+        tools->setSunAzimuth(std::remainder(oldAz - (prevMouseX_-event->x())*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
         break;
     }
     default:
