@@ -253,6 +253,15 @@ void GLWidget::updateSpectralRadiance(QPoint const& pixelPos)
     }
 }
 
+void GLWidget::wheelEvent(QWheelEvent* event)
+{
+    if(event->modifiers() & Qt::ControlModifier)
+    {
+        const auto increment = 0.1 * (event->angleDelta().y() > 0 ? 1 : -1);
+        tools->setZoomFactor(tools->zoomFactor() + increment);
+    }
+}
+
 void GLWidget::mouseMoveEvent(QMouseEvent* event)
 {
     if(event->buttons()==Qt::LeftButton && !(event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier)))

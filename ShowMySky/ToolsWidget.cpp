@@ -165,6 +165,11 @@ void ToolsWidget::setCanGrabRadiance(const bool can)
 	}
 }
 
+void ToolsWidget::setZoomFactor(const double zoom)
+{
+    zoomFactor_->setValue(zoom);
+}
+
 void ToolsWidget::setSunAzimuth(const double azimuth)
 {
     QSignalBlocker block(sunAzimuth_);
