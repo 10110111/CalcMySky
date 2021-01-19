@@ -270,14 +270,13 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
-    constexpr double scale=500;
     switch(dragMode_)
     {
     case DragMode::Sun:
     {
         const auto oldZA=tools->sunZenithAngle(), oldAz=tools->sunAzimuth();
-        tools->setSunZenithAngle(std::clamp(oldZA - (prevMouseY_-event->y())/scale, 0., M_PI));
-        tools->setSunAzimuth(std::clamp(oldAz - (prevMouseX_-event->x())/scale, -M_PI, M_PI));
+        tools->setSunZenithAngle(std::clamp(oldZA - (prevMouseY_-event->y())*M_PI/height(), 0., M_PI));
+        tools->setSunAzimuth(std::clamp(oldAz - (prevMouseX_-event->x())*2*M_PI/width(), -M_PI, M_PI));
         break;
     }
     default:
