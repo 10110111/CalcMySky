@@ -267,7 +267,8 @@ void GLWidget::wheelEvent(QWheelEvent* event)
 {
     if(event->modifiers() & Qt::ControlModifier)
     {
-        const auto increment = 0.1 * (event->angleDelta().y() > 0 ? 1 : -1);
+        const auto stepSize = event->modifiers() & Qt::ShiftModifier ? 0.1 : 0.5;
+        const auto increment = stepSize * event->angleDelta().y()/120.;
         tools->setZoomFactor(tools->zoomFactor() + increment);
     }
 }
