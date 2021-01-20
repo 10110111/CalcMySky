@@ -28,6 +28,8 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     Manipulator* moonElevation_=nullptr;
     Manipulator* moonAzimuth_=nullptr;
     Manipulator* zoomFactor_=nullptr;
+    Manipulator* cameraPitch_=nullptr;
+    Manipulator* cameraYaw_=nullptr;
     QCheckBox* onTheFlySingleScatteringEnabled_=nullptr;
     QCheckBox* onTheFlyPrecompDoubleScatteringEnabled_=nullptr;
     QCheckBox* zeroOrderScatteringEnabled_=nullptr;
@@ -52,6 +54,8 @@ public:
     double moonAzimuth()     override { return degree*moonAzimuth_->value(); }
     double moonZenithAngle() override { return degree*(90-moonElevation_->value()); }
     float zoomFactor() const { return zoomFactor_->value(); }
+    float cameraYaw() const { return cameraYaw_->value(); }
+    float cameraPitch() const { return cameraPitch_->value(); }
     bool onTheFlySingleScatteringEnabled() override { return onTheFlySingleScatteringEnabled_->isChecked(); }
     bool onTheFlyPrecompDoubleScatteringEnabled() override { return onTheFlyPrecompDoubleScatteringEnabled_->isChecked(); }
     bool zeroOrderScatteringEnabled() override { return zeroOrderScatteringEnabled_->isChecked(); }

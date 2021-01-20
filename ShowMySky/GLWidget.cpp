@@ -3,6 +3,7 @@
 #include <QMouseEvent>
 #include <QMessageBox>
 #include <QSurfaceFormat>
+#include <glm/gtx/transform.hpp>
 #include "../common/util.hpp"
 #include "util.hpp"
 #include "ToolsWidget.hpp"
@@ -99,6 +100,13 @@ void GLWidget::initializeGL()
         const std::function drawSurface=[this](QOpenGLShaderProgram& program)
         {
             program.setUniformValue("zoomFactor", tools->zoomFactor());
+            {
+                const float yaw=tools->cameraYaw()*M_PI/180;
+                const float pitch=tools->cameraPitch()*M_PI/180;
+                const auto camYaw=glm::rotate(yaw, glm::vec3(0,0,1));
+                const auto camPitch=glm::rotate(pitch, glm::vec3(0,-1,0));
+                program.setUniformValue("cameraRotation", toQMatrix(camYaw*camPitch));
+            }
             glBindVertexArray(vao_);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             glBindVertexArray(0);
@@ -179,13 +187,15 @@ void main()
 #version 330
 in vec3 position;
 uniform float zoomFactor;
+uniform mat3 cameraRotation;
 const float PI=3.1415926535897932;
 vec3 calcViewDir()
 {
     vec2 pos=position.xy/zoomFactor;
-    return vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
-                sin(pos.x*PI)*cos(pos.y*(PI/2)),
-                sin(pos.y*(PI/2)));
+    float alpha=PI/2;
+    return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
+                                sin(pos.x*PI)*cos(pos.y*(PI/2)),
+                                sin(pos.y*(PI/2)));
 }
 )";
         renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc);
