@@ -101,8 +101,8 @@ void GLWidget::initializeGL()
         {
             program.setUniformValue("zoomFactor", tools->zoomFactor());
             {
-                const float yaw=tools->cameraYaw()*M_PI/180;
-                const float pitch=tools->cameraPitch()*M_PI/180;
+                const float yaw=tools->cameraYaw();
+                const float pitch=tools->cameraPitch();
                 const auto camYaw=glm::rotate(yaw, glm::vec3(0,0,1));
                 const auto camPitch=glm::rotate(pitch, glm::vec3(0,-1,0));
                 program.setUniformValue("cameraRotation", toQMatrix(camYaw*camPitch));

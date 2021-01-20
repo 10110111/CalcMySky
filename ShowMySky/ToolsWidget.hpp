@@ -54,8 +54,8 @@ public:
     double moonAzimuth()     override { return degree*moonAzimuth_->value(); }
     double moonZenithAngle() override { return degree*(90-moonElevation_->value()); }
     float zoomFactor() const { return zoomFactor_->value(); }
-    float cameraYaw() const { return cameraYaw_->value(); }
-    float cameraPitch() const { return cameraPitch_->value(); }
+    float cameraYaw() const { return degree*cameraYaw_->value(); }
+    float cameraPitch() const { return degree*cameraPitch_->value(); }
     bool onTheFlySingleScatteringEnabled() override { return onTheFlySingleScatteringEnabled_->isChecked(); }
     bool onTheFlyPrecompDoubleScatteringEnabled() override { return onTheFlyPrecompDoubleScatteringEnabled_->isChecked(); }
     bool zeroOrderScatteringEnabled() override { return zeroOrderScatteringEnabled_->isChecked(); }
