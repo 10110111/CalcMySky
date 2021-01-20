@@ -172,6 +172,18 @@ void ToolsWidget::setZoomFactor(const double zoom)
     zoomFactor_->setValue(zoom);
 }
 
+void ToolsWidget::setCameraPitch(const double pitch)
+{
+    QSignalBlocker block(cameraPitch_);
+    cameraPitch_->setValue(pitch/degree);
+}
+
+void ToolsWidget::setCameraYaw(const double yaw)
+{
+    QSignalBlocker block(cameraYaw_);
+    cameraYaw_->setValue(yaw/degree);
+}
+
 void ToolsWidget::setSunAzimuth(const double azimuth)
 {
     QSignalBlocker block(sunAzimuth_);

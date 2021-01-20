@@ -289,6 +289,13 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
         tools->setSunAzimuth(std::remainder(oldAz - (prevMouseX_-event->x())*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
         break;
     }
+    case DragMode::Camera:
+    {
+        const auto oldPitch=tools->cameraPitch(), oldYaw=tools->cameraYaw();
+        tools->setCameraPitch(std::clamp(oldPitch + (prevMouseY_-event->y())*M_PI/height()/tools->zoomFactor(), -M_PI/2, M_PI/2));
+        tools->setCameraYaw(std::remainder(oldYaw - (prevMouseX_-event->x())*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
+        break;
+    }
     default:
         break;
     }

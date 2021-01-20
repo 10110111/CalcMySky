@@ -70,6 +70,8 @@ public:
     bool handleSpectralRadiance(ShowMySky::AtmosphereRenderer::SpectralRadiance const& spectrum);
     void setCanGrabRadiance(bool can);
     void setZoomFactor(double zoom);
+    void setCameraPitch(double pitch);
+    void setCameraYaw(double yaw);
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);
     void showFrameRate(long long frameTimeInUS);
