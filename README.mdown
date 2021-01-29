@@ -33,7 +33,7 @@ mkdir build
 cd build
 cmake ..
 make
-./CalcMySky/calcmysky ../sample.atmo --out-dir /tmp/result
+./CalcMySky/calcmysky ../examples/sample.atmo --out-dir /tmp/result
 ```
 To preview the resulting textures and shaders in action, run
 ```
