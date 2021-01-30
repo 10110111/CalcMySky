@@ -75,6 +75,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
                                         QString const* pathToData,
                                         ShowMySky::Settings* tools,
                                         std::function<void(QOpenGLShaderProgram&)> const* drawSurface);
+#define ShowMySky_ABI_version 1
 }
 
 #endif

@@ -91,6 +91,12 @@ void GLWidget::initializeGL()
             QLibrary showMySky("ShowMySky");
             if(!showMySky.load())
                 throw DataLoadError(tr("Failed to load ShowMySky library"));
+            const auto abi=reinterpret_cast<const quint32*>(showMySky.resolve("ShowMySky_ABI_version"));
+            if(!abi)
+                throw DataLoadError(tr("Failed to determine ABI version of ShowMySky library."));
+            if(*abi != ShowMySky_ABI_version)
+                throw DataLoadError(tr("ABI version of ShowMySky library is %1, but this program has been compiled against version %2.")
+                                    .arg(*abi).arg(ShowMySky_ABI_version));
             ShowMySky_AtmosphereRenderer_create=reinterpret_cast<decltype(ShowMySky_AtmosphereRenderer_create)>(
                                                 showMySky.resolve("ShowMySky_AtmosphereRenderer_create"));
             if(!ShowMySky_AtmosphereRenderer_create)
