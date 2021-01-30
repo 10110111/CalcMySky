@@ -136,7 +136,7 @@ uniform sampler2D bayerPattern;
 vec3 dither(vec3 c)
 {
     if(rgbMaxValue.r==0.) return c;
-    vec3 bayer=texture2D(bayerPattern,gl_FragCoord.xy/8.).rrr;
+    vec3 bayer=texture(bayerPattern,gl_FragCoord.xy/8.).rrr;
 
     vec3 rgb=c*rgbMaxValue;
     vec3 head=floor(rgb);
