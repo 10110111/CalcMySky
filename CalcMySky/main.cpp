@@ -170,7 +170,7 @@ void computeDirectGroundIrradiance(const unsigned texIndex)
 
 static constexpr char renderShaderFileName[]="render.frag";
 constexpr char viewDirFuncFileName[]="calc-view-dir.frag";
-constexpr char viewDirStubFunc[]="vec3 calcViewDir() { return vec3(0); }";
+constexpr char viewDirStubFunc[]="#version 330\nvec3 calcViewDir() { return vec3(0); }";
 void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
 {
     std::vector<std::pair<QString, QString>> sourcesToSave;
