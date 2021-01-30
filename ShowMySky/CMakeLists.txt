@@ -33,6 +33,8 @@ target_link_libraries(${showmyskyTarget} Qt5::Core Qt5::Widgets Qt5::OpenGL)
 if(WIN32)
     # Addition to the above hack: remove extraneous .exe
     set_target_properties(${showmyskyTarget} PROPERTIES SUFFIX "")
+    # Default subsystem is console. We don't want the console window to appear, so tweak linker parameters.
+    set_target_properties(${showmyskyTarget} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 endif()
 
 install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
