@@ -346,7 +346,10 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
     const auto ticksX=genTicks(wavelengths);
     const auto ticksY=genTicks(radiances, 0);
 
-    const float pixMin=0, pixMax=*std::max_element(radiances.begin(), radiances.end());
+    const float pixMin=0;
+    float pixMax=*std::max_element(radiances.begin(), radiances.end());
+    if(pixMax==0)
+        pixMax=1;
     const float w=width(), h=height();
     const float wlMin=wavelengths.front(), wlMax=wavelengths.back();
     const auto margins=calcPlotMargins(p, ticksY);
