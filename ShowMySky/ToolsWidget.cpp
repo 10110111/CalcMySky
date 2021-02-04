@@ -141,6 +141,7 @@ void ToolsWidget::showRadiancePlot()
     if(!radiancePlot_)
         radiancePlot_.reset(new RadiancePlot);
     radiancePlot_->show();
+    radiancePlot_->raise();
 }
 
 bool ToolsWidget::handleSpectralRadiance(ShowMySky::AtmosphereRenderer::SpectralRadiance const& spectrum)
