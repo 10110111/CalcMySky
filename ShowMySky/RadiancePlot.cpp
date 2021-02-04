@@ -409,6 +409,37 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
 
     p.setRenderHint(QPainter::Antialiasing,false);
     drawAxes(p, ticksX, ticksY, wlMin, wlMax, pixMin, pixMax);
+
+    // Mark singular values: infinities or NaNs
+    {
+        const auto badValueMark=QColor(127,0,0);
+        p.setPen(QPen(badValueMark, 0));
+        p.setBrush(badValueMark);
+        const float markSizePx=QFontMetricsF(p.font()).width("W");
+        const auto markSizeX=markSizePx/sx;
+        for(size_t i=0;i<wavelengths.size();++i)
+        {
+            const auto y=radiances[i];
+            if(std::isinf(y))
+            {
+                if(y>0)
+                {
+                    p.drawRect(QRectF(QPointF(wavelengths[i]-markSizeX/2, pixMax),
+                                      QPointF(wavelengths[i]+markSizeX/2, pixMax*0.9+pixMin*0.1)));
+                }
+                else
+                {
+                    p.drawRect(QRectF(QPointF(wavelengths[i]-markSizeX/2, pixMin),
+                                      QPointF(wavelengths[i]+markSizeX/2, pixMin*0.9+pixMax*0.1)));
+                }
+            }
+            else if(std::isnan(y))
+            {
+                p.drawRect(QRectF(QPointF(wavelengths[i]-markSizeX/2, pixMin),
+                                  QPointF(wavelengths[i]+markSizeX/2, pixMax)));
+            }
+        }
+    }
 }
 
 void RadiancePlot::keyPressEvent(QKeyEvent* event)
