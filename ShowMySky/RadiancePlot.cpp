@@ -375,7 +375,7 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
 
     auto filling=curve;
     // close the path to fill space under the curve
-    filling.lineTo(wavelengths.back(),0);
+    filling.lineTo(wavelengths.back(),1e-30); // y!=0, because for some reason QPainter ignores this point when all the values are very small, and this ordinate is 0
     filling.lineTo(wavelengths.front(),0);
 
     const auto fillBrush=makeSpectrumBrush();
