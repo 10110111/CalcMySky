@@ -94,6 +94,28 @@ static QString eNotationToTenNotation(QString num)
     return num;
 }
 
+static float minValidValue(const float* begin, const float* end)
+{
+    float min=INFINITY;
+    for(auto p=begin; p!=end; ++p)
+        if(std::isfinite(*p) && *p<min)
+            min=*p;
+    if(std::isinf(min))
+        return NAN;
+    return min;
+}
+
+static float maxValidValue(const float* begin, const float* end)
+{
+    float max=-INFINITY;
+    for(auto p=begin; p!=end; ++p)
+        if(std::isfinite(*p) && *p>max)
+            max=*p;
+    if(std::isinf(max))
+        return NAN;
+    return max;
+}
+
 RadiancePlot::RadiancePlot(QWidget* parent)
     : QWidget(parent)
 {
@@ -267,8 +289,9 @@ static std::vector<float> generateTicks(const float min, const float max)
 std::vector<std::pair<float,QString>> RadiancePlot::genTicks(std::vector<float> const& points, const float min) const
 {
     std::vector<std::pair<float,QString>> output;
-    const auto minmax=std::minmax_element(points.begin(), points.end());
-    const auto tickValues=generateTicks(std::isnan(min) ? *minmax.first : min, *minmax.second);
+    const auto minVal=minValidValue(points.data(), points.data()+points.size());
+    const auto maxVal=maxValidValue(points.data(), points.data()+points.size());
+    const auto tickValues=generateTicks(std::isnan(min) ? minVal : min, maxVal);
     for(const auto v : tickValues)
     {
         const auto num = std::abs(v);
@@ -347,8 +370,8 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
     const auto ticksY=genTicks(radiances, 0);
 
     const float pixMin=0;
-    float pixMax=*std::max_element(radiances.begin(), radiances.end());
-    if(pixMax==0)
+    float pixMax=maxValidValue(radiances.data(), radiances.data()+radiances.size());
+    if(pixMax==0 || std::isnan(pixMax))
         pixMax=1;
     const float w=width(), h=height();
     const float wlMin=wavelengths.front(), wlMax=wavelengths.back();
