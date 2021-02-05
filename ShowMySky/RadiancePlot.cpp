@@ -421,12 +421,12 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
         for(size_t i=0;i<wavelengths.size();++i)
         {
             const auto y=radiances[i];
+            const auto wlLeft = i==0 ? wavelengths.front() : (wavelengths[i-1]+wavelengths[i])/2;
+            const auto wlRight = i==wavelengths.size()-1 ? wavelengths.back() : (wavelengths[i+1]+wavelengths[i])/2;
             if(!std::isfinite(y))
             {
                 p.setPen(QPen(backgroundColor(), 0));
                 p.setBrush(backgroundColor());
-                const auto wlLeft = i==0 ? wavelengths.front() : (wavelengths[i-1]+wavelengths[i])/2;
-                const auto wlRight = i==wavelengths.size()-1 ? wavelengths.back() : (wavelengths[i+1]+wavelengths[i])/2;
                 p.drawRect(QRectF(QPointF(wlLeft, top), QPointF(wlRight, bottom)));
                 p.setPen(QPen(badValueMark, 0));
                 p.setBrush(badValueMark);
@@ -435,19 +435,18 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
             {
                 if(y>0)
                 {
-                    p.drawRect(QRectF(QPointF(wavelengths[i]-markSizeX/2, pixMax),
-                                      QPointF(wavelengths[i]+markSizeX/2, pixMax*0.9+pixMin*0.1)));
+                    p.drawRect(QRectF(QPointF(wlLeft, pixMax),
+                                      QPointF(wlRight, pixMax*0.9+pixMin*0.1)));
                 }
                 else
                 {
-                    p.drawRect(QRectF(QPointF(wavelengths[i]-markSizeX/2, pixMin),
-                                      QPointF(wavelengths[i]+markSizeX/2, pixMin*0.9+pixMax*0.1)));
+                    p.drawRect(QRectF(QPointF(wlLeft, pixMin),
+                                      QPointF(wlRight, pixMin*0.9+pixMax*0.1)));
                 }
             }
             else if(std::isnan(y))
             {
-                p.drawRect(QRectF(QPointF(wavelengths[i]-markSizeX/2, pixMin),
-                                  QPointF(wavelengths[i]+markSizeX/2, pixMax)));
+                p.drawRect(QRectF(QPointF(wlLeft, pixMin), QPointF(wlRight, pixMax)));
             }
         }
     }
