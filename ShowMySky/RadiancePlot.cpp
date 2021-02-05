@@ -413,13 +413,24 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
     // Mark singular values: infinities or NaNs
     {
         const auto badValueMark=QColor(127,0,0);
-        p.setPen(QPen(badValueMark, 0));
-        p.setBrush(badValueMark);
         const float markSizePx=QFontMetricsF(p.font()).width("W");
         const auto markSizeX=markSizePx/sx;
+        const auto invXform = coordTransform.inverted();
+        const auto top      = invXform.map(QPointF(0,height())).y();
+        const auto bottom   = invXform.map(QPointF(0,0)).y();
         for(size_t i=0;i<wavelengths.size();++i)
         {
             const auto y=radiances[i];
+            if(!std::isfinite(y))
+            {
+                p.setPen(QPen(backgroundColor(), 0));
+                p.setBrush(backgroundColor());
+                const auto wlLeft = i==0 ? wavelengths.front() : (wavelengths[i-1]+wavelengths[i])/2;
+                const auto wlRight = i==wavelengths.size()-1 ? wavelengths.back() : (wavelengths[i+1]+wavelengths[i])/2;
+                p.drawRect(QRectF(QPointF(wlLeft, top), QPointF(wlRight, bottom)));
+                p.setPen(QPen(badValueMark, 0));
+                p.setBrush(badValueMark);
+            }
             if(std::isinf(y))
             {
                 if(y>0)
