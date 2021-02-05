@@ -464,6 +464,16 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
 
     p.setRenderHint(QPainter::Antialiasing,false);
     drawAxes(p, ticksX, ticksY, wlMin, wlMax, pixMin, pixMax);
+
+    p.setRenderHint(QPainter::Antialiasing,true);
+    if(focusedPoint>=0 && focusedPoint<int(wavelengths.size()) && std::isfinite(radiances[focusedPoint]))
+    {
+        const float diskSizePx=QFontMetricsF(p.font()).width("o");
+        const auto x=wavelengths[focusedPoint];
+        const auto y=radiances[focusedPoint];
+        p.setBrush(curveColor());
+        p.drawEllipse(QPointF(x,y), diskSizePx/coordTransform.m11()/2, diskSizePx/coordTransform.m22()/2);
+    }
 }
 
 void RadiancePlot::keyPressEvent(QKeyEvent* event)
