@@ -89,8 +89,12 @@ static QBrush makeSpectrumBrush()
     return gradient;
 }
 
-static QString eNotationToTenNotation(QString num)
+static QString eNotationToTenNotation(QString num, const double value)
 {
+    if(std::isinf(value))
+        return QString::fromUtf8(value>0 ? u8"+\u221e" : u8"-\u221e");
+    if(std::isnan(value))
+        return "NaN";
     num.replace(QRegularExpression("^(-?[0-9](?:\\.[0-9]+)?)e\\+?(-?)0?([0-9]+)$"), "\\1&times;10<sup>\\2\\3</sup>");
     return num;
 }
@@ -222,7 +226,7 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
         p.restore();
 
         const auto axisLabelWidth = td->size().width();
-        const auto lumFormatted = eNotationToTenNotation(QString::number(luminance, 'g', 4));
+        const auto lumFormatted = eNotationToTenNotation(QString::number(luminance, 'g', 4), luminance);
         td->setHtml(tr("<body>luminance: %1 cd&#x2215;m<sup>2</sup></body>").arg(lumFormatted));
         const auto luminanceLabelWidth = td->size().width() + rightMargin*charWidth;
         if(axisLabelWidth + luminanceLabelWidth + 5*charWidth < width())
@@ -360,7 +364,7 @@ std::vector<std::pair<float,QString>> RadiancePlot::genTicks(std::vector<float> 
 
     for(auto& [value, tick] : output)
     {
-        tick=eNotationToTenNotation(tick);
+        tick=eNotationToTenNotation(tick, value);
         tick = QString("<body>%1%2</body>").arg(value<0?"-":"", tick);
     }
 
