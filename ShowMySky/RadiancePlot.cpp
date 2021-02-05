@@ -471,6 +471,7 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
         const float diskSizePx=QFontMetricsF(p.font()).width("o");
         const auto x=wavelengths[focusedPoint];
         const auto y=radiances[focusedPoint];
+        p.setPen(QPen(curveColor(), 0));
         p.setBrush(curveColor());
         p.drawEllipse(QPointF(x,y), diskSizePx/coordTransform.m11()/2, diskSizePx/coordTransform.m22()/2);
     }
