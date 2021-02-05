@@ -516,7 +516,7 @@ void RadiancePlot::mouseMoveEvent(QMouseEvent* event)
             focusedPoint=-1;
             update();
         }
-        statusBar->showMessage(QString("(%1, %2)").arg(pos.x()).arg(pos.y()));
+        statusBar->showMessage(QString("Cursor: (%1, %2)").arg(pos.x()).arg(pos.y()));
     }
 }
 
