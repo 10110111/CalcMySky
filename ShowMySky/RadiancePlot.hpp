@@ -14,6 +14,7 @@ class RadiancePlot : public QWidget
     std::vector<float> wavelengths, radiances;
     float luminance;
     float azimuth=NAN, elevation=NAN;
+    int focusedPoint=-1;
 public:
     RadiancePlot(QStatusBar* statusBar, QWidget* parent=nullptr);
     void setData(const float* wavelengths, const float* radiances, unsigned size,

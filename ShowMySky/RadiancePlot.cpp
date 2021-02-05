@@ -194,8 +194,9 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
     const auto charWidth=fm.width('x');
     const auto td=makeQTextDoc();
     // Y ticks
+    const auto yAxisPos=m.dx()+m.m11()*xMin;
     {
-        const auto axisPos=m.dx()+m.m11()*xMin;
+        const auto axisPos=yAxisPos;
         for(const auto& [y, label] : ticksY)
         {
             const auto tickY = m.dy()+m.m22()*y;
@@ -233,8 +234,9 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
         }
     }
     // X ticks
+    const auto xAxisPos=m.dy();
     {
-        const auto axisPos=m.dy();
+        const auto axisPos=xAxisPos;
         const auto tickBottomY = axisPos + xTickLineLength*fm.height();
         const auto labelPosY = tickBottomY + fm.height()*xTickSpaceAboveLabel;
         for(const auto& [x, label] : ticksX)
@@ -255,6 +257,17 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
          td->drawContents(&p);
         p.restore();
     }
+
+    if(focusedPoint>=0 && focusedPoint<int(wavelengths.size()))
+    {
+        p.setPen(QPen(textColor(), 0, Qt::DashLine));
+        const auto x=wavelengths[focusedPoint];
+        const auto y=radiances[focusedPoint];
+        p.drawLine(m.map(QPointF(x,0)), m.map(QPointF(x,yMax)));
+        if(std::isfinite(y))
+            p.drawLine(m.map(QPointF(xMin,y)), m.map(QPointF(xMax,y)));
+    }
+
     p.restore();
 }
 
@@ -413,7 +426,6 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
     // Mark singular values: infinities or NaNs
     {
         const auto badValueMark=QColor(127,0,0);
-        const float markSizePx=QFontMetricsF(p.font()).width("W");
         const auto invXform = coordTransform.inverted();
         const auto top      = invXform.map(QPointF(0,height())).y();
         const auto bottom   = invXform.map(QPointF(0,0)).y();
@@ -471,12 +483,40 @@ void RadiancePlot::mouseMoveEvent(QMouseEvent* event)
         return;
     }
     const auto pos=coordTransform.inverted().map(QPointF(event->pos()));
-    statusBar->showMessage(QString("(%1, %2)").arg(pos.x()).arg(pos.y()));
+    if(event->modifiers() & Qt::ControlModifier)
+    {
+        auto deltaWL=INFINITY;
+        for(unsigned n=0; n<wavelengths.size(); ++n)
+        {
+            const auto currentDelta=std::abs(wavelengths[n]-pos.x());
+            if(currentDelta < deltaWL)
+            {
+                focusedPoint=n;
+                deltaWL=currentDelta;
+            }
+        }
+        statusBar->showMessage(QString("Focused point: (%1, %2)").arg(wavelengths[focusedPoint]).arg(radiances[focusedPoint]));
+        update();
+    }
+    else
+    {
+        if(focusedPoint>=0)
+        {
+            focusedPoint=-1;
+            update();
+        }
+        statusBar->showMessage(QString("(%1, %2)").arg(pos.x()).arg(pos.y()));
+    }
 }
 
 void RadiancePlot::leaveEvent(QEvent*)
 {
     statusBar->clearMessage();
+    if(focusedPoint>=0)
+    {
+        focusedPoint=-1;
+        update();
+    }
 }
 
 void RadiancePlot::saveSpectrum()
