@@ -146,7 +146,9 @@ void ToolsWidget::showRadiancePlot()
         const auto layout=new QVBoxLayout(radiancePlotWindow_.get());
         const auto statusBar=new QStatusBar;
         statusBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+        statusBar->setFocusPolicy(Qt::NoFocus);
         radiancePlot_=new RadiancePlot(statusBar);
+        radiancePlot_->setFocusPolicy(Qt::StrongFocus);
         layout->addWidget(radiancePlot_);
         layout->addWidget(statusBar);
         layout->setContentsMargins(0,0,0,0);
