@@ -414,7 +414,6 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
     {
         const auto badValueMark=QColor(127,0,0);
         const float markSizePx=QFontMetricsF(p.font()).width("W");
-        const auto markSizeX=markSizePx/sx;
         const auto invXform = coordTransform.inverted();
         const auto top      = invXform.map(QPointF(0,height())).y();
         const auto bottom   = invXform.map(QPointF(0,0)).y();
@@ -435,13 +434,13 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
             {
                 if(y>0)
                 {
-                    p.drawRect(QRectF(QPointF(wlLeft, pixMax),
-                                      QPointF(wlRight, pixMax*0.9+pixMin*0.1)));
+                    const auto bottom=pixMax*0.9+pixMin*0.1;
+                    p.drawPolygon(QPolygonF({QPointF(wlLeft, bottom), QPointF(wlRight, bottom), QPointF(wavelengths[i], pixMax)}));
                 }
                 else
                 {
-                    p.drawRect(QRectF(QPointF(wlLeft, pixMin),
-                                      QPointF(wlRight, pixMin*0.9+pixMax*0.1)));
+                    const auto top=pixMax*0.1+pixMin*0.9;
+                    p.drawPolygon(QPolygonF({QPointF(wlLeft, top), QPointF(wlRight, top), QPointF(wavelengths[i], pixMin)}));
                 }
             }
             else if(std::isnan(y))
