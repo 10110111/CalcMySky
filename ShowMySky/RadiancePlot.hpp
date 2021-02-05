@@ -5,18 +5,18 @@
 #include <memory>
 #include <QWidget>
 
+class QLabel;
 class QTextDocument;
-class QStatusBar;
 class RadiancePlot : public QWidget
 {
-    QStatusBar* statusBar=nullptr;
+    QLabel* statusBar=nullptr;
     QTransform coordTransform;
     std::vector<float> wavelengths, radiances;
     float luminance;
     float azimuth=NAN, elevation=NAN;
     int focusedPoint=-1;
 public:
-    RadiancePlot(QStatusBar* statusBar, QWidget* parent=nullptr);
+    RadiancePlot(QLabel* statusBar, QWidget* parent=nullptr);
     void setData(const float* wavelengths, const float* radiances, unsigned size,
                  float azimuth, float elevation);
 

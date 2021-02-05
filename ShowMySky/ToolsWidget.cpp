@@ -1,6 +1,6 @@
 #include "ToolsWidget.hpp"
 #include <QFrame>
-#include <QStatusBar>
+#include <QLabel>
 #include <QPushButton>
 #include <cmath>
 #include "RadiancePlot.hpp"
@@ -144,7 +144,7 @@ void ToolsWidget::showRadiancePlot()
         radiancePlotWindow_.reset(new QWidget);
         radiancePlotWindow_->setWindowTitle(tr("Spectral radiance - ShowMySky"));
         const auto layout=new QVBoxLayout(radiancePlotWindow_.get());
-        const auto statusBar=new QStatusBar;
+        const auto statusBar=new QLabel;
         statusBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
         statusBar->setFocusPolicy(Qt::NoFocus);
         radiancePlot_=new RadiancePlot(statusBar);
@@ -152,6 +152,7 @@ void ToolsWidget::showRadiancePlot()
         layout->addWidget(radiancePlot_);
         layout->addWidget(statusBar);
         layout->setContentsMargins(0,0,0,0);
+        layout->setSpacing(3);
 
         const auto width=qApp->primaryScreen()->size().width()/3;
         const auto height=width*0.8;

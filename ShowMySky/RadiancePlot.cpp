@@ -1,8 +1,8 @@
 #include "RadiancePlot.hpp"
 #include <cassert>
 #include <algorithm>
+#include <QLabel>
 #include <QPainter>
-#include <QStatusBar>
 #include <QMessageBox>
 #include <QPaintEvent>
 #include <QFileDialog>
@@ -121,10 +121,11 @@ static float maxValidValue(const float* begin, const float* end)
     return max;
 }
 
-RadiancePlot::RadiancePlot(QStatusBar* statusBar, QWidget* parent)
+RadiancePlot::RadiancePlot(QLabel* statusBar, QWidget* parent)
     : QWidget(parent)
     , statusBar(statusBar)
 {
+    statusBar->setTextFormat(Qt::RichText);
     setAttribute(Qt::WA_NoSystemBackground,true);
     setMouseTracking(true);
 }
@@ -494,7 +495,7 @@ void RadiancePlot::mouseMoveEvent(QMouseEvent* event)
 {
     if(wavelengths.empty())
     {
-        statusBar->clearMessage();
+        statusBar->clear();
         return;
     }
     const auto pos=coordTransform.inverted().map(QPointF(event->pos()));
@@ -510,7 +511,10 @@ void RadiancePlot::mouseMoveEvent(QMouseEvent* event)
                 deltaWL=currentDelta;
             }
         }
-        statusBar->showMessage(QString("Focused point: (%1, %2)").arg(wavelengths[focusedPoint]).arg(radiances[focusedPoint]));
+        const auto y=radiances[focusedPoint];
+        statusBar->setText(QString("Focused point: (%1, %2)")
+                               .arg(wavelengths[focusedPoint])
+                               .arg(eNotationToTenNotation(QString::number(y, 'g', 6), y)));
         update();
     }
     else
@@ -520,13 +524,14 @@ void RadiancePlot::mouseMoveEvent(QMouseEvent* event)
             focusedPoint=-1;
             update();
         }
-        statusBar->showMessage(QString("Cursor: (%1, %2)").arg(pos.x()).arg(pos.y()));
+        statusBar->setText(QString("Cursor: (%1, %2)").arg(pos.x())
+                                                      .arg(eNotationToTenNotation(QString::number(pos.y(), 'g', 6), pos.y())));
     }
 }
 
 void RadiancePlot::leaveEvent(QEvent*)
 {
-    statusBar->clearMessage();
+    statusBar->clear();
     if(focusedPoint>=0)
     {
         focusedPoint=-1;
