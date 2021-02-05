@@ -2,6 +2,7 @@
 #include <cassert>
 #include <algorithm>
 #include <QPainter>
+#include <QStatusBar>
 #include <QMessageBox>
 #include <QPaintEvent>
 #include <QFileDialog>
@@ -116,11 +117,12 @@ static float maxValidValue(const float* begin, const float* end)
     return max;
 }
 
-RadiancePlot::RadiancePlot(QWidget* parent)
+RadiancePlot::RadiancePlot(QStatusBar* statusBar, QWidget* parent)
     : QWidget(parent)
+    , statusBar(statusBar)
 {
     setAttribute(Qt::WA_NoSystemBackground,true);
-    setWindowTitle(tr("Spectral radiance - ShowMySky"));
+    setMouseTracking(true);
 }
 
 void RadiancePlot::setData(const float* wavelengths, const float* radiances, const unsigned size,
@@ -387,7 +389,8 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
     const float sy=(1 - h + marginBottom + marginTop)/(pixMax - pixMin);
     const float dx=(marginLeft*wlMax + wlMin + marginRight*wlMin - w*wlMin)/(wlMax - wlMin);
     const float dy=(pixMax - h*pixMax + marginBottom*pixMax + marginTop*pixMin)/(pixMin-pixMax);
-    p.setTransform(QTransform(sx,0,0,sy,dx,dy));
+    coordTransform=QTransform(sx,0,0,sy,dx,dy);
+    p.setTransform(coordTransform);
 
     p.setRenderHint(QPainter::Antialiasing,true);
 
@@ -449,6 +452,22 @@ void RadiancePlot::keyPressEvent(QKeyEvent* event)
     {
         saveSpectrum();
     }
+}
+
+void RadiancePlot::mouseMoveEvent(QMouseEvent* event)
+{
+    if(wavelengths.empty())
+    {
+        statusBar->clearMessage();
+        return;
+    }
+    const auto pos=coordTransform.inverted().map(QPointF(event->pos()));
+    statusBar->showMessage(QString("(%1, %2)").arg(pos.x()).arg(pos.y()));
+}
+
+void RadiancePlot::leaveEvent(QEvent*)
+{
+    statusBar->clearMessage();
 }
 
 void RadiancePlot::saveSpectrum()

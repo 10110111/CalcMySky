@@ -6,19 +6,24 @@
 #include <QWidget>
 
 class QTextDocument;
+class QStatusBar;
 class RadiancePlot : public QWidget
 {
+    QStatusBar* statusBar=nullptr;
+    QTransform coordTransform;
     std::vector<float> wavelengths, radiances;
     float luminance;
     float azimuth=NAN, elevation=NAN;
 public:
-    RadiancePlot(QWidget* parent=nullptr);
+    RadiancePlot(QStatusBar* statusBar, QWidget* parent=nullptr);
     void setData(const float* wavelengths, const float* radiances, unsigned size,
                  float azimuth, float elevation);
 
 protected:
     void paintEvent(QPaintEvent *event);
     void keyPressEvent(QKeyEvent* event);
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void leaveEvent(QEvent* event) override;
 
 private:
     QMarginsF calcPlotMargins(QPainter const& p, std::vector<std::pair<float,QString>> const& ticksY) const;

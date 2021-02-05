@@ -39,7 +39,8 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QCheckBox* usingEclipseShader_=nullptr;
     QCheckBox* gradualClippingEnabled_=nullptr;
     QPushButton* showRadiancePlot_=nullptr;
-    std::unique_ptr<RadiancePlot> radiancePlot_;
+    std::unique_ptr<QWidget> radiancePlotWindow_;
+    RadiancePlot* radiancePlot_=nullptr;
     QWidget*const loadProgressWidget_=new QWidget;
     QLabel*const frameRate=new QLabel("N/A");
     QLabel*const loadProgressLabel_=new QLabel("Loading...");
