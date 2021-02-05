@@ -410,9 +410,6 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
     p.setPen(QPen(curveColor(),0));
     p.drawPath(curve);
 
-    p.setRenderHint(QPainter::Antialiasing,false);
-    drawAxes(p, ticksX, ticksY, wlMin, wlMax, pixMin, pixMax);
-
     // Mark singular values: infinities or NaNs
     {
         const auto badValueMark=QColor(127,0,0);
@@ -443,6 +440,9 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
             }
         }
     }
+
+    p.setRenderHint(QPainter::Antialiasing,false);
+    drawAxes(p, ticksX, ticksY, wlMin, wlMax, pixMin, pixMax);
 }
 
 void RadiancePlot::keyPressEvent(QKeyEvent* event)
