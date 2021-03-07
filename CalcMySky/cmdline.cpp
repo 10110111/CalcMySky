@@ -175,6 +175,7 @@ void handleCmdLine()
     const QCommandLineOption dbgSaveScatDensityOpt("save-scat-density","Save scattering density textures (for debugging)");
     const QCommandLineOption dbgSaveDeltaScatteringOpt("save-delta-scattering","Save delta scattering textures for each order (for debugging)");
     const QCommandLineOption dbgSaveAccumScatteringOpt("save-accum-scattering","Save accumulated multiple scattering textures for each order (for debugging)");
+    const QCommandLineOption dbgSaveLightPollutionIntermediateOpt("save-light-pollution","Save intermediate light pollution textures (for debugging)");
     const QList options{
                         helpOpt,
                         versionOpt,
@@ -187,6 +188,7 @@ void handleCmdLine()
                         dbgSaveScatDensityOpt,
                         dbgSaveDeltaScatteringOpt,
                         dbgSaveAccumScatteringOpt,
+                        dbgSaveLightPollutionIntermediateOpt,
                        };
     parser.addOptions(options);
     const std::pair<QString, QString> positionalArgument("atmosphere-description.atmo",
@@ -222,6 +224,8 @@ void handleCmdLine()
         opts.dbgSaveDeltaScattering=true;
     if(parser.isSet(dbgSaveAccumScatteringOpt))
         opts.dbgSaveAccumScattering=true;
+    if(parser.isSet(dbgSaveLightPollutionIntermediateOpt))
+        opts.dbgSaveLightPollutionIntermediateTextures=true;
 
     const auto posArgs=parser.positionalArguments();
     if(posArgs.size()>1)

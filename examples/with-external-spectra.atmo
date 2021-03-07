@@ -18,6 +18,10 @@ eclipsed double scattering texture size for SZA: 16
 eclipsed double scattering number of azimuth pairs to sample: 2
 eclipsed double scattering number of elevation pairs to sample: 10
 
+light pollution texture size for VZA: 128
+light pollution texture size for altitude: 64
+light pollution angular integration points: 200
+
 transmittance integration points: 500
 radial integration points: 50
 angular integration points: 512
@@ -39,6 +43,8 @@ solar irradiance at TOA: file spectra/solar-irradiance-at-toa.csv
 #  http://gsp.humboldt.edu/OLM/Courses/GSP_216_Online/lesson2-1/reflect.csv
 # The data set chosen is that for grass.
 ground albedo: file spectra/ground-albedo-grass.csv
+# This spectrum was taken from a measurement of a single HPS lamp and dividing the measured spectrum by its luminance.
+light pollution relative radiance: file spectra/hps-lamp-spectrum.csv
 
 Scatterer "molecules": # Rayleigh scattering
 {

@@ -436,6 +436,47 @@ void saveEclipsedDoubleScatteringRenderingShader(const unsigned texIndex)
     }
 }
 
+void saveLightPollutionRenderingShader(const unsigned texIndex)
+{
+    if(!opts.saveResultAsRadiance && texIndex!=0)
+    {
+        // There's only one luminance shader, so don't re-save it for each texIndex
+        return;
+    }
+
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
+    const QString macroToReplace = opts.saveResultAsRadiance ? "RENDERING_LIGHT_POLLUTION_RADIANCE" : "RENDERING_LIGHT_POLLUTION_LUMINANCE";
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{}).replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 /*\\1*/")
+                                                                                             .replace(QRegExp("\\b(RENDERING_ANY_LIGHT_POLLUTION)\\b"), "1/*\\1*/");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "light pollution rendering shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& [filename, src] : sourcesToSave)
+    {
+        if(filename==viewDirFuncFileName) continue;
+
+        const auto filePath = opts.saveResultAsRadiance ? QString("%1/shaders/light-pollution/%2/%3").arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename)
+                                                        : QString("%1/shaders/light-pollution/%2").arg(atmo.textureOutputDir.c_str()).arg(filename);
+        std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
+        QFile file(filePath);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
+
 void accumulateSingleScattering(const unsigned texIndex, AtmosphereParameters::Scatterer const& scatterer)
 {
     gl.glBlendFunc(GL_ONE, GL_ONE);
@@ -456,7 +497,7 @@ void accumulateSingleScattering(const unsigned texIndex, AtmosphereParameters::S
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, targetTexture,0);
     checkFramebufferStatus("framebuffer for accumulation of single scattering radiance");
 
-    const auto program=compileShaderProgram("copy-scattering-texture.frag",
+    const auto program=compileShaderProgram("copy-scattering-texture-3d.frag",
                                             "scattering texture copy-blend shader program",
                                             UseGeomShader{});
     program->bind();
@@ -723,7 +764,7 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_MULTIPLE_SCATTERING],0);
     checkFramebufferStatus("framebuffer for accumulation of multiple scattering data");
 
-    const auto program=compileShaderProgram("copy-scattering-texture.frag",
+    const auto program=compileShaderProgram("copy-scattering-texture-3d.frag",
                                             "scattering texture copy-blend shader program",
                                             UseGeomShader{});
     program->bind();
@@ -947,6 +988,128 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
     std::cerr << "done\n";
 }
 
+void computeLightPollutionSingleScattering(const unsigned texIndex)
+{
+    std::cerr << indentOutput() << "Computing light pollution single scattering... ";
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_LIGHT_POLLUTION]);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_LIGHT_POLLUTION_SCATTERING],0);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1, textures[TEX_LIGHT_POLLUTION_DELTA_SCATTERING],0);
+    checkFramebufferStatus("framebuffer for light pollution");
+    setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
+
+    gl.glViewport(0, 0, atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
+
+    const auto src=makeScattererDensityFunctionsSrc();
+    virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
+    const auto program=compileShaderProgram("compute-light-pollution-single-scattering.frag",
+                                            "shader program to compute single scattering of light pollution");
+    program->bind();
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
+    renderQuad();
+
+    gl.glFinish();
+    std::cerr << "done\n";
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+
+    if(!opts.dbgSaveLightPollutionIntermediateTextures) return;
+
+    constexpr unsigned scatteringOrder=1;
+    saveTexture(GL_TEXTURE_2D,textures[TEX_LIGHT_POLLUTION_DELTA_SCATTERING],"light pollution single scattering texture",
+                atmo.textureOutputDir+"/light-pollution-delta-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
+                {atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]});
+}
+
+void computeLightPollutionMultipleScattering(const unsigned texIndex)
+{
+    std::cerr << indentOutput() << "Computing light pollution multiple scattering...\n";
+    OutputIndentIncrease incr;
+
+    const auto src=makeScattererDensityFunctionsSrc();
+    virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
+    const auto program=compileShaderProgram("compute-light-pollution-multiple-scattering.frag",
+                                            "shader program to compute higher-order scattering of light pollution");
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_LIGHT_POLLUTION]);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_LIGHT_POLLUTION_SCATTERING],0);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1, textures[TEX_LIGHT_POLLUTION_DELTA_SCATTERING],0);
+    checkFramebufferStatus("framebuffer for light pollution");
+    gl.glViewport(0, 0, atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
+
+    gl.glBlendFunc(GL_ONE, GL_ONE);
+    for(unsigned scatteringOrder=2; scatteringOrder<=atmo.scatteringOrdersToCompute; ++scatteringOrder)
+    {
+        std::cerr << indentOutput() << "Computing light pollution scattering order " << scatteringOrder << "... ";
+        {
+            // Copy the delta scattering texture of the previous scattering order into a separate
+            // texture, because the former will be overwritten with the new scattering order
+            gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2, textures[TEX_LIGHT_POLLUTION_SCATTERING_PREV_ORDER],0);
+            gl.glReadBuffer(GL_COLOR_ATTACHMENT1);
+            setDrawBuffers({GL_COLOR_ATTACHMENT2});
+            const auto width=atmo.lightPollutionTextureSize[0], height=atmo.lightPollutionTextureSize[1];
+            gl.glBlitFramebuffer(0,0,width,height, 0,0,width,height, GL_COLOR_BUFFER_BIT,GL_NEAREST);
+            gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2, 0,0);
+        }
+        setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
+        gl.glEnablei(GL_BLEND, 0);
+
+        program->bind();
+        setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
+        setUniformTexture(*program,GL_TEXTURE_2D,TEX_LIGHT_POLLUTION_SCATTERING_PREV_ORDER,1,"lightPollutionScatteringTexture");
+        renderQuad();
+
+        gl.glFinish();
+        std::cerr << "done\n";
+
+        if(!opts.dbgSaveLightPollutionIntermediateTextures)
+            continue;
+
+        saveTexture(GL_TEXTURE_2D,textures[TEX_LIGHT_POLLUTION_DELTA_SCATTERING],"light pollution delta multiple scattering texture",
+                    atmo.textureOutputDir+"/light-pollution-delta-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
+                    {atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]});
+    }
+    gl.glDisablei(GL_BLEND, 0);
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void accumulateLightPollutionLuminanceTexture(const unsigned texIndex)
+{
+    const auto tex = TEX_LIGHT_POLLUTION_SCATTERING_LUMINANCE;
+    if(texIndex==0)
+    {
+        setupTexture(tex, atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
+    }
+    else
+    {
+        gl.glBlendFunc(GL_ONE, GL_ONE);
+        gl.glEnable(GL_BLEND);
+    }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_LIGHT_POLLUTION]);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[tex],0);
+    checkFramebufferStatus("framebuffer for accumulation of light pollution luminance");
+    setDrawBuffers({GL_COLOR_ATTACHMENT0});
+
+    const auto program=compileShaderProgram("copy-scattering-texture-2d.frag",
+                                            "light pollution texture copy-blend shader program",
+                                            UseGeomShader{});
+    program->bind();
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_LIGHT_POLLUTION_SCATTERING,0,"tex");
+    program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex)));
+    renderQuad();
+
+    if(texIndex+1==atmo.allWavelengths.size())
+    {
+        saveTexture(GL_TEXTURE_2D,textures[TEX_LIGHT_POLLUTION_SCATTERING_LUMINANCE],"light pollution texture",
+                    atmo.textureOutputDir+"/light-pollution-xyzw.f32",
+                    {atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]});
+    }
+
+    gl.glDisable(GL_BLEND);
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
 int main(int argc, char** argv)
 {
     [[maybe_unused]] UTF8Console utf8console;
@@ -1010,6 +1173,10 @@ int main(int argc, char** argv)
         if(opts.saveResultAsRadiance)
             for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
                 createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/"+std::to_string(texIndex));
+        createDirs(atmo.textureOutputDir+"/shaders/light-pollution/");
+        if(opts.saveResultAsRadiance)
+            for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
+                createDirs(atmo.textureOutputDir+"/shaders/light-pollution/"+std::to_string(texIndex));
 
         {
             std::cerr << "Writing parameters to output description file...";
@@ -1106,6 +1273,20 @@ int main(int argc, char** argv)
                 // sky color. Irradiance will also be needed when we want to draw the ground itself.
                 computeDirectGroundIrradiance(texIndex);
             }
+
+            computeLightPollutionSingleScattering(texIndex);
+            computeLightPollutionMultipleScattering(texIndex);
+            if(opts.saveResultAsRadiance)
+            {
+                saveTexture(GL_TEXTURE_2D,textures[TEX_LIGHT_POLLUTION_SCATTERING],"light pollution texture",
+                            atmo.textureOutputDir+"/light-pollution-wlset"+std::to_string(texIndex)+".f32",
+                            {atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]});
+            }
+            else
+            {
+                accumulateLightPollutionLuminanceTexture(texIndex);
+            }
+            saveLightPollutionRenderingShader(texIndex);
 
             computeMultipleScattering(texIndex);
             if(opts.saveResultAsRadiance)

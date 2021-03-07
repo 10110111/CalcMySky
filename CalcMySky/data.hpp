@@ -25,6 +25,7 @@ enum FBOId
     FBO_SINGLE_SCATTERING,
     FBO_MULTIPLE_SCATTERING,
     FBO_ECLIPSED_DOUBLE_SCATTERING,
+    FBO_LIGHT_POLLUTION,
 
     FBO_COUNT
 };
@@ -38,6 +39,10 @@ enum TextureId
     TEX_MULTIPLE_SCATTERING,
     TEX_DELTA_SCATTERING_DENSITY,
     TEX_ECLIPSED_DOUBLE_SCATTERING,
+    TEX_LIGHT_POLLUTION_SCATTERING,
+    TEX_LIGHT_POLLUTION_DELTA_SCATTERING,
+    TEX_LIGHT_POLLUTION_SCATTERING_LUMINANCE,
+    TEX_LIGHT_POLLUTION_SCATTERING_PREV_ORDER,
 
     TEX_COUNT
 };
@@ -55,6 +60,7 @@ struct Options
     bool dbgSaveScatDensity=false;
     bool dbgSaveDeltaScattering=false;
     bool dbgSaveAccumScattering=false;
+    bool dbgSaveLightPollutionIntermediateTextures=false;
 };
 inline Options opts;
 inline AtmosphereParameters atmo;

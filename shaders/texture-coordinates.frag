@@ -398,3 +398,90 @@ vec4 sampleEclipseDoubleScattering4DTexture(sampler3D texLower, sampler3D texUpp
 
     return mix(lower,upper,eclipsedDoubleScatteringAltitudeAlphaUpper);
 }
+
+LightPollutionTexVars scatteringTexIndicesToLightPollutionTexVars(const vec2 texIndices)
+{
+    const vec2 indexMax=lightPollutionTextureSize-vec2(1);
+
+    const float altitudeURCoord = texIndices[1] / (indexMax[1]-1);
+    const float distToHorizon = altitudeURCoord*LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
+    // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
+    const float altitude=clampAltitude(sqrt(sqr(distToHorizon)+sqr(earthRadius))-earthRadius);
+
+    const bool viewRayIntersectsGround = texIndices[0] < indexMax[0]/2;
+    const float cosViewZenithAngleCoord = viewRayIntersectsGround ?
+                                   1-2*texIndices[0]/(indexMax[0]-1) :
+                                   2*(texIndices[0]-1)/(indexMax[0]-1)-1;
+    // ------------------------------------
+    float cosViewZenithAngle;
+    if(viewRayIntersectsGround)
+    {
+        const float distMin=altitude;
+        const float distMax=distToHorizon;
+        const float distToGround=cosViewZenithAngleCoord*(distMax-distMin)+distMin;
+        cosViewZenithAngle = distToGround==0 ? -1 :
+            clampCosine(-(sqr(distToHorizon)+sqr(distToGround)) / (2*distToGround*(altitude+earthRadius)));
+    }
+    else
+    {
+        const float distMin=atmosphereHeight-altitude;
+        const float distMax=distToHorizon+LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
+        const float distToTopAtmoBorder=cosViewZenithAngleCoord*(distMax-distMin)+distMin;
+        cosViewZenithAngle = distToTopAtmoBorder==0 ? 1 :
+            clampCosine((sqr(LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO)-sqr(distToHorizon)-sqr(distToTopAtmoBorder)) /
+                        (2*distToTopAtmoBorder*(altitude+earthRadius)));
+    }
+
+    return LightPollutionTexVars(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+}
+
+LightPollution2DCoords lightPollutionTexVarsTo2DCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
+{
+    const float r=earthRadius+altitude;
+
+    const float distToHorizon = sqrt(sqr(altitude)+2*altitude*earthRadius);
+
+    // ------------------------------------
+    float cosVZACoord; // Coordinate for cos(viewZenithAngle)
+    const float rCvza=r*cosViewZenithAngle;
+    // Discriminant of the quadratic equation for the intersections of the ray (altitiude, cosViewZenithAngle) with the ground.
+    const float discriminant=sqr(rCvza)-sqr(r)+sqr(earthRadius);
+    if(viewRayIntersectsGround)
+    {
+        // Distance from camera to the ground along the view ray (altitude, cosViewZenithAngle)
+        const float distToGround = -rCvza-safeSqrt(discriminant);
+        // Minimum possible value of distToGround
+        const float distMin = altitude;
+        // Maximum possible value of distToGround
+        const float distMax = distToHorizon;
+        cosVZACoord = distMax==distMin ? 0. : (distToGround-distMin)/(distMax-distMin);
+    }
+    else
+    {
+        // Distance from camera to the atmosphere border along the view ray (altitude, cosViewZenithAngle)
+        // sqr(LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO) added to sqr(earthRadius) term in discriminant changes
+        // sqr(earthRadius) to sqr(earthRadius+atmosphereHeight), so that we target the top atmosphere boundary instead of bottom.
+        const float distToTopAtmoBorder = -rCvza+safeSqrt(discriminant+sqr(LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO));
+        const float distMin = atmosphereHeight-altitude;
+        const float distMax = distToHorizon+LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
+        cosVZACoord = distMax==distMin ? 0. : (distToTopAtmoBorder-distMin)/(distMax-distMin);
+    }
+
+    // ------------------------------------
+    const float altCoord = distToHorizon / LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
+
+    return LightPollution2DCoords(cosVZACoord, altCoord);
+}
+
+vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
+{
+    const LightPollution2DCoords coords = lightPollutionTexVarsTo2DCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    const vec2 texSize = lightPollutionTextureSize;
+    const float cosVZAtc = viewRayIntersectsGround ?
+                            // Coordinate is in ~[0,0.5]
+                            0.5-0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, texSize[0]/2) :
+                            // Coordinate is in ~[0.5,1]
+                            0.5+0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, texSize[0]/2);
+    const float altitudeTC = unitRangeToTexCoord(coords.altitude, texSize[1]);
+    return vec2(cosVZAtc, altitudeTC);
+}

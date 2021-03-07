@@ -107,6 +107,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
                 { frame->setEnabled(state==Qt::Checked); });
     }
     multipleScatteringEnabled_  = addCheckBox(layout, this, text_drawMultipleScattering, true);
+    lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 20, 2, QString::fromUtf8(u8"\u202fcd/m²"));
     textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
     onTheFlyPrecompDoubleScatteringEnabled_=addCheckBox(layout, this, tr("Precompute double(-only) scattering on the fly"), true);

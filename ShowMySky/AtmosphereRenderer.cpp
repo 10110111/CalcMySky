@@ -508,6 +508,44 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
         // dummy dimension
         tex.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::Repeat);
     }
+
+    lightPollutionTextures_.clear();
+    if(const auto filename=pathToData_+"/light-pollution-xyzw.f32"; QFile::exists(filename))
+    {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo_;
+        }
+        else
+        {
+            auto& tex=*lightPollutionTextures_.emplace_back(newTex(QOpenGLTexture::Target2D));
+            tex.setMinificationFilter(texFilter);
+            tex.setMagnificationFilter(texFilter);
+            tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+            tex.bind();
+            loadTexture2D(filename);
+            tick(++loadingStepsDone_);
+        }
+    }
+    else
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+                continue;
+            }
+
+            auto& tex=*lightPollutionTextures_.emplace_back(newTex(QOpenGLTexture::Target2D));
+            tex.setMinificationFilter(texFilter);
+            tex.setMagnificationFilter(texFilter);
+            tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+            tex.bind();
+            loadTexture2D(QString("%1/light-pollution-wlset%2.f32").arg(pathToData_).arg(wlSetIndex));
+            tick(++loadingStepsDone_);
+        }
+    }
 }
 
 void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
@@ -853,6 +891,48 @@ void main()
         link(program, tr("view direction getter shader program"));
         tick(++loadingStepsDone_);
     }
+
+    lightPollutionPrograms_.clear();
+    if(QFile::exists(pathToData_+"/shaders/light-pollution/0/"))
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+                continue;
+            }
+
+            auto& program=*lightPollutionPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+            const auto wlDir=QString("%1/shaders/light-pollution/%2").arg(pathToData_).arg(wlSetIndex);
+            qDebug().nospace() << "Loading shaders from " << wlDir << "...";
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+                addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+            program.addShader(&viewDirFragShader);
+            program.addShader(&viewDirVertShader);
+            link(program, tr("light pollution shader program"));
+            tick(++loadingStepsDone_);
+        }
+    }
+    else
+    {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo_;
+        }
+        else
+        {
+            auto& program=*lightPollutionPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+            const auto wlDir=pathToData_+"/shaders/light-pollution/";
+            qDebug().nospace() << "Loading shaders from " << wlDir << "...";
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+                addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+            program.addShader(&viewDirFragShader);
+            program.addShader(&viewDirVertShader);
+            link(program, tr("light pollution shader program"));
+            tick(++loadingStepsDone_);
+        }
+    }
 }
 
 void AtmosphereRenderer::setupBuffers()
@@ -1001,6 +1081,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
+            prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             drawSurface(prog);
         }
         else
@@ -1013,6 +1094,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("transmittanceTexture", 0);
             irradianceTextures_[wlSetIndex]->bind(1);
             prog.setUniformValue("irradianceTexture",1);
+            prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             drawSurface(prog);
         }
     }
@@ -1326,6 +1408,50 @@ void AtmosphereRenderer::renderMultipleScattering()
     }
 }
 
+void AtmosphereRenderer::renderLightPollution()
+{
+    OGL_TRACE();
+
+    const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+
+    if(lightPollutionPrograms_.size()==1)
+    {
+        auto& prog=*lightPollutionPrograms_.front();
+        prog.bind();
+        prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+        prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+
+        auto& tex=*lightPollutionTextures_.front();
+        tex.setMinificationFilter(texFilter);
+        tex.setMagnificationFilter(texFilter);
+        tex.bind(0);
+        prog.setUniformValue("lightPollutionScatteringTexture", 0);
+        prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
+        drawSurface(prog);
+    }
+    else
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(!radianceRenderBuffers_.empty())
+                gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
+
+            auto& prog=*lightPollutionPrograms_[wlSetIndex];
+            prog.bind();
+            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+
+            auto& tex=*lightPollutionTextures_[wlSetIndex];
+            tex.setMinificationFilter(texFilter);
+            tex.setMagnificationFilter(texFilter);
+            tex.bind(0);
+            prog.setUniformValue("lightPollutionScatteringTexture", 0);
+            prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
+            drawSurface(prog);
+        }
+    }
+}
+
 void AtmosphereRenderer::draw(const double brightness, const bool clear)
 {
     OGL_TRACE();
@@ -1382,6 +1508,8 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
                 renderSingleScattering();
             if(tools_->multipleScatteringEnabled())
                 renderMultipleScattering();
+            if(tools_->lightPollutionGroundLuminance())
+                renderLightPollution();
         }
         gl.glDisablei(GL_BLEND, 0);
 

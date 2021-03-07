@@ -67,6 +67,7 @@ private: // variables
     std::vector<TexturePtr> multipleScatteringTextures_;
     std::vector<TexturePtr> transmittanceTextures_;
     std::vector<TexturePtr> irradianceTextures_;
+    std::vector<TexturePtr> lightPollutionTextures_;
     std::vector<GLuint> radianceRenderBuffers_;
     GLuint viewDirectionRenderBuffer_=0;
     // Indexed as singleScatteringTextures_[scattererName][wavelengthSetIndex]
@@ -81,6 +82,7 @@ private: // variables
     float staticAltitudeTexCoord_=-1;
     float eclipsedDoubleScatteringAltitudeAlphaUpper_=-1;
 
+    std::vector<ShaderProgPtr> lightPollutionPrograms_;
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> eclipsedZeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> multipleScatteringPrograms_;
@@ -130,6 +132,7 @@ private: // methods
     void renderZeroOrderScattering();
     void renderSingleScattering();
     void renderMultipleScattering();
+    void renderLightPollution();
     void prepareRadianceFrames(bool clear);
 };
 

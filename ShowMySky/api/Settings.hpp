@@ -20,6 +20,9 @@ public:
     // This one should normally be on whenever single scattering is on, but can be disabled for debugging
     virtual bool multipleScatteringEnabled() = 0;
 
+    // Ground luminance in cd/m^2. Should normally be zero during daytime and nonzero from evening to morning.
+    virtual double lightPollutionGroundLuminance() = 0;
+
     // Performance-quality tradeoff settings
     virtual bool onTheFlySingleScatteringEnabled() = 0;
     virtual bool onTheFlyPrecompDoubleScatteringEnabled() = 0;

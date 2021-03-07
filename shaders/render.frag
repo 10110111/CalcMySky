@@ -11,6 +11,7 @@
 #include "radiance-to-luminance.h.glsl"
 #include_if(RENDERING_ANY_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
 #include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
+#include_if(RENDERING_ANY_LIGHT_POLLUTION) "texture-sampling-functions.h.glsl"
 
 uniform sampler3D scatteringTexture;
 uniform sampler2D eclipsedScatteringTexture;
@@ -19,6 +20,7 @@ uniform sampler3D eclipsedDoubleScatteringTextureUpper;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
 uniform vec3 moonPosition;
+uniform float lightPollutionGroundLuminance;
 in vec3 position;
 layout(location=0) out vec4 luminance;
 layout(location=1) out vec4 radianceOutput;
@@ -79,7 +81,8 @@ void main()
         const vec4 groundIrradiance = irradiance(dot(groundNormal, sunDirection), 0);
         // Radiation scattered by the ground
         const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-        radiance=transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
+        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF
+                 + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
     else if(dotViewSun>cos(sunAngularRadius))
     {
@@ -107,7 +110,8 @@ void main()
         const vec4 groundIrradiance = directGroundIrradiance;
         // Radiation scattered by the ground
         const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-        radiance=transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
+        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF
+                 + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
     else if(dotViewSun>cos(sunAngularRadius) && dotViewMoon<cos(moonAngularRadius))
     {
@@ -174,6 +178,12 @@ void main()
     const vec4 radiance=sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z, dotViewSun, altitude, viewRayIntersectsGround);
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
+#elif RENDERING_LIGHT_POLLUTION_RADIANCE
+    const vec4 radiance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, viewDir.z, viewRayIntersectsGround);
+    luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
+#elif RENDERING_LIGHT_POLLUTION_LUMINANCE
+    luminance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, viewDir.z, viewRayIntersectsGround);
 #else
 #error What to render?
 #endif

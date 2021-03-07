@@ -1,0 +1,6 @@
+#ifndef INCLUDE_ONCE_04C652F1_2B2D_412B_991E_D2E9E6CD7EBB
+#define INCLUDE_ONCE_04C652F1_2B2D_412B_991E_D2E9E6CD7EBB
+
+vec4 computeMultipleScatteringForLightPollution(const float cosViewZenithAngle, const float altitude, const bool viewRayIntersectsGround);
+
+#endif
