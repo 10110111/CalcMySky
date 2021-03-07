@@ -27,10 +27,10 @@ constexpr double rightMargin=3;
 
 glm::vec3 RGB2sRGB(glm::vec3 const& RGB)
 {
-    // No, we aren't gonna do the piecewise sRGB gamma
-    // pedantry. Just the usual good approximation.
-    return pow(RGB, glm::vec3(1/2.2));
+    using namespace glm;
+    return step(0.0031308f,RGB)*(1.055f*pow(RGB, vec3(1/2.4f))-0.055f)+step(-0.0031308f,-RGB)*12.92f*RGB;
 }
+
 
 // Linear part of sRGB transformation
 glm::vec3 XYZ2RGB(glm::vec3 const& XYZ)

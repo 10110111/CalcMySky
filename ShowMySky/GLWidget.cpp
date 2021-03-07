@@ -155,6 +155,11 @@ vec3 clip(vec3 rgb)
     return sqrt(tanh(rgb*rgb));
 }
 
+vec3 sRGBTransferFunction(const vec3 c)
+{
+    return step(0.0031308,c)*(1.055*pow(c, vec3(1/2.4))-0.055)+step(-0.0031308,-c)*12.92*c;
+}
+
 void main()
 {
     vec3 XYZ=texture(luminanceXYZW, texCoord).xyz;
@@ -163,7 +168,7 @@ void main()
                               vec3(-0.4986,0.0415,1.057));
     vec3 rgb=XYZ2sRGBl*XYZ*exposure;
     vec3 clippedRGB = gradualClipping ? clip(rgb) : clamp(rgb, 0., 1.);
-    vec3 srgb=pow(clippedRGB, vec3(1/2.2));
+    vec3 srgb=sRGBTransferFunction(clippedRGB);
     color=vec4(dither(srgb),1);
 }
 )");
