@@ -64,7 +64,21 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     cameraPitch_  = addManipulator(layout, this, tr("Camera pitch"), -90, 90, 0, 2, QChar(0x00b0));
     cameraYaw_    = addManipulator(layout, this, tr("Camera yaw")  ,-180,180, 0, 2, QChar(0x00b0));
     {
-        ditheringMode_->addItem(tr("Disabled"));
+        ditheringMethod_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        ditheringMethod_->addItem(tr("No dithering"));
+        ditheringMethod_->addItem(tr("Ordered dithering (Bayer)"));
+        ditheringMethod_->addItem(tr("Optimized blue noise with triangular remapping"));
+        ditheringMethod_->setCurrentIndex(static_cast<int>(GLWidget::DitheringMethod::BlueNoiseTriangleRemapped));
+        connect(ditheringMethod_, qOverload<int>(&QComboBox::currentIndexChanged), this, &ToolsWidget::ditheringMethodChanged);
+        const auto hbox=new QHBoxLayout;
+        const auto label=new QLabel(tr("Ditheri&ng method"));
+        label->setBuddy(ditheringMethod_);
+        hbox->addWidget(label);
+        hbox->addWidget(ditheringMethod_);
+        ditheringMethod_->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
+        layout->addLayout(hbox);
+    }
+    {
         ditheringMode_->addItem(tr("5/6/5-bit"));
         ditheringMode_->addItem(tr("6/6/6-bit"));
         ditheringMode_->addItem(tr("8/8/8-bit"));
@@ -72,7 +86,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         ditheringMode_->setCurrentIndex(static_cast<int>(GLWidget::DitheringMode::Color888));
         connect(ditheringMode_, qOverload<int>(&QComboBox::currentIndexChanged), this, &ToolsWidget::settingChanged);
         const auto hbox=new QHBoxLayout;
-        const auto label=new QLabel(tr("&Dithering"));
+        const auto label=new QLabel(tr("&Dithering color depth"));
         label->setBuddy(ditheringMode_);
         hbox->addWidget(label);
         hbox->addWidget(ditheringMode_);

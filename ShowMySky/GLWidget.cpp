@@ -8,10 +8,11 @@
 #include "util.hpp"
 #include "ToolsWidget.hpp"
 #include "AtmosphereRenderer.hpp"
+#include "BlueNoiseTriangleRemapped.hpp"
 
 GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* parent)
     : QOpenGLWidget(parent)
-    , bayerPatternTexture_(QOpenGLTexture::Target2D)
+    , ditherPatternTexture_(QOpenGLTexture::Target2D)
     , pathToData(pathToData)
     , tools(tools)
 {
@@ -36,25 +37,45 @@ GLWidget::~GLWidget()
     }
 }
 
-void GLWidget::makeBayerPatternTexture()
+void GLWidget::makeDitherPatternTexture()
 {
-    bayerPatternTexture_.setMinificationFilter(QOpenGLTexture::Nearest);
-    bayerPatternTexture_.setMagnificationFilter(QOpenGLTexture::Nearest);
-    bayerPatternTexture_.setWrapMode(QOpenGLTexture::Repeat);
-    bayerPatternTexture_.bind();
-	static constexpr float bayerPattern[8*8] =
-	{
-		// 8x8 Bayer ordered dithering pattern.
-		0/64.f, 32/64.f,  8/64.f, 40/64.f,  2/64.f, 34/64.f, 10/64.f, 42/64.f,
-		48/64.f, 16/64.f, 56/64.f, 24/64.f, 50/64.f, 18/64.f, 58/64.f, 26/64.f,
-		12/64.f, 44/64.f,  4/64.f, 36/64.f, 14/64.f, 46/64.f,  6/64.f, 38/64.f,
-		60/64.f, 28/64.f, 52/64.f, 20/64.f, 62/64.f, 30/64.f, 54/64.f, 22/64.f,
-		3/64.f, 35/64.f, 11/64.f, 43/64.f,  1/64.f, 33/64.f,  9/64.f, 41/64.f,
-		51/64.f, 19/64.f, 59/64.f, 27/64.f, 49/64.f, 17/64.f, 57/64.f, 25/64.f,
-		15/64.f, 47/64.f,  7/64.f, 39/64.f, 13/64.f, 45/64.f,  5/64.f, 37/64.f,
-		63/64.f, 31/64.f, 55/64.f, 23/64.f, 61/64.f, 29/64.f, 53/64.f, 21/64.f
-	};
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 8, 8, 0, GL_RED, GL_FLOAT, bayerPattern);
+    ditherPatternTexture_.setMinificationFilter(QOpenGLTexture::Nearest);
+    ditherPatternTexture_.setMagnificationFilter(QOpenGLTexture::Nearest);
+    ditherPatternTexture_.setWrapMode(QOpenGLTexture::Repeat);
+    ditherPatternTexture_.bind();
+    switch(tools->ditheringMethod())
+    {
+    case DitheringMethod::NoDithering:
+    {
+        static const float zero=0;
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, 1,1, 0, GL_RED, GL_FLOAT, &zero);
+        break;
+    }
+    case DitheringMethod::BlueNoiseTriangleRemapped:
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, std::size(blueNoiseTriangleRemapped), std::size(blueNoiseTriangleRemapped[0]),
+                     0, GL_RED, GL_FLOAT, blueNoiseTriangleRemapped);
+        break;
+    case DitheringMethod::Bayer:
+    {
+        static constexpr int width=8, height=8;
+        static constexpr float bayerPattern[width*height] =
+        {
+            // 8x8 Bayer ordered dithering pattern.
+            0/64.f, 32/64.f,  8/64.f, 40/64.f,  2/64.f, 34/64.f, 10/64.f, 42/64.f,
+            48/64.f, 16/64.f, 56/64.f, 24/64.f, 50/64.f, 18/64.f, 58/64.f, 26/64.f,
+            12/64.f, 44/64.f,  4/64.f, 36/64.f, 14/64.f, 46/64.f,  6/64.f, 38/64.f,
+            60/64.f, 28/64.f, 52/64.f, 20/64.f, 62/64.f, 30/64.f, 54/64.f, 22/64.f,
+            3/64.f, 35/64.f, 11/64.f, 43/64.f,  1/64.f, 33/64.f,  9/64.f, 41/64.f,
+            51/64.f, 19/64.f, 59/64.f, 27/64.f, 49/64.f, 17/64.f, 57/64.f, 25/64.f,
+            15/64.f, 47/64.f,  7/64.f, 39/64.f, 13/64.f, 45/64.f,  5/64.f, 37/64.f,
+            63/64.f, 31/64.f, 55/64.f, 23/64.f, 61/64.f, 29/64.f, 53/64.f, 21/64.f
+        };
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, width, height, 0, GL_RED, GL_FLOAT, bayerPattern);
+        break;
+    }
+    default:
+        std::abort();
+    }
 }
 
 QVector3D GLWidget::rgbMaxValue() const
@@ -62,8 +83,6 @@ QVector3D GLWidget::rgbMaxValue() const
     switch(tools->ditheringMode())
 	{
 		default:
-		case DitheringMode::Disabled:
-			return QVector3D(0,0,0);
 		case DitheringMode::Color666:
 			return QVector3D(63,63,63);
 		case DitheringMode::Color565:
@@ -121,34 +140,63 @@ void GLWidget::initializeGL()
         tools->updateParameters(static_cast<AtmosphereRenderer*>(renderer.get())->atmosphereParameters());
         connect(renderer->asQObject(), SIGNAL(loadProgress(QString const&,int,int)), this, SLOT(onLoadProgress(QString const&,int,int)));
         connect(tools, &ToolsWidget::settingChanged, this, qOverload<>(&GLWidget::update));
+        connect(tools, &ToolsWidget::ditheringMethodChanged, this, [this]
+                { makeDitherPatternTexture(); update(); });
         connect(tools, &ToolsWidget::setScattererEnabled, this, [this,renderer=renderer.get()](QString const& name, const bool enable)
                 { renderer->setScattererEnabled(name, enable); update(); });
         connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
 
-        makeBayerPatternTexture();
+        makeDitherPatternTexture();
         setupBuffers();
 
         luminanceToScreenRGB_=std::make_unique<QOpenGLShaderProgram>();
-        addShaderCode(*luminanceToScreenRGB_, QOpenGLShader::Fragment, tr("luminanceToScreenRGB fragment shader"), 1+R"(
+        addShaderCode(*luminanceToScreenRGB_, QOpenGLShader::Fragment, tr("luminanceToScreenRGB fragment shader"), (1+R"(
 #version 330
 uniform float exposure;
 uniform sampler2D luminanceXYZW;
 in vec2 texCoord;
 out vec4 color;
 
+#define DM_NONE )"+std::to_string(static_cast<int>(DitheringMethod::NoDithering))+R"(
+#define DM_BAYER )"+std::to_string(static_cast<int>(DitheringMethod::Bayer))+R"(
+#define DM_BLUE_TRIANG )"+std::to_string(static_cast<int>(DitheringMethod::BlueNoiseTriangleRemapped))+R"(
+uniform int ditheringMethod;
 uniform bool gradualClipping;
 uniform vec3 rgbMaxValue;
-uniform sampler2D bayerPattern;
-vec3 dither(vec3 c)
+uniform sampler2D ditherPattern;
+vec3 dither_BlueTriang(vec3 c)
 {
-    if(rgbMaxValue.r==0.) return c;
-    vec3 bayer=texture(bayerPattern,gl_FragCoord.xy/8.).rrr;
+    vec3 noise=texture(ditherPattern,gl_FragCoord.xy/64.).rrr;
+
+    {
+        // Prevent undershoot (imperfect white) due to clipping of positive noise contributions
+        vec3 antiUndershootC = 1+(0.5-sqrt(2*rgbMaxValue*(1-c)))/rgbMaxValue;
+        vec3 edge = 1-1/(2*rgbMaxValue);
+        // Per-component version of: c = c > edge ? antiUndershootC : c;
+        c = antiUndershootC + step(-edge, -c) * (c-antiUndershootC);
+    }
+
+    {
+        // Prevent overshoot (imperfect black) due to clipping of negative noise contributions
+        vec3 antiOvershootC  = (-1+sqrt(8*rgbMaxValue*c))/(2*rgbMaxValue);
+        vec3 edge = 1/(2*rgbMaxValue);
+        // Per-component version of: c = c < edge ? antiOvershootC : c;
+        c = antiOvershootC + step(edge, c) * (c-antiOvershootC);
+    }
+
+    return c+noise/rgbMaxValue;
+}
+
+vec3 dither_Bayer(vec3 c)
+{
+    vec3 bayer=texture(ditherPattern,gl_FragCoord.xy/8.).rrr;
 
     vec3 rgb=c*rgbMaxValue;
     vec3 head=floor(rgb);
     vec3 tail=rgb-head;
     return (head+1.-step(tail,bayer))/rgbMaxValue;
 }
+
 
 vec3 clip(vec3 rgb)
 {
@@ -169,9 +217,14 @@ void main()
     vec3 rgb=XYZ2sRGBl*XYZ*exposure;
     vec3 clippedRGB = gradualClipping ? clip(rgb) : clamp(rgb, 0., 1.);
     vec3 srgb=sRGBTransferFunction(clippedRGB);
-    color=vec4(dither(srgb),1);
+    if(ditheringMethod==DM_BAYER)
+        color=vec4(dither_Bayer(srgb),1);
+    else if(ditheringMethod==DM_BLUE_TRIANG)
+        color=vec4(dither_BlueTriang(srgb),1);
+    else if(ditheringMethod==DM_NONE)
+        color=vec4(srgb,1);
 }
-)");
+)").c_str());
         addShaderCode(*luminanceToScreenRGB_, QOpenGLShader::Vertex, tr("luminanceToScreenRGB vertex shader"), 1+R"(
 #version 330
 in vec3 vertex;
@@ -240,9 +293,10 @@ void GLWidget::paintGL()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
     luminanceToScreenRGB_->setUniformValue("luminanceXYZW", 0);
-    bayerPatternTexture_.bind(1);
-    luminanceToScreenRGB_->setUniformValue("bayerPattern", 1);
+    ditherPatternTexture_.bind(1);
+    luminanceToScreenRGB_->setUniformValue("ditherPattern", 1);
     luminanceToScreenRGB_->setUniformValue("rgbMaxValue", rgbMaxValue());
+    luminanceToScreenRGB_->setUniformValue("ditheringMethod", static_cast<int>(tools->ditheringMethod()));
     luminanceToScreenRGB_->setUniformValue("gradualClipping", tools->gradualClippingEnabled());
     luminanceToScreenRGB_->setUniformValue("exposure", tools->exposure());
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

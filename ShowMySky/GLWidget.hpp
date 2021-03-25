@@ -15,7 +15,7 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
 
     std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
-    QOpenGLTexture bayerPatternTexture_;
+    QOpenGLTexture ditherPatternTexture_;
     QString pathToData;
     ToolsWidget* tools;
     GLuint vao_=0, vbo_=0;
@@ -33,11 +33,16 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
 public:
     enum class DitheringMode
     {
-        Disabled,    //!< Dithering disabled, will leave the infamous color bands
         Color565,    //!< 16-bit color (AKA High color) with R5_G6_B5 layout
         Color666,    //!< TN+film typical color depth in TrueColor mode
         Color888,    //!< 24-bit color (AKA True color)
         Color101010, //!< 30-bit color (AKA Deep color)
+    };
+    enum class DitheringMethod
+    {
+        NoDithering,                //!< Dithering disabled, will leave the infamous color bands
+        Bayer,                      //!< Ordered dithering using Bayer threshold texture
+        BlueNoiseTriangleRemapped,  //!< Unordered dithering using blue noise of amplitude 1.0, with triangular remapping
     };
 
 public:
@@ -57,7 +62,7 @@ private:
     void setupBuffers();
     void reloadShaders();
     QVector3D rgbMaxValue() const;
-    void makeBayerPatternTexture();
+    void makeDitherPatternTexture();
     void updateSpectralRadiance(QPoint const& pixelPos);
     void setDragMode(DragMode mode, int x=0, int y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
 

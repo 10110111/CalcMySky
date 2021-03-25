@@ -21,6 +21,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
 
     QVBoxLayout* scattererCheckboxes_=new QVBoxLayout;
     QComboBox* ditheringMode_=new QComboBox;
+    QComboBox* ditheringMethod_=new QComboBox;
     Manipulator* altitude_=nullptr;
     Manipulator* exposure_=nullptr;
     Manipulator* sunElevation_=nullptr;
@@ -67,6 +68,7 @@ public:
     bool gradualClippingEnabled() const { return gradualClippingEnabled_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }
     GLWidget::DitheringMode ditheringMode() const { return static_cast<GLWidget::DitheringMode>(ditheringMode_->currentIndex()); }
+    GLWidget::DitheringMethod ditheringMethod() const { return static_cast<GLWidget::DitheringMethod>(ditheringMethod_->currentIndex()); }
 
     bool handleSpectralRadiance(ShowMySky::AtmosphereRenderer::SpectralRadiance const& spectrum);
     void setCanGrabRadiance(bool can);
@@ -84,6 +86,7 @@ private:
 
 signals:
     void settingChanged();
+    void ditheringMethodChanged();
     void setScattererEnabled(QString const& name, bool enable);
     void reloadShadersClicked();
 };
