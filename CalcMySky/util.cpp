@@ -134,6 +134,7 @@ void setupTexture(TextureId id, const GLsizei width, const GLsizei height)
     }
     gl.glBindTexture(GL_TEXTURE_2D,textures[id]);
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     gl.glBindTexture(GL_TEXTURE_2D,0);
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -150,6 +151,7 @@ void setupTexture(const GLuint texture, const GLsizei width, const GLsizei heigh
     }
     gl.glBindTexture(GL_TEXTURE_3D,texture);
     gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,width,height,depth,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     gl.glBindTexture(GL_TEXTURE_3D,0);
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
