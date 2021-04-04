@@ -1469,29 +1469,36 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
 
 void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc)
 {
-    readyToRender_=false;
-    loadingStepsDone_=0;
-    totalLoadingStepsToDo_=0;
+    try
+    {
+        readyToRender_=false;
+        loadingStepsDone_=0;
+        totalLoadingStepsToDo_=0;
 
-    clearResources();
+        clearResources();
 
-    viewDirVertShaderSrc_=std::move(viewDirVertShaderSrc);
-    viewDirFragShaderSrc_=std::move(viewDirFragShaderSrc);
+        viewDirVertShaderSrc_=std::move(viewDirVertShaderSrc);
+        viewDirFragShaderSrc_=std::move(viewDirFragShaderSrc);
 
-    for(const auto& scatterer : params_.scatterers)
-        scatterersEnabledStates_[scatterer.name]=true;
+        for(const auto& scatterer : params_.scatterers)
+            scatterersEnabledStates_[scatterer.name]=true;
 
-    currentActivity_=tr("Loading textures and shaders...");
-    // The longest actions should be progress-tracked
-    loadShaders(CountStepsOnly{true});
-    loadTextures(CountStepsOnly{true});
-    // Now they can be actually executed, reporting the progress
-    loadShaders(CountStepsOnly{false});
-    loadTextures(CountStepsOnly{false});
-    reportLoadingFinished();
+        currentActivity_=tr("Loading textures and shaders...");
+        // The longest actions should be progress-tracked
+        loadShaders(CountStepsOnly{true});
+        loadTextures(CountStepsOnly{true});
+        // Now they can be actually executed, reporting the progress
+        loadShaders(CountStepsOnly{false});
+        loadTextures(CountStepsOnly{false});
+        reportLoadingFinished();
 
-    setupRenderTarget();
-    setupBuffers();
+        setupRenderTarget();
+        setupBuffers();
+    }
+    catch(std::exception const& ex)
+    {
+        throw DataLoadError(ex.what());
+    }
 
     if(multipleScatteringPrograms_.size() != multipleScatteringTextures_.size())
     {
