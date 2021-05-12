@@ -137,7 +137,7 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
                              "(altitude,cosZenithAngle,"+toString(absorber.crossSection(wavelengths))+")\n";
     }
     computeFunction += R"(      ;
-    return exp(-depth);
+    return depth; // Exponentiation will take place in sampling functions. This way we avoid underflow in texture values.
 }
 )";
     return head+makeDensitiesFunctions()+opticalDepthFunctions+computeFunction;

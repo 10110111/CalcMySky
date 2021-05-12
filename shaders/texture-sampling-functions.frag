@@ -20,10 +20,15 @@ vec4 irradiance(const float cosSunZenithAngle, const float altitude)
     return texture(irradianceTexture, texCoords);
 }
 
-vec4 transmittanceToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
+vec4 opticalDepthToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
 {
     const vec2 texCoords=transmittanceTexVarsToTexCoord(cosViewZenithAngle, altitude);
     return texture(transmittanceTexture, texCoords);
+}
+
+vec4 transmittanceToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
+{
+    return exp(-opticalDepthToAtmosphereBorder(cosViewZenithAngle,altitude));
 }
 
 // Assumes that the endpoint of view ray doesn't intentionally exit atmosphere.
@@ -36,23 +41,18 @@ vec4 transmittance(const float cosViewZenithAngle, const float altitude, const f
     const float altAtDist=clampAltitude(sqrt(sqr(dist)+sqr(r)+2*r*dist*cosViewZenithAngle)-earthRadius);
     const float cosViewZenithAngleAtDist=clampCosine((r*cosViewZenithAngle+dist)/(earthRadius+altAtDist));
 
-    // min() clamps transmittance to <=1, which could otherwise happen to be >1 due to rounding errors in coordinates.
+    vec4 depth;
     if(viewRayIntersectsGround)
     {
-        return min(transmittanceToAtmosphereBorder(-cosViewZenithAngleAtDist, altAtDist)
-                                                /
-                   transmittanceToAtmosphereBorder(-cosViewZenithAngle, altitude)
-                   ,
-                   1.);
+        depth=opticalDepthToAtmosphereBorder(-cosViewZenithAngleAtDist, altAtDist) -
+              opticalDepthToAtmosphereBorder(-cosViewZenithAngle, altitude);
     }
     else
     {
-        return min(transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)
-                                                /
-                   transmittanceToAtmosphereBorder(cosViewZenithAngleAtDist, altAtDist)
-                   ,
-                   1.);
+        depth=opticalDepthToAtmosphereBorder(cosViewZenithAngle, altitude) -
+              opticalDepthToAtmosphereBorder(cosViewZenithAngleAtDist, altAtDist);
     }
+    return exp(-depth);
 }
 
 vec4 calcFirstScattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
