@@ -233,7 +233,13 @@ void ToolsWidget::setSunZenithAngle(const double zenithAngle)
 void ToolsWidget::showFrameRate(const long long frameTimeInUS)
 {
     if(frameTimeInUS<=1e6)
-        frameRate->setText(tr("%1 FPS").arg(1e6/frameTimeInUS, 0, 'g', 3));
+    {
+        const auto fps = 1e6/frameTimeInUS;
+        if(1e3<fps && fps<1e5) // avoid exponential notation on very fast machines
+            frameRate->setText(tr("%1 FPS").arg(std::lround(fps)));
+        else
+            frameRate->setText(tr("%1 FPS").arg(fps, 0, 'g', 3));
+    }
     else
         frameRate->setText(tr("%1 FPS (%2 s/frame)").arg(1e6/frameTimeInUS, 0, 'g', 3)
                                                     .arg(frameTimeInUS/1e6, 0, 'g', 3));
