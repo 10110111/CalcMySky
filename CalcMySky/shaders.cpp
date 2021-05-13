@@ -103,14 +103,12 @@ vec4 opticalDepthToAtmosphereBorder_##agentSpecies(float altitude, float cosZeni
     /* From law of cosines: r₂²=r₁²+l²+2r₁lμ */
     const float endAltitude=-R+sqrt(sqr(r1)+sqr(l)+2*r1*l*mu);
 
-    const float dl=integrInterval/(numTransmittanceIntegrationPoints-1);
-
-    /* Using trapezoid rule on a uniform grid: f0/2+f1+f2+...+f(N-2)+f(N-1)/2. */
-    float sum=(agent##NumberDensity_##agentSpecies(altitude)+
-               agent##NumberDensity_##agentSpecies(endAltitude))/2;
-    for(int n=1;n<numTransmittanceIntegrationPoints-1;++n)
+    // Using midpoint rule for quadrature
+    const float dl=integrInterval/numTransmittanceIntegrationPoints;
+    float sum=0;
+    for(int n=0;n<numTransmittanceIntegrationPoints;++n)
     {
-        const float dist=n*dl;
+        const float dist=(n+0.5)*dl;
         const float currAlt=-R+sqrt(sqr(r1)+sqr(dist)+2*r1*dist*mu);
         sum+=agent##NumberDensity_##agentSpecies(currAlt);
     }
