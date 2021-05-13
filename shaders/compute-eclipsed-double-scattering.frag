@@ -81,13 +81,12 @@ void main()
     const int directionIndex=int(gl_FragCoord.x);
     const float radialDistIndex=gl_FragCoord.y;
 
-    const float dl=radialIntegrInterval/(radialIntegrationPoints-1);
-    const float dist=radialDistIndex*dl;
+    // Using midpoint rule for quadrature
+    const float dl=radialIntegrInterval/radialIntegrationPoints;
+    const float dist=(radialDistIndex+0.5)*dl;
     const vec4 scDensity=computeDoubleScatteringEclipsedDensitySample(directionIndex, cameraViewDir, cameraPos+cameraViewDir*dist,
                                                                       sunDir, moonPositionRelativeToSunAzimuth);
     const vec4 xmittance=transmittance(cameraViewDir.z, cameraAltitude, dist, viewRayIntersectsGround);
-    // TODO: switch to midpoint rule here and everywhere else for radial integration: it's simpler and has two times lower error bound
-    const float weight = radialDistIndex==0||radialDistIndex==radialIntegrationPoints ? 0.5 : 1; // weight by trapezoidal rule
-    partialRadiance = scDensity*xmittance*weight*dl;
+    partialRadiance = scDensity*xmittance*dl;
 
 }
