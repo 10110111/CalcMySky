@@ -1029,6 +1029,34 @@ auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) -> Spe
     return output;
 }
 
+std::vector<float> AtmosphereRenderer::getWavelengths()
+{
+    constexpr unsigned wavelengthsPerPixel=4;
+    std::vector<float> wavelengths;
+    for(const auto wlSet : params_.allWavelengths)
+        for(unsigned i=0; i<wavelengthsPerPixel; ++i)
+            wavelengths.emplace_back(wlSet[i]);
+    return wavelengths;
+}
+
+void AtmosphereRenderer::setSolarSpectrum(std::vector<float> const& solarIrradianceAtTOA)
+{
+    solarIrradianceFixup_.clear();
+    for(unsigned n=0; n<solarIrradianceAtTOA.size()/4; ++n)
+    {
+        const auto newIrrad = QVector4D(solarIrradianceAtTOA[4*n+0],solarIrradianceAtTOA[4*n+1],
+                                        solarIrradianceAtTOA[4*n+2],solarIrradianceAtTOA[4*n+3]);
+        const auto origIrrad = toQVector(params_.solarIrradianceAtTOA[n]);
+        solarIrradianceFixup_.emplace_back(newIrrad/origIrrad);
+    }
+}
+
+void AtmosphereRenderer::resetSolarSpectrum()
+{
+    // Simple clear() won't work because we want to reset the uniform in the programs where it's been already altered
+    std::fill(solarIrradianceFixup_.begin(), solarIrradianceFixup_.end(), QVector4D(1,1,1,1));
+}
+
 auto AtmosphereRenderer::getViewDirection(QPoint const& pixelPos) -> Direction
 {
     viewDirectionGetterProgram_->bind();
@@ -1064,6 +1092,11 @@ bool AtmosphereRenderer::canGrabRadiance() const
     return haveNoLuminanceOnlySingleScatteringTextures && multipleScatteringTextures_.size()==params_.allWavelengths.size();
 }
 
+bool AtmosphereRenderer::canSetSolarSpectrum() const
+{
+    return canGrabRadiance(); // condition is the same as for radiance grabbing
+}
+
 void AtmosphereRenderer::renderZeroOrderScattering()
 {
     OGL_TRACE();
@@ -1082,6 +1115,8 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
+            if(!solarIrradianceFixup_.empty())
+                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
             drawSurface(prog);
         }
         else
@@ -1095,6 +1130,8 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             irradianceTextures_[wlSetIndex]->bind(1);
             prog.setUniformValue("irradianceTexture",1);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
+            if(!solarIrradianceFixup_.empty())
+                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
             drawSurface(prog);
         }
     }
@@ -1123,6 +1160,8 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
             prog.setUniformValue("sunZenithAngle", float(tools_->sunZenithAngle()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
+            if(!solarIrradianceFixup_.empty())
+                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
             auto& tex = needBlending ? *textures.front() : *textures[wlSetIndex];
             gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseSingleScatteringPrecomputationFBO_);
@@ -1169,6 +1208,8 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
+                    if(!solarIrradianceFixup_.empty())
+                        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                     drawSurface(prog);
                 }
@@ -1189,6 +1230,8 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
+                    if(!solarIrradianceFixup_.empty())
+                        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                     drawSurface(prog);
                 }
@@ -1215,6 +1258,8 @@ void AtmosphereRenderer::renderSingleScattering()
                         tex.bind(0);
                         prog.setUniformValue("eclipsedScatteringTexture", 0);
                     }
+                    if(!solarIrradianceFixup_.empty())
+                        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                     drawSurface(prog);
                 }
@@ -1239,6 +1284,8 @@ void AtmosphereRenderer::renderSingleScattering()
                         prog.setUniformValue("scatteringTexture", 0);
                         prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
                     }
+                    if(!solarIrradianceFixup_.empty())
+                        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                     drawSurface(prog);
                 }
@@ -1296,6 +1343,8 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
         int unusedTextureUnitNum=0;
         transmittanceTextures_[wlSetIndex]->bind(unusedTextureUnitNum);
         prog.setUniformValue("transmittanceTexture", unusedTextureUnitNum++);
+        if(!solarIrradianceFixup_.empty())
+            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
         EclipsedDoubleScatteringPrecomputer precomputer(prog, gl, eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),
                                                         unusedTextureUnitNum, params_,
@@ -1331,6 +1380,8 @@ void AtmosphereRenderer::renderMultipleScattering()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            if(!solarIrradianceFixup_.empty())
+                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
             if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
             {
@@ -1395,6 +1446,8 @@ void AtmosphereRenderer::renderMultipleScattering()
                 prog.bind();
                 prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                 prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                if(!solarIrradianceFixup_.empty())
+                    prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                 auto& tex=*multipleScatteringTextures_[wlSetIndex];
                 tex.setMinificationFilter(texFilter);
@@ -1440,6 +1493,8 @@ void AtmosphereRenderer::renderLightPollution()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            if(!solarIrradianceFixup_.empty())
+                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
             auto& tex=*lightPollutionTextures_[wlSetIndex];
             tex.setMinificationFilter(texFilter);

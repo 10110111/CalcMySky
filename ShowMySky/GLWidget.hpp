@@ -65,6 +65,9 @@ private:
     void makeDitherPatternTexture();
     void updateSpectralRadiance(QPoint const& pixelPos);
     void setDragMode(DragMode mode, int x=0, int y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
+    void setFlatSolarSpectrum();
+    void resetSolarSpectrum();
+    void setBlackBodySolarSpectrum(double temperature);
 
 private slots:
     void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);

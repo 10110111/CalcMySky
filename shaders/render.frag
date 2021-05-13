@@ -21,6 +21,7 @@ uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
 uniform vec3 moonPosition;
 uniform float lightPollutionGroundLuminance;
+uniform vec4 solarIrradianceFixup=vec4(1); // Used when we want to alter solar irradiance post-precomputation
 in vec3 position;
 layout(location=0) out vec4 luminance;
 layout(location=1) out vec4 radianceOutput;
@@ -92,6 +93,7 @@ void main()
     {
         discard;
     }
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_ZERO_SCATTERING
@@ -121,12 +123,14 @@ void main()
     {
         discard;
     }
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY
     const vec4 scattering=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPosition,
                                                           viewRayIntersectsGround);
-    const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE
@@ -137,7 +141,8 @@ void main()
     // 0). This happens when I simply call texture(eclipsedScatteringTexture, texCoords) without specifying LOD.
     // Apparently, the driver uses the derivative for some reason, even though it shouldn't.
     const vec4 scattering = textureLod(eclipsedScatteringTexture, texCoords, 0);
-    const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE
@@ -150,22 +155,25 @@ void main()
     const vec4 scattering = textureLod(eclipsedScatteringTexture, texCoords, 0);
     luminance=scattering*currentPhaseFunction(dotViewSun);
 #elif RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE // FIXME: we'd better do this rendering at the same time as single scattering, this could improve performance
-    const vec4 radiance=exp(sampleEclipseDoubleScattering4DTexture(eclipsedDoubleScatteringTextureLower,
-                                                                   eclipsedDoubleScatteringTextureUpper,
-                                                                   sunDirection.z, viewDir.z, azimuthRelativeToSun,
-                                                                   altitude, viewRayIntersectsGround));
+    vec4 radiance=exp(sampleEclipseDoubleScattering4DTexture(eclipsedDoubleScatteringTextureLower,
+                                                             eclipsedDoubleScatteringTextureUpper,
+                                                             sunDirection.z, viewDir.z, azimuthRelativeToSun,
+                                                             altitude, viewRayIntersectsGround));
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_SINGLE_SCATTERING_ON_THE_FLY
     const vec4 scattering=computeSingleScattering(sunDirection.z,viewDir.z,dotViewSun,
                                                   cameraPosition.z,viewRayIntersectsGround);
-    const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE
     const vec4 scattering = sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z,
                                             dotViewSun, altitude, viewRayIntersectsGround);
-    const vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE
@@ -175,11 +183,13 @@ void main()
 #elif RENDERING_MULTIPLE_SCATTERING_LUMINANCE
     luminance=sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z, dotViewSun, altitude, viewRayIntersectsGround);
 #elif RENDERING_MULTIPLE_SCATTERING_RADIANCE
-    const vec4 radiance=sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z, dotViewSun, altitude, viewRayIntersectsGround);
+    vec4 radiance=sample4DTexture(scatteringTexture, sunDirection.z, viewDir.z, dotViewSun, altitude, viewRayIntersectsGround);
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_LIGHT_POLLUTION_RADIANCE
-    const vec4 radiance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, viewDir.z, viewRayIntersectsGround);
+    vec4 radiance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, viewDir.z, viewRayIntersectsGround);
+    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_LIGHT_POLLUTION_LUMINANCE

@@ -11,6 +11,18 @@ namespace
 const auto text_drawMultipleScattering=QObject::tr("Draw &multiple scattering layer");
 const auto text_drawMultipleScattering_plusSomeSingle=QObject::tr("Draw &multiple (and merged single) scattering layer");
 
+enum class SolarSpectrumMode
+{
+    Precomputed,
+    BlackBody,
+    Flat,
+};
+const std::map<SolarSpectrumMode, QString> solarSpectrumModes={
+    {SolarSpectrumMode::Precomputed, QObject::tr("Precomputed (default)")},
+    {SolarSpectrumMode::BlackBody,   QObject::tr("Black body")},
+    {SolarSpectrumMode::Flat,        QObject::tr("Flat 1\u202fW/m²/nm")},
+};
+
 Manipulator* addManipulator(QVBoxLayout*const layout, ToolsWidget*const tools,
                             QString const& label, const double min, const double max, const double defaultValue,
                             const int decimalPlaces, QString const& unit="")
@@ -108,6 +120,31 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     }
     multipleScatteringEnabled_  = addCheckBox(layout, this, text_drawMultipleScattering, true);
     lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 20, 2, QString::fromUtf8(u8"\u202fcd/m²"));
+
+    {
+        const auto hbox=new QHBoxLayout;
+        layout->addLayout(hbox);
+        const auto label=new QLabel(tr("Solar spectrum"));
+        label->setBuddy(solarSpectrumMode_);
+        hbox->addWidget(label);
+        for(const auto& mode : solarSpectrumModes)
+            solarSpectrumMode_->addItem(mode.second, static_cast<int>(mode.first));
+        solarSpectrumMode_->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+        connect(solarSpectrumMode_, qOverload<int>(&QComboBox::currentIndexChanged), this, &ToolsWidget::onSolarSpectrumChanged);
+        hbox->addWidget(solarSpectrumMode_);
+        solarSpectrumTemperature_->setSuffix(QString::fromUtf8(u8"\u202fK"));
+        solarSpectrumTemperature_->setRange(1000, 9999);
+        solarSpectrumTemperature_->setDecimals(0);
+        solarSpectrumTemperature_->setValue(5778);
+        solarSpectrumTemperature_->setKeyboardTracking(false);
+        auto policy=solarSpectrumTemperature_->sizePolicy();
+        policy.setRetainSizeWhenHidden(true);
+        solarSpectrumTemperature_->setSizePolicy(policy);
+        hbox->addWidget(solarSpectrumTemperature_);
+        solarSpectrumTemperature_->hide();
+        connect(solarSpectrumTemperature_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &ToolsWidget::onSolarSpectrumChanged);
+    }
+
     textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
     onTheFlyPrecompDoubleScatteringEnabled_=addCheckBox(layout, this, tr("Precompute double(-only) scattering on the fly"), true);
@@ -201,6 +238,23 @@ void ToolsWidget::setCanGrabRadiance(const bool can)
 	}
 }
 
+void ToolsWidget::setCanSetSolarSpectrum(const bool can)
+{
+    solarSpectrumMode_->setEnabled(can);
+	if(!can)
+	{
+        solarSpectrumMode_->setCurrentIndex(0);
+		solarSpectrumMode_->setToolTip(tr("Solar spectrum setting is not available because some textures\n"
+										 "in the current dataset contain only luminance data.\n"
+										 "Use --radiance option for calcmysky command to\n"
+										 "generate full-spectral textures."));
+	}
+	else
+	{
+		solarSpectrumMode_->setToolTip("");
+	}
+}
+
 void ToolsWidget::setZoomFactor(const double zoom)
 {
     zoomFactor_->setValue(zoom);
@@ -285,4 +339,26 @@ void ToolsWidget::onLoadProgress(QString const& currentActivity, const int steps
     loadProgressBar_->setValue(stepsDone);
     loadProgressWidget_->setVisible(stepsToDo!=0);
     loadProgressWidget_->repaint();
+}
+
+void ToolsWidget::onSolarSpectrumChanged()
+{
+    const auto newMode = static_cast<SolarSpectrumMode>(solarSpectrumMode_->currentData().toInt());
+    if(newMode==SolarSpectrumMode::BlackBody)
+        solarSpectrumTemperature_->show();
+    else
+        solarSpectrumTemperature_->hide();
+
+    switch(newMode)
+    {
+    case SolarSpectrumMode::Precomputed:
+        emit resetSolarSpectrum();
+        break;
+    case SolarSpectrumMode::BlackBody:
+        emit setBlackBodySolarSpectrum(solarSpectrumTemperature_->value());
+        break;
+    case SolarSpectrumMode::Flat:
+        emit setFlatSolarSpectrum();
+        break;
+    }
 }

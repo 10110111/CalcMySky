@@ -34,11 +34,15 @@ public:
     void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc) override;
     bool readyToRender() const override { return readyToRender_; }
     bool canGrabRadiance() const override;
+    bool canSetSolarSpectrum() const override;
     GLuint getLuminanceTexture() override { return luminanceRenderTargetTexture_.textureId(); };
 
     void draw(double brightness, bool clear) override;
     void resizeEvent(int width, int height) override;
     SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) override;
+    std::vector<float> getWavelengths() override;
+    void setSolarSpectrum(std::vector<float> const& solarIrradianceAtTOA) override;
+    void resetSolarSpectrum() override;
     Direction getViewDirection(QPoint const& pixelPos) override;
     QObject* asQObject() override { return this; }
 
@@ -96,6 +100,8 @@ private: // variables
     std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms_;
     ShaderProgPtr viewDirectionGetterProgram_;
     std::map<ScattererName,bool> scatterersEnabledStates_;
+
+    std::vector<QVector4D> solarIrradianceFixup_;
 
     int numAltIntervalsIn4DTexture_;
     int numAltIntervalsInEclipsed4DTexture_;

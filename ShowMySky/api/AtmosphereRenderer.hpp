@@ -50,10 +50,14 @@ public:
     virtual void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc) = 0;
     virtual bool readyToRender() const = 0;
     virtual bool canGrabRadiance() const = 0;
+    virtual bool canSetSolarSpectrum() const = 0;
     virtual GLuint getLuminanceTexture() = 0;
     virtual void draw(double brightness, bool clear) = 0;
     virtual void resizeEvent(int width, int height) = 0;
     virtual SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) = 0;
+    virtual std::vector<float> getWavelengths() = 0;
+    virtual void setSolarSpectrum(std::vector<float> const& spectralIrradianceAtTOA) = 0;
+    virtual void resetSolarSpectrum() = 0;
     virtual Direction getViewDirection(QPoint const& pixelPos) = 0;
     virtual QObject* asQObject() = 0;
     virtual ~AtmosphereRenderer() = default;
@@ -75,7 +79,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
                                         QString const* pathToData,
                                         ShowMySky::Settings* tools,
                                         std::function<void(QOpenGLShaderProgram&)> const* drawSurface);
-#define ShowMySky_ABI_version 2
+#define ShowMySky_ABI_version 3
 }
 
 #endif

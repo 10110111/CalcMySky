@@ -5,6 +5,7 @@
 #include <QSurfaceFormat>
 #include <glm/gtx/transform.hpp>
 #include "../common/util.hpp"
+#include "../common/const.hpp"
 #include "util.hpp"
 #include "ToolsWidget.hpp"
 #include "AtmosphereRenderer.hpp"
@@ -145,6 +146,9 @@ void GLWidget::initializeGL()
         connect(tools, &ToolsWidget::setScattererEnabled, this, [this,renderer=renderer.get()](QString const& name, const bool enable)
                 { renderer->setScattererEnabled(name, enable); update(); });
         connect(tools, &ToolsWidget::reloadShadersClicked, this, &GLWidget::reloadShaders);
+        connect(tools, &ToolsWidget::resetSolarSpectrum, this, &GLWidget::resetSolarSpectrum);
+        connect(tools, &ToolsWidget::setFlatSolarSpectrum, this, &GLWidget::setFlatSolarSpectrum);
+        connect(tools, &ToolsWidget::setBlackBodySolarSpectrum, this, &GLWidget::setBlackBodySolarSpectrum);
 
         makeDitherPatternTexture();
         setupBuffers();
@@ -263,7 +267,10 @@ vec3 calcViewDir()
 )";
         renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc);
         if(renderer->readyToRender())
+        {
             tools->setCanGrabRadiance(renderer->canGrabRadiance());
+            tools->setCanSetSolarSpectrum(renderer->canSetSolarSpectrum());
+        }
     }
     catch(ShowMySky::Error const& ex)
     {
@@ -325,6 +332,36 @@ void GLWidget::updateSpectralRadiance(QPoint const& pixelPos)
         if(tools->handleSpectralRadiance(spectrum))
             lastRadianceCapturePosition=pixelPos;
     }
+}
+
+void GLWidget::setFlatSolarSpectrum()
+{
+    const auto numWavelengths=renderer->getWavelengths().size();
+    renderer->setSolarSpectrum(std::vector<float>(numWavelengths, 1.f));
+    update();
+}
+
+void GLWidget::resetSolarSpectrum()
+{
+    renderer->resetSolarSpectrum();
+    update();
+}
+
+static double blackBodySunSpectralIrradianceAtTOA(const double temperature, const double wavelength)
+{
+    const auto earthSunDistance=1*astronomicalUnit; // FIXME: should take from AtmosphereParameters
+    using namespace std;
+    return 1.814397573e38/pow(earthSunDistance,2)/pow(wavelength,5)/(exp(1.438777354e7/(temperature*wavelength))-1);
+}
+
+void GLWidget::setBlackBodySolarSpectrum(const double temperature)
+{
+    const auto wavelengths=renderer->getWavelengths();
+    std::vector<float> spectrum;
+    for(const auto wavelength : wavelengths)
+        spectrum.push_back(blackBodySunSpectralIrradianceAtTOA(temperature, wavelength));
+    renderer->setSolarSpectrum(spectrum);
+    update();
 }
 
 void GLWidget::wheelEvent(QWheelEvent* event)

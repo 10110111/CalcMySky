@@ -22,6 +22,8 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QVBoxLayout* scattererCheckboxes_=new QVBoxLayout;
     QComboBox* ditheringMode_=new QComboBox;
     QComboBox* ditheringMethod_=new QComboBox;
+    QComboBox* solarSpectrumMode_=new QComboBox;
+    QDoubleSpinBox* solarSpectrumTemperature_=new QDoubleSpinBox;
     Manipulator* altitude_=nullptr;
     Manipulator* exposure_=nullptr;
     Manipulator* sunElevation_=nullptr;
@@ -74,6 +76,7 @@ public:
 
     bool handleSpectralRadiance(ShowMySky::AtmosphereRenderer::SpectralRadiance const& spectrum);
     void setCanGrabRadiance(bool can);
+    void setCanSetSolarSpectrum(bool can);
     void setZoomFactor(double zoom);
     void setCameraPitch(double pitch);
     void setCameraYaw(double yaw);
@@ -85,12 +88,16 @@ public:
 
 private:
     void showRadiancePlot();
+    void onSolarSpectrumChanged();
 
 signals:
     void settingChanged();
     void ditheringMethodChanged();
     void setScattererEnabled(QString const& name, bool enable);
     void reloadShadersClicked();
+    void setFlatSolarSpectrum();
+    void resetSolarSpectrum();
+    void setBlackBodySolarSpectrum(double temperature);
 };
 
 #endif
