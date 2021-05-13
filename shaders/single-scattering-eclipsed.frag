@@ -50,20 +50,12 @@ vec4 computeSingleScatteringEclipsed(const vec3 camera, const vec3 viewDir, cons
     const float integrInterval=distanceToNearestAtmosphereBoundary(cosViewZenithAngle, altitude,
                                                                    viewRayIntersectsGround);
 
-    // Using trapezoid rule on a uniform grid: f0/2+f1+f2+...+f(N-2)+f(N-1)/2.
-    // Initializing with sum of values at endpoints, with weight of 0.5
-    const vec4 end1=computeSingleScatteringIntegrandEclipsed(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
-                                                             altitude, 0, viewRayIntersectsGround,
-                                                             camera, sunDir, moonPos);
-    const vec4 end2=computeSingleScatteringIntegrandEclipsed(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
-                                                             altitude, integrInterval, viewRayIntersectsGround,
-                                                             camera+viewDir*integrInterval, sunDir, moonPos);
-    vec4 spectrum=(end1+end2)*0.5;
-
-    const float dl=integrInterval/(radialIntegrationPoints-1);
-    for(int n=1; n<radialIntegrationPoints-1; ++n)
+    // Using the midpoint rule for quadrature
+    vec4 spectrum=vec4(0);
+    const float dl=integrInterval/radialIntegrationPoints;
+    for(int n=0; n<radialIntegrationPoints; ++n)
     {
-        const float dist=n*dl;
+        const float dist=(n+0.5)*dl;
         spectrum += computeSingleScatteringIntegrandEclipsed(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
                                                              altitude, dist, viewRayIntersectsGround,
                                                              camera+viewDir*dist, sunDir, moonPos);
