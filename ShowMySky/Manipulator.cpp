@@ -17,6 +17,8 @@ Manipulator::Manipulator(QString const& labelString, const double min, const dou
     label->setBuddy(spinbox);
     setLayout(hbox);
 
+    hbox->setContentsMargins(0,0,0,0);
+
     spinbox->setKeyboardTracking(false);
     spinbox->setDecimals(decimalPlaces);
     spinbox->setSingleStep(1/decimalMultiplier);
