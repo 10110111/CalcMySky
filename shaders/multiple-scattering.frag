@@ -78,12 +78,13 @@ vec4 computeMultipleScattering(const float cosSunZenithAngle, const float cosVie
                                const float altitude, const bool viewRayIntersectsGround)
 {
     const float r=earthRadius+altitude;
+    // Using the midpoint rule for quadrature
     const float dl = distanceToNearestAtmosphereBoundary(cosViewZenithAngle, altitude, viewRayIntersectsGround) /
                                                   radialIntegrationPoints;
     vec4 radiance=vec4(0);
-    for(int n=0; n <= radialIntegrationPoints; ++n)
+    for(int n=0; n<radialIntegrationPoints; ++n)
     {
-        const float dist=n*dl;
+        const float dist=(n+0.5)*dl;
         // Clamping only guards against rounding errors here, we don't try to handle here the case when the
         // endpoint of the view ray intentionally appears in outer space.
         const float altAtDist=clampAltitude(sqrt(sqr(dist)+sqr(r)+2*r*dist*cosViewZenithAngle)-earthRadius);
@@ -93,8 +94,7 @@ vec4 computeMultipleScattering(const float cosSunZenithAngle, const float cosVie
         const vec4 scDensity=sample4DTexture(scatteringDensityTexture, cosSZAatDist, cosVZAatDist,
                                              dotViewSun, altAtDist, viewRayIntersectsGround);
         const vec4 xmittance=transmittance(cosViewZenithAngle, altitude, dist, viewRayIntersectsGround);
-        const float weight = n==0||n==radialIntegrationPoints ? 0.5 : 1; // weight by trapezoidal rule
-        radiance += scDensity*xmittance*weight*dl;
+        radiance += scDensity*xmittance*dl;
     }
     return radiance;
 }
