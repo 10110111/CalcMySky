@@ -95,7 +95,8 @@ struct AtmosphereParameters
     static constexpr unsigned pointsPerWavelengthItem=4;
     static constexpr char ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE[]="all textures are radiances";
     static constexpr char NO_ECLIPSED_DOUBLE_SCATTERING_TEXTURES_DIRECTIVE[]="no eclipsed double scattering textures";
-
+    static constexpr char SOLAR_IRRADIANCE_AT_TOA_KEY[]="solar irradiance at toa";
+    static constexpr char WAVELENGTHS_KEY[]="wavelengths";
 
     void parse(QString const& atmoDescrFileName, SkipSpectra skipSpectra=SkipSpectra{false});
     // XXX: keep in sync with those in previewer and renderer
@@ -108,6 +109,7 @@ struct AtmosphereParameters
         assert(it!=allWavelengths.end());
         return it-allWavelengths.begin();
     }
+    static QString spectrumToString(std::vector<glm::vec4> const& spectrum);
 };
 
 #endif

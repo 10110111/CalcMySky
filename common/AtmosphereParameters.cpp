@@ -477,11 +477,14 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
             earthMoonDistance=getQuantity(value,1e-4*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
             // moonAngularRadius is computed from earthMoonDistance and other parameters on the fly
         }
-        else if(key=="wavelengths")
-            allWavelengths=getWavelengthRange(value,100,100'000,atmoDescrFileName,lineNumber);
-        else if(key=="solar irradiance at toa")
+        else if(key==WAVELENGTHS_KEY)
         {
-            if(!skipSpectra)
+            if(allWavelengths.empty())
+                allWavelengths=getWavelengthRange(value,100,100'000,atmoDescrFileName,lineNumber);
+        }
+        else if(key==SOLAR_IRRADIANCE_AT_TOA_KEY)
+        {
+            if(solarIrradianceAtTOA.empty())
                 solarIrradianceAtTOA=getSpectrum(allWavelengths,value,0,1e3,atmoDescrFileName,lineNumber);
         }
         else if(key=="light pollution relative radiance")
@@ -538,4 +541,20 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
         qWarning() << "Ground albedo was not specified, assuming 100% white.";
         groundAlbedo=std::vector<glm::vec4>(allWavelengths.size(), glm::vec4(1));
     }
+}
+
+QString AtmosphereParameters::spectrumToString(std::vector<glm::vec4> const& spectrum)
+{
+    QString out;
+    constexpr auto prec=std::numeric_limits<decltype(+spectrum[0][0])>::max_digits10;
+    for(const auto& value : spectrum)
+    {
+        out += QString("%1,%2,%3,%4,").arg(value.x, 0, 'g', prec)
+                                      .arg(value.y, 0, 'g', prec)
+                                      .arg(value.z, 0, 'g', prec)
+                                      .arg(value.w, 0, 'g', prec);
+    }
+    if(!out.isEmpty())
+        out.resize(out.size()-1); // Remove trailing comma
+    return out;
 }

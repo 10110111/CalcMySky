@@ -1192,7 +1192,12 @@ int main(int argc, char** argv)
                 out << AtmosphereParameters::ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE << "\n";
             if(opts.dbgNoEDSTextures)
                 out << AtmosphereParameters::NO_ECLIPSED_DOUBLE_SCATTERING_TEXTURES_DIRECTIVE << "\n";
-            out << atmo.descriptionFileText;
+            out << "# These spectra override the spectra further down the document. This is to make sure\n# we have all the required spectra inlined, rather than just references to files.\n";
+            out << AtmosphereParameters::WAVELENGTHS_KEY << ": min=" << atmo.allWavelengths.front().x
+                << "nm,max=" << atmo.allWavelengths.back().w << "nm,count=" << 4*atmo.allWavelengths.size() << "\n";
+            out << AtmosphereParameters::SOLAR_IRRADIANCE_AT_TOA_KEY << ": "
+                << AtmosphereParameters::spectrumToString(atmo.solarIrradianceAtTOA) << "\n";
+            out << "\n#Copy of original atmosphere description" << atmo.descriptionFileText;
             out.flush();
             file.close();
             if(file.error())
