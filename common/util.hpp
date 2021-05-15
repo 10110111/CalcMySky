@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <QString>
 #include <QVector3D>
+#include <QVector4D>
 #include <QGenericMatrix>
 #include <QOpenGLFunctions_3_3_Core>
 #include "../ShowMySky/api/Exception.hpp"
@@ -20,6 +21,9 @@ struct Type                                 \
 
 template<typename T> auto sqr(T const& x) { return x*x; }
 inline QVector3D toQVector(glm::dvec3 const& v) { return QVector3D(v.x, v.y, v.z); }
+inline QVector3D toQVector(glm::vec3 const& v) { return QVector3D(v.x, v.y, v.z); }
+inline QVector4D toQVector(glm::dvec4 const& v) { return QVector4D(v.x, v.y, v.z, v.w); }
+inline QVector4D toQVector(glm::vec4 const& v) { return QVector4D(v.x, v.y, v.z, v.w); }
 inline QMatrix3x3 toQMatrix(glm::mat3 const& m) { return QMatrix3x3(&transpose(m)[0][0]); }
 
 struct MustQuit{ int exitCode=1; };
