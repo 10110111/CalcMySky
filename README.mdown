@@ -16,7 +16,7 @@ The planned implementation steps are as follows:
  - [x] Generator of shaders to render normally-lit atmosphere
  - [x] Previewer for the textures generated
  - [x] Support for eclipsed atmosphere (limited to two scattering orders)
- - [ ] Generator of air pollution textures
+ - [x] Generator of air pollution textures
  - [ ] Generator of airglow textures
  - [ ] Renderer in Stellarium
 
