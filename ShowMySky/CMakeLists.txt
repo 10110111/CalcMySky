@@ -41,6 +41,8 @@ install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
 install(TARGETS ShowMySky
         EXPORT ShowMySkyConfig
         LIBRARY DESTINATION "${installLibDir}"
+        RUNTIME DESTINATION "${installLibDir}"
+        ARCHIVE DESTINATION "${installLibDir}"
         INCLUDES DESTINATION "${installIncDir}"
         )
 export(TARGETS ShowMySky NAMESPACE ShowMySky:: FILE "${CMAKE_CURRENT_BINARY_DIR}/ShowMySkyConfig.cmake")
