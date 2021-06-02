@@ -44,5 +44,5 @@ install(TARGETS ShowMySky
         INCLUDES DESTINATION "${installIncDir}"
         )
 export(TARGETS ShowMySky NAMESPACE ShowMySky:: FILE "${CMAKE_CURRENT_BINARY_DIR}/ShowMySkyConfig.cmake")
-install(EXPORT ShowMySkyConfig NAMESPACE ShowMySky:: DESTINATION "${CMAKE_INSTALL_LIBDIR}/ShowMySky/cmake")
+install(EXPORT ShowMySkyConfig NAMESPACE ShowMySky:: DESTINATION "${installConfDir}/ShowMySky/cmake")
 install(FILES api/Exception.hpp api/AtmosphereRenderer.hpp api/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")

@@ -29,6 +29,7 @@ if(WIN32)
     set(shadersDestPath "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}")
     set(installBinDir "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}")
     set(installLibDir "${installBinDir}")
+    set(installConfDir "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}/lib")
     set(installIncDir "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}/include")
 
     # Deploy Qt
@@ -42,6 +43,7 @@ else()
     set(shadersDestPath "${CMAKE_INSTALL_DATAROOTDIR}/${CMAKE_PROJECT_NAME}")
     set(installBinDir "${CMAKE_INSTALL_BINDIR}")
     set(installLibDir "${CMAKE_INSTALL_LIBDIR}")
+    set(installConfDir "${CMAKE_INSTALL_LIBDIR}")
     set(installIncDir "${CMAKE_INSTALL_INCLUDEDIR}")
 endif()
 
