@@ -26,11 +26,11 @@ include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
 include_directories(${CMAKE_BINARY_DIR})
 
 if(WIN32)
-    set(shadersDestPath "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}")
-    set(installBinDir "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}")
+    set(shadersDestPath "${CMAKE_PROJECT_NAME}")
+    set(installBinDir "${CMAKE_PROJECT_NAME}")
     set(installLibDir "${installBinDir}")
-    set(installConfDir "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}/lib")
-    set(installIncDir "${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}/include")
+    set(installConfDir "${CMAKE_PROJECT_NAME}/lib")
+    set(installIncDir "${CMAKE_PROJECT_NAME}/include")
 
     # Deploy Qt
     foreach(lib Core Widgets Gui)
