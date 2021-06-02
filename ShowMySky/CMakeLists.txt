@@ -38,5 +38,11 @@ if(WIN32)
 endif()
 
 install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
-install(TARGETS ShowMySky DESTINATION "${installLibDir}")
+install(TARGETS ShowMySky
+        EXPORT ShowMySkyConfig
+        LIBRARY DESTINATION "${installLibDir}"
+        INCLUDES DESTINATION "${installIncDir}"
+        )
+export(TARGETS ShowMySky NAMESPACE ShowMySky:: FILE "${CMAKE_CURRENT_BINARY_DIR}/ShowMySkyConfig.cmake")
+install(EXPORT ShowMySkyConfig NAMESPACE ShowMySky:: DESTINATION "${CMAKE_INSTALL_LIBDIR}/ShowMySky/cmake")
 install(FILES api/Exception.hpp api/AtmosphereRenderer.hpp api/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")
