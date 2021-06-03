@@ -20,7 +20,7 @@ enum class SolarSpectrumMode
 const std::map<SolarSpectrumMode, QString> solarSpectrumModes={
     {SolarSpectrumMode::Precomputed, QObject::tr("Precomputed (default)")},
     {SolarSpectrumMode::BlackBody,   QObject::tr("Black body")},
-    {SolarSpectrumMode::Flat,        QObject::tr("Flat 1\u202fW/m²/nm")},
+    {SolarSpectrumMode::Flat,        QObject::tr(u8"Flat 1\u202fW/m²/nm")},
 };
 
 Manipulator* addManipulator(QVBoxLayout*const layout, ToolsWidget*const tools,
