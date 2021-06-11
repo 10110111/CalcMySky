@@ -47,6 +47,7 @@ public:
         float elevation;
     };
 public:
+    virtual void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram&)> const& drawSurface) = 0;
     virtual void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc) = 0;
     virtual bool readyToRender() const = 0;
     virtual bool canGrabRadiance() const = 0;
@@ -79,7 +80,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
                                         QString const* pathToData,
                                         ShowMySky::Settings* tools,
                                         std::function<void(QOpenGLShaderProgram&)> const* drawSurface);
-#define ShowMySky_ABI_version 3
+#define ShowMySky_ABI_version 6
 }
 
 #endif

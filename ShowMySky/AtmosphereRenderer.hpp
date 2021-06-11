@@ -27,10 +27,11 @@ public:
     AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl,
                        QString const& pathToData,
                        ShowMySky::Settings* tools,
-                       std::function<void(QOpenGLShaderProgram&)> drawSurface);
+                       std::function<void(QOpenGLShaderProgram&)> const& drawSurface);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
+    void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram&)> const& drawSurface) override;
     void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc) override;
     bool readyToRender() const override { return readyToRender_; }
     bool canGrabRadiance() const override;
