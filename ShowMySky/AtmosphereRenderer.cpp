@@ -595,6 +595,8 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
 
                     program.addShader(&viewDirFragShader);
                     program.addShader(&viewDirVertShader);
+                    for(const auto& b : viewDirBindAttribLocations_)
+                        program.bindAttributeLocation(b.first.c_str(), b.second);
 
                     link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
                     tick(++loadingStepsDone_);
@@ -618,6 +620,8 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
 
                 program.addShader(&viewDirFragShader);
                 program.addShader(&viewDirVertShader);
+                for(const auto& b : viewDirBindAttribLocations_)
+                    program.bindAttributeLocation(b.first.c_str(), b.second);
 
                 link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
                 tick(++loadingStepsDone_);
@@ -655,6 +659,8 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
 
                     program.addShader(&viewDirFragShader);
                     program.addShader(&viewDirVertShader);
+                    for(const auto& b : viewDirBindAttribLocations_)
+                        program.bindAttributeLocation(b.first.c_str(), b.second);
 
                     link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
                     tick(++loadingStepsDone_);
@@ -679,6 +685,8 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
 
                 program.addShader(&viewDirFragShader);
                 program.addShader(&viewDirVertShader);
+                for(const auto& b : viewDirBindAttribLocations_)
+                    program.bindAttributeLocation(b.first.c_str(), b.second);
 
                 link(program, tr("shader program for scatterer \"%1\"").arg(scatterer.name));
                 tick(++loadingStepsDone_);
@@ -756,6 +764,8 @@ void main()
 
         program.addShader(&viewDirFragShader);
         program.addShader(&viewDirVertShader);
+        for(const auto& b : viewDirBindAttribLocations_)
+            program.bindAttributeLocation(b.first.c_str(), b.second);
 
         link(program, tr("precomputed eclipsed double scattering shader program"));
         tick(++loadingStepsDone_);
@@ -802,6 +812,8 @@ void main()
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
             program.addShader(&viewDirFragShader);
             program.addShader(&viewDirVertShader);
+            for(const auto& b : viewDirBindAttribLocations_)
+                program.bindAttributeLocation(b.first.c_str(), b.second);
             link(program, tr("multiple scattering shader program"));
             tick(++loadingStepsDone_);
         }
@@ -821,6 +833,8 @@ void main()
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
             program.addShader(&viewDirFragShader);
             program.addShader(&viewDirVertShader);
+            for(const auto& b : viewDirBindAttribLocations_)
+                program.bindAttributeLocation(b.first.c_str(), b.second);
             link(program, tr("multiple scattering shader program"));
             tick(++loadingStepsDone_);
         }
@@ -842,6 +856,8 @@ void main()
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
         program.addShader(&viewDirFragShader);
         program.addShader(&viewDirVertShader);
+        for(const auto& b : viewDirBindAttribLocations_)
+            program.bindAttributeLocation(b.first.c_str(), b.second);
         link(program, tr("zero-order scattering shader program"));
         tick(++loadingStepsDone_);
     }
@@ -862,6 +878,8 @@ void main()
             addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
         program.addShader(&viewDirFragShader);
         program.addShader(&viewDirVertShader);
+        for(const auto& b : viewDirBindAttribLocations_)
+            program.bindAttributeLocation(b.first.c_str(), b.second);
         link(program, tr("eclipsed zero-order scattering shader program"));
         tick(++loadingStepsDone_);
     }
@@ -876,6 +894,8 @@ void main()
         auto& program=*viewDirectionGetterProgram_;
         program.addShader(&viewDirFragShader);
         program.addShader(&viewDirVertShader);
+        for(const auto& b : viewDirBindAttribLocations_)
+            program.bindAttributeLocation(b.first.c_str(), b.second);
         addShaderCode(program, QOpenGLShader::Fragment, tr("fragment shader for view direction getter"), 1+R"(
 #version 330
 
@@ -910,6 +930,8 @@ void main()
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
             program.addShader(&viewDirFragShader);
             program.addShader(&viewDirVertShader);
+            for(const auto& b : viewDirBindAttribLocations_)
+                program.bindAttributeLocation(b.first.c_str(), b.second);
             link(program, tr("light pollution shader program"));
             tick(++loadingStepsDone_);
         }
@@ -929,6 +951,8 @@ void main()
                 addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
             program.addShader(&viewDirFragShader);
             program.addShader(&viewDirVertShader);
+            for(const auto& b : viewDirBindAttribLocations_)
+                program.bindAttributeLocation(b.first.c_str(), b.second);
             link(program, tr("light pollution shader program"));
             tick(++loadingStepsDone_);
         }
@@ -1655,7 +1679,8 @@ void AtmosphereRenderer::setDrawSurfaceCallback(std::function<void(QOpenGLShader
     drawSurfaceCallback=drawSurface;
 }
 
-void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc)
+void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
+                                  std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations)
 {
     try
     {
@@ -1667,6 +1692,7 @@ void AtmosphereRenderer::loadData(QByteArray viewDirVertShaderSrc, QByteArray vi
 
         viewDirVertShaderSrc_=std::move(viewDirVertShaderSrc);
         viewDirFragShaderSrc_=std::move(viewDirFragShaderSrc);
+        viewDirBindAttribLocations_=std::move(viewDirBindAttribLocations);
 
         for(const auto& scatterer : params_.scatterers)
             scatterersEnabledStates_[scatterer.name]=true;

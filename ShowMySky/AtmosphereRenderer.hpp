@@ -32,7 +32,8 @@ public:
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
     void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram&)> const& drawSurface) override;
-    void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc) override;
+    void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
+                  std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations={}) override;
     bool readyToRender() const override { return readyToRender_; }
     bool canGrabRadiance() const override;
     bool canSetSolarSpectrum() const override;
@@ -63,6 +64,7 @@ private: // variables
     QString currentActivity_;
 
     QByteArray viewDirVertShaderSrc_, viewDirFragShaderSrc_;
+    std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations_;
 
     GLuint vao_=0, vbo_=0, luminanceRadianceFBO_=0, viewDirectionFBO_=0;
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;
