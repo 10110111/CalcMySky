@@ -5,6 +5,7 @@
 #include <functional>
 
 #include <QObject>
+#include <QVector4D>
 #include <qopengl.h>
 
 #include "Settings.hpp"
@@ -56,6 +57,9 @@ public:
     virtual GLuint getLuminanceTexture() = 0;
     virtual void draw(double brightness, bool clear) = 0;
     virtual void resizeEvent(int width, int height) = 0;
+    // pixelPos is in window coordinates: (0,0) corresponds to top-left point
+    virtual QVector4D getPixelLuminance(QPoint const& pixelPos) = 0;
+    // pixelPos is in window coordinates: (0,0) corresponds to top-left point
     virtual SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) = 0;
     virtual std::vector<float> getWavelengths() = 0;
     virtual void setSolarSpectrum(std::vector<float> const& spectralIrradianceAtTOA) = 0;
@@ -81,7 +85,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
                                         QString const* pathToData,
                                         ShowMySky::Settings* tools,
                                         std::function<void(QOpenGLShaderProgram&)> const* drawSurface);
-#define ShowMySky_ABI_version 7
+#define ShowMySky_ABI_version 8
 }
 
 #endif

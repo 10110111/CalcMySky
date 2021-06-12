@@ -41,6 +41,7 @@ public:
 
     void draw(double brightness, bool clear) override;
     void resizeEvent(int width, int height) override;
+    QVector4D getPixelLuminance(QPoint const& pixelPos) override;
     SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) override;
     std::vector<float> getWavelengths() override;
     void setSolarSpectrum(std::vector<float> const& solarIrradianceAtTOA) override;

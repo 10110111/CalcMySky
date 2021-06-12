@@ -1023,6 +1023,21 @@ double AtmosphereRenderer::moonAngularRadius() const
     return moonRadius/cameraMoonDistance();
 }
 
+QVector4D AtmosphereRenderer::getPixelLuminance(QPoint const& pixelPos)
+{
+    GLint origFBO=-1;
+    gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &origFBO);
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER, luminanceRadianceFBO_);
+    gl.glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glm::vec4 pixel;
+    gl.glReadPixels(pixelPos.x(), viewportSize_.height()-pixelPos.y()-1, 1,1, GL_RGBA, GL_FLOAT, &pixel[0]);
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER, origFBO);
+
+    return toQVector(pixel);
+}
+
 auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) -> SpectralRadiance
 {
     if(radianceRenderBuffers_.empty()) return {};
