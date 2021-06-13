@@ -5,60 +5,78 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       CMAKE_GENERATOR: Visual Studio 16 2019
       QT_BASEDIR: C:/Qt/5.9/msvc2017_64
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 configuration:
   - Release
 #  - Debug
 
-install:
-# Make sure we get the bash that comes with git, not WSL bash
-  - ps: $env:Path = "C:\Program Files\Git\bin;$env:Path"
-# Get and extract GLM
-  - ps: new-item -itemtype directory -path C:\glm | out-null
-  - ps: (new-object net.webclient).DownloadFile("https://github.com/g-truc/glm/releases/download/0.9.9.7/glm-0.9.9.7.zip", 'C:/glm.zip')
-  - ps: expand-archive 'C:/glm.zip' -destinationpath 'C:\'
-# Get and extract Eigen
-  - ps: new-item -itemtype directory -path C:\eigen | out-null
-  - ps: (new-object net.webclient).DownloadFile("https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.zip", 'C:/eigen-src.zip')
-  - ps: expand-archive 'C:/eigen-src.zip' -destinationpath 'C:\'
-# Install Eigen into its final prefix
-  - cmd: cd C:\eigen-3.3.7
-# The following commented out command is toooo sloooow at the configuration stage. So we install the
-# headers manually, and also create a simple CMake config file that's sufficient for our needs.
-# Use this general command if you need to use newer Eigen version or if our config file ceases to be not sufficient:
-#  - cmd: mkdir build && cd build && cmake -G "%CMAKE_GENERATOR%" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=C:/eigen .. && cmake --build . --target install
-  - cmd: bash -c "mkdir -pv /c/eigen/{include/eigen3,share/eigen3/cmake}"
-  - cmd: bash -c "find Eigen unsupported/Eigen -not -name '*.txt' | tar cf - -T - | tar xf - -C /c/eigen/include/eigen3"
-  - cmd: bash -c "echo $'find_path(EIGEN3_INCLUDE_DIR Eigen/Core PATHS c:/eigen/include/eigen3)\nif(EIGEN3_INCLUDE_DIR)\nset(Eigen3_FOUND 1)\nelse()\nset(Eigen3_FOUND 0)\nendif()\n' > /c/eigen/share/eigen3/cmake/Eigen3Config.cmake"
-
-before_build:
-  - cmd: cd C:/projects && mkdir build && mkdir install && cd build
-  - cmd: cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="%QT_BASEDIR%/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky
-
-build_script:
-    - cmd: cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-    - cmd: set PATH=%PATH%;%QT_BASEDIR%\bin
-    - cmd: ctest -C %configuration%
-
 for:
 -
   matrix:
     only:
-      - configuration: Release
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+  install:
+  # Make sure we get the bash that comes with git, not WSL bash
+    - ps: $env:Path = "C:\Program Files\Git\bin;$env:Path"
+  # Get and extract GLM
+    - ps: new-item -itemtype directory -path C:\glm | out-null
+    - ps: (new-object net.webclient).DownloadFile("https://github.com/g-truc/glm/releases/download/0.9.9.7/glm-0.9.9.7.zip", 'C:/glm.zip')
+    - ps: expand-archive 'C:/glm.zip' -destinationpath 'C:\'
+  # Get and extract Eigen
+    - ps: new-item -itemtype directory -path C:\eigen | out-null
+    - ps: (new-object net.webclient).DownloadFile("https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.zip", 'C:/eigen-src.zip')
+    - ps: expand-archive 'C:/eigen-src.zip' -destinationpath 'C:\'
+  # Install Eigen into its final prefix
+    - cd C:\eigen-3.3.7
+  # The following commented out command is toooo sloooow at the configuration stage. So we install the
+  # headers manually, and also create a simple CMake config file that's sufficient for our needs.
+  # Use this general command if you need to use newer Eigen version or if our config file ceases to be not sufficient:
+  #  - mkdir build && cd build && cmake -G "%CMAKE_GENERATOR%" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=C:/eigen .. && cmake --build . --target install
+    - bash -c "mkdir -pv /c/eigen/{include/eigen3,share/eigen3/cmake}"
+    - bash -c "find Eigen unsupported/Eigen -not -name '*.txt' | tar cf - -T - | tar xf - -C /c/eigen/include/eigen3"
+    - bash -c "echo $'find_path(EIGEN3_INCLUDE_DIR Eigen/Core PATHS c:/eigen/include/eigen3)\nif(EIGEN3_INCLUDE_DIR)\nset(Eigen3_FOUND 1)\nelse()\nset(Eigen3_FOUND 0)\nendif()\n' > /c/eigen/share/eigen3/cmake/Eigen3Config.cmake"
+
+  before_build:
+    - cd C:/projects && mkdir build && mkdir install && cd build
+    - cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="%QT_BASEDIR%/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky
+
+  build_script:
+      - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+
+  test_script:
+      - set PATH=%PATH%;%QT_BASEDIR%\bin
+      - ctest -C %configuration%
+
   after_build:
-    - cmd: cmake --build . --config %configuration% --target install
-    - cmd: bash -c 'cp -rv ../CalcMySky/examples ../install/CalcMySky'
-    - cmd: 7z a CalcMySky.zip ../install/CalcMySky
-    - cmd: 7z l CalcMySky.zip
-    - cmd: appveyor PushArtifact CalcMySky.zip
+    - if Release == %configuration%  cmake --build . --config %configuration% --target install
+    - if Release == %configuration%  cp -rv ../CalcMySky/examples ../install/CalcMySky
+    - if Release == %configuration%  7z a CalcMySky.zip ../install/CalcMySky
+    - if Release == %configuration%  7z l CalcMySky.zip
+
+    - if  Debug  == %configuration%  cmake --build . --config %configuration% --target install
+    - if  Debug  == %configuration%  for %%F in (msvcp140d vcruntime140d) do copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\debug_nonredist\x64\Microsoft.VC140.DebugCRT\%%F.dll" CalcMySky
+    - if  Debug  == %configuration%  copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.25.28508\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll" CalcMySky
+    - if  Debug  == %configuration%  copy "C:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll" CalcMySky
+    - if  Debug  == %configuration%  cp -v \"/c/Program Files (x86)/Windows Kits/10/bin/x64/ucrt/ucrtbased.dll\" CalcMySky
+    - if  Debug  == %configuration%  7z a CalcMySky.zip CalcMySky
+
+    - appveyor PushArtifact CalcMySky.zip
+
 -
   matrix:
     only:
-      - configuration: Debug
+      - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+  install:
+    - sudo apt-get install -y libeigen3-dev libglm-dev libqt5opengl5-dev
+  before_build:
+    - cd ~/projects/ && mkdir build && mkdir CalcMySky && cd build
+    - cmake -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" ../calcmysky -DCMAKE_CXX_COMPILER=g++-9
+  build_script:
+    - cmake --build .
+  test_script:
+    - ctest
   after_build:
-    - cmd: cmake --build . --config %configuration% --target install
-    - cmd: for %%F in (msvcp140d vcruntime140d) do copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\debug_nonredist\x64\Microsoft.VC140.DebugCRT\%%F.dll" CalcMySky
-    - cmd: copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.25.28508\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll" CalcMySky
-    - cmd: copy "C:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll" CalcMySky
-    - cmd: 7z a CalcMySky.zip CalcMySky
-    - cmd: appveyor PushArtifact CalcMySky.zip
+    - cmake --build . --target install
+    - tar cvjf CalcMySky-bin.tar.bz2 -C install CalcMySky
+    - appveyor PushArtifact CalcMySky-bin.tar.bz2
