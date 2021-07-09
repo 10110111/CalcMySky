@@ -67,8 +67,8 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
 
     altitude_     = addManipulator(layout, this, tr("&Altitude"), 0, 100/*will be changed after loading of atmosphere description*/,
                                                                  50, 2, " m");
-    exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
-    sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, 45, 3, QChar(0x00b0));
+    exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, 0, 2);
+    sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, -12, 3, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 3, QChar(0x00b0));
     moonElevation_= addManipulator(layout, this, tr("Moon &elevation"),  -90,  90, 41, 3, QChar(0x00b0));
     moonAzimuth_  = addManipulator(layout, this, tr("Moon azim&uth"),   -180, 180,  0, 3, QChar(0x00b0));
@@ -106,6 +106,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         layout->addLayout(hbox);
     }
     gradualClippingEnabled_ = addCheckBox(layout, this, tr("&Gradual color clipping"), true);
+    ladogaFramesEnabled_    = addCheckBox(layout, this, tr("Show Ladoga frames instead of the model"), true);
     zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw zer&o-order scattering layer"), true);
     singleScatteringEnabled_    = addCheckBox(layout, this, tr("Draw &single scattering layers"), true);
     {
@@ -119,7 +120,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
                 { frame->setEnabled(state==Qt::Checked); });
     }
     multipleScatteringEnabled_  = addCheckBox(layout, this, text_drawMultipleScattering, true);
-    lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 20, 2, QString::fromUtf8(u8"\u202fcd/m²"));
+    lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 0, 2, QString::fromUtf8(u8"\u202fcd/m²"));
 
     {
         const auto hbox=new QHBoxLayout;

@@ -34,6 +34,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     Manipulator* cameraPitch_=nullptr;
     Manipulator* cameraYaw_=nullptr;
     Manipulator* lightPollutionGroundLuminance_=nullptr;
+    QCheckBox* ladogaFramesEnabled_=nullptr;
     QCheckBox* onTheFlySingleScatteringEnabled_=nullptr;
     QCheckBox* onTheFlyPrecompDoubleScatteringEnabled_=nullptr;
     QCheckBox* zeroOrderScatteringEnabled_=nullptr;
@@ -64,6 +65,7 @@ public:
     double lightPollutionGroundLuminance() override { return lightPollutionGroundLuminance_->value(); }
     bool onTheFlySingleScatteringEnabled() override { return onTheFlySingleScatteringEnabled_->isChecked(); }
     bool onTheFlyPrecompDoubleScatteringEnabled() override { return onTheFlyPrecompDoubleScatteringEnabled_->isChecked(); }
+    bool ladogaFramesEnabled() override { return ladogaFramesEnabled_->isChecked(); }
     bool zeroOrderScatteringEnabled() override { return zeroOrderScatteringEnabled_->isChecked(); }
     bool singleScatteringEnabled() override { return singleScatteringEnabled_->isChecked(); }
     bool multipleScatteringEnabled() override { return multipleScatteringEnabled_->isChecked(); }
