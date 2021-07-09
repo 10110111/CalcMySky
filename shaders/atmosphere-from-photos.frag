@@ -4,7 +4,7 @@
 const float PI=3.14159265358979323846;
 vec3 calcViewDir();
 
-uniform float sunAzimuth;
+uniform float frameNum;
 uniform float sunAzimuthInPhoto;
 uniform sampler2D photo;
 
@@ -64,8 +64,11 @@ vec3 srgb2xyz(const vec3 srgb)
 
 void main()
 {
+    if(gl_FragCoord.x-0.5!=frameNum) discard;
+
     vec3 view_direction=calcViewDir();
-    const float phi=atan(view_direction.y,view_direction.x)+sunAzimuthInPhoto-sunAzimuth;
+
+    const float phi=sunAzimuthInPhoto;
     const float theta=asin(view_direction.z/length(view_direction));
 
     const vec2 texCoord=imgCoordsForDir(phi,theta)/textureSize(photo,0);
