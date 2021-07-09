@@ -315,6 +315,87 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
     return {sizes[0], sizes[1]};
 }
 
+const float sunPositions[][4]={
+    {20,38,24, 298.125713095103},
+    {20,40,23, 298.566389633925},
+    {20,42,23, 299.011367798508},
+    {20,44,23, 299.456957704902},
+    {20,46,23, 299.90317000405},
+    {20,48,23, 300.350015188534},
+    {20,50,23, 300.797503589762},
+    {20,52,30, 301.271807360605},
+    {20,54,30, 301.720651533118},
+    {20,56,30, 302.170169489007},
+    {20,58,30, 302.620370875888},
+    {21, 0,30, 303.071265165347},
+    {21, 2,30, 303.522861649876},
+    {21, 4,37, 304.001576207411},
+    {21, 6,37, 304.454646512566},
+    {21, 8,37, 304.908446288203},
+    {21,10,37, 305.362984067733},
+    {21,12,37, 305.818268189398},
+    {21,14,37, 306.274306792986},
+    {21,16,37, 306.731107816521},
+    {21,18,37, 307.188678992924},
+    {21,20,37, 307.647027846642},
+    {21,22,47, 308.144458501513},
+    {21,24,47, 308.604450753166},
+    {21,26,47, 309.065242533897},
+    {21,28,47, 309.5268404815},
+    {21,30,47, 309.989251007864},
+    {21,32,47, 310.452480295499},
+    {21,34,47, 310.916534294047},
+    {21,36,47, 311.381418716797},
+    {21,38,47, 311.847139037183},
+    {21,41, 4, 312.37986500158},
+    {21,43, 4, 312.847392814971},
+    {21,45, 4, 313.315772122329},
+    {21,47, 5, 313.788921268333},
+    {21,49, 5, 314.259023819119},
+    {21,51, 5, 314.729990447493},
+    {21,53, 5, 315.2018248106},
+    {21,55, 5, 315.674530297558},
+    {21,57, 5, 316.148110026093},
+    {21,59, 5, 316.622566839208},
+    {22, 1, 5, 317.097903301893},
+    {22, 3, 4, 317.570149561455},
+    {22, 5, 5, 318.051224026393},
+    {22, 7, 4, 318.525225102457},
+    {22, 9, 5, 319.008087036888},
+    {22,11, 5, 319.487850266927},
+    {22,13, 5, 319.968502519639},
+    {22,15, 5, 320.450044325821},
+    {22,17, 5, 320.93247591381},
+    {22,19, 5, 321.415797206738},
+    {22,21, 5, 321.900007819865},
+    {22,23, 5, 322.385107058012},
+    {22,25, 5, 322.871093913075},
+    {22,27, 5, 323.35796706165},
+    {22,29, 5, 323.84572486276},
+    {22,31, 5, 324.33436535569},
+    {22,33, 5, 324.823886257939},
+    {22,35, 5, 325.314284963295},
+    {22,37, 5, 325.80555854003},
+    {22,39, 5, 326.297703729235},
+    {22,41, 5, 326.790716943282},
+    {22,43, 5, 327.284594264436},
+    {22,45, 5, 327.779331443604},
+    {22,47, 5, 328.274923899246},
+    {22,49, 5, 328.771366716436},
+    {22,51, 5, 329.268654646087},
+    {22,53, 5, 329.766782104342},
+    {22,55, 5, 330.265743172134},
+    {22,57, 5, 330.76553159493},
+    {22,59, 5, 331.266140782644},
+    {23, 1, 5, 331.767563809744},
+    {23, 3, 5, 332.269793415546},
+    {23, 5, 5, 332.772822004697},
+    {23, 7, 5, 333.276641647864},
+    {23, 9, 5, 333.781244082616},
+    {23,11, 5, 334.286620714517},
+    {23,13, 5, 334.792762618421},
+    {23,15, 5, 335.299660539989},
+};
 void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
 {
     OGL_TRACE();
@@ -323,6 +404,40 @@ void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
 
     if(!countStepsOnly)
         gl.glActiveTexture(GL_TEXTURE0);
+
+    for(unsigned n=0; n<std::size(sunPositions); ++n)
+    {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo_;
+            continue;
+        }
+        if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
+            continue;
+
+        if(n==0)
+        {
+            ladogaTextures_.resize(std::size(sunPositions));
+            gl.glGenTextures(ladogaTextures_.size(), ladogaTextures_.data());
+        }
+        auto const& date=sunPositions[n];
+        const auto imgFileName=QString("/tmp/2019-04-14-twilight-at-ladoga-frames/2019-04-14 %1:%2:%3-merged-srgb.bmp")
+                                    .arg(int(date[0]),2,10,QChar('0'))
+                                    .arg(int(date[1]),2,10,QChar('0'))
+                                    .arg(int(date[2]),2,10,QChar('0'));
+        std::cerr << "Loading texture from \"" << imgFileName << "\"...\n";
+        const auto img=QImage(imgFileName).convertToFormat(QImage::Format_RGBA8888);
+        if(img.isNull())
+            qDebug() << "******** Failed to open image " << imgFileName;
+        gl.glBindTexture(GL_TEXTURE_2D, ladogaTextures_[n]);
+        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width(), img.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.bits());
+        gl.glGenerateMipmap(GL_TEXTURE_2D);
+        ++loadingStepsDone_; return;
+    }
 
     for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
     {
@@ -970,6 +1085,23 @@ void main()
     if(countStepsOnly)
     {
         ++totalLoadingStepsToDo_;
+    }
+    else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+    {
+        ladogaFramesProgram_ = std::make_unique<QOpenGLShaderProgram>();
+        auto& program = *ladogaFramesProgram_;
+        program.addShader(viewDirFragShader_.get());
+        program.addShader(viewDirVertShader_.get());
+        addShaderFile(program,QOpenGLShader::Fragment,QString("/home/ruslan/Dropbox/myprogs/CalcMySky/shaders/atmosphere-from-photos.frag"));
+        for(const auto& b : viewDirBindAttribLocations_)
+            program.bindAttributeLocation(b.first.c_str(), b.second);
+        link(program, QObject::tr("Ladoga frames display shader program"));
+        ++loadingStepsDone_; return;
+    }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
 
         // Dummy value to avoid dereferencing null pointer in the loop below
         eclipsedSingleScatteringPrecomputationPrograms_=std::make_unique<ScatteringProgramsMap>();
@@ -979,6 +1111,7 @@ void main()
         eclipsedSingleScatteringPrecomputationPrograms_=std::make_unique<ScatteringProgramsMap>();
         ++loadingStepsDone_; return;
     }
+
     for(const auto& scatterer : params_.scatterers)
     {
         auto& programs=(*eclipsedSingleScatteringPrecomputationPrograms_)[scatterer.name];
@@ -1570,6 +1703,21 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
     gl.glEnablei(GL_BLEND, 0);
 }
 
+void AtmosphereRenderer::renderLadogaFrame()
+{
+    OGL_TRACE();
+    auto& prog = *ladogaFramesProgram_;
+    prog.bind();
+    const auto h = tools_->altitude();
+    const unsigned n = unsigned(h)>=ladogaTextures_.size() ? ladogaTextures_.size()-1 : unsigned(h);
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_2D, ladogaTextures_[n]);
+    prog.setUniformValue("photo", 0);
+    prog.setUniformValue("sunAzimuthInPhoto", float(sunPositions[n][3]*M_PI/180));
+    prog.setUniformValue("sunAzimuth", float(tools_->sunAzimuth()));
+    drawSurface(prog);
+}
+
 void AtmosphereRenderer::renderSingleScattering()
 {
     OGL_TRACE();
@@ -2017,14 +2165,21 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
         {
             gl.glBlendFunc(GL_CONSTANT_COLOR, GL_ONE);
             gl.glBlendColor(brightness, brightness, brightness, brightness);
-            if(tools_->zeroOrderScatteringEnabled())
-                renderZeroOrderScattering();
-            if(tools_->singleScatteringEnabled())
-                renderSingleScattering();
-            if(tools_->multipleScatteringEnabled())
-                renderMultipleScattering();
-            if(tools_->lightPollutionGroundLuminance())
-                renderLightPollution();
+            if(tools_->ladogaFramesEnabled())
+            {
+                renderLadogaFrame();
+            }
+            else
+            {
+                if(tools_->zeroOrderScatteringEnabled())
+                    renderZeroOrderScattering();
+                if(tools_->singleScatteringEnabled())
+                    renderSingleScattering();
+                if(tools_->multipleScatteringEnabled())
+                    renderMultipleScattering();
+                if(tools_->lightPollutionGroundLuminance())
+                    renderLightPollution();
+            }
         }
         gl.glDisablei(GL_BLEND, 0);
 
@@ -2277,6 +2432,9 @@ void AtmosphereRenderer::clearResources()
     }
     if(!radianceRenderBuffers_.empty())
         gl.glDeleteRenderbuffers(radianceRenderBuffers_.size(), radianceRenderBuffers_.data());
+
+    if(ladogaTextures_.size())
+        gl.glDeleteTextures(ladogaTextures_.size(), ladogaTextures_.data());
 }
 
 void AtmosphereRenderer::drawSurface(QOpenGLShaderProgram& prog)

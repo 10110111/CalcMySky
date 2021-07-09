@@ -89,6 +89,7 @@ private: // variables
     GLuint vao_=0, vbo_=0, luminanceRadianceFBO_=0, viewDirectionFBO_=0;
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;
     GLuint eclipseDoubleScatteringPrecomputationFBO_=0;
+    std::vector<GLuint> ladogaTextures_;
     // Lower and upper altitude slices from the 4D texture
     std::vector<TexturePtr> eclipsedDoubleScatteringTextures_;
     std::vector<TexturePtr> multipleScatteringTextures_;
@@ -108,6 +109,7 @@ private: // variables
     QSize viewportSize_;
     double altCoordToLoad_=0; //!< Used to load textures for a single altitude slice, even if input altitude changes during the load
 
+    ShaderProgPtr ladogaFramesProgram_;
     std::vector<ShaderProgPtr> lightPollutionPrograms_;
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> eclipsedZeroOrderScatteringPrograms_;
@@ -167,6 +169,7 @@ private: // methods
     void precomputeEclipsedSingleScattering();
     void precomputeEclipsedDoubleScattering();
     void renderZeroOrderScattering();
+    void renderLadogaFrame();
     void renderSingleScattering();
     void renderMultipleScattering();
     void renderLightPollution();

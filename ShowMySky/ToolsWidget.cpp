@@ -70,8 +70,8 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     setWidget(scrollArea);
 
     altitude_     = addManipulator(layout, this, tr("&Altitude"), 0, initialMaxAltitude, 50, 2, " m", true);
-    exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
-    sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, 45, 3, QChar(0x00b0));
+    exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, 0, 2);
+    sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, -12, 3, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 3, QChar(0x00b0));
     sunAngularRadius_ = addManipulator(layout, this, tr("Sun angular radius"), 0.01, 0.999,  0.25, 3, QChar(0x00b0));
     moonElevation_= addManipulator(layout, this, tr("Moon &elevation"),  -90,  90, 41, 3, QChar(0x00b0));
@@ -149,6 +149,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     }
     gradualClippingEnabled_ = addCheckBox(layout, this, tr("&Gradual color clipping"), true);
     glareEnabled_ = addCheckBox(layout, this, tr("Glare (visual only)"), false);
+    ladogaFramesEnabled_ = addCheckBox(layout, this, tr("Show Ladoga frames instead of the model"), true);
     zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw zer&o-order scattering layer"), true);
     singleScatteringEnabled_    = addCheckBox(layout, this, tr("Draw &single scattering layers"), true);
     {

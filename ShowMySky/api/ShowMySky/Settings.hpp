@@ -52,6 +52,7 @@ public:
      * \returns Zenith angle of the Moon at the location of the camera in radians.
      */
     virtual double moonZenithAngle() = 0;
+    virtual bool ladogaFramesEnabled() = 0;
     /**
      * \brief Distance between the Earth and the Moon.
      *

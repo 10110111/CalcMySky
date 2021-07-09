@@ -299,7 +299,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
  *
  * If the value of the symbol doesn't match the value of this constant, the library loaded is incompatible with the header against which the binary was compiled. Mixing incompatible header and library leads to undefined behavior.
  */
-#define ShowMySky_ABI_version 15
+#define ShowMySky_ABI_version 0
 
 /**
  * \brief Name of library to be dlopen()-ed
