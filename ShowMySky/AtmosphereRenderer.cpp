@@ -1350,14 +1350,15 @@ void AtmosphereRenderer::renderLadogaFrame()
     OGL_TRACE();
     auto& prog = *ladogaFramesProgram_;
     prog.bind();
-    const auto h = tools_->altitude();
-    const unsigned n = unsigned(h)>=ladogaTextures_.size() ? ladogaTextures_.size()-1 : unsigned(h);
     gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_2D, ladogaTextures_[n]);
     prog.setUniformValue("photo", 0);
-    prog.setUniformValue("sunAzimuthInPhoto", float(sunPositions[n][3]*M_PI/180));
-    prog.setUniformValue("sunAzimuth", float(tools_->sunAzimuth()));
-    drawSurface(prog);
+    for(unsigned n=0; n<std::size(sunPositions); ++n)
+    {
+        gl.glBindTexture(GL_TEXTURE_2D, ladogaTextures_[n]);
+        prog.setUniformValue("sunAzimuthInPhoto", float(sunPositions[n][3]*M_PI/180));
+        prog.setUniformValue("frameNum", float(n));
+        drawSurface(prog);
+    }
 }
 
 void AtmosphereRenderer::renderSingleScattering()
