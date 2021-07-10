@@ -65,6 +65,7 @@ vec3 srgb2xyz(const vec3 srgb)
 void main()
 {
     vec3 view_direction=calcViewDir();
+    if(view_direction.z<0) discard;
 
     const float phi=sunAzimuthInPhoto;
     const float theta=asin(view_direction.z/length(view_direction));
