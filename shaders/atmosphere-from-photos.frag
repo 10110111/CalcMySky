@@ -64,8 +64,6 @@ vec3 srgb2xyz(const vec3 srgb)
 
 void main()
 {
-    if(gl_FragCoord.x-0.5!=frameNum) discard;
-
     vec3 view_direction=calcViewDir();
 
     const float phi=sunAzimuthInPhoto;
