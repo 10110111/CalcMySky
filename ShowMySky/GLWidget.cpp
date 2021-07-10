@@ -260,8 +260,8 @@ const float PI=3.1415926535897932;
 vec3 calcViewDir()
 {
     vec2 pos=position.xy/zoomFactor;
-    return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
-                               sin(pos.x*PI)*cos(pos.y*(PI/2)),
+    return cameraRotation*vec3(cos(0)*cos(pos.y*(PI/2)),
+                               sin(0)*cos(pos.y*(PI/2)),
                                sin(pos.y*(PI/2)));
 }
 )";

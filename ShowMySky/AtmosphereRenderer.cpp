@@ -1115,11 +1115,18 @@ glm::dvec3 AtmosphereRenderer::cameraPosition() const
     return glm::dvec3(0,0,tools_->altitude());
 }
 
+double AtmosphereRenderer::sunZenithAngle() const
+{
+    if(overrideSunZenithAngle_)
+        return *overrideSunZenithAngle_;
+    return tools_->sunZenithAngle();
+}
+
 glm::dvec3 AtmosphereRenderer::sunDirection() const
 {
-    return glm::dvec3(std::cos(tools_->sunAzimuth())*std::sin(tools_->sunZenithAngle()),
-                      std::sin(tools_->sunAzimuth())*std::sin(tools_->sunZenithAngle()),
-                      std::cos(tools_->sunZenithAngle()));
+    return glm::dvec3(std::cos(tools_->sunAzimuth())*std::sin(sunZenithAngle()),
+                      std::sin(tools_->sunAzimuth())*std::sin(sunZenithAngle()),
+                      std::cos(sunZenithAngle()));
 }
 
 glm::dvec3 AtmosphereRenderer::moonPosition() const
@@ -1324,7 +1331,7 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
             prog.setUniformValue("altitude", float(tools_->altitude()));
             prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
             prog.setUniformValue("moonPositionRelativeToSunAzimuth", toQVector(moonPositionRelativeToSunAzimuth()));
-            prog.setUniformValue("sunZenithAngle", float(tools_->sunZenithAngle()));
+            prog.setUniformValue("sunZenithAngle", float(sunZenithAngle()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
             if(!solarIrradianceFixup_.empty())
@@ -1533,7 +1540,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
                                                         unusedTextureUnitNum, params_,
                                                         params_.eclipsedDoubleScatteringTextureSize[0],
                                                         params_.eclipsedDoubleScatteringTextureSize[1], 1, 1);
-        precomputer.compute(0, 0, tools_->altitude(), tools_->sunZenithAngle(),
+        precomputer.compute(0, 0, tools_->altitude(), sunZenithAngle(),
                             tools_->moonZenithAngle(), tools_->moonAzimuth() - tools_->sunAzimuth());
         eclipsedDoubleScatteringPrecomputationTargetTextures_[wlSetIndex]->bind();
         gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,
@@ -1746,14 +1753,42 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
             }
             else
             {
-                if(tools_->zeroOrderScatteringEnabled())
-                    renderZeroOrderScattering();
-                if(tools_->singleScatteringEnabled())
-                    renderSingleScattering();
-                if(tools_->multipleScatteringEnabled())
-                    renderMultipleScattering();
-                if(tools_->lightPollutionGroundLuminance())
-                    renderLightPollution();
+                gl.glEnable(GL_SCISSOR_TEST);
+                const double xMax = viewportSize_.width();
+                for(double x=0; x<xMax; ++x)
+                {
+                    const auto zenithAngleDeg = x/xMax*180;
+                    overrideSunZenithAngle_=zenithAngleDeg*(M_PI/180);
+                    gl.glScissor(x,0, 1,viewportSize_.height());
+                    auto localBrightness=brightness;
+                    gl.glBlendColor(localBrightness, localBrightness, localBrightness, localBrightness);
+                    if(tools_->singleScatteringEnabled())
+                        renderSingleScattering();
+                    if(tools_->multipleScatteringEnabled())
+                        renderMultipleScattering();
+                    if(tools_->lightPollutionGroundLuminance())
+                        renderLightPollution();
+
+                    {
+                        const auto t = x/xMax-0.5;
+                        const auto y = 0.499*viewportSize_.height()*(1-(std::sqrt(t*t+0.001)-t));
+                        const auto p = getPixelLuminance(QPoint(x,y)).y();
+                        localBrightness=brightness/p/5;
+                        gl.glBlendColor(localBrightness, localBrightness, localBrightness, localBrightness);
+                    }
+                    gl.glClear(GL_COLOR_BUFFER_BIT);
+                    glScissor(x,0, 1,viewportSize_.height());
+                    if(tools_->zeroOrderScatteringEnabled())
+                        renderZeroOrderScattering();
+                    if(tools_->singleScatteringEnabled())
+                        renderSingleScattering();
+                    if(tools_->multipleScatteringEnabled())
+                        renderMultipleScattering();
+                    if(tools_->lightPollutionGroundLuminance())
+                        renderLightPollution();
+                }
+                glScissor(0,0, viewportSize_.width(),viewportSize_.height());
+                glDisable(GL_SCISSOR_TEST);
             }
         }
         gl.glDisablei(GL_BLEND, 0);

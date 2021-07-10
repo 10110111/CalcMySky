@@ -111,6 +111,7 @@ private: // variables
 
     int numAltIntervalsIn4DTexture_;
     int numAltIntervalsInEclipsed4DTexture_;
+    std::optional<double> overrideSunZenithAngle_;
 
     bool readyToRender_=false;
 
@@ -147,6 +148,7 @@ private: // methods
     void renderMultipleScattering();
     void renderLightPollution();
     void prepareRadianceFrames(bool clear);
+    double sunZenithAngle() const;
 };
 
 #endif
