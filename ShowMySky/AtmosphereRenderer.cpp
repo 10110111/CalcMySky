@@ -1717,13 +1717,29 @@ void AtmosphereRenderer::renderLadogaFrame()
     prog.bind();
     gl.glActiveTexture(GL_TEXTURE0);
     prog.setUniformValue("photo", 0);
+    gl.glEnable(GL_SCISSOR_TEST);
     for(unsigned n=0; n<std::size(sunPositions); ++n)
     {
         gl.glBindTexture(GL_TEXTURE_2D, ladogaTextures_[n]);
         prog.setUniformValue("sunAzimuthInPhoto", float(sunPositions[n][3]*M_PI/180));
         prog.setUniformValue("frameNum", float(n));
+
+        gl.glScissor(n,0, 1,viewportSize_.height());
+        double localBrightness=1;
+        gl.glBlendColor(localBrightness, localBrightness, localBrightness, localBrightness);
+
+        drawSurface(prog);
+        {
+            const auto y = 0.5*(1-49/1080.)*viewportSize_.height();
+            const auto p = getPixelLuminance(QPoint(n,y)).y();
+            localBrightness=1./p/2;
+            gl.glBlendColor(localBrightness, localBrightness, localBrightness, localBrightness);
+        }
+        gl.glClear(GL_COLOR_BUFFER_BIT);
+        glScissor(n,0, 1,viewportSize_.height());
         drawSurface(prog);
     }
+    gl.glDisable(GL_SCISSOR_TEST);
 }
 
 void AtmosphereRenderer::renderSingleScattering()
@@ -2196,7 +2212,7 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
                         renderLightPollution();
 
                     {
-                        const auto y = 0.499*viewportSize_.height();
+                        const auto y = 0.5*(1-49/1080.)*viewportSize_.height();
                         const auto p = getPixelLuminance(QPoint(x,y)).y();
                         localBrightness=brightness/p/5;
                         gl.glBlendColor(localBrightness, localBrightness, localBrightness, localBrightness);
