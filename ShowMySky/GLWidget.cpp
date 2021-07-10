@@ -460,33 +460,9 @@ float cos(float x)
 vec3 calcViewDir()
 {
     vec2 pos=position.xy/zoomFactor;
-    if(projection==PROJ_EQUIRECTANGULAR)
-    {
-        return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
-                                   sin(pos.x*PI)*cos(pos.y*(PI/2)),
-                                   sin(pos.y*(PI/2)));
-    }
-    else if(projection==PROJ_PERSPECTIVE)
-    {
-        const float horizViewAngle = 120*PI/180;
-        const float camDistToScreen = 0.5 * tan(horizViewAngle);
-        pos.y /= viewportAspectRatio;
-        return cameraRotation * normalize(vec3(-camDistToScreen, pos));
-    }
-    else if(projection==PROJ_FISHEYE)
-    {
-        const float thetaMax=PI;
-        float r=length(pos.xy);
-        float theta=r*thetaMax;
-        if(theta > thetaMax)
-            return vec3(0);
-        float phi = PI - atan(pos.x,pos.y);
-        return cameraRotation*vec3(cos(phi)*sin(theta),
-                                   sin(phi)*sin(theta),
-                                            cos(theta));
-    }
-
-    return vec3(0);
+    return cameraRotation*vec3(cos(0)*cos(pos.y*(PI/2)),
+                               sin(0)*cos(pos.y*(PI/2)),
+                               sin(pos.y*(PI/2)));
 }
 )";
         viewDirFragShaderSrc.replace("COSINE_IS_BROKEN", cosineIsOK ? "0" : "1");

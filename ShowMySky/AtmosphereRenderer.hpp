@@ -130,6 +130,8 @@ private: // variables
     std::vector<QVector4D> solarIrradianceFixup_;
 
     int numAltIntervalsIn4DTexture_;
+    int numAltIntervalsInEclipsed4DTexture_;
+    std::optional<double> overrideSunZenithAngle_;
 
     enum class State
     {
@@ -174,6 +176,7 @@ private: // methods
     void renderMultipleScattering();
     void renderLightPollution();
     void prepareRadianceFrames(bool clear);
+    double sunZenithAngle() const;
 };
 
 #endif
