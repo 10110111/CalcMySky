@@ -1754,10 +1754,10 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
             else
             {
                 gl.glEnable(GL_SCISSOR_TEST);
-                const double xMax = viewportSize_.width();
+                const double xMax = std::size(sunPositions);
                 for(double x=0; x<xMax; ++x)
                 {
-                    const auto zenithAngleDeg = x/xMax*180;
+                    const auto zenithAngleDeg = 90 - (x/(xMax-1)*(-17.9607166583393 - -4.78204363889612) + -4.78204363889612);
                     overrideSunZenithAngle_=zenithAngleDeg*(M_PI/180);
                     gl.glScissor(x,0, 1,viewportSize_.height());
                     auto localBrightness=brightness;
@@ -1770,8 +1770,7 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
                         renderLightPollution();
 
                     {
-                        const auto t = x/xMax-0.5;
-                        const auto y = 0.499*viewportSize_.height()*(1-(std::sqrt(t*t+0.001)-t));
+                        const auto y = 0.499*viewportSize_.height();
                         const auto p = getPixelLuminance(QPoint(x,y)).y();
                         localBrightness=brightness/p/5;
                         gl.glBlendColor(localBrightness, localBrightness, localBrightness, localBrightness);
