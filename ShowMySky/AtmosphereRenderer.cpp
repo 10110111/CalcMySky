@@ -412,7 +412,7 @@ void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
             }
 
             auto const& date=sunPositions[n];
-            const auto imgFileName=QString("/tmp/2019-04-14-twilight-at-ladoga-frames/2019-04-14 %1:%2:%3-merged-srgb.bmp")
+            const auto imgFileName=QString("/home/ruslan/tmp/2019-04-14-twilight-at-ladoga-frames/2019-04-14 %1:%2:%3-merged-srgb.bmp")
                                         .arg(int(date[0]),2,10,QChar('0'))
                                         .arg(int(date[1]),2,10,QChar('0'))
                                         .arg(int(date[2]),2,10,QChar('0'));
