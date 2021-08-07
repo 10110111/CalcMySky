@@ -69,6 +69,8 @@ void Manipulator::setRange(const double min, const double max)
 void Manipulator::setMax(const double max)
 {
     spinbox->setMaximum(max);
+    if(max*decimalMultiplier>INT_MAX)
+        decimalMultiplier = INT_MAX/max;
     slider->setMaximum(max*decimalMultiplier);
 }
 

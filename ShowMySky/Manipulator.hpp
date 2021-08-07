@@ -14,7 +14,7 @@ class Manipulator: public QWidget
     QSlider*const slider;
     QDoubleSpinBox*const spinbox;
     QLabel*const label;
-    const double decimalMultiplier;
+    double decimalMultiplier;
 
 public:
     Manipulator(QString const& label, double min, double max, double defaultValue, int decimalPlaces=0);
