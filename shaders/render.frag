@@ -39,10 +39,35 @@ void main()
     // quite correct physically: there are places with negative elevation above sea level. But the error of
     // this approximation has the same order of magnitude as the assumption that the Earth and its atmosphere
     // are spherical.
-    const float altitude = max(cameraPosition.z, 0.);
+    float altitude = max(cameraPosition.z, 0.);
     const vec3 oldCamPos=cameraPosition;
     // Hide the uniform with this name, thus effectively modifying it for the following code
-    const vec3 cameraPosition=vec3(oldCamPos.xy, altitude);
+    vec3 cameraPosition=vec3(oldCamPos.xy, altitude);
+
+    bool lookingIntoAtmosphere=true;
+    if(altitude>atmosphereHeight)
+    {
+        const vec3 p = cameraPosition - earthCenter;
+        const float p_dot_v = dot(p, viewDir);
+        const float p_dot_p = dot(p, p);
+        const float squaredDistBetweenViewRayAndEarthCenter = p_dot_p - sqr(p_dot_v);
+        const float distanceToTOA = -p_dot_v - sqrt(sqr(earthRadius+atmosphereHeight) - squaredDistBetweenViewRayAndEarthCenter);
+        if(distanceToTOA>=0)
+        {
+            cameraPosition += viewDir*distanceToTOA;
+            altitude = atmosphereHeight;
+        }
+        else
+        {
+#if RENDERING_ANY_ZERO_SCATTERING
+            lookingIntoAtmosphere=false;
+#else
+            luminance=vec4(0);
+            radianceOutput=vec4(0);
+            return;
+#endif
+        }
+    }
 
     const vec3 zenith=normalize(cameraPosition-earthCenter);
     const float cosViewZenithAngle=dot(zenith,viewDir);
@@ -83,7 +108,10 @@ void main()
     }
     else if(dotViewSun>cos(sunAngularRadius))
     {
-        radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
+        if(lookingIntoAtmosphere)
+            radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
+        else
+            radiance=solarRadiance();
     }
     else
     {
@@ -113,7 +141,10 @@ void main()
     }
     else if(dotViewSun>cos(sunAngularRadius) && dotViewMoon<cos(moonAngularRadius))
     {
-        radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
+        if(lookingIntoAtmosphere)
+            radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
+        else
+            radiance=solarRadiance();
     }
     else
     {

@@ -358,9 +358,9 @@ void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
 
 double AtmosphereRenderer::altitudeUnitRangeTexCoord() const
 {
-    const auto h = tools_->altitude();
-    const auto H = params_.atmosphereHeight;
-    const auto R = params_.earthRadius;
+    const double H = params_.atmosphereHeight;
+    const double h = std::clamp(tools_->altitude(), 0., H);
+    const double R = params_.earthRadius;
     return std::sqrt(h*(h+2*R) / ( H*(H+2*R) ));
 }
 
