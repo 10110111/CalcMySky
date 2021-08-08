@@ -161,10 +161,15 @@ float angleBetweenSunAndMoon(const vec3 camera, const vec3 sunDir, const vec3 mo
     return angleBetween(dvec3(sunDir), dvec3(moonPos-camera));
 }
 
+float moonAngularRadius(const vec3 cameraPosition, const vec3 moonPosition)
+{
+    return moonRadius/length(moonPosition-cameraPosition);
+}
+
 float visibleSolidAngleOfSun(const vec3 camera, const vec3 sunDir, const vec3 moonPos)
 {
     const float Rs=sunAngularRadius;
-    const float Rm=moonAngularRadius;
+    const float Rm=moonAngularRadius(camera,moonPos);
     float visibleSolidAngle=PI*sqr(Rs);
 
     const float dSM=angleBetweenSunAndMoon(camera,sunDir,moonPos);

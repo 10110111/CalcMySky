@@ -1018,11 +1018,6 @@ double AtmosphereRenderer::cameraMoonDistance() const
     return -hpR*sin(moonElevation)+sqrt(sqr(params_.earthMoonDistance)-0.5*sqr(hpR)*(1+cos(2*moonElevation)));
 }
 
-double AtmosphereRenderer::moonAngularRadius() const
-{
-    return moonRadius/cameraMoonDistance();
-}
-
 QVector4D AtmosphereRenderer::getPixelLuminance(QPoint const& pixelPos)
 {
     GLint origFBO=-1;
@@ -1148,7 +1143,6 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             auto& prog=*eclipsedZeroOrderScatteringPrograms_[wlSetIndex];
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-            prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
             prog.setUniformValue("moonPosition", toQVector(moonPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             transmittanceTextures_[wlSetIndex]->bind(0);
@@ -1194,7 +1188,6 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
             auto& prog=*programs[wlSetIndex];
             prog.bind();
             prog.setUniformValue("altitude", float(tools_->altitude()));
-            prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
             prog.setUniformValue("moonPositionRelativeToSunAzimuth", toQVector(moonPositionRelativeToSunAzimuth()));
             prog.setUniformValue("sunZenithAngle", float(tools_->sunZenithAngle()));
             transmittanceTextures_[wlSetIndex]->bind(0);
@@ -1242,7 +1235,6 @@ void AtmosphereRenderer::renderSingleScattering()
                     auto& prog=*eclipsedSingleScatteringPrograms_[renderMode]->at(scatterer.name)[wlSetIndex];
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                    prog.setUniformValue("moonAngularRadius", float(moonAngularRadius()));
                     prog.setUniformValue("moonPosition", toQVector(moonPosition()));
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);

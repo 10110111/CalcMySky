@@ -125,7 +125,6 @@ private: // methods
     void drawSurface(QOpenGLShaderProgram& prog);
 
     double altitudeUnitRangeTexCoord() const;
-    double moonAngularRadius() const;
     double cameraMoonDistance() const;
     glm::dvec3 sunDirection() const;
     glm::dvec3 moonPosition() const;
