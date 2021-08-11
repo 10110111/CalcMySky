@@ -158,6 +158,23 @@ std::vector<glm::vec4> saveTexture(const GLenum target, const GLuint texture, co
     return dataToReturn;
 }
 
+void setupTexture(TextureId id, const GLsizei width)
+{
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error on entry to setupTexture(" << width << "): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
+    gl.glBindTexture(GL_TEXTURE_1D,textures[id]);
+    gl.glTexImage1D(GL_TEXTURE_1D,0,GL_RGBA32F,width,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl.glBindTexture(GL_TEXTURE_1D,0);
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in setupTexture(" << width << "): " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
+}
 void setupTexture(TextureId id, const GLsizei width, const GLsizei height)
 {
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)

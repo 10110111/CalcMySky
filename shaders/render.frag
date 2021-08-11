@@ -78,6 +78,11 @@ void main()
 
     CONST vec3 zenith=normalize(cameraPosition-earthCenter);
     float cosViewZenithAngle=dot(zenith,viewDir);
+#if RENDERING_ANY_ZERO_SCATTERING
+    CONST vec3 geometricFinalViewDir = lookingIntoAtmosphere ? apparentDirToGeometric(cameraPosition, viewDir) : viewDir;
+    CONST float geometricSinViewSunAngle=length(cross(geometricFinalViewDir, sunDirection));
+    CONST float geometricDotViewSun=dot(geometricFinalViewDir, sunDirection);
+#endif
 
     bool viewRayIntersectsGround=false;
     {
@@ -163,7 +168,7 @@ void main()
         radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
-    else if(sinViewSunAngle<sin(sunAngularRadius) && dotViewSun > 0)
+    else if(geometricSinViewSunAngle<sin(sunAngularRadius) && geometricDotViewSun > 0)
     {
         if(lookingIntoAtmosphere)
             radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
@@ -178,8 +183,8 @@ void main()
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_ZERO_SCATTERING
     vec4 radiance;
-    CONST float sinViewMoonAngle=length(cross(viewDir,normalize(moonPosition-cameraPosition)));
-    CONST float dotViewMoon=dot(viewDir,normalize(moonPosition-cameraPosition));
+    CONST float geometricSinViewMoonAngle=length(cross(geometricFinalViewDir,normalize(moonPosition-cameraPosition)));
+    CONST float geometricDotViewMoon=dot(geometricFinalViewDir,normalize(moonPosition-cameraPosition));
     if(viewRayIntersectsGround)
     {
         // XXX: keep in sync with the similar code in non-eclipsed zero scattering rendering.
@@ -196,8 +201,8 @@ void main()
         radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
-    else if(sinViewSunAngle<sin(sunAngularRadius) && dotViewSun > 0 &&
-            sinViewMoonAngle>sin(moonAngularRadius(cameraPosition,moonPosition)) && dotViewMoon > 0)
+    else if(geometricSinViewSunAngle<sin(sunAngularRadius) && geometricDotViewSun > 0 &&
+            geometricSinViewMoonAngle>sin(moonAngularRadius(cameraPosition,moonPosition)) && geometricDotViewMoon > 0)
     {
         if(lookingIntoAtmosphere)
             radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();

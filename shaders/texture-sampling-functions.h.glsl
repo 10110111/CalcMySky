@@ -8,4 +8,8 @@ vec4 scattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
                 const float dotViewSun, const float altitude, const bool viewRayIntersectsGround,
                 const int scatteringOrder);
 vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround);
+
+float opticalHorizonElevation(const float altitude);
+float refractionAngleApparentToGeometric(const float altitude, const float cosApparentZenithAngle);
+vec3 apparentDirToGeometric(const vec3 cameraPosition, const vec3 viewDir);
 #endif

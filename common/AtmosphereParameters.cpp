@@ -553,6 +553,10 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             eclipsedDoubleScatteringNumberOfAzimuthPairsToSample=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="eclipsed double scattering number of elevation pairs to sample")
             eclipsedDoubleScatteringNumberOfElevationPairsToSample=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="refraction texture size for altitude")
+            refractionAltStepsCount=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="refraction texture size for elevation")
+            refractionElevStepsCount=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1e-3,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")

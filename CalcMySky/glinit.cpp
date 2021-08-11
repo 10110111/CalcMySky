@@ -38,6 +38,9 @@ void initTexturesAndFramebuffers()
     setupTexture(TEX_TRANSMITTANCE,atmo.transmittanceTexW,atmo.transmittanceTexH);
     setupTexture(TEX_DELTA_IRRADIANCE,atmo.irradianceTexW,atmo.irradianceTexH);
     setupTexture(TEX_IRRADIANCE,atmo.irradianceTexW,atmo.irradianceTexH);
+    setupTexture(TEX_OPTICAL_HORIZONS,atmo.refractionAltStepsCount);
+    setupTexture(TEX_REFRACTION_FWD,atmo.refractionElevStepsCount,atmo.refractionAltStepsCount);
+    setupTexture(TEX_REFRACTION_BACK,atmo.refractionElevStepsCount,atmo.refractionAltStepsCount);
 
     const auto width=atmo.scatTexWidth(), height=atmo.scatTexHeight(), depth=atmo.scatTexDepth();
     for(const auto tex : {TEX_DELTA_SCATTERING,TEX_DELTA_SCATTERING_DENSITY})

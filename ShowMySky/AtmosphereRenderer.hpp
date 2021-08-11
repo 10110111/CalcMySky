@@ -129,6 +129,10 @@ private: // variables
 
     int numAltIntervalsIn4DTexture_;
 
+    std::unique_ptr<QOpenGLTexture> refractionForwardTexture_;
+    std::unique_ptr<QOpenGLTexture> refractionBackwardTexture_;
+    std::unique_ptr<QOpenGLTexture> opticalHorizonsTexture_;
+
     enum class State
     {
         NotReady,           //!< Just constructed or failed to load data
@@ -155,6 +159,7 @@ private: // methods
     glm::dvec3 moonPosition() const;
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
+    int loadTexture1D(QString const& path);
     glm::ivec2 loadTexture2D(QString const& path);
     enum class Texture4DType
     {

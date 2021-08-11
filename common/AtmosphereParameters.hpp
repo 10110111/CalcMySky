@@ -83,6 +83,7 @@ struct AtmosphereParameters
     std::vector<glm::vec4> solarIrradianceAtTOA;
     std::vector<glm::vec4> lightPollutionRelativeRadiance;
     std::string textureOutputDir=".";
+    GLint refractionElevStepsCount=64, refractionAltStepsCount=64;
     GLint transmittanceTexW, transmittanceTexH;
     GLint irradianceTexW, irradianceTexH;
     glm::ivec4 scatteringTextureSize;

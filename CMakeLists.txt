@@ -79,6 +79,22 @@ if(Eigen3_ADDED)
 endif()
 include_directories(${CMAKE_BINARY_DIR})
 
+# We are only using header-only part of Boost, so this doesn't affect us: https://github.com/cpm-cmake/CPM.cmake/issues/501
+set(BOOST_INCLUDE_LIBRARIES "math")
+CPMFindPackage(NAME Boost
+    VERSION 1.69.0
+    URL https://archives.boost.io/release/1.69.0/source/boost_1_69_0.tar.bz2
+    URL_HASH SHA256=8f32d4617390d1c2d16f26a27ab60d97807b35440d45891fa340fc2648b04406
+    EXCLUDE_FROM_ALL yes)
+add_library(Boost::BoostHeaderOnlyLibs IMPORTED INTERFACE)
+if(Boost_ADDED)
+    target_include_directories(Boost::BoostHeaderOnlyLibs INTERFACE ${Boost_SOURCE_DIR})
+elseif(BOOST_ROOT)
+    target_include_directories(Boost::BoostHeaderOnlyLibs INTERFACE ${BOOST_ROOT})
+else()
+    target_include_directories(Boost::BoostHeaderOnlyLibs INTERFACE ${Boost_INCLUDE_DIR})
+endif()
+
 if(WIN32 AND (NOT MINGW))
     set(shadersDestPath "${CMAKE_PROJECT_NAME}")
     set(installBinDir "${CMAKE_PROJECT_NAME}")

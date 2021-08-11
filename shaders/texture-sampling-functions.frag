@@ -13,6 +13,10 @@ uniform sampler3D multipleScatteringTexture;
 
 uniform sampler2D lightPollutionScatteringTexture;
 
+uniform sampler1D opticalHorizonsTexture;
+uniform sampler2D refractionAnglesForwardTexture;
+uniform sampler2D refractionAnglesBackwardTexture;
+
 vec4 irradiance(const float cosSunZenithAngle, const float altitude)
 {
     CONST vec2 texCoords=irradianceTexVarsToTexCoord(cosSunZenithAngle, altitude);
@@ -83,4 +87,43 @@ vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAng
 {
     CONST vec2 coords = lightPollutionTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
     return texture(lightPollutionScatteringTexture, coords);
+}
+
+float opticalHorizonElevation(const float altitude)
+{
+	const float altURTexCoord  = safeSqrt(altitude/atmosphereHeight);
+    const float altStepCount = textureSize(opticalHorizonsTexture,0);
+    const float coord = unitRangeToTexCoord(altURTexCoord, altStepCount);
+    const float delta = texture(opticalHorizonsTexture, coord).r;
+    const float geometricHorizon = -acos(earthRadius/(earthRadius+altitude));
+    return geometricHorizon + delta;
+}
+
+float refractionAngleApparentToGeometric(const float altitude, const float cosApparentZenithAngle)
+{
+	const float altURTexCoord = safeSqrt(altitude/atmosphereHeight);
+
+	const float optHorizon = opticalHorizonElevation(altitude);
+	const float viewElevation = asin(cosApparentZenithAngle);
+    const float elevStepCount = textureSize(refractionAnglesForwardTexture,0).s;
+	const float elevStep = safeSqrt((viewElevation - optHorizon)/(PI/2-optHorizon)) * elevStepCount;
+    if(elevStep >= elevStepCount-1)
+        return 0; // Don't bother interpolating refraction angle, even linearly: it's almost zero anyway.
+    const float elevURTexCoord = elevStep / (elevStepCount-1);
+
+    const float altStepCount = textureSize(refractionAnglesForwardTexture,0).t;
+	const vec2 coords = vec2(unitRangeToTexCoord(elevURTexCoord, elevStepCount),
+                             unitRangeToTexCoord(altURTexCoord, altStepCount));
+	const float tex = texture(refractionAnglesForwardTexture, coords).r;
+	return -exp(tex);
+}
+
+vec3 apparentDirToGeometric(const vec3 cameraPosition, const vec3 viewDir)
+{
+    const vec3 zenith=normalize(cameraPosition-earthCenter);
+    const float cosViewZenithAngle=dot(zenith,viewDir);
+    const float sinViewZenithAngle=safeSqrt(1-sqr(cosViewZenithAngle));
+	const float deltaElev = refractionAngleApparentToGeometric(pointAltitude(cameraPosition), cosViewZenithAngle);
+	const float projToZenith = sin(deltaElev)/(sinViewZenithAngle*cos(deltaElev)-cosViewZenithAngle*sin(deltaElev));
+	return normalize(viewDir + projToZenith*zenith);
 }

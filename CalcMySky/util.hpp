@@ -32,6 +32,7 @@ inline QString toString(glm::mat4 const& m) { return QString("mat4(%1,%2,%3,%4, 
           .arg(double(m[3][0]),0,'g',9).arg(double(m[3][1]),0,'g',9).arg(double(m[3][2]),0,'g',9).arg(double(m[3][3]),0,'g',9); }
 inline QMatrix4x4 toQMatrix(glm::mat4 const& m) { return QMatrix4x4(&m[0][0]).transposed(); }
 void setupDebugPrintCallback(QOpenGLContext& context, bool needFullDebugOutput);
+void setupTexture(TextureId id, GLsizei width);
 void setupTexture(TextureId id, GLsizei width, GLsizei height);
 void setupTexture(TextureId id, GLsizei width, GLsizei height, GLsizei depth);
 void setupTexture(GLuint tex, GLsizei width, GLsizei height, GLsizei depth);

@@ -23,6 +23,7 @@
 #include "glinit.hpp"
 #include "cmdline.hpp"
 #include "shaders.hpp"
+#include "Refraction.hpp"
 #include "interpolation-guides.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
 #include "../common/TextureAverageComputer.hpp"
@@ -1135,6 +1136,118 @@ void accumulateLightPollutionLuminanceTexture(const unsigned texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
+double objectElevation(const double*const points, const unsigned size,
+                       const double opticalHorizonElevation, const double viewElevation)
+{
+    const auto index = size * std::sqrt((viewElevation-opticalHorizonElevation)/(M_PI/2-opticalHorizonElevation));
+    assert(index >= 0);
+    const auto intIndex = std::floor(index);
+    assert(intIndex < size);
+    const auto alpha = index-intIndex;
+    const auto idx = static_cast<unsigned>(intIndex);
+    const auto pointLow = points[idx];
+    const auto pointHigh = idx+1==size ? 0 : points[idx+1]; // implied zero at viewElevation==M_PI/2
+    const auto sample = pointLow + (pointHigh-pointLow)*alpha;
+    return viewElevation - std::exp(sample);
+}
+
+double viewElevationForObjectElevation(const double*const points, const unsigned size,
+                                       const double opticalHorizonElevation, const double objElevToFind)
+{
+    auto viewElevLower=opticalHorizonElevation, viewElevUpper=M_PI/2;
+    while(true)
+    {
+        const auto midViewElev = (viewElevLower+viewElevUpper)/2;
+        if(midViewElev==viewElevLower || midViewElev==viewElevUpper)
+            break;
+        const auto currObjElev = objectElevation(points,size,opticalHorizonElevation, midViewElev);
+        if(currObjElev > objElevToFind)
+            viewElevUpper = midViewElev;
+        else
+            viewElevLower = midViewElev;
+    }
+    return (viewElevUpper+viewElevLower)/2;
+}
+
+void computeRefraction()
+{
+    std::cerr << indentOutput() << "Computing astronomical refraction... ";
+
+    // TODO: these points should be read from atmospheric parameters
+    std::vector<Refraction::RefractivityPoint> points{{0., 27717.}, {1., 25159.7769801298}, {2., 22779.7660033042}, {3., 20578.0775707454}, {4., 18543.9224009729}, {5., 16668.470920545}, {6., 14942.0008001358}, {7., 13356.9889383294}, {8., 11901.7315232275}, {9., 10573.5404886367}, {10., 9358.10343351331}, {11., 8256.52432671935}, {12., 7059.49328498738}, {13., 6033.31938862087}, {14., 5156.34133143061}, {15., 4406.72469968395}, {16., 3766.27578169374}, {17., 3220.4393903649}, {18., 2752.83889885294}, {19., 2353.28600280931}, {20., 2011.95603259935}, {21., 1713.72548579671}, {22., 1459.86817262664}, {23., 1244.95025818813}, {24., 1062.3655666823}, {25., 907.049014937439}, {27.5, 613.592534662729}, {30., 416.731805584688}, {32.5, 283.615370867045}, {35., 191.586610382203}, {37.5, 130.907734885212}, {40., 90.412730799688}, {42.5, 63.1332465066238}, {45., 44.5015836218457}, {47.5, 31.7635793548478}, {50., 23.2400143234905}, {55., 12.8502628758222}, {60., 6.99161988578917}, {65., 3.68419341048732}, {70., 1.87442807734096}, {75., 0.908122063961367}, {80., 0.41690850592619}, {85., 0.186180211393745}, {90., 0.0776317218285046}, {95., 0.0318099808863006}, {100., 0.0129337137764758}, {105., 0.00547606007687902}, {110., 0.00233280161017009}, {115., 0.00105403201711984}, {120., 0.000556367644584177}};
+
+    Refraction r(atmo.earthRadius, points);
+
+
+    std::vector<float> opticalHorizonDeltas(atmo.refractionAltStepsCount);
+    std::vector<double> logRefractionAnglesFwdDouble(atmo.refractionAltStepsCount*atmo.refractionElevStepsCount);
+    std::vector<float> logRefractionAnglesBack(atmo.refractionAltStepsCount*atmo.refractionElevStepsCount);
+    for(int altStep=0; altStep<atmo.refractionAltStepsCount; ++altStep)
+    {
+        std::ostringstream ss;
+        ss << altStep << " of " << atmo.refractionAltStepsCount << " altitude layers done";
+        std::cerr << ss.str();
+
+        const auto altitude = sqr(double(altStep)/(atmo.refractionAltStepsCount-1))*atmo.atmosphereHeight;
+        const auto opticalHorizon = r.opticalHorizonElevation(altitude);
+        const auto geometricHorizon = -std::acos(atmo.earthRadius/(atmo.earthRadius+altitude));
+        opticalHorizonDeltas[altStep] = opticalHorizon-geometricHorizon;
+
+        const auto altIndex = altStep*atmo.refractionElevStepsCount;
+
+        // Forward conversion table: view elevation -> object elevation
+        for(int elevStep=0; elevStep<atmo.refractionElevStepsCount; ++elevStep)
+        {
+            // NOTE: not sampling zenith, because it's useless: we know a priori that refraction angle is 0 there
+            const auto viewElevation = sqr(double(elevStep)/atmo.refractionElevStepsCount)*(M_PI/2-opticalHorizon) + opticalHorizon;
+            const auto refraction = r.refractionAngle(altitude, viewElevation);
+            const auto index = altIndex + elevStep;
+            logRefractionAnglesFwdDouble[index] = std::log(-refraction);
+        }
+
+        // Backward conversion table: object elevation -> view elevation
+        const auto minObjElevation = opticalHorizon - std::exp(logRefractionAnglesFwdDouble.front());
+        for(int elevStep=0; elevStep<atmo.refractionElevStepsCount; ++elevStep)
+        {
+            const auto objElevation = sqr(double(elevStep)/atmo.refractionElevStepsCount)*(M_PI/2-minObjElevation) + minObjElevation;
+            const auto viewElevation = viewElevationForObjectElevation(&logRefractionAnglesFwdDouble[altStep*atmo.refractionElevStepsCount],
+                                                                       atmo.refractionElevStepsCount,
+                                                                       opticalHorizon,objElevation);
+            const auto index = altIndex + elevStep;
+            logRefractionAnglesBack[index] = std::log(viewElevation - objElevation);
+        }
+
+        // Clear previous status and reset cursor position
+        const auto statusWidth=ss.tellp();
+        std::cerr << std::string(statusWidth, '\b') << std::string(statusWidth, ' ')
+                  << std::string(statusWidth, '\b');
+    }
+    std::vector<float> logRefractionAnglesFwd(atmo.refractionAltStepsCount*atmo.refractionElevStepsCount);
+    std::copy(logRefractionAnglesFwdDouble.begin(), logRefractionAnglesFwdDouble.end(), logRefractionAnglesFwd.begin());
+
+    std::cerr << "done\n";
+
+    gl.glBindTexture(GL_TEXTURE_1D, textures[TEX_OPTICAL_HORIZONS]);
+    gl.glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, opticalHorizonDeltas.size(), 0, GL_RED, GL_FLOAT, opticalHorizonDeltas.data());
+    saveTexture(GL_TEXTURE_1D, textures[TEX_OPTICAL_HORIZONS], "optical horizons texture",
+                atmo.textureOutputDir+"/optical-horizons.f32",
+                {atmo.refractionAltStepsCount});
+
+    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_REFRACTION_FWD]);
+    gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, atmo.refractionElevStepsCount, atmo.refractionAltStepsCount, 0, GL_RED, GL_FLOAT,
+                    logRefractionAnglesFwd.data());
+    saveTexture(GL_TEXTURE_2D, textures[TEX_REFRACTION_FWD], "refraction angles forward texture",
+                atmo.textureOutputDir+"/refraction-fwd.f32",
+                {atmo.refractionElevStepsCount, atmo.refractionAltStepsCount});
+
+    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_REFRACTION_BACK]);
+    gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, atmo.refractionElevStepsCount, atmo.refractionAltStepsCount, 0, GL_RED, GL_FLOAT,
+                    logRefractionAnglesBack.data());
+    saveTexture(GL_TEXTURE_2D, textures[TEX_REFRACTION_BACK], "refraction angles forward texture",
+                atmo.textureOutputDir+"/refraction-back.f32",
+                {atmo.refractionElevStepsCount, atmo.refractionAltStepsCount});
+}
+
 int main(int argc, char** argv)
 {
     [[maybe_unused]] UTF8Console utf8console;
@@ -1243,6 +1356,7 @@ int main(int argc, char** argv)
         // warnings not mixing them into computation status reports.
         TextureAverageComputer{gl, 10, 10, GL_RGBA32F, 0};
 
+        computeRefraction();
         for(unsigned texIndex=0;texIndex<atmo.allWavelengths.size();++texIndex)
         {
             std::cerr << "Working on wavelengths " << atmo.allWavelengths[texIndex][0] << ", "
