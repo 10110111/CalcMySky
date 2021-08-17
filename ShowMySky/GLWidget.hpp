@@ -17,8 +17,8 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
     std::unique_ptr<QOpenGLShaderProgram> glareProgram_;
     QOpenGLTexture ditherPatternTexture_;
-    GLuint glareTextures_[2];
-    GLuint glareFBOs_[2];
+    GLuint glareTextures_[2] = {};
+    GLuint glareFBOs_[2] = {};
     QString pathToData;
     ToolsWidget* tools;
     GLuint vao_=0, vbo_=0;

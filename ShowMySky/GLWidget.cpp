@@ -91,7 +91,8 @@ void GLWidget::makeDitherPatternTexture()
 
 void GLWidget::makeGlareRenderTarget()
 {
-    glGenTextures(std::size(glareTextures_), glareTextures_);
+    if(!glareTextures_[0])
+        glGenTextures(std::size(glareTextures_), glareTextures_);
     for(unsigned n=0; n<std::size(glareTextures_); ++n)
     {
         glBindTexture(GL_TEXTURE_2D, glareTextures_[n]);
@@ -103,7 +104,8 @@ void GLWidget::makeGlareRenderTarget()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     }
-    glGenFramebuffers(std::size(glareFBOs_), glareFBOs_);
+    if(!glareFBOs_[0])
+        glGenFramebuffers(std::size(glareFBOs_), glareFBOs_);
     for(unsigned n=0; n<std::size(glareFBOs_); ++n)
     {
         glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[n]);
