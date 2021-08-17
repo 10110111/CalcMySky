@@ -390,9 +390,6 @@ void GLWidget::paintGL()
     glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
     if(tools->glareEnabled())
     {
-        // This is needed to avoid aliasing when sampling along skewed lines
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         // We want our convolution filter to sample zeros outside the texture, so clamp to _border_
         // Subsequent code doesn't depend on this
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -410,6 +407,10 @@ void GLWidget::paintGL()
         glareProgram_->setUniformValue("luminanceXYZW", 0);
         for(int angleStepNum=0; angleStepNum<numAngleSteps; ++angleStepNum)
         {
+            // This is needed to avoid aliasing when sampling along skewed lines
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
             const auto angle = angleMin + angleStep*angleStepNum;
             glareProgram_->setUniformValue("stepDir", QVector2D(std::cos(angle),std::sin(angle)));
             glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[angleStepNum%2]);
