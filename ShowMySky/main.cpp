@@ -83,7 +83,8 @@ int main(int argc, char** argv)
 
     try
     {
-        windowSize=app.primaryScreen()->size()/1.6;
+        const auto height = app.primaryScreen()->size().height()/1.6;
+        windowSize=QSize(2*height, height);
         handleCmdLine();
 
         const auto tools=new ToolsWidget;
