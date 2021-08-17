@@ -15,7 +15,10 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
 
     std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
+    std::unique_ptr<QOpenGLShaderProgram> glareProgram_;
     QOpenGLTexture ditherPatternTexture_;
+    GLuint glareTextures_[2];
+    GLuint glareFBOs_[2];
     QString pathToData;
     ToolsWidget* tools;
     GLuint vao_=0, vbo_=0;
@@ -62,6 +65,7 @@ private:
     void setupBuffers();
     void reloadShaders();
     QVector3D rgbMaxValue() const;
+    void makeGlareRenderTarget();
     void makeDitherPatternTexture();
     void updateSpectralRadiance(QPoint const& pixelPos);
     void setDragMode(DragMode mode, int x=0, int y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }

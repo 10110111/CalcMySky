@@ -36,6 +36,16 @@ GLWidget::~GLWidget()
         glDeleteVertexArrays(1, &vao_);
         vao_=0;
     }
+    if(glareTextures_[0])
+    {
+        glDeleteTextures(std::size(glareTextures_), glareTextures_);
+        std::fill_n(glareTextures_, std::size(glareTextures_), 0);
+    }
+    if(glareFBOs_[0])
+    {
+        glDeleteFramebuffers(std::size(glareFBOs_), glareFBOs_);
+        std::fill_n(glareFBOs_, std::size(glareFBOs_), 0);
+    }
 }
 
 void GLWidget::makeDitherPatternTexture()
@@ -76,6 +86,29 @@ void GLWidget::makeDitherPatternTexture()
     }
     default:
         std::abort();
+    }
+}
+
+void GLWidget::makeGlareRenderTarget()
+{
+    glGenTextures(std::size(glareTextures_), glareTextures_);
+    for(unsigned n=0; n<std::size(glareTextures_); ++n)
+    {
+        glBindTexture(GL_TEXTURE_2D, glareTextures_[n]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width(), height(), 0, GL_RGBA, GL_FLOAT, nullptr);
+        // This is needed to avoid aliasing when sampling along skewed lines
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // We want our convolution filter to sample zeros outside the texture, so clamp to _border_
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    }
+    glGenFramebuffers(std::size(glareFBOs_), glareFBOs_);
+    for(unsigned n=0; n<std::size(glareFBOs_); ++n)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[n]);
+        glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,glareTextures_[n],0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 }
 
@@ -151,6 +184,7 @@ void GLWidget::initializeGL()
         connect(tools, &ToolsWidget::setBlackBodySolarSpectrum, this, &GLWidget::setBlackBodySolarSpectrum);
 
         makeDitherPatternTexture();
+        makeGlareRenderTarget();
         setupBuffers();
 
         luminanceToScreenRGB_=std::make_unique<QOpenGLShaderProgram>();
@@ -241,6 +275,60 @@ void main()
 )");
         link(*luminanceToScreenRGB_, tr("luminanceToScreenRGB shader program"));
 
+        glareProgram_=std::make_unique<QOpenGLShaderProgram>();
+        addShaderCode(*glareProgram_, QOpenGLShader::Fragment, tr("glare fragment shader"), 1+R"(
+#version 330
+uniform sampler2D luminanceXYZW;
+uniform vec2 stepDir;
+out vec4 XYZW;
+
+float weight(const float x)
+{
+    const float a=0.955491103831962;
+    const float b=0.0111272240420095;
+    return abs(x)<0.5 ? a : b/(x*x);
+}
+
+void main()
+{
+    vec2 size = textureSize(luminanceXYZW, 0);
+    vec2 pos = gl_FragCoord.st-vec2(0.5);
+    if(stepDir.x*stepDir.y >= 0)
+    {
+        vec2 dir = stepDir.x<0 || stepDir.y<0 ? -stepDir : stepDir;
+        float stepCountBottomLeft = min(pos.x/dir.x, pos.y/dir.y);
+        float stepCountTopRight = min((size.x-pos.x)/dir.x, (size.x-pos.y)/dir.y) - 1;
+
+        XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
+        for(float dist=1; dist<stepCountBottomLeft; ++dist)
+            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st-dir*dist)/size);
+        for(float dist=1; dist<stepCountTopRight; ++dist)
+            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st+dir*dist)/size);
+    }
+    else
+    {
+        vec2 dir = stepDir.x<0 ? -stepDir : stepDir;
+        float stepCountTopLeft = min(pos.x/dir.x, (size.x-pos.y)/-dir.y);
+        float stepCountBottomRight = min((size.x-pos.x)/dir.x, pos.y/-dir.y) - 1;
+
+        XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
+        for(float dist=1; dist<stepCountTopLeft; ++dist)
+            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st-dir*dist)/size);
+        for(float dist=1; dist<stepCountBottomRight; ++dist)
+            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st+dir*dist)/size);
+    }
+}
+)");
+        addShaderCode(*glareProgram_, QOpenGLShader::Vertex, tr("glare vertex shader"), 1+R"(
+#version 330
+in vec3 vertex;
+void main()
+{
+    gl_Position=vec4(vertex,1);
+}
+)");
+        link(*glareProgram_, tr("glare shader program"));
+
         static constexpr const char* viewDirVertShaderSrc=1+R"(
 #version 330
 in vec3 vertex;
@@ -296,9 +384,43 @@ void GLWidget::paintGL()
     renderer->draw(1, true);
 
     glBindVertexArray(vao_);
-    luminanceToScreenRGB_->bind();
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+    if(tools->glareEnabled())
+    {
+        // This is needed to avoid aliasing when sampling along skewed lines
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // We want our convolution filter to sample zeros outside the texture, so clamp to _border_
+        // Subsequent code doesn't depend on this
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+        GLint targetFBO=-1;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFBO);
+
+        constexpr double degree=M_PI/180;
+        constexpr double angleMin=5*degree;
+        constexpr int numAngleSteps=3;
+        constexpr double angleStep=360*degree/numAngleSteps;
+
+        glareProgram_->bind();
+        glareProgram_->setUniformValue("luminanceXYZW", 0);
+        for(int angleStepNum=0; angleStepNum<numAngleSteps; ++angleStepNum)
+        {
+            const auto angle = angleMin + angleStep*angleStepNum;
+            glareProgram_->setUniformValue("stepDir", QVector2D(std::cos(angle),std::sin(angle)));
+            glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[angleStepNum%2]);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            // Now use the result of this stage to feed the next stage
+            glBindTexture(GL_TEXTURE_2D, glareTextures_[angleStepNum%2]);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    luminanceToScreenRGB_->bind();
     luminanceToScreenRGB_->setUniformValue("luminanceXYZW", 0);
     ditherPatternTexture_.bind(1);
     luminanceToScreenRGB_->setUniformValue("ditherPattern", 1);
@@ -321,6 +443,7 @@ void GLWidget::resizeGL(int w, int h)
 {
     if(!renderer) return;
     renderer->resizeEvent(w,h);
+    makeGlareRenderTarget();
 }
 
 void GLWidget::updateSpectralRadiance(QPoint const& pixelPos)

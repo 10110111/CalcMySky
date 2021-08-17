@@ -106,6 +106,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         layout->addLayout(hbox);
     }
     gradualClippingEnabled_ = addCheckBox(layout, this, tr("&Gradual color clipping"), true);
+    glareEnabled_ = addCheckBox(layout, this, tr("Glare (visual only)"), false);
     zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw zer&o-order scattering layer"), true);
     singleScatteringEnabled_    = addCheckBox(layout, this, tr("Draw &single scattering layers"), true);
     {

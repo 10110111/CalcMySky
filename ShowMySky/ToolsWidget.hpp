@@ -42,6 +42,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QCheckBox* textureFilteringEnabled_=nullptr;
     QCheckBox* usingEclipseShader_=nullptr;
     QCheckBox* gradualClippingEnabled_=nullptr;
+    QCheckBox* glareEnabled_=nullptr;
     QPushButton* showRadiancePlot_=nullptr;
     std::unique_ptr<QWidget> radiancePlotWindow_;
     RadiancePlot* radiancePlot_=nullptr;
@@ -70,6 +71,7 @@ public:
     bool textureFilteringEnabled() override { return textureFilteringEnabled_->isChecked(); }
     bool usingEclipseShader() override { return usingEclipseShader_->isChecked(); }
     bool gradualClippingEnabled() const { return gradualClippingEnabled_->isChecked(); }
+    bool glareEnabled() const { return glareEnabled_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }
     GLWidget::DitheringMode ditheringMode() const { return static_cast<GLWidget::DitheringMode>(ditheringMode_->currentIndex()); }
     GLWidget::DitheringMethod ditheringMethod() const { return static_cast<GLWidget::DitheringMethod>(ditheringMethod_->currentIndex()); }
