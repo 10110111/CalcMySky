@@ -299,7 +299,7 @@ void main()
     {
         vec2 dir = stepDir.x<0 || stepDir.y<0 ? -stepDir : stepDir;
         float stepCountBottomLeft = min(pos.x/dir.x, pos.y/dir.y);
-        float stepCountTopRight = min((size.x-pos.x)/dir.x, (size.x-pos.y)/dir.y) - 1;
+        float stepCountTopRight = min((size.x-pos.x-1)/dir.x, (size.x-pos.y-1)/dir.y);
 
         XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
         for(float dist=1; dist<stepCountBottomLeft; ++dist)
@@ -310,8 +310,8 @@ void main()
     else
     {
         vec2 dir = stepDir.x<0 ? -stepDir : stepDir;
-        float stepCountTopLeft = min(pos.x/dir.x, (size.x-pos.y)/-dir.y);
-        float stepCountBottomRight = min((size.x-pos.x)/dir.x, pos.y/-dir.y) - 1;
+        float stepCountTopLeft = min(pos.x/dir.x, (size.y-pos.y-1)/-dir.y);
+        float stepCountBottomRight = min((size.x-pos.x-1)/dir.x, pos.y/-dir.y);
 
         XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
         for(float dist=1; dist<stepCountTopLeft; ++dist)
