@@ -89,7 +89,7 @@ void main()
 
     const vec3 sunXY=normalize(sunDirection-dot(sunDirection,zenith)*zenith);
     const vec3 viewXY=normalize(viewDir-dot(viewDir,zenith)*zenith);
-    const float azimuthRelativeToSun=atan(cross(sunXY, viewXY).z, dot(sunXY, viewXY));
+    const float azimuthRelativeToSun=atan(dot(cross(sunXY, viewXY), zenith), dot(sunXY, viewXY));
 
 #if RENDERING_ZERO_SCATTERING
     vec4 radiance;
