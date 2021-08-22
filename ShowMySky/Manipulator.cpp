@@ -1,15 +1,19 @@
 #include <cmath>
+#include <cassert>
 #include <iostream>
 #include <QSignalBlocker>
 #include "Manipulator.hpp"
 
 Manipulator::Manipulator(QString const& labelString, const double min, const double max,
-                         const double defaultValue, const int decimalPlaces)
+                         const double defaultValue, const int decimalPlaces, const bool quasiExponentialSlider)
     : slider(new QSlider(Qt::Horizontal))
     , spinbox(new QDoubleSpinBox)
     , label(new QLabel(labelString))
-    , decimalMultiplier(std::pow(10, decimalPlaces))
+    , nonlinearSlider(quasiExponentialSlider)
 {
+    if(nonlinearSlider && (min<0 || max<0))
+        assert(!"Quasi-exponential slider can't handle negative values");
+
     const auto hbox=new QHBoxLayout(this);
     hbox->addWidget(label);
     hbox->addWidget(spinbox);
@@ -21,7 +25,7 @@ Manipulator::Manipulator(QString const& labelString, const double min, const dou
 
     spinbox->setKeyboardTracking(false);
     spinbox->setDecimals(decimalPlaces);
-    spinbox->setSingleStep(1/decimalMultiplier);
+    spinbox->setSingleStep(std::pow(10, -decimalPlaces));
     setRange(min, max);
 
     QObject::connect(slider, &QSlider::valueChanged, this, &Manipulator::onSliderValueChanged);
@@ -30,22 +34,32 @@ Manipulator::Manipulator(QString const& labelString, const double min, const dou
     setValue(defaultValue);
 }
 
+double Manipulator::linearToSlider(const double linear) const
+{
+    return nonlinearSlider ? std::log10(linear - minimum() + 1)/std::log10(maximum() - minimum() + 1)*INT_MAX
+                           : (linear - minimum())/(maximum() - minimum())*INT_MAX;
+}
+double Manipulator::sliderToLinear(const int slider) const
+{
+    return nonlinearSlider ? std::pow(10., double(slider)/INT_MAX*std::log10(maximum() - minimum() + 1)) + minimum() - 1
+                           : double(slider)/INT_MAX*(maximum() - minimum()) + minimum();
+}
+
 void Manipulator::onSliderValueChanged(const int val)
 {
-    const double newValue=val/decimalMultiplier;
+    const double newValue = sliderToLinear(val);
     {
         QSignalBlocker block(spinbox);
         spinbox->setValue(newValue);
     }
-    emit valueChanged(newValue);
+    emit valueChanged(spinbox->value());
 }
 
 void Manipulator::onSpinboxValueChanged(const double val)
 {
-    const int newValue=std::round(val*decimalMultiplier);
     {
         QSignalBlocker block(slider);
-        slider->setValue(newValue);
+        slider->setValue(linearToSlider(val));
     }
     emit valueChanged(val);
 }
@@ -63,15 +77,17 @@ void Manipulator::setValue(const double val)
 void Manipulator::setRange(const double min, const double max)
 {
     spinbox->setRange(min, max);
-    slider->setRange(min*decimalMultiplier, max*decimalMultiplier);
+    slider->setRange(linearToSlider(min), linearToSlider(max));
+    // Move the slider handle to its new location
+    {
+        QSignalBlocker block(slider);
+        slider->setValue(linearToSlider(value()));
+    }
 }
 
 void Manipulator::setMax(const double max)
 {
-    spinbox->setMaximum(max);
-    if(max*decimalMultiplier>INT_MAX)
-        decimalMultiplier = INT_MAX/max;
-    slider->setMaximum(max*decimalMultiplier);
+    setRange(minimum(), max);
 }
 
 void Manipulator::setLabel(QString const& text)

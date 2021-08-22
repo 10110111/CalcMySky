@@ -14,10 +14,10 @@ class Manipulator: public QWidget
     QSlider*const slider;
     QDoubleSpinBox*const spinbox;
     QLabel*const label;
-    double decimalMultiplier;
+    bool nonlinearSlider;
 
 public:
-    Manipulator(QString const& label, double min, double max, double defaultValue, int decimalPlaces=0);
+    Manipulator(QString const& label, double min, double max, double defaultValue, int decimalPlaces=0, bool quasiExponentialSlider=false);
 
     void setValue(double val);
     void setRange(double min, double max);
@@ -32,6 +32,10 @@ public:
     void onSliderValueChanged(int value);
 signals:
     void valueChanged(double);
+
+private:
+    double linearToSlider(double linear) const;
+    double sliderToLinear(int slider) const;
 };
 
 #endif
