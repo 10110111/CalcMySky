@@ -72,7 +72,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 3, QChar(0x00b0));
     moonElevation_= addManipulator(layout, this, tr("Moon &elevation"),  -90,  90, 41, 3, QChar(0x00b0));
     moonAzimuth_  = addManipulator(layout, this, tr("Moon azim&uth"),   -180, 180,  0, 3, QChar(0x00b0));
-    zoomFactor_   = addManipulator(layout, this, tr("&Zoom"), 1, 100, 1, 1);
+    zoomFactor_   = addManipulator(layout, this, tr("&Zoom"), 1, 1e4, 1, 1, "", true);
     cameraPitch_  = addManipulator(layout, this, tr("Camera pitch"), -90, 90, 0, 2, QChar(0x00b0));
     cameraYaw_    = addManipulator(layout, this, tr("Camera yaw")  ,-180,180, 0, 2, QChar(0x00b0));
     {
