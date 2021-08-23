@@ -1171,6 +1171,12 @@ double viewElevationForObjectElevation(const double*const points, const unsigned
 
 void computeRefraction()
 {
+    if(opts.dbgNoSaveTextures)
+    {
+        std::cerr << indentOutput() << "Would compute and save refraction textures, but only shaders are to be saved.\n";
+        return;
+    }
+
     std::cerr << indentOutput() << "Computing astronomical refraction... ";
 
     // TODO: these points should be read from atmospheric parameters
