@@ -48,6 +48,7 @@ const int numTransmittanceIntegrationPoints=)" + toString(atmo.numTransmittanceI
     header += "const vec4 groundAlbedo="+toString(atmo.groundAlbedo[wlI])+";\n";
     header += "const vec4 solarIrradianceAtTOA="+toString(atmo.solarIrradianceAtTOA[wlI])+";\n";
     header += "const vec4 lightPollutionRelativeRadiance="+toString(atmo.lightPollutionRelativeRadiance[wlI])+";\n";
+    header += "const int wlSetIndex="+toString(int(wlI))+";\n";
 
     header+="#endif\n"; // close the include guard
     virtualHeaderFiles[CONSTANTS_HEADER_FILENAME]=header;
