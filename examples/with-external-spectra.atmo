@@ -6,6 +6,9 @@ transmittance texture size for altitude: 64
 irradiance texture size for SZA: 64
 irradiance texture size for altitude: 16
 
+refraction texture size for altitude: 64
+refraction texture size for elevation: 256
+
 scattering texture size for VZA: 128 # must be even
 scattering texture size for dot(view,sun): 16
 scattering texture size for SZA: 128
