@@ -61,6 +61,7 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     bool eventFilter(QObject* object, QEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     void setupBuffers();
@@ -73,6 +74,7 @@ private:
     void setFlatSolarSpectrum();
     void resetSolarSpectrum();
     void setBlackBodySolarSpectrum(double temperature);
+    void saveScreenshot();
 
 private slots:
     void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);

@@ -1,6 +1,8 @@
 #include "GLWidget.hpp"
 #include <chrono>
+#include <QKeyEvent>
 #include <QMouseEvent>
+#include <QFileDialog>
 #include <QMessageBox>
 #include <QSurfaceFormat>
 #include <glm/gtx/transform.hpp>
@@ -18,6 +20,7 @@ GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* paren
     , tools(tools)
 {
     installEventFilter(this);
+    setFocusPolicy(Qt::StrongFocus);
     connect(this, &GLWidget::frameFinished, tools, &ToolsWidget::showFrameRate);
 }
 
@@ -550,6 +553,48 @@ void GLWidget::mousePressEvent(QMouseEvent* event)
 void GLWidget::mouseReleaseEvent(QMouseEvent*)
 {
     setDragMode(DragMode::None);
+}
+
+void GLWidget::keyPressEvent(QKeyEvent* event)
+{
+    switch(event->key())
+    {
+    case Qt::Key_S:
+        if((event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier|Qt::AltModifier)) != Qt::ControlModifier)
+            break;
+        saveScreenshot();
+        break;
+    default:
+        QOpenGLWidget::keyPressEvent(event);
+        break;
+    }
+}
+
+void GLWidget::saveScreenshot()
+{
+    const auto path=QFileDialog::getSaveFileName(this, tr("Save screenshot"), {}, "float32 image files (*.f32)");
+    if(path.isNull())
+        return;
+    makeCurrent();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+    std::vector<float> data(width()*height()*4);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, data.data());
+    QFile file(path);
+    if(!file.open(QFile::WriteOnly))
+    {
+        QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to open destination file: %1").arg(file.errorString()));
+        return;
+    }
+    const uint16_t width=this->width(), height=this->height();
+    file.write(reinterpret_cast<const char*>(&width), sizeof width);
+    file.write(reinterpret_cast<const char*>(&height), sizeof height);
+    file.write(reinterpret_cast<const char*>(data.data()), data.size()*sizeof data[0]);
+    if(!file.flush())
+    {
+        QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to write to destination file: %1").arg(file.errorString()));
+        return;
+    }
 }
 
 void GLWidget::setupBuffers()
