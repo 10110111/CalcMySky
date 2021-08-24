@@ -114,7 +114,11 @@ float refractionAngleApparentToGeometric(const float altitude, const float cosAp
     const float altStepCount = textureSize(refractionAnglesForwardTexture,0).t;
 	const vec2 coords = vec2(unitRangeToTexCoord(elevURTexCoord, elevStepCount),
                              unitRangeToTexCoord(altURTexCoord, altStepCount));
-	const float tex = texture(refractionAnglesForwardTexture, coords).r;
+    // We don't use mip mapping here, but for some reason, on my NVidia GTX 750 Ti with Linux-x86 driver 390.116 I get
+    // an odd result where every other row samples the texture wrongly near altitude==120km, view direction = horizon.
+    // This happens when I simply call texture(refractionAnglesForwardTexture, coords) without specifying LOD.
+    // Apparently, the driver uses the derivative for some reason, even though it shouldn't.
+	const float tex = textureLod(refractionAnglesForwardTexture, coords, 0).r;
 	return -exp(tex);
 }
 
