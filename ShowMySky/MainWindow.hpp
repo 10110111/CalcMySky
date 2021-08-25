@@ -7,6 +7,8 @@ class MainWindow : public QMainWindow
 {
 public:
     MainWindow(QDockWidget* tools, QWidget* parent=nullptr);
+protected:
+    bool eventFilter(QObject* object, QEvent* event) override;
 private:
     void keyPressEvent(QKeyEvent*) override;
 private:

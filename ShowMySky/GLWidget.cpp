@@ -17,6 +17,7 @@ GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* paren
     , pathToData(pathToData)
     , tools(tools)
 {
+    installEventFilter(this);
     connect(this, &GLWidget::frameFinished, tools, &ToolsWidget::showFrameRate);
 }
 
@@ -580,4 +581,15 @@ void GLWidget::reloadShaders()
     makeCurrent();
     renderer->reloadShaders();
     update();
+}
+
+bool GLWidget::eventFilter(QObject* object, QEvent* event)
+{
+    if(event->type() == QEvent::FocusIn || event->type() == QEvent::FocusOut)
+    {
+        // Prevent repaints due to the window becoming active or inactive. This must be combined with
+        // WindowActivate/WindowDeactivate events filtered out in toplevel window.
+        return true;
+    }
+    return QOpenGLWidget::eventFilter(object, event);
 }
