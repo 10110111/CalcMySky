@@ -299,7 +299,7 @@ void main()
     {
         vec2 dir = stepDir.x<0 || stepDir.y<0 ? -stepDir : stepDir;
         float stepCountBottomLeft = 1+ceil(min(pos.x/dir.x, pos.y/dir.y));
-        float stepCountTopRight = 1+ceil(min((size.x-pos.x-1)/dir.x, (size.x-pos.y-1)/dir.y));
+        float stepCountTopRight = 1+ceil(min((size.x-pos.x-1)/dir.x, (size.y-pos.y-1)/dir.y));
 
         XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
         for(float dist=1; dist<stepCountBottomLeft; ++dist)
