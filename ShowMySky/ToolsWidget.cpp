@@ -66,7 +66,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     setWidget(mainWidget);
 
     altitude_     = addManipulator(layout, this, tr("&Altitude"), 0, 100/*will be changed after loading of atmosphere description*/,
-                                                                 50, 2, " m");
+                                                                 0, 2, " m");
     exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, 0, 2);
     sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, -12, 3, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 3, QChar(0x00b0));

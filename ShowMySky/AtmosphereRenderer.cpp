@@ -1351,7 +1351,7 @@ void AtmosphereRenderer::renderLadogaFrame()
     auto& prog = *ladogaFramesProgram_;
     prog.bind();
     const auto h = tools_->altitude();
-    const unsigned n = unsigned(h)>=ladogaTextures_.size() ? ladogaTextures_.size()-1 : unsigned(h);
+    const unsigned n = std::lround(h/0.01)>=int(ladogaTextures_.size()) ? ladogaTextures_.size()-1 : std::lround(h/0.01);
     gl.glActiveTexture(GL_TEXTURE0);
     gl.glBindTexture(GL_TEXTURE_2D, ladogaTextures_[n]);
     prog.setUniformValue("photo", 0);
