@@ -24,7 +24,6 @@ vec4 computeMultipleScatteringForLightPollutionIntegrand(const float cosViewZeni
     for(float k=0; k<kMax; ++k)
     {
         const float incZenithAngle=(k+0.5)*incZenithAngleStep;
-        const float distToGround=distanceToGround(cos(incZenithAngle), altAtDist);
         const float dotViewInc = sin(incZenithAngle)*sinViewZenithAngle+cos(incZenithAngle)*cosViewZenithAngle;
         const bool incRayIntersectsGround=rayIntersectsGround(cos(incZenithAngle), altAtDist);
         weightedIncomingRadiance += totalScatteringCoefficient(altAtDist, dotViewInc)
