@@ -23,7 +23,7 @@ vec4 computeMultipleScatteringForLightPollutionIntegrand(const float cosViewZeni
     const float sinViewZenithAngle=safeSqrt(1-sqr(cosViewZenithAngle));
     for(float k=0; k<kMax; ++k)
     {
-        const float incZenithAngle=PI/2+(k+0.5)*incZenithAngleStep;
+        const float incZenithAngle=(k+0.5)*incZenithAngleStep;
         const float distToGround=distanceToGround(cos(incZenithAngle), altAtDist);
         const float dotViewInc = sin(incZenithAngle)*sinViewZenithAngle+cos(incZenithAngle)*cosViewZenithAngle;
         const bool incRayIntersectsGround=rayIntersectsGround(cos(incZenithAngle), altAtDist);

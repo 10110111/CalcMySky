@@ -25,11 +25,11 @@ vec4 computeSingleScatteringForLightPollutionIntegrand(const float cosViewZenith
     // over zenith angles from nadir to true horizon.
     // We are using midpoint rule for quadrature.
     const float kMax=lightPollutionAngularIntegrationPoints;
-    const float incZenithAngleStep=(horizonZenithAngle-PI/2)/kMax;
+    const float incZenithAngleStep=(PI-horizonZenithAngle)/kMax;
     const float sinViewZenithAngle=safeSqrt(1-sqr(cosViewZenithAngle));
     for(float k=0; k<kMax; ++k)
     {
-        const float incZenithAngle=PI/2+(k+0.5)*incZenithAngleStep;
+        const float incZenithAngle=horizonZenithAngle+(k+0.5)*incZenithAngleStep;
         const float distToGround=distanceToGround(cos(incZenithAngle), altAtDist);
         const float dotViewInc = sin(incZenithAngle)*sinViewZenithAngle+cos(incZenithAngle)*cosViewZenithAngle;
         weightedIncomingRadiance += transmittance(cos(incZenithAngle), altAtDist, distToGround, true)
