@@ -188,7 +188,7 @@ float sunVisibilityDueToMoon(const vec3 camera, const vec3 sunDir, const vec3 mo
 
 float sphereIntegrationSolidAngleDifferential(const int pointCountOnSphere)
 {
-    return 4*PI/angularIntegrationPoints;
+    return 4*PI/pointCountOnSphere;
 }
 vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere)
 {
