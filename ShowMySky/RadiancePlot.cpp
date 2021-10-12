@@ -7,6 +7,7 @@
 #include <QPaintEvent>
 #include <QFileDialog>
 #include <QTextStream>
+#include <QPainterPath>
 #include <QTextDocument>
 #include <QRegularExpression>
 #include "../common/cie-xyzw-functions.hpp"
