@@ -89,8 +89,8 @@ void main()
 
     const vec3 sunXYunnorm=sunDirection-dot(sunDirection,zenith)*zenith;
     const vec3 viewXYunnorm=viewDir-dot(viewDir,zenith)*zenith;
-    const vec3 sunXY = sunXYunnorm.x!=0 || sunXYunnorm.y!=0 ? normalize(sunXYunnorm) : vec3(0,0,1);
-    const vec3 viewXY = viewXYunnorm.x!=0 || viewXYunnorm.y!=0 ? normalize(viewXYunnorm) : vec3(0,0,1);
+    const vec3 sunXY = sunXYunnorm.x!=0 || sunXYunnorm.y!=0 || sunXYunnorm.z!=0 ? normalize(sunXYunnorm) : vec3(0);
+    const vec3 viewXY = viewXYunnorm.x!=0 || viewXYunnorm.y!=0 || viewXYunnorm.z!=0 ? normalize(viewXYunnorm) : vec3(0);
     const float azimuthRelativeToSun=safeAtan(dot(cross(sunXY, viewXY), zenith), dot(sunXY, viewXY));
 
 #if RENDERING_ZERO_SCATTERING
