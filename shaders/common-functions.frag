@@ -42,6 +42,12 @@ float safeSqrt(const float x)
     return sqrt(max(x,0.));
 }
 
+float safeAtan(const float y, const float x)
+{
+    const float a = atan(y,x);
+    return x==0 && y==0 ? 0 : a;
+}
+
 float clampCosine(const float x)
 {
     return clamp(x, -1., 1.);

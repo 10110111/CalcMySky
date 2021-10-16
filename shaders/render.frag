@@ -3,8 +3,8 @@
 
 #include "const.h.glsl"
 #include "calc-view-dir.h.glsl"
+#include "common-functions.h.glsl"
 #include_if(RENDERING_ANY_SINGLE_SCATTERING) "phase-functions.h.glsl"
-#include_if(RENDERING_ANY_ZERO_SCATTERING) "common-functions.h.glsl"
 #include_if(RENDERING_ANY_NORMAL_SINGLE_SCATTERING) "single-scattering.h.glsl"
 #include_if(RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING) "single-scattering-eclipsed.h.glsl"
 #include "texture-coordinates.h.glsl"
@@ -87,9 +87,11 @@ void main()
             viewRayIntersectsGround=true;
     }
 
-    const vec3 sunXY=normalize(sunDirection-dot(sunDirection,zenith)*zenith);
-    const vec3 viewXY=normalize(viewDir-dot(viewDir,zenith)*zenith);
-    const float azimuthRelativeToSun=atan(dot(cross(sunXY, viewXY), zenith), dot(sunXY, viewXY));
+    const vec3 sunXYunnorm=sunDirection-dot(sunDirection,zenith)*zenith;
+    const vec3 viewXYunnorm=viewDir-dot(viewDir,zenith)*zenith;
+    const vec3 sunXY = sunXYunnorm.x!=0 || sunXYunnorm.y!=0 ? normalize(sunXYunnorm) : vec3(0,0,1);
+    const vec3 viewXY = viewXYunnorm.x!=0 || viewXYunnorm.y!=0 ? normalize(viewXYunnorm) : vec3(0,0,1);
+    const float azimuthRelativeToSun=safeAtan(dot(cross(sunXY, viewXY), zenith), dot(sunXY, viewXY));
 
 #if RENDERING_ZERO_SCATTERING
     vec4 radiance;
