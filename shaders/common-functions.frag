@@ -1,6 +1,5 @@
 #version 330
 #extension GL_ARB_shading_language_420pack : require
-#extension GL_ARB_gpu_shader_fp64 : require
 
 #include "const.h.glsl"
 
@@ -141,30 +140,22 @@ float circlesIntersectionArea(float R1, float R2, float d)
            0.5*sqrt(max( (-d+R1+R2)*(d+R1-R2)*(d-R1+R2)*(d+R1+R2) ,0.));
 }
 
-float angleBetween(dvec3 a, dvec3 b)
+float angleBetween(const vec3 a, const vec3 b)
 {
-    // NOTE: if we calculate dot(a,b) and only then divide by norms of a and b,
-    // precision will be much worse. So normalize before calculation of dot.
-    a=normalize(a);
-    b=normalize(b);
-    const double c=dot(a,b);
-    // Don't let rounding errors lead to NaNs.
-    if(c<=-1) return PI;
-    if(c>=+1) return 0;
-    // Don't lose precision for very small angles: they are the most precious.
-    // Note that the precision loss we're concerned about here is not in the
-    // acos or sqrt: it's instead in float(c), which can lead to high
-    // granularity near c==1.0, which corresponds to the smallest and most
-    // interesting angles. Computing 1-c*c in double precision gives us small
-    // numbers, with which we'll not have any problems even after we convert
-    // them to float.
-    if(c>0.9) return asin(sqrt(float(1-c*c)));
-    return acos(float(c));
+    const float d=dot(a,b);
+    const float c=length(cross(a,b));
+    // To avoid loss of precision, don't use dot product near the singularity
+    // of acos, and cross product near the singularity of asin
+    if(abs(d) < abs(c))
+        return acos(d/(length(a)*length(b)));
+    const float smallerAngle = asin(c/(length(a)*length(b)));
+    if(d<0) return PI-smallerAngle;
+    return smallerAngle;
 }
 
 float angleBetweenSunAndMoon(const vec3 camera, const vec3 sunDir, const vec3 moonPos)
 {
-    return angleBetween(dvec3(sunDir), dvec3(moonPos-camera));
+    return angleBetween(sunDir, moonPos-camera);
 }
 
 float moonAngularRadius(const vec3 cameraPosition, const vec3 moonPosition)
