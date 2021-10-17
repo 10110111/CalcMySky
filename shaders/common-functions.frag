@@ -2,6 +2,8 @@
 #include "version.h.glsl"
 #include "const.h.glsl"
 
+const float goldenRatio=1.6180339887499;
+
 bool dbgDataPresent=false;
 bool debugDataPresent()
 {
@@ -199,12 +201,32 @@ float sphereIntegrationSolidAngleDifferential(const int pointCountOnSphere)
 }
 vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere)
 {
-    CONST float goldenRatio=1.6180339887499;
     // The range of n is 0.5, 1.5, ..., pointCountOnSphere-0.5
     CONST float n=index+0.5;
     // Explanation of the Fibonacci grid generation can be seen at https://stackoverflow.com/a/44164075/673852
     CONST float zenithAngle=acos(clamp(1-(2.*n)/pointCountOnSphere, -1.,1.));
     CONST float azimuth=n*(2*PI*goldenRatio);
+    return vec3(cos(azimuth)*sin(zenithAngle),
+                sin(azimuth)*sin(zenithAngle),
+                cos(zenithAngle));
+}
+
+float sphericalCapIntegrationSolidAngleDifferential(const int pointCount, const float zenithAngleOfBottom)
+{
+    // capArea = 2πr²(1-cosθ) = 4πr²sin²(θ/2)
+    return 4*PI*sqr(sin(zenithAngleOfBottom/2))/pointCount;
+}
+vec3 sphericalCapIntegrationSampleDir(const int index, const int pointCount, const float zenithAngleOfBottom)
+{
+    // The range of n is 0.5, 1.5, ..., pointCount-0.5
+    const float n=index+0.5;
+    // Number of points covering the whole sphere, so that number of points in the range of zenithAngle∈[0,zenithAngleOfBottom]
+    // was pointCount. In other words, when index+1==pointCount+0.5, we want zenithAngle==zenithAngleOfBottom. The +0.5 on the
+    // RHS ensures that at zenithAngleOfBottom==π we reproduce the behavior of sphereIntegrationSampleDir().
+    const float virtualPointCount = pointCount/sqr(sin(zenithAngleOfBottom/2));
+    // Explanation of the Fibonacci grid generation can be seen at https://stackoverflow.com/a/44164075/673852
+    const float zenithAngle=acos(clamp(1-(2.*n)/virtualPointCount, -1.,1.));
+    const float azimuth=n*(2*PI*goldenRatio);
     return vec3(cos(azimuth)*sin(zenithAngle),
                 sin(azimuth)*sin(zenithAngle),
                 cos(zenithAngle));
