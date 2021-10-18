@@ -225,7 +225,8 @@ vec3 sphericalCapIntegrationSampleDir(const int index, const int pointCount, con
     // RHS ensures that at zenithAngleOfBottom==π we reproduce the behavior of sphereIntegrationSampleDir().
     const float virtualPointCount = pointCount/sqr(sin(zenithAngleOfBottom/2));
     // Explanation of the Fibonacci grid generation can be seen at https://stackoverflow.com/a/44164075/673852
-    const float zenithAngle=acos(clamp(1-(2.*n)/virtualPointCount, -1.,1.));
+    const float sinHalfZenithAngle = sqrt(clampCosine(n/virtualPointCount));
+    const float zenithAngle = 2*asin(sinHalfZenithAngle);
     const float azimuth=n*(2*PI*goldenRatio);
     return vec3(cos(azimuth)*sin(zenithAngle),
                 sin(azimuth)*sin(zenithAngle),
