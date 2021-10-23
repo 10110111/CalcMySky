@@ -218,6 +218,9 @@ float sphericalCapIntegrationSolidAngleDifferential(const int pointCount, const 
 }
 vec3 sphericalCapIntegrationSampleDir(const int index, const int pointCount, const float zenithAngleOfBottom)
 {
+    // Special case for only one point: we want it to be in the center of the cap, for ease of use.
+    if(pointCount==1) return vec3(0,0,1);
+
     // The range of n is 0.5, 1.5, ..., pointCount-0.5
     const float n=index+0.5;
     // Number of points covering the whole sphere, so that number of points in the range of zenithAngle∈[0,zenithAngleOfBottom]
