@@ -244,6 +244,7 @@ vec3 dither_Bayer(vec3 c)
 
 vec3 clip(vec3 rgb)
 {
+    rgb=max(vec3(0), rgb);
     return sqrt(tanh(rgb*rgb));
 }
 
