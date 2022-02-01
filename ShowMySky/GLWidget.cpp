@@ -478,9 +478,8 @@ void GLWidget::resetSolarSpectrum()
     update();
 }
 
-static double blackBodySunSpectralIrradianceAtTOA(const double temperature, const double wavelength)
+static double blackBodySunSpectralIrradianceAtTOA(const double temperature, const double wavelength, const double earthSunDistance)
 {
-    const auto earthSunDistance=1*astronomicalUnit; // FIXME: should take from AtmosphereParameters
     using namespace std;
     return 1.814397573e38/pow(earthSunDistance,2)/pow(wavelength,5)/(exp(1.438777354e7/(temperature*wavelength))-1);
 }
@@ -488,9 +487,11 @@ static double blackBodySunSpectralIrradianceAtTOA(const double temperature, cons
 void GLWidget::setBlackBodySolarSpectrum(const double temperature)
 {
     const auto wavelengths=renderer->getWavelengths();
+    const auto& params = static_cast<AtmosphereRenderer*>(renderer.get())->atmosphereParameters();
+    const auto earthSunDistance = params.earthSunDistance;
     std::vector<float> spectrum;
     for(const auto wavelength : wavelengths)
-        spectrum.push_back(blackBodySunSpectralIrradianceAtTOA(temperature, wavelength));
+        spectrum.push_back(blackBodySunSpectralIrradianceAtTOA(temperature, wavelength, earthSunDistance));
     renderer->setSolarSpectrum(spectrum);
     update();
 }
