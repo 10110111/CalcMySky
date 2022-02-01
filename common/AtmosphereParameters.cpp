@@ -141,7 +141,7 @@ double getQuantity(QString const& value, const double min, const double max, Qua
     if(finalX<min || finalX>max)
     {
         throw ParsingError{filename,lineNumber,QString("value %1 %2 is out of range. Valid range is [%3..%4] %5.")
-                                                .arg(finalX).arg(quantity.basicUnit()).arg(min).arg(max).arg(quantity.basicUnit())};
+                                                .arg(x).arg(unit).arg(min/scaleIt->second).arg(max/scaleIt->second).arg(unit)};
     }
     return finalX;
 }
