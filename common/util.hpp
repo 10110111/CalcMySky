@@ -73,7 +73,7 @@ public:
     ParsingError(QString const& filename, int lineNumber, QString const& message)
         : message(message), filename(filename), lineNumber(lineNumber) {}
     QString errorType() const override { return QObject::tr("Parsing error"); }
-    QString what() const override { return QString("%1:%2: %3)").arg(filename).arg(lineNumber).arg(message); }
+    QString what() const override { return QString("%1:%2: %3").arg(filename).arg(lineNumber).arg(message); }
 };
 
 inline std::ostream& operator<<(std::ostream& os, QString const& s)
