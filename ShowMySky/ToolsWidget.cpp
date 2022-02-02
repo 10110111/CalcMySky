@@ -158,6 +158,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
                  moonAzimuth_->setEnabled(eclipseEnabled);
             });
     triggerStateChanged(usingEclipseShader_);
+    pseudoMirrorEnabled_=addCheckBox(layout, this, tr("Pseudo-mirror sky in the ground"), false);
 
     {
         const auto button=new QPushButton(tr("&Reload shaders"));

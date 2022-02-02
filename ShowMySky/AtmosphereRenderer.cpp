@@ -1148,6 +1148,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
+            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
             drawSurface(prog);
@@ -1163,6 +1164,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             irradianceTextures_[wlSetIndex]->bind(1);
             prog.setUniformValue("irradianceTexture",1);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
+            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
             drawSurface(prog);
@@ -1239,6 +1241,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
+                    prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1261,6 +1264,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
+                    prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1289,6 +1293,7 @@ void AtmosphereRenderer::renderSingleScattering()
                         tex.bind(0);
                         prog.setUniformValue("eclipsedScatteringTexture", 0);
                     }
+                    prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1315,6 +1320,7 @@ void AtmosphereRenderer::renderSingleScattering()
                         prog.setUniformValue("scatteringTexture", 0);
                         prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
                     }
+                    prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1337,6 +1343,7 @@ void AtmosphereRenderer::renderSingleScattering()
             }
             prog.setUniformValue("scatteringTexture", 0);
             prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
+            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
             drawSurface(prog);
         }
@@ -1354,6 +1361,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 tex.bind(0);
                 prog.setUniformValue("eclipsedScatteringTexture", 0);
             }
+            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
             drawSurface(prog);
         }
@@ -1411,6 +1419,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1457,6 +1466,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
             auto& tex=*multipleScatteringTextures_.front();
             tex.setMinificationFilter(texFilter);
@@ -1477,6 +1487,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                 prog.bind();
                 prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                 prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                 if(!solarIrradianceFixup_.empty())
                     prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1504,6 +1515,7 @@ void AtmosphereRenderer::renderLightPollution()
         prog.bind();
         prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
         prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+        prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
         auto& tex=*lightPollutionTextures_.front();
         tex.setMinificationFilter(texFilter);
@@ -1524,6 +1536,7 @@ void AtmosphereRenderer::renderLightPollution()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 

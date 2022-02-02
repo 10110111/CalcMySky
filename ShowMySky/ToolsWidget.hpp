@@ -41,6 +41,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QCheckBox* multipleScatteringEnabled_=nullptr;
     QCheckBox* textureFilteringEnabled_=nullptr;
     QCheckBox* usingEclipseShader_=nullptr;
+    QCheckBox* pseudoMirrorEnabled_=nullptr;
     QCheckBox* gradualClippingEnabled_=nullptr;
     QCheckBox* glareEnabled_=nullptr;
     QPushButton* showRadiancePlot_=nullptr;
@@ -70,6 +71,7 @@ public:
     bool multipleScatteringEnabled() override { return multipleScatteringEnabled_->isChecked(); }
     bool textureFilteringEnabled() override { return textureFilteringEnabled_->isChecked(); }
     bool usingEclipseShader() override { return usingEclipseShader_->isChecked(); }
+    bool pseudoMirrorEnabled() override { return pseudoMirrorEnabled_->isChecked(); }
     bool gradualClippingEnabled() const { return gradualClippingEnabled_->isChecked(); }
     bool glareEnabled() const { return glareEnabled_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }

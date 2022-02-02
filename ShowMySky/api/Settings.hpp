@@ -34,6 +34,9 @@ public:
     // shaders—depending on sky configuration and performance requirements
     virtual bool usingEclipseShader() = 0;
 
+    // Eclipse wants to show sky-like colors instead of the ground, this option controls whether this is enabled
+    virtual bool pseudoMirrorEnabled() = 0;
+
     virtual ~Settings() = default;
 };
 
