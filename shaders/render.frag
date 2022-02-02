@@ -22,6 +22,7 @@ uniform vec3 sunDirection;
 uniform vec3 moonPosition;
 uniform float lightPollutionGroundLuminance;
 uniform vec4 solarIrradianceFixup=vec4(1); // Used when we want to alter solar irradiance post-precomputation
+uniform bool pseudoMirrorSkyBelowHorizon = false;
 in vec3 position;
 layout(location=0) out vec4 luminance;
 layout(location=1) out vec4 radianceOutput;
@@ -33,7 +34,7 @@ vec4 solarRadiance()
 
 void main()
 {
-    const vec3 viewDir=calcViewDir();
+    vec3 viewDir=calcViewDir();
 
     // NOTE: we simply clamp negative altitudes to zero (otherwise the model will break down). This is not
     // quite correct physically: there are places with negative elevation above sea level. But the error of
@@ -70,9 +71,7 @@ void main()
     }
 
     const vec3 zenith=normalize(cameraPosition-earthCenter);
-    const float cosViewZenithAngle=dot(zenith,viewDir);
-    const float cosSunZenithAngle =dot(zenith,sunDirection);
-    const float dotViewSun=dot(viewDir,sunDirection);
+    float cosViewZenithAngle=dot(zenith,viewDir);
 
     bool viewRayIntersectsGround=false;
     {
@@ -86,6 +85,36 @@ void main()
         if(distanceToIntersection>0 || (altitude==0 && cosViewZenithAngle<0))
             viewRayIntersectsGround=true;
     }
+
+    // Stellarium wants to display a sky-like view when ground is hidden.
+    // Aside from aesthetics, this affects brightness input to Stellarium's tone mapper.
+    if(pseudoMirrorSkyBelowHorizon && viewRayIntersectsGround)
+    {
+        const float horizonCZA = cosZenithAngleOfHorizon(altitude);
+        const float viewElev  = asin(clampCosine(cosViewZenithAngle));
+        const float horizElev = asin(clampCosine(horizonCZA));
+        const float newViewElev = 2*horizElev - viewElev;
+        const float viewDirXYnorm = length(viewDir-zenith*cosViewZenithAngle);
+        if(viewDirXYnorm == 0)
+        {
+            viewDir = zenith;
+        }
+        else
+        {
+            // Remove original zenith-directed component
+            viewDir -= zenith*cosViewZenithAngle;
+            // Update cos(VZA). This change will affect all the subsequent code in this function.
+            cosViewZenithAngle = sin(newViewElev);
+            // Adjust the remaining (horizontal) components so that the final viewDir is normalized
+            viewDir *= safeSqrt(1-sqr(cosViewZenithAngle))/viewDirXYnorm;
+            // Add the new zenith-directed component
+            viewDir += zenith*cosViewZenithAngle;
+        }
+        viewRayIntersectsGround = false;
+    }
+
+    const float cosSunZenithAngle =dot(zenith,sunDirection);
+    const float dotViewSun=dot(viewDir,sunDirection);
 
     const vec3 sunXYunnorm=sunDirection-dot(sunDirection,zenith)*zenith;
     const vec3 viewXYunnorm=viewDir-dot(viewDir,zenith)*zenith;
