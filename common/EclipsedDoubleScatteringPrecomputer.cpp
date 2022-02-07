@@ -215,6 +215,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
     for(unsigned azimIndex=0; azimIndex<azimuths.size(); ++azimIndex)
     {
+        static constexpr float ALMOST_LOG_ZERO = -70;
         const auto azimuth=azimuths[azimIndex];
         for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
         {
@@ -226,7 +227,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
             // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
             const auto integral=sumTexels(gl, intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
-                samplesAboveHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, log(integral[i]));
+                samplesAboveHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]==0 ? ALMOST_LOG_ZERO : log(integral[i]));
         }
         for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
         {
@@ -238,7 +239,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
             // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
             const auto integral=sumTexels(gl, intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
-                samplesBelowHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, log(integral[i]));
+                samplesBelowHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]==0 ? ALMOST_LOG_ZERO : log(integral[i]));
         }
     }
 
