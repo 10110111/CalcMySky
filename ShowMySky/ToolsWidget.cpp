@@ -157,6 +157,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
                  const bool eclipseEnabled = state==Qt::Checked;
                  moonElevation_->setEnabled(eclipseEnabled);
                  moonAzimuth_->setEnabled(eclipseEnabled);
+                 earthMoonDistance_->setEnabled(eclipseEnabled);
             });
     triggerStateChanged(usingEclipseShader_);
     pseudoMirrorEnabled_=addCheckBox(layout, this, tr("Pseudo-mirror sky in the ground"), false);
