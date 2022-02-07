@@ -54,7 +54,7 @@ public:
                                         unsigned texSizeBySZA, unsigned texSizeByAltitude);
     ~EclipsedDoubleScatteringPrecomputer();
     void compute(unsigned altIndex, unsigned szaIndex, double cameraAltitude, double sunZenithAngle,
-                 double moonZenithAngle, double moonAzimuthRelativeToSun);
+                 double moonZenithAngle, double moonAzimuthRelativeToSun, double earthMoonDistance);
     std::vector<glm::vec4> const& texture() const { return texture_; }
 };
 

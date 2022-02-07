@@ -1015,7 +1015,7 @@ double AtmosphereRenderer::cameraMoonDistance() const
     using namespace std;
     const auto hpR=tools_->altitude()+params_.earthRadius;
     const auto moonElevation=M_PI/2-tools_->moonZenithAngle();
-    return -hpR*sin(moonElevation)+sqrt(sqr(params_.earthMoonDistance)-0.5*sqr(hpR)*(1+cos(2*moonElevation)));
+    return -hpR*sin(moonElevation)+sqrt(sqr(tools_->earthMoonDistance())-0.5*sqr(hpR)*(1+cos(2*moonElevation)));
 }
 
 QVector4D AtmosphereRenderer::getPixelLuminance(QPoint const& pixelPos)
@@ -1390,7 +1390,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
                                                         params_.eclipsedDoubleScatteringTextureSize[0],
                                                         params_.eclipsedDoubleScatteringTextureSize[1], 1, 1);
         precomputer.compute(0, 0, tools_->altitude(), tools_->sunZenithAngle(),
-                            tools_->moonZenithAngle(), tools_->moonAzimuth() - tools_->sunAzimuth());
+                            tools_->moonZenithAngle(), tools_->moonAzimuth() - tools_->sunAzimuth(), tools_->earthMoonDistance());
         eclipsedDoubleScatteringPrecomputationTargetTextures_[wlSetIndex]->bind();
         gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,
                         params_.eclipsedDoubleScatteringTextureSize[0], params_.eclipsedDoubleScatteringTextureSize[1], 1,

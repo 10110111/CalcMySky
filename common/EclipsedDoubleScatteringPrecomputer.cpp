@@ -165,7 +165,8 @@ EclipsedDoubleScatteringPrecomputer::~EclipsedDoubleScatteringPrecomputer()
 
 void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const unsigned szaIndex,
                                                   const double cameraAltitude, const double sunZenithAngle,
-                                                  const double moonZenithAngle, const double moonAzimuthRelativeToSun)
+                                                  const double moonZenithAngle, const double moonAzimuthRelativeToSun,
+                                                  const double earthMoonDistance)
 {
     using namespace glm;
     using std::sin;
@@ -180,10 +181,10 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
 
     const dvec3 sunDir(sin(sunZenithAngle), 0, cos(sunZenithAngle));
     const dvec3 moonDir = dmat3(rotate(moonAzimuthRelativeToSun,dvec3(0,0,1)))*dvec3(sin(moonZenithAngle), 0, cos(moonZenithAngle));
-    const double cameraMoonDistance=[cameraAltitude,moonZenithAngle, this]{
+    const double cameraMoonDistance=[cameraAltitude,moonZenithAngle,earthMoonDistance, this]{
         const auto hpR=cameraAltitude+atmo.earthRadius;
         const auto moonElevation=M_PI/2-moonZenithAngle;
-        return -hpR*sin(moonElevation)+sqrt(sqr(atmo.earthMoonDistance)-0.5*sqr(hpR)*(1+cos(2*moonElevation)));
+        return -hpR*sin(moonElevation)+sqrt(sqr(earthMoonDistance)-0.5*sqr(hpR)*(1+cos(2*moonElevation)));
     }();
     const float moonAngularRadius=moonRadius/cameraMoonDistance;
     const dvec3 cameraPos(0,0,cameraAltitude);

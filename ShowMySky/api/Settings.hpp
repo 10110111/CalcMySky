@@ -12,6 +12,7 @@ public:
     virtual double sunZenithAngle()  = 0;
     virtual double moonAzimuth()     = 0;
     virtual double moonZenithAngle() = 0;
+    virtual double earthMoonDistance() = 0;
 
     // This is not needed if ShowMySky's caller code does zero order rendering itself
     virtual bool zeroOrderScatteringEnabled() = 0;

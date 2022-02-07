@@ -953,7 +953,7 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
             // To avoid too many zeros that would make log interpolation problematic, we clamp the bottom value at 1 m. The same at the top.
             const float cameraAltitude=clamp(sqrt(sqr(distToHorizon)+sqr(atmo.earthRadius))-atmo.earthRadius, 1.f, atmo.atmosphereHeight-1);
 
-            precomputer.compute(altIndex, szaIndex, cameraAltitude, sunZenithAngle, sunZenithAngle, 0);
+            precomputer.compute(altIndex, szaIndex, cameraAltitude, sunZenithAngle, sunZenithAngle, 0, atmo.earthMoonDistance);
 
             // Clear previous status and reset cursor position
             const auto statusWidth=ss.tellp();

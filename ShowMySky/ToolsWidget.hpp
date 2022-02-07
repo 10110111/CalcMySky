@@ -30,6 +30,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     Manipulator* sunAzimuth_=nullptr;
     Manipulator* moonElevation_=nullptr;
     Manipulator* moonAzimuth_=nullptr;
+    Manipulator* earthMoonDistance_=nullptr;
     Manipulator* zoomFactor_=nullptr;
     Manipulator* cameraPitch_=nullptr;
     Manipulator* cameraYaw_=nullptr;
@@ -60,6 +61,7 @@ public:
     double sunZenithAngle() override { return degree*(90-sunElevation_->value()); }
     double moonAzimuth()     override { return degree*moonAzimuth_->value(); }
     double moonZenithAngle() override { return degree*(90-moonElevation_->value()); }
+    double earthMoonDistance() override { return 1000*earthMoonDistance_->value(); }
     float zoomFactor() const { return zoomFactor_->value(); }
     float cameraYaw() const { return degree*cameraYaw_->value(); }
     float cameraPitch() const { return degree*cameraPitch_->value(); }
