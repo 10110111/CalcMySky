@@ -1131,6 +1131,11 @@ bool AtmosphereRenderer::canSetSolarSpectrum() const
     return canGrabRadiance(); // condition is the same as for radiance grabbing
 }
 
+bool AtmosphereRenderer::canRenderPrecomputedEclipsedDoubleScattering() const
+{
+    return !params_.noEclipsedDoubleScatteringTextures;
+}
+
 void AtmosphereRenderer::renderZeroOrderScattering()
 {
     OGL_TRACE();

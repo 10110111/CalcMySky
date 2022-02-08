@@ -54,6 +54,7 @@ public:
     virtual bool readyToRender() const = 0;
     virtual bool canGrabRadiance() const = 0;
     virtual bool canSetSolarSpectrum() const = 0;
+    virtual bool canRenderPrecomputedEclipsedDoubleScattering() const = 0;
     virtual GLuint getLuminanceTexture() = 0;
     virtual void draw(double brightness, bool clear) = 0;
     virtual void resizeEvent(int width, int height) = 0;
@@ -85,7 +86,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
                                         QString const* pathToData,
                                         ShowMySky::Settings* tools,
                                         std::function<void(QOpenGLShaderProgram&)> const* drawSurface);
-#define ShowMySky_ABI_version 10
+#define ShowMySky_ABI_version 11
 }
 
 #endif

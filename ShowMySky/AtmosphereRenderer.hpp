@@ -37,6 +37,7 @@ public:
     bool readyToRender() const override { return readyToRender_; }
     bool canGrabRadiance() const override;
     bool canSetSolarSpectrum() const override;
+    bool canRenderPrecomputedEclipsedDoubleScattering() const override;
     GLuint getLuminanceTexture() override { return luminanceRenderTargetTexture_.textureId(); };
 
     void draw(double brightness, bool clear) override;
