@@ -279,7 +279,7 @@ std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat min
 }
 
 AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString const& name, const bool forceGeneralPhaseFunction,
-                                               QString const& filename, int& lineNumber)
+                                               const bool noMergedTextures, QString const& filename, int& lineNumber)
 {
     AtmosphereParameters::Scatterer description(name);
     bool begun=false;
@@ -318,6 +318,13 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
             description.phaseFunctionType=parsePhaseFunctionType(value,filename,lineNumber);
 
         if(forceGeneralPhaseFunction)
+            description.phaseFunctionType=PhaseFunctionType::General;
+
+        // When we need eclipsed double scattering textures, the user app will need to interpolate them with
+        // non-eclipsed multiple scattering textures to simulate partial/annular eclipse. In this case both
+        // types of textures need to be comparable. In particular, single scattering shouldn't be merged into
+        // corresponding double scattering texture.
+        if(noMergedTextures && description.phaseFunctionType==PhaseFunctionType::Smooth)
             description.phaseFunctionType=PhaseFunctionType::General;
     }
     if(!description.valid())
@@ -500,7 +507,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const SkipSpe
             {
                 throw ParsingError{atmoDescrFileName,lineNumber, QString("duplicate scatterer \"%1\"").arg(name)};
             }
-            scatterers.emplace_back(parseScatterer(stream, name, allTexturesAreRadiance, atmoDescrFileName,++lineNumber));
+            scatterers.emplace_back(parseScatterer(stream, name, allTexturesAreRadiance, !noEclipsedDoubleScatteringTextures, atmoDescrFileName,++lineNumber));
         }
         else if(key.contains(absorberDescriptionKey))
             absorbers.emplace_back(parseAbsorber(*this, skipSpectra, stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
