@@ -70,6 +70,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
     sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, 45, 3, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 3, QChar(0x00b0));
+    sunAngularRadius_ = addManipulator(layout, this, tr("Sun angular radius"), 0.01, 0.999,  0.25, 3, QChar(0x00b0));
     moonElevation_= addManipulator(layout, this, tr("Moon &elevation"),  -90,  90, 41, 3, QChar(0x00b0));
     moonAzimuth_  = addManipulator(layout, this, tr("Moon azim&uth"),   -180, 180,  0, 3, QChar(0x00b0));
     earthMoonDistance_ = addManipulator(layout, this, tr("Earth-Moon distance"), 300e3, 1e6,  371925, 0, u8"\u202fkm");
@@ -335,6 +336,8 @@ void ToolsWidget::updateParameters(AtmosphereParameters const& params)
         onTheFlyPrecompDoubleScatteringEnabled_->setChecked(true);
         onTheFlyPrecompDoubleScatteringEnabled_->setDisabled(true);
     }
+
+    sunAngularRadius_->setValue(params.sunAngularRadius / degree);
 }
 
 void ToolsWidget::onLoadProgress(QString const& currentActivity, const int stepsDone, const int stepsToDo)

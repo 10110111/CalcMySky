@@ -28,6 +28,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     Manipulator* exposure_=nullptr;
     Manipulator* sunElevation_=nullptr;
     Manipulator* sunAzimuth_=nullptr;
+    Manipulator* sunAngularRadius_=nullptr;
     Manipulator* moonElevation_=nullptr;
     Manipulator* moonAzimuth_=nullptr;
     Manipulator* earthMoonDistance_=nullptr;
@@ -59,6 +60,7 @@ public:
     double altitude()       override { return altitude_->value(); }
     double sunAzimuth()     override { return degree*sunAzimuth_->value(); }
     double sunZenithAngle() override { return degree*(90-sunElevation_->value()); }
+    double sunAngularRadius() override { return degree*sunAngularRadius_->value(); }
     double moonAzimuth()     override { return degree*moonAzimuth_->value(); }
     double moonZenithAngle() override { return degree*(90-moonElevation_->value()); }
     double earthMoonDistance() override { return 1000*earthMoonDistance_->value(); }

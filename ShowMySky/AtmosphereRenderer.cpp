@@ -1150,6 +1150,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("moonPosition", toQVector(moonPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
@@ -1164,6 +1165,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
             irradianceTextures_[wlSetIndex]->bind(1);
@@ -1196,6 +1198,7 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
             prog.bind();
             prog.setUniformValue("altitude", float(tools_->altitude()));
             prog.setUniformValue("moonPositionRelativeToSunAzimuth", toQVector(moonPositionRelativeToSunAzimuth()));
+            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             prog.setUniformValue("sunZenithAngle", float(tools_->sunZenithAngle()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
@@ -1244,6 +1247,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                     prog.setUniformValue("moonPosition", toQVector(moonPosition()));
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                    prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
@@ -1267,6 +1271,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                    prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
@@ -1290,6 +1295,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                    prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
                     {
                         auto& tex=*eclipsedSingleScatteringPrecomputationTextures_.at(scatterer.name)[wlSetIndex];
                         const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -1316,6 +1322,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.bind();
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                    prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
                     {
                         auto& tex=*singleScatteringTextures_.at(scatterer.name)[wlSetIndex];
                         const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -1339,6 +1346,7 @@ void AtmosphereRenderer::renderSingleScattering()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             {
                 auto& tex=*singleScatteringTextures_.at(scatterer.name).front();
                 const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -1358,6 +1366,7 @@ void AtmosphereRenderer::renderSingleScattering()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             {
                 auto& tex=*eclipsedSingleScatteringPrecomputationTextures_.at(scatterer.name).front();
                 const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
@@ -1389,6 +1398,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
         prog.setUniformValue("transmittanceTexture", unusedTextureUnitNum++);
         if(!solarIrradianceFixup_.empty())
             prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+        prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
 
         EclipsedDoubleScatteringPrecomputer precomputer(prog, gl, eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),
                                                         unusedTextureUnitNum, params_,
@@ -1424,6 +1434,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
@@ -1471,6 +1482,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
             auto& tex=*multipleScatteringTextures_.front();
@@ -1492,6 +1504,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                 prog.bind();
                 prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                 prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
                 prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                 if(!solarIrradianceFixup_.empty())
                     prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
@@ -1520,6 +1533,7 @@ void AtmosphereRenderer::renderLightPollution()
         prog.bind();
         prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
         prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+        prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
         prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
         auto& tex=*lightPollutionTextures_.front();
@@ -1541,6 +1555,7 @@ void AtmosphereRenderer::renderLightPollution()
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);

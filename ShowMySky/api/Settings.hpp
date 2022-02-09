@@ -10,6 +10,8 @@ public:
     virtual double altitude()        = 0;
     virtual double sunAzimuth()      = 0;
     virtual double sunZenithAngle()  = 0;
+    // These are used for eclipses
+    virtual double sunAngularRadius()  = 0;
     virtual double moonAzimuth()     = 0;
     virtual double moonZenithAngle() = 0;
     virtual double earthMoonDistance() = 0;
