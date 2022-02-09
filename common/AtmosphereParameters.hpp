@@ -9,6 +9,7 @@
 
 struct AtmosphereParameters
 {
+    DEFINE_EXPLICIT_BOOL(ForceNoEDSTextures);
     // We don't copy external spectra into output directory, so the renderer needs to skip loading them
     DEFINE_EXPLICIT_BOOL(SkipSpectra);
 
@@ -98,7 +99,9 @@ struct AtmosphereParameters
     static constexpr char SOLAR_IRRADIANCE_AT_TOA_KEY[]="solar irradiance at toa";
     static constexpr char WAVELENGTHS_KEY[]="wavelengths";
 
-    void parse(QString const& atmoDescrFileName, SkipSpectra skipSpectra=SkipSpectra{false});
+    void parse(QString const& atmoDescrFileName,
+               ForceNoEDSTextures forceNoEDSTextures=ForceNoEDSTextures{false},
+               SkipSpectra skipSpectra=SkipSpectra{false});
     // XXX: keep in sync with those in previewer and renderer
     auto scatTexWidth()  const { return GLsizei(scatteringTextureSize[0]); }
     auto scatTexHeight() const { return GLsizei(scatteringTextureSize[1]*scatteringTextureSize[2]); }

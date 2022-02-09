@@ -240,5 +240,5 @@ void handleCmdLine()
     }
 
     const auto atmoDescrFileName=posArgs[0];
-    atmo.parse(atmoDescrFileName);
+    atmo.parse(atmoDescrFileName, AtmosphereParameters::ForceNoEDSTextures{opts.dbgNoEDSTextures});
 }

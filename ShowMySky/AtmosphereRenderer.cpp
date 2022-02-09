@@ -1696,7 +1696,7 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     , pathToData_(pathToData)
     , luminanceRenderTargetTexture_(QOpenGLTexture::Target2D)
 {
-    params_.parse(pathToData + "/params.atmo", AtmosphereParameters::SkipSpectra{true});
+    params_.parse(pathToData + "/params.atmo", AtmosphereParameters::ForceNoEDSTextures{false}, AtmosphereParameters::SkipSpectra{true});
 }
 
 void AtmosphereRenderer::setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram&)> const& drawSurface)
