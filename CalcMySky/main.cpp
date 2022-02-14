@@ -1197,7 +1197,7 @@ int main(int argc, char** argv)
                 << "nm,max=" << atmo.allWavelengths.back().w << "nm,count=" << 4*atmo.allWavelengths.size() << "\n";
             out << AtmosphereParameters::SOLAR_IRRADIANCE_AT_TOA_KEY << ": "
                 << AtmosphereParameters::spectrumToString(atmo.solarIrradianceAtTOA) << "\n";
-            out << "\n#Copy of original atmosphere description" << atmo.descriptionFileText;
+            out << "\n#Copy of original atmosphere description\n" << atmo.descriptionFileText;
             out.flush();
             file.close();
             if(file.error())
