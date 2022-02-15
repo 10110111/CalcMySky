@@ -39,8 +39,8 @@ wavelengths: min=360nm,max=830nm,count=16
 # which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html
 # Values are in W/(m^2*nm).
 solar irradiance at TOA: 1.037,1.249,1.684,1.975,1.968,1.877,1.854,1.818,1.723,1.604,1.516,1.408,1.309,1.23,1.142,1.062
-# Taken from http://gsp.humboldt.edu/OLM/Courses/GSP_216_Online/lesson2-1/reflectance.html, in particular, the file link:
-#  http://gsp.humboldt.edu/OLM/Courses/GSP_216_Online/lesson2-1/reflect.csv
+# Taken from http://gsp.humboldt.edu/olm/Courses/GSP_216/lessons/reflectance.html, in particular, the file link:
+#  http://gsp.humboldt.edu/olm/Courses/GSP_216/lessons/reflect.csv
 # The data set chosen is that for grass.
 ground albedo: 0.035,0.037,0.04,0.041,0.043,0.067,0.107,0.09,0.07,0.057,0.047,0.138,0.367,0.468,0.483,0.491
 # This spectrum was taken from a measurement of a single HPS lamp and dividing the measured spectrum by its luminance.
