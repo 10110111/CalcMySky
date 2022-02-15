@@ -91,8 +91,8 @@ Spectrum Spectrum::parseFromCSV(QByteArray const& data, QString const& filename,
         if(keyval.size()!=2)
             throw ParsingError{filename,lineNumber,QString("bad spectrum line: expected \"key,value\" pair, got \"%1\"").arg(lines[i].constData())};
         bool okWL=false, okVal=false;
-        const auto wavelength=keyval[0].toDouble(&okWL);
-        const auto value=keyval[1].toDouble(&okVal);
+        const auto wavelength=keyval[0].trimmed().toDouble(&okWL);
+        const auto value=keyval[1].trimmed().toDouble(&okVal);
         if(!okWL)
             throw ParsingError{filename,lineNumber,"failed to parse wavelength string \""+keyval[0]+"\""};
         if(!okVal)
