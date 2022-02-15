@@ -93,8 +93,10 @@ Spectrum Spectrum::parseFromCSV(QByteArray const& data, QString const& filename,
         bool okWL=false, okVal=false;
         const auto wavelength=keyval[0].toDouble(&okWL);
         const auto value=keyval[1].toDouble(&okVal);
-        if(!okWL || !okVal)
-            throw ParsingError{filename,lineNumber,"failed to parse numbers"};
+        if(!okWL)
+            throw ParsingError{filename,lineNumber,"failed to parse wavelength string \""+keyval[0]+"\""};
+        if(!okVal)
+            throw ParsingError{filename,lineNumber,"failed to parse spectrum value string \""+keyval[1]+"\""};
         if(!(wavelengths.empty() || wavelengths.back() < wavelength))
             throw ParsingError{filename,lineNumber,"wavelengths don't grow monotonically as they should"};
         wavelengths.push_back(wavelength);
