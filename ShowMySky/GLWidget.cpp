@@ -22,6 +22,7 @@ GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* paren
     installEventFilter(this);
     setFocusPolicy(Qt::StrongFocus);
     connect(this, &GLWidget::frameFinished, tools, &ToolsWidget::showFrameRate);
+    setUpdateBehavior(QOpenGLWidget::PartialUpdate);
 }
 
 GLWidget::~GLWidget()
@@ -178,7 +179,6 @@ void GLWidget::initializeGL()
         };
         renderer.reset(ShowMySky_AtmosphereRenderer_create(this,&pathToData,tools,&drawSurface));
         tools->updateParameters(static_cast<AtmosphereRenderer*>(renderer.get())->atmosphereParameters());
-        connect(renderer->asQObject(), SIGNAL(loadProgress(QString const&,int,int)), this, SLOT(onLoadProgress(QString const&,int,int)));
         connect(tools, &ToolsWidget::settingChanged, this, qOverload<>(&GLWidget::update));
         connect(tools, &ToolsWidget::ditheringMethodChanged, this, [this]
                 { makeDitherPatternTexture(); update(); });
@@ -360,11 +360,31 @@ vec3 calcViewDir()
                                sin(pos.y*(PI/2)));
 }
 )";
-        renderer->loadData(viewDirVertShaderSrc, viewDirFragShaderSrc);
-        if(renderer->readyToRender())
+        renderer->initDataLoading(viewDirVertShaderSrc, viewDirFragShaderSrc);
+        stepDataLoading();
+    }
+    catch(ShowMySky::Error const& ex)
+    {
+        QMessageBox::critical(this, ex.errorType(), ex.what());
+    }
+}
+
+void GLWidget::stepDataLoading()
+{
+    try
+    {
+        makeCurrent();
+        const auto status = renderer->stepDataLoading();
+        tools->onLoadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
+        if(renderer->isReadyToRender())
         {
             tools->setCanGrabRadiance(renderer->canGrabRadiance());
             tools->setCanSetSolarSpectrum(renderer->canSetSolarSpectrum());
+            update();
+        }
+        else if(status.stepsDone < status.stepsToDo)
+        {
+            QTimer::singleShot(0, this, &GLWidget::stepDataLoading);
         }
     }
     catch(ShowMySky::Error const& ex)
@@ -373,19 +393,36 @@ vec3 calcViewDir()
     }
 }
 
-void GLWidget::onLoadProgress(QString const& currentActivity, const int stepsDone, const int stepsToDo)
+void GLWidget::stepPreparationToDraw()
 {
-    tools->onLoadProgress(currentActivity,stepsDone,stepsToDo);
-    // Processing of load progress has likely drawn something on some widgets,
-    // which would take away OpenGL context, so we must take it back.
-    makeCurrent();
+    try
+    {
+        const auto status = renderer->stepPreparationToDraw();
+        if(status.stepsToDo < 0) return; // This means we're not in time, the renderer has switched mode
+
+        tools->onLoadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
+
+        if(status.stepsDone < status.stepsToDo)
+            QTimer::singleShot(0, this, &GLWidget::stepPreparationToDraw);
+        else
+            QTimer::singleShot(0, this, qOverload<>(&GLWidget::update));
+    }
+    catch(ShowMySky::Error const& ex)
+    {
+        QMessageBox::critical(this, ex.errorType(), ex.what());
+    }
 }
 
 void GLWidget::paintGL()
 {
     if(!renderer) return;
     if(!isVisible()) return;
-    if(!renderer->readyToRender()) return;
+
+    const int preparationSteps = renderer->initPreparationToDraw();
+    if(preparationSteps > 0)
+        stepPreparationToDraw();
+
+    if(!renderer->isReadyToRender()) return;
 
     const auto t0=std::chrono::steady_clock::now();
     renderer->draw(1, true);
@@ -626,8 +663,18 @@ void GLWidget::reloadShaders()
 {
     if(!renderer) return;
     makeCurrent();
-    renderer->reloadShaders();
-    update();
+    renderer->initShaderReloading();
+    stepShaderReloading();
+}
+
+void GLWidget::stepShaderReloading()
+{
+    const auto status = renderer->stepShaderReloading();
+    tools->onLoadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
+    if(renderer->isReadyToRender())
+        update();
+    else if(status.stepsDone < status.stepsToDo)
+        QTimer::singleShot(0, this, &GLWidget::stepShaderReloading);
 }
 
 bool GLWidget::eventFilter(QObject* object, QEvent* event)

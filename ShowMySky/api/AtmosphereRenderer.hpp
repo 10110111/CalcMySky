@@ -47,11 +47,23 @@ public:
         float azimuth;
         float elevation;
     };
+
+    struct LoadingStatus
+    {
+        int stepsDone;
+        int stepsToDo;
+    };
+
 public:
     virtual void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram&)> const& drawSurface) = 0;
-    virtual void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                          std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations={}) = 0;
-    virtual bool readyToRender() const = 0;
+    virtual int initDataLoading(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
+                                std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations={}) = 0;
+    virtual LoadingStatus stepDataLoading() = 0;
+    virtual int initPreparationToDraw() = 0; // Can be called even when preparation is not finished, to get number of steps to do
+    virtual LoadingStatus stepPreparationToDraw() = 0;
+    virtual QString currentActivity() const = 0;
+    virtual bool isReadyToRender() const = 0;
+    virtual bool isLoading() const = 0;
     virtual bool canGrabRadiance() const = 0;
     virtual bool canSetSolarSpectrum() const = 0;
     virtual bool canRenderPrecomputedEclipsedDoubleScattering() const = 0;
@@ -66,15 +78,12 @@ public:
     virtual void setSolarSpectrum(std::vector<float> const& spectralIrradianceAtTOA) = 0;
     virtual void resetSolarSpectrum() = 0;
     virtual Direction getViewDirection(QPoint const& pixelPos) = 0;
-    virtual QObject* asQObject() = 0;
     virtual ~AtmosphereRenderer() = default;
 
     // Debug methods
-    virtual void reloadShaders() = 0;
+    virtual int initShaderReloading() = 0;
+    virtual LoadingStatus stepShaderReloading() = 0;
     virtual void setScattererEnabled(QString const& name, bool enable) = 0;
-
-    // Signals
-    virtual void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo) = 0;
 };
 
 }
@@ -86,7 +95,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
                                         QString const* pathToData,
                                         ShowMySky::Settings* tools,
                                         std::function<void(QOpenGLShaderProgram&)> const* drawSurface);
-#define ShowMySky_ABI_version 12
+#define ShowMySky_ABI_version 13
 }
 
 #endif

@@ -14,10 +14,8 @@
 #include "../common/AtmosphereParameters.hpp"
 #include "api/AtmosphereRenderer.hpp"
 
-class AtmosphereRenderer : public QObject, public ShowMySky::AtmosphereRenderer
+class AtmosphereRenderer : public ShowMySky::AtmosphereRenderer
 {
-    Q_OBJECT
-
     using ShaderProgPtr=std::unique_ptr<QOpenGLShaderProgram>;
     using TexturePtr=std::unique_ptr<QOpenGLTexture>;
     using ScattererName=QString;
@@ -32,9 +30,14 @@ public:
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
     void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram&)> const& drawSurface) override;
-    void loadData(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                  std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations={}) override;
-    bool readyToRender() const override { return readyToRender_; }
+    int initDataLoading(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
+                        std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations) override;
+    LoadingStatus stepDataLoading();
+    int initPreparationToDraw() override;
+    LoadingStatus stepPreparationToDraw() override;
+    QString currentActivity() const override { return currentActivity_; }
+    bool isLoading() const override { return totalLoadingStepsToDo_ > 0; }
+    bool isReadyToRender() const override { return state_ == State::ReadyToRender; }
     bool canGrabRadiance() const override;
     bool canSetSolarSpectrum() const override;
     bool canRenderPrecomputedEclipsedDoubleScattering() const override;
@@ -48,21 +51,18 @@ public:
     void setSolarSpectrum(std::vector<float> const& solarIrradianceAtTOA) override;
     void resetSolarSpectrum() override;
     Direction getViewDirection(QPoint const& pixelPos) override;
-    QObject* asQObject() override { return this; }
 
     void setScattererEnabled(QString const& name, bool enable) override;
-    void reloadShaders() override;
+    int initShaderReloading() override;
+    LoadingStatus stepShaderReloading() override;
     AtmosphereParameters const& atmosphereParameters() const { return params_; }
-
-signals:
-    void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo) override;
 
 private: // variables
     ShowMySky::Settings* tools_;
     std::function<void(QOpenGLShaderProgram&)> drawSurfaceCallback;
     AtmosphereParameters params_;
     QString pathToData_;
-    int totalLoadingStepsToDo_=-1, loadingStepsDone_=0;
+    int totalLoadingStepsToDo_=-1, loadingStepsDone_=0, currentLoadingIterationStepCounter_=0;
     QString currentActivity_;
 
     QByteArray viewDirVertShaderSrc_, viewDirFragShaderSrc_;
@@ -103,6 +103,8 @@ private: // variables
     std::vector<ShaderProgPtr> eclipsedDoubleScatteringPrecomputationPrograms_;
     // Indexed as eclipsedSingleScatteringPrecomputationPrograms_[scattererName][wavelengthSetIndex]
     std::unique_ptr<ScatteringProgramsMap> eclipsedSingleScatteringPrecomputationPrograms_;
+    std::unique_ptr<QOpenGLShader> precomputationProgramsVertShader_;
+    std::unique_ptr<QOpenGLShader> viewDirVertShader_, viewDirFragShader_;
     ShaderProgPtr viewDirectionGetterProgram_;
     std::map<ScattererName,bool> scatterersEnabledStates_;
 
@@ -111,7 +113,14 @@ private: // variables
     int numAltIntervalsIn4DTexture_;
     int numAltIntervalsInEclipsed4DTexture_;
 
-    bool readyToRender_=false;
+    enum class State
+    {
+        NotReady,           //!< Just constructed or failed to load data
+        LoadingData,        //!< After initDataLoading() and until loading completes
+        ReloadingShaders,   //!< After initShaderReloading() and until shaders reloading completes
+        ReloadingTextures,  //!< After initPreparationToDraw() and until textures reloading completes
+        ReadyToRender,
+    } state_ = State::NotReady;
 
 private: // methods
     DEFINE_EXPLICIT_BOOL(CountStepsOnly);
@@ -121,8 +130,7 @@ private: // methods
     void loadShaders(CountStepsOnly countStepsOnly);
     void setupBuffers();
     void clearResources();
-    void tick(int loadingStepsDone);
-    void reportLoadingFinished();
+    void finalizeLoading();
     void drawSurface(QOpenGLShaderProgram& prog);
 
     double altitudeUnitRangeTexCoord() const;

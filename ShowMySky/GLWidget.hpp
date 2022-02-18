@@ -66,6 +66,9 @@ protected:
 private:
     void setupBuffers();
     void reloadShaders();
+    void stepDataLoading();
+    void stepShaderReloading();
+    void stepPreparationToDraw();
     QVector3D rgbMaxValue() const;
     void makeGlareRenderTarget();
     void makeDitherPatternTexture();
@@ -75,9 +78,6 @@ private:
     void resetSolarSpectrum();
     void setBlackBodySolarSpectrum(double temperature);
     void saveScreenshot();
-
-private slots:
-    void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
 signals:
     void frameFinished(long long timeInUS);
