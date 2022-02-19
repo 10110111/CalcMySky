@@ -169,13 +169,15 @@ QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& l
     return function;
 }
 
-std::vector<glm::vec4> getSpectrum(std::vector<glm::vec4> const& allWavelengths, QString const& line, const GLfloat min, const GLfloat max,
-                                 QString const& filename, const int lineNumber)
+void getSpectrum(std::vector<glm::vec4> const& allWavelengths, QString const& line, const GLfloat min, const GLfloat max,
+                 QString const& filename, const int lineNumber, std::vector<glm::vec4>& output)
 {
+    if(allWavelengths.empty())
+        throw ParsingError{filename,lineNumber,"error: tried to read a spectrum file without having read list of wavelengths"};
     if(line.startsWith("file "))
     {
-        if(allWavelengths.empty())
-            throw ParsingError{filename,lineNumber,"error: tried to read a spectrum file without having read list of wavelengths"};
+        if(!output.empty())
+            throw ParsingError{filename,lineNumber,"error: multiple \"file\" entries for the same spectrum"};
         auto path=line.mid(5);
         const QFileInfo fi(path);
         if(!fi.isAbsolute())
@@ -188,11 +190,43 @@ std::vector<glm::vec4> getSpectrum(std::vector<glm::vec4> const& allWavelengths,
                                                       allWavelengths.back()[AtmosphereParameters::pointsPerWavelengthItem-1],
                                                       allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem);
         const auto& values=spectrum.values;
-        std::vector<glm::vec4> output;
         for(unsigned i=0; i<values.size(); i+=4)
             output.emplace_back(values[i+0], values[i+1], values[i+2], values[i+3]);
-        return output;
+        return;
     }
+    constexpr char weightedFileMarker[] = "weighted file ";
+    if(line.startsWith(weightedFileMarker))
+    {
+        const auto descr=line.mid(sizeof weightedFileMarker - 1);
+        const auto separatorPos = descr.indexOf(" ");
+        if(separatorPos < 0)
+            throw ParsingError{filename,lineNumber,"error: expected spectrum weight before filename"};
+        bool ok=false;
+        const auto weight = descr.left(separatorPos).toFloat(&ok);
+        if(!ok)
+            throw ParsingError{filename,lineNumber,"error: failed to parse weight of the spectrum"};
+        auto path = descr.mid(separatorPos+1);
+        const QFileInfo fi(path);
+        if(!fi.isAbsolute())
+            path=QFileInfo(filename).absolutePath()+"/"+path;
+        QFile file(path);
+        if(!file.open(QFile::ReadOnly))
+            throw ParsingError{filename,lineNumber,QString("failed to open the file \"%1\": %2").arg(path).arg(file.errorString())};
+        const auto spectrum=Spectrum::parseFromCSV(file.readAll(),path,1)
+                                            .resample(allWavelengths.front()[0],
+                                                      allWavelengths.back()[AtmosphereParameters::pointsPerWavelengthItem-1],
+                                                      allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem);
+        const auto& values=spectrum.values;
+        const unsigned numVecs = values.size()/4;
+        output.resize(numVecs);
+        for(unsigned i=0; i<numVecs; ++i)
+            output[i] += weight*glm::vec4(values[4*i+0], values[4*i+1], values[4*i+2], values[4*i+3]);
+        return;
+    }
+
+    if(!output.empty())
+        throw ParsingError{filename,lineNumber,"error: multiple entries for the same spectrum"};
+
     const auto items=line.split(',');
     if(size_t(items.size()) != allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem)
     {
@@ -216,10 +250,8 @@ std::vector<glm::vec4> getSpectrum(std::vector<glm::vec4> const& allWavelengths,
                                                         .arg(i+1).arg(value).arg(max)};
         values.emplace_back(value);
     }
-    std::vector<glm::vec4> spectrum;
     for(unsigned i=0; i<values.size(); i+=4)
-        spectrum.emplace_back(values[i+0], values[i+1], values[i+2], values[i+3]);
-    return spectrum;
+        output.emplace_back(values[i+0], values[i+1], values[i+2], values[i+3]);
 }
 
 std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat minWL_nm, const GLfloat maxWL_nm,
@@ -369,7 +401,7 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, c
         else if(key=="cross section")
         {
             if(!skipSpectrum)
-                description.absorptionCrossSection=getSpectrum(atmo.allWavelengths,value,0,10,filename,lineNumber);
+                getSpectrum(atmo.allWavelengths,value,0,10,filename,lineNumber, description.absorptionCrossSection);
         }
     }
     if(!description.valid(skipSpectrum))
@@ -497,12 +529,12 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
         else if(key==SOLAR_IRRADIANCE_AT_TOA_KEY)
         {
             if(solarIrradianceAtTOA.empty())
-                solarIrradianceAtTOA=getSpectrum(allWavelengths,value,0,1e3,atmoDescrFileName,lineNumber);
+                getSpectrum(allWavelengths,value,0,1e3,atmoDescrFileName,lineNumber, solarIrradianceAtTOA);
         }
         else if(key=="light pollution relative radiance")
         {
             if(!skipSpectra)
-                lightPollutionRelativeRadiance=getSpectrum(allWavelengths,value,0,1e3,atmoDescrFileName,lineNumber);
+                getSpectrum(allWavelengths,value,0,1e3,atmoDescrFileName,lineNumber, lightPollutionRelativeRadiance);
         }
         else if(key.contains(scattererDescriptionKey))
         {
@@ -521,7 +553,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
         else if(key=="ground albedo")
         {
             if(!skipSpectra)
-                groundAlbedo=getSpectrum(allWavelengths, value, 0, 1, atmoDescrFileName, lineNumber);
+                getSpectrum(allWavelengths, value, 0, 1, atmoDescrFileName, lineNumber, groundAlbedo);
         }
         else
             qWarning() << "Unknown key:" << key;
