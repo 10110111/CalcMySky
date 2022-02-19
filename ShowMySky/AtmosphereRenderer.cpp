@@ -317,7 +317,8 @@ void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
 
     while(gl.glGetError()!=GL_NO_ERROR);
 
-    gl.glActiveTexture(GL_TEXTURE0);
+    if(!countStepsOnly)
+        gl.glActiveTexture(GL_TEXTURE0);
 
     for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
     {
