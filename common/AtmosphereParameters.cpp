@@ -170,7 +170,7 @@ QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& l
 }
 
 std::vector<glm::vec4> getSpectrum(std::vector<glm::vec4> const& allWavelengths, QString const& line, const GLfloat min, const GLfloat max,
-                                 QString const& filename, const int lineNumber, const bool checkSize=true)
+                                 QString const& filename, const int lineNumber)
 {
     if(line.startsWith("file "))
     {
@@ -194,7 +194,7 @@ std::vector<glm::vec4> getSpectrum(std::vector<glm::vec4> const& allWavelengths,
         return output;
     }
     const auto items=line.split(',');
-    if(checkSize && size_t(items.size()) != allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem)
+    if(size_t(items.size()) != allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem)
     {
         throw ParsingError{filename,lineNumber,QString("spectrum has %1 entries, but there are %2 wavelengths")
             .arg(items.size()).arg(allWavelengths.size()*AtmosphereParameters::pointsPerWavelengthItem)};
