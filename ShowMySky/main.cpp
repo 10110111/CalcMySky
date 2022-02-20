@@ -2,6 +2,7 @@
 
 #include <QFile>
 #include <QScreen>
+#include <QFileDialog>
 #include <QMessageBox>
 #include <QMainWindow>
 #include <QApplication>
@@ -39,8 +40,6 @@ void handleCmdLine()
     const auto posArgs=parser.positionalArguments();
     if(posArgs.size()>1)
         throw BadCommandLine{QObject::tr("Too many arguments")};
-    if(posArgs.isEmpty())
-        throw BadCommandLine{parser.helpText()};
 
     if(parser.isSet(winSizeOpt))
     {
@@ -65,7 +64,16 @@ void handleCmdLine()
     if(parser.isSet(framelessOpt))
         frameless=true;
 
-    pathToData=posArgs[0];
+    if(posArgs.isEmpty())
+    {
+        const auto path = QFileDialog::getExistingDirectory(nullptr, QObject::tr("Open atmosphere model"));
+        if(path.isEmpty()) std::exit(0);
+        pathToData = path;
+    }
+    else
+    {
+        pathToData = posArgs[0];
+    }
 }
 
 int main(int argc, char** argv)
