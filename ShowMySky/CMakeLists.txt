@@ -19,7 +19,9 @@ if(WIN32)
 else()
     set(showmyskyTarget showmysky)
 endif()
+qt5_add_resources(RES_SOURCES resources.qrc)
 add_executable(${showmyskyTarget}
+               ${RES_SOURCES}
                 main.cpp
                 util.cpp
                 GLWidget.cpp
