@@ -1,6 +1,7 @@
 #ifndef INCLUDE_ONCE_CB7252F0_A962_4452_87E3_0CDE43F88DF9
 #define INCLUDE_ONCE_CB7252F0_A962_4452_87E3_0CDE43F88DF9
 
+#include <QLabel>
 #include <QMainWindow>
 #include <QProgressBar>
 
@@ -9,6 +10,7 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QDockWidget* tools, QWidget* parent=nullptr);
     void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
+    void showFrameRate(long long frameTimeInUS);
 protected:
     bool eventFilter(QObject* object, QEvent* event) override;
 private:
@@ -16,6 +18,7 @@ private:
 private:
     QDockWidget* tools_;
     QProgressBar* loadProgressBar_=new QProgressBar;
+    QLabel* frameRate_=new QLabel;
 };
 
 #endif

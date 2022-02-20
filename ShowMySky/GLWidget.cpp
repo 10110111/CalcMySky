@@ -21,7 +21,6 @@ GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* paren
 {
     installEventFilter(this);
     setFocusPolicy(Qt::StrongFocus);
-    connect(this, &GLWidget::frameFinished, tools, &ToolsWidget::showFrameRate);
     setUpdateBehavior(QOpenGLWidget::PartialUpdate);
 }
 

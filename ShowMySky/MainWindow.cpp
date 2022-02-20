@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include <cmath>
 #include <QKeyEvent>
 #include <QStatusBar>
 #include <QDockWidget>
@@ -10,10 +11,13 @@ MainWindow::MainWindow(QDockWidget* tools, QWidget* parent)
     installEventFilter(this);
     addDockWidget(Qt::RightDockWidgetArea, tools);
 
-    loadProgressBar_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Ignored);
     const auto sb = statusBar();
+
+    loadProgressBar_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Ignored);
     sb->showMessage(tr("Loading..."));
     sb->addPermanentWidget(loadProgressBar_);
+
+    sb->addPermanentWidget(frameRate_);
 }
 
 void MainWindow::keyPressEvent(QKeyEvent*const event)
@@ -43,5 +47,20 @@ void MainWindow::onLoadProgress(QString const& currentActivity, const int stepsD
     loadProgressBar_->setMaximum(stepsToDo);
     loadProgressBar_->setValue(stepsDone);
     loadProgressBar_->setVisible(stepsToDo!=0);
+    frameRate_->setVisible(stepsToDo==0);
 }
 
+void MainWindow::showFrameRate(const long long frameTimeInUS)
+{
+    if(frameTimeInUS<=1e6)
+    {
+        const auto fps = 1e6/frameTimeInUS;
+        if(1e3<fps && fps<1e5) // avoid exponential notation on very fast machines
+            frameRate_->setText(tr("%1 FPS").arg(std::lround(fps)));
+        else
+            frameRate_->setText(tr("%1 FPS").arg(fps, 0, 'g', 3));
+    }
+    else
+        frameRate_->setText(tr("%1 FPS (%2 s/frame)").arg(1e6/frameTimeInUS, 0, 'g', 3)
+                                                    .arg(frameTimeInUS/1e6, 0, 'g', 3));
+}

@@ -49,7 +49,6 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QPushButton* showRadiancePlot_=nullptr;
     std::unique_ptr<QWidget> radiancePlotWindow_;
     RadiancePlot* radiancePlot_=nullptr;
-    QLabel*const frameRate=new QLabel("N/A");
     QVector<QCheckBox*> scatterers;
 public:
     ToolsWidget(QWidget* parent=nullptr);
@@ -87,7 +86,6 @@ public:
     void setCameraYaw(double yaw);
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);
-    void showFrameRate(long long frameTimeInUS);
     void updateParameters(AtmosphereParameters const& params);
 
 private:

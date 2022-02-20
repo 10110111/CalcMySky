@@ -105,6 +105,7 @@ int main(int argc, char** argv)
         mainWin->setCentralWidget(glWidget);
         mainWin->resize(windowSize);
         QObject::connect(glWidget, &GLWidget::loadProgress, mainWin, &MainWindow::onLoadProgress);
+        QObject::connect(glWidget, &GLWidget::frameFinished, mainWin, &MainWindow::showFrameRate);
         mainWin->show();
         if(detachedTools)
             tools->setFloating(true);
