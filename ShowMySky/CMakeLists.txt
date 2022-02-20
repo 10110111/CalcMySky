@@ -27,6 +27,7 @@ add_executable(${showmyskyTarget}
                 ToolsWidget.cpp
                 Manipulator.cpp
                 RadiancePlot.cpp
+                DockScrollArea.cpp
                 ../common/Spectrum.cpp
               )
 target_link_libraries(${showmyskyTarget} Qt5::Core Qt5::Widgets Qt5::OpenGL)

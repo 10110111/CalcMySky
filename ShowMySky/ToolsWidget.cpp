@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <cmath>
 #include "RadiancePlot.hpp"
+#include "DockScrollArea.hpp"
 
 namespace
 {
@@ -61,10 +62,14 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     : QDockWidget(parent)
 {
     setWindowTitle(tr("Tools"));
-    const auto mainWidget=new QWidget(this);
+    const auto mainWidget=new QWidget;
+    const auto scrollArea=new DockScrollArea;
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameStyle(QFrame::Plain);
+    scrollArea->setWidget(mainWidget);
     const auto layout=new QVBoxLayout;
     mainWidget->setLayout(layout);
-    setWidget(mainWidget);
+    setWidget(scrollArea);
 
     altitude_     = addManipulator(layout, this, tr("&Altitude"), 0, initialMaxAltitude, 50, 2, " m", true);
     exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
