@@ -49,10 +49,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QPushButton* showRadiancePlot_=nullptr;
     std::unique_ptr<QWidget> radiancePlotWindow_;
     RadiancePlot* radiancePlot_=nullptr;
-    QWidget*const loadProgressWidget_=new QWidget;
     QLabel*const frameRate=new QLabel("N/A");
-    QLabel*const loadProgressLabel_=new QLabel("Loading...");
-    QProgressBar*const loadProgressBar_=new QProgressBar;
     QVector<QCheckBox*> scatterers;
 public:
     ToolsWidget(QWidget* parent=nullptr);
@@ -92,7 +89,6 @@ public:
     void setSunZenithAngle(double elevation);
     void showFrameRate(long long frameTimeInUS);
     void updateParameters(AtmosphereParameters const& params);
-    void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 
 private:
     void showRadiancePlot();

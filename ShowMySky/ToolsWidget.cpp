@@ -186,15 +186,6 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         grid->addWidget(new QLabel(tr("Frame rate: ")), 2, 0);
         grid->addWidget(frameRate, 2, 1);
     }
-    {
-        const auto loadProgressLayout=new QVBoxLayout;
-        loadProgressWidget_->setLayout(loadProgressLayout);
-        layout->addWidget(loadProgressWidget_);
-        loadProgressLayout->addWidget(loadProgressLabel_);
-        loadProgressLayout->addWidget(loadProgressBar_);
-        loadProgressLabel_->setWordWrap(true);
-        loadProgressWidget_->hide();
-    }
 
     layout->addStretch();
 }
@@ -343,15 +334,6 @@ void ToolsWidget::updateParameters(AtmosphereParameters const& params)
     }
 
     sunAngularRadius_->setValue(params.sunAngularRadius / degree);
-}
-
-void ToolsWidget::onLoadProgress(QString const& currentActivity, const int stepsDone, const int stepsToDo)
-{
-    loadProgressLabel_->setText(currentActivity);
-    loadProgressBar_->setMaximum(stepsToDo);
-    loadProgressBar_->setValue(stepsDone);
-    loadProgressWidget_->setVisible(stepsToDo!=0);
-    loadProgressWidget_->repaint();
 }
 
 void ToolsWidget::onSolarSpectrumChanged()

@@ -104,6 +104,7 @@ int main(int argc, char** argv)
             mainWin->setWindowFlag(Qt::FramelessWindowHint);
         mainWin->setCentralWidget(glWidget);
         mainWin->resize(windowSize);
+        QObject::connect(glWidget, &GLWidget::loadProgress, mainWin, &MainWindow::onLoadProgress);
         mainWin->show();
         if(detachedTools)
             tools->setFloating(true);

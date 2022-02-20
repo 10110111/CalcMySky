@@ -81,6 +81,7 @@ private:
 
 signals:
     void frameFinished(long long timeInUS);
+    void loadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
 };
 
 #endif

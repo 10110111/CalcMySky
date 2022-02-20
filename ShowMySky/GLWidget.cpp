@@ -375,7 +375,7 @@ void GLWidget::stepDataLoading()
     {
         makeCurrent();
         const auto status = renderer->stepDataLoading();
-        tools->onLoadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
+        emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
         if(renderer->isReadyToRender())
         {
             tools->setCanGrabRadiance(renderer->canGrabRadiance());
@@ -400,7 +400,7 @@ void GLWidget::stepPreparationToDraw()
         const auto status = renderer->stepPreparationToDraw();
         if(status.stepsToDo < 0) return; // This means we're not in time, the renderer has switched mode
 
-        tools->onLoadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
+        emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
 
         if(status.stepsDone < status.stepsToDo)
             QTimer::singleShot(0, this, &GLWidget::stepPreparationToDraw);
@@ -670,7 +670,7 @@ void GLWidget::reloadShaders()
 void GLWidget::stepShaderReloading()
 {
     const auto status = renderer->stepShaderReloading();
-    tools->onLoadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
+    emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
     if(renderer->isReadyToRender())
         update();
     else if(status.stepsDone < status.stepsToDo)

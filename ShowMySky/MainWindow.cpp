@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include <QKeyEvent>
+#include <QStatusBar>
 #include <QDockWidget>
 
 MainWindow::MainWindow(QDockWidget* tools, QWidget* parent)
@@ -8,6 +9,11 @@ MainWindow::MainWindow(QDockWidget* tools, QWidget* parent)
 {
     installEventFilter(this);
     addDockWidget(Qt::RightDockWidgetArea, tools);
+
+    loadProgressBar_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Ignored);
+    const auto sb = statusBar();
+    sb->showMessage(tr("Loading..."));
+    sb->addPermanentWidget(loadProgressBar_);
 }
 
 void MainWindow::keyPressEvent(QKeyEvent*const event)
@@ -30,3 +36,12 @@ bool MainWindow::eventFilter(QObject* object, QEvent* event)
     }
     return QMainWindow::eventFilter(object, event);
 }
+
+void MainWindow::onLoadProgress(QString const& currentActivity, const int stepsDone, const int stepsToDo)
+{
+    statusBar()->showMessage(currentActivity);
+    loadProgressBar_->setMaximum(stepsToDo);
+    loadProgressBar_->setValue(stepsDone);
+    loadProgressBar_->setVisible(stepsToDo!=0);
+}
+
