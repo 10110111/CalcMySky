@@ -66,9 +66,21 @@ void handleCmdLine()
 
     if(posArgs.isEmpty())
     {
-        const auto path = QFileDialog::getExistingDirectory(nullptr, QObject::tr("Open atmosphere model"));
-        if(path.isEmpty()) std::exit(0);
-        pathToData = path;
+        while(true)
+        {
+            const auto path = QFileDialog::getExistingDirectory(nullptr, QObject::tr("Open atmosphere model"));
+            if(path.isEmpty()) std::exit(0);
+            static constexpr char descriptionFileName[] = "params.atmo";
+            if(!QFileInfo(path+"/"+descriptionFileName).exists())
+            {
+                QMessageBox::critical(nullptr, QObject::tr("Invalid input path"),
+                                      QObject::tr("The directory doesn't contain atmosphere description file \"%1\".")
+                                                .arg(descriptionFileName));
+                continue;
+            }
+            pathToData = path;
+            break;
+        }
     }
     else
     {
