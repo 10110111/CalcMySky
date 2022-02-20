@@ -366,6 +366,7 @@ vec3 calcViewDir()
     catch(ShowMySky::Error const& ex)
     {
         QMessageBox::critical(this, ex.errorType(), ex.what());
+        QTimer::singleShot(0, [this]{ emit loadProgress(tr("Atmosphere renderer failed"), 0, 0); });
     }
 }
 
@@ -390,6 +391,7 @@ void GLWidget::stepDataLoading()
     catch(ShowMySky::Error const& ex)
     {
         QMessageBox::critical(this, ex.errorType(), ex.what());
+        QTimer::singleShot(0, [this]{ emit loadProgress(tr("Atmosphere renderer failed"), 0, 0); });
     }
 }
 
@@ -410,6 +412,7 @@ void GLWidget::stepPreparationToDraw()
     catch(ShowMySky::Error const& ex)
     {
         QMessageBox::critical(this, ex.errorType(), ex.what());
+        QTimer::singleShot(0, [this]{ emit loadProgress(tr("Atmosphere renderer failed"), 0, 0); });
     }
 }
 
