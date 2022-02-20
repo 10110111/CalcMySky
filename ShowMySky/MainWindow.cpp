@@ -1,10 +1,12 @@
 #include "MainWindow.hpp"
 #include <cmath>
+#include <QDir>
 #include <QKeyEvent>
 #include <QStatusBar>
 #include <QDockWidget>
+#include <QApplication>
 
-MainWindow::MainWindow(QDockWidget* tools, QWidget* parent)
+MainWindow::MainWindow(QString const& pathToData, QDockWidget* tools, QWidget* parent)
     : QMainWindow(parent)
     , tools_(tools)
 {
@@ -18,6 +20,9 @@ MainWindow::MainWindow(QDockWidget* tools, QWidget* parent)
     sb->addPermanentWidget(loadProgressBar_);
 
     sb->addPermanentWidget(frameRate_);
+
+    setWindowTitle(tr("%1 - %2","window title: File Name - App Name")
+                   .arg(QDir(pathToData).dirName()).arg(qApp->applicationDisplayName()));
 }
 
 void MainWindow::keyPressEvent(QKeyEvent*const event)

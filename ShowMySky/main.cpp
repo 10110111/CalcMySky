@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 
         const auto tools=new ToolsWidget;
         const auto glWidget=new GLWidget(pathToData, tools);
-        const auto mainWin=new MainWindow(tools);
+        const auto mainWin=new MainWindow(pathToData, tools);
 
         mainWin->setAttribute(Qt::WA_DeleteOnClose);
         if(frameless)

@@ -8,7 +8,7 @@
 class MainWindow : public QMainWindow
 {
 public:
-    MainWindow(QDockWidget* tools, QWidget* parent=nullptr);
+    MainWindow(QString const& pathToData, QDockWidget* tools, QWidget* parent=nullptr);
     void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
     void showFrameRate(long long frameTimeInUS);
 protected:
