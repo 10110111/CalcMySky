@@ -21,7 +21,7 @@ enum class SolarSpectrumMode
 const std::map<SolarSpectrumMode, QString> solarSpectrumModes={
     {SolarSpectrumMode::Precomputed, QObject::tr("Precomputed (default)")},
     {SolarSpectrumMode::BlackBody,   QObject::tr("Black body")},
-    {SolarSpectrumMode::Flat,        QObject::tr(u8"Flat 1\u202fW/m²/nm")},
+    {SolarSpectrumMode::Flat,        QObject::tr(u8"Flat 1\u202fW/m\u00b2/nm")},
 };
 
 Manipulator* addManipulator(QVBoxLayout*const layout, ToolsWidget*const tools,
@@ -122,7 +122,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
                 { frame->setEnabled(state==Qt::Checked); });
     }
     multipleScatteringEnabled_  = addCheckBox(layout, this, text_drawMultipleScattering, true);
-    lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 20, 2, QString::fromUtf8(u8"\u202fcd/m²"));
+    lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 20, 2, QString::fromUtf8(u8"\u202fcd/m\u00b2"));
 
     {
         const auto hbox=new QHBoxLayout;
