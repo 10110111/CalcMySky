@@ -1,3 +1,7 @@
+if(WIN32)
+    set(extraSrc win32res.rc)
+endif()
+
 add_definitions(-D_USE_MATH_DEFINES)
 add_library(ShowMySky SHARED
              api/AtmosphereRenderer.cpp
@@ -22,6 +26,7 @@ endif()
 qt5_add_resources(RES_SOURCES resources.qrc)
 add_executable(${showmyskyTarget}
                ${RES_SOURCES}
+               ${extraSrc}
                 main.cpp
                 util.cpp
                 GLWidget.cpp
