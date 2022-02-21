@@ -398,6 +398,7 @@ void GLWidget::stepPreparationToDraw()
 {
     try
     {
+        makeCurrent();
         const auto status = renderer->stepPreparationToDraw();
         if(status.stepsToDo < 0) return; // This means we're not in time, the renderer has switched mode
 
@@ -671,6 +672,7 @@ void GLWidget::reloadShaders()
 
 void GLWidget::stepShaderReloading()
 {
+    makeCurrent();
     const auto status = renderer->stepShaderReloading();
     emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
     if(renderer->isReadyToRender())
