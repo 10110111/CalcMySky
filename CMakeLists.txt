@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.10.0)
 if(POLICY CMP0110)
     cmake_policy(SET CMP0110 OLD)
 endif()
-project(CalcMySky VERSION 0.0.1 LANGUAGES CXX)
+
+set(staticProjectVersion 0.0.1)
+project(CalcMySky VERSION ${staticProjectVersion} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,6 +50,15 @@ else()
 endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")
+
+# The first command is a dummy, it doesn't actually create its output: it's
+# only needed to force re-running of version.sh for the case when we've changed
+# the version but didn't touch other dependencies.
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/check version update" COMMAND true)
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/version.cpp"
+                   DEPENDS "${CMAKE_BINARY_DIR}/check version update"
+                   COMMAND "${CMAKE_SOURCE_DIR}/version.sh" "${staticProjectVersion}" "${CMAKE_SOURCE_DIR}/version.cpp.in" "${CMAKE_BINARY_DIR}/version.cpp")
+add_library(version STATIC "${CMAKE_BINARY_DIR}/version.cpp")
 
 configure_file(config.h.in config.h)
 add_subdirectory(CalcMySky)

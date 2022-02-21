@@ -94,7 +94,7 @@ int main(int argc, char** argv)
 
     QApplication app(argc, argv);
     app.setApplicationName("ShowMySky");
-    app.setApplicationVersion(APP_VERSION);
+    app.setApplicationVersion(PROJECT_VERSION);
     app.setWindowIcon(QIcon(":icon.png"));
 
     QSurfaceFormat format;

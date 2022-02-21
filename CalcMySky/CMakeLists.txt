@@ -8,8 +8,8 @@ add_executable(calcmysky
                 ../common/AtmosphereParameters.cpp
                 ../common/EclipsedDoubleScatteringPrecomputer.cpp
                 ../common/util.cpp
-                ../config.h)
+                "${CMAKE_BINARY_DIR}/config.h")
 target_compile_definitions(calcmysky PRIVATE -DSHOWMYSKY_COMPILING_CALCMYSKY)
-target_link_libraries(calcmysky Qt5::Core Qt5::OpenGL)
+target_link_libraries(calcmysky PUBLIC Qt5::Core Qt5::OpenGL PRIVATE version)
 
 install(TARGETS calcmysky DESTINATION "${installBinDir}")

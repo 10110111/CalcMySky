@@ -7,9 +7,9 @@ add_library(ShowMySky SHARED
              ../common/AtmosphereParameters.cpp
              ../common/Spectrum.cpp
              ../common/util.cpp
-             ../config.h)
+             "${CMAKE_BINARY_DIR}/config.h")
 target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
-target_link_libraries(ShowMySky Qt5::Core Qt5::OpenGL)
+target_link_libraries(ShowMySky PUBLIC Qt5::Core Qt5::OpenGL PRIVATE version)
 
 if(WIN32)
     # For some reason, showmysky target name conflicts with ShowMySky target,
@@ -32,7 +32,7 @@ add_executable(${showmyskyTarget}
                 DockScrollArea.cpp
                 ../common/Spectrum.cpp
               )
-target_link_libraries(${showmyskyTarget} Qt5::Core Qt5::Widgets Qt5::OpenGL)
+target_link_libraries(${showmyskyTarget} PUBLIC Qt5::Core Qt5::Widgets Qt5::OpenGL PRIVATE version)
 if(WIN32)
     # Addition to the above hack: remove extraneous .exe
     set_target_properties(${showmyskyTarget} PROPERTIES SUFFIX "")

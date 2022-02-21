@@ -1117,7 +1117,7 @@ int main(int argc, char** argv)
     qInstallMessageHandler(qtMessageHandler);
     QApplication app(argc, argv);
     app.setApplicationName("CalcMySky");
-    app.setApplicationVersion(APP_VERSION);
+    app.setApplicationVersion(PROJECT_VERSION);
 
     try
     {
