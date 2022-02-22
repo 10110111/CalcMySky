@@ -356,6 +356,7 @@ void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
         ++loadingStepsDone_; return;
     }
 
+    altCoordToLoad_=altitudeUnitRangeTexCoord();
     reloadScatteringTextures(countStepsOnly);
 
     assert(gl.glGetError()==GL_NO_ERROR);
@@ -372,7 +373,7 @@ double AtmosphereRenderer::altitudeUnitRangeTexCoord() const
 void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStepsOnly)
 {
     const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
-    const auto altCoord = altitudeUnitRangeTexCoord();
+    const auto altCoord = altCoordToLoad_;
 
     if(countStepsOnly)
     {
@@ -1754,6 +1755,7 @@ int AtmosphereRenderer::initPreparationToDraw()
     {
         [[maybe_unused]] OGLTrace t("reloading textures");
 
+        altCoordToLoad_ = altCoord;
         state_ = State::ReloadingTextures;
         currentActivity_=QObject::tr("Reloading textures due to altitude getting out of the currently loaded layers...");
         loadingStepsDone_=0;

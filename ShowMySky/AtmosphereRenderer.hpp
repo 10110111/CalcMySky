@@ -86,6 +86,7 @@ private: // variables
     std::vector<TexturePtr> eclipsedDoubleScatteringPrecomputationTargetTextures_;
     QOpenGLTexture luminanceRenderTargetTexture_;
     QSize viewportSize_;
+    double altCoordToLoad_=0; //!< Used to load textures for a single altitude slice, even if input altitude changes during the load
     float loadedAltitudeURTexCoordRange_[2]={NAN,NAN};
     float loadedEclipsedDoubleScatteringAltitudeURTexCoordRange_[2]={NAN,NAN};
     float staticAltitudeTexCoord_=-1;
