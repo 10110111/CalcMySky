@@ -68,7 +68,7 @@ private:
     void reloadShaders();
     void stepDataLoading();
     void stepShaderReloading();
-    void stepPreparationToDraw();
+    void stepPreparationToDraw(bool emitProgressStatus);
     QVector3D rgbMaxValue() const;
     void makeGlareRenderTarget();
     void makeDitherPatternTexture();

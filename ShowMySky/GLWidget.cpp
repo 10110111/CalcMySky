@@ -394,7 +394,7 @@ void GLWidget::stepDataLoading()
     }
 }
 
-void GLWidget::stepPreparationToDraw()
+void GLWidget::stepPreparationToDraw(const bool emitProgressStatus)
 {
     try
     {
@@ -402,10 +402,11 @@ void GLWidget::stepPreparationToDraw()
         const auto status = renderer->stepPreparationToDraw();
         if(status.stepsToDo < 0) return; // This means we're not in time, the renderer has switched mode
 
-        emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
+        if(emitProgressStatus)
+            emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
 
         if(status.stepsDone < status.stepsToDo)
-            QTimer::singleShot(0, this, &GLWidget::stepPreparationToDraw);
+            QTimer::singleShot(0, this, [this]{stepPreparationToDraw(true);});
         else
             QTimer::singleShot(0, this, qOverload<>(&GLWidget::update));
     }
@@ -423,7 +424,7 @@ void GLWidget::paintGL()
 
     const int preparationSteps = renderer->initPreparationToDraw();
     if(preparationSteps > 0)
-        stepPreparationToDraw();
+        stepPreparationToDraw(false);
 
     if(!renderer->isReadyToRender()) return;
 
