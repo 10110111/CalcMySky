@@ -134,7 +134,7 @@ void main()
         const vec4 groundIrradiance = irradiance(dot(groundNormal, sunDirection), 0);
         // Radiation scattered by the ground
         const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF
+        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
     else if(dotViewSun>cos(sunAngularRadius))
@@ -148,7 +148,6 @@ void main()
     {
         discard;
     }
-    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_ZERO_SCATTERING
@@ -167,7 +166,7 @@ void main()
         const vec4 groundIrradiance = directGroundIrradiance;
         // Radiation scattered by the ground
         const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF
+        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
     else if(dotViewSun>cos(sunAngularRadius) && dotViewMoon<cos(moonAngularRadius(cameraPosition,moonPosition)))
@@ -181,7 +180,6 @@ void main()
     {
         discard;
     }
-    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY
@@ -247,7 +245,6 @@ void main()
     radianceOutput=radiance;
 #elif RENDERING_LIGHT_POLLUTION_RADIANCE
     vec4 radiance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, cosViewZenithAngle, viewRayIntersectsGround);
-    radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_LIGHT_POLLUTION_LUMINANCE
