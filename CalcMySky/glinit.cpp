@@ -75,8 +75,8 @@ void init(QOpenGLContext& context)
 {
     std::cerr << "OpenGL vendor  : " << gl.glGetString(GL_VENDOR) << "\n";
     std::cerr << "OpenGL renderer: " << gl.glGetString(GL_RENDERER) << "\n";
-    if(opts.openglDebug)
-        setupDebugPrintCallback(context);
+    if(opts.openglDebug || opts.openglDebugFull)
+        setupDebugPrintCallback(context, opts.openglDebugFull);
     initBuffers();
     initTexturesAndFramebuffers();
     checkLimits();

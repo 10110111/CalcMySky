@@ -206,15 +206,19 @@ std::string severityToString(const GLenum severity)
     return "Unknown type "+std::to_string(int(severity));
 }
 
+bool needFullDebugOutput=false;
 void APIENTRY debugCallback(const GLenum source, const GLenum type, const GLuint /*id*/, const GLenum severity,
                             const GLsizei /*length*/, const GLchar*const message, const void*const /*userParam*/)
 {
-    if(severity==GL_DEBUG_SEVERITY_NOTIFICATION) return;
-    if(source==GL_DEBUG_SOURCE_SHADER_COMPILER) return;
-    if(severity==GL_DEBUG_SEVERITY_LOW && source==GL_DEBUG_SOURCE_API)
+    if(!needFullDebugOutput)
     {
-        constexpr char unwantedEnding[]="is base level inconsistent. Check texture size.";
-        if(std::strstr(message, unwantedEnding)) return;
+        if(severity==GL_DEBUG_SEVERITY_NOTIFICATION) return;
+        if(source==GL_DEBUG_SOURCE_SHADER_COMPILER) return;
+        if(severity==GL_DEBUG_SEVERITY_LOW && source==GL_DEBUG_SOURCE_API)
+        {
+            constexpr char unwantedEnding[]="is base level inconsistent. Check texture size.";
+            if(std::strstr(message, unwantedEnding)) return;
+        }
     }
 
     std::cerr << "debug callback called: severity " << severityToString(severity)
@@ -224,7 +228,7 @@ void APIENTRY debugCallback(const GLenum source, const GLenum type, const GLuint
 }
 
 
-void setupDebugPrintCallback(QOpenGLContext& context)
+void setupDebugPrintCallback(QOpenGLContext& context, const bool needFullDebugOutput)
 {
     if(!context.hasExtension("GL_KHR_debug"))
     {
@@ -238,6 +242,7 @@ void setupDebugPrintCallback(QOpenGLContext& context)
     static const auto glDebugMessageControl=reinterpret_cast<PFNGLDEBUGMESSAGECONTROLPROC>
             (context.getProcAddress("glDebugMessageControl"));
 
+    ::needFullDebugOutput = needFullDebugOutput;
     glDebugMessageCallback(&debugCallback,NULL);
     glDebugMessageControl(GL_DONT_CARE,GL_DONT_CARE,GL_DONT_CARE,0,NULL,GL_TRUE);
     gl.glEnable(GL_DEBUG_OUTPUT);
