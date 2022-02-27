@@ -71,10 +71,12 @@ void checkLimits()
     }
 }
 
-void init()
+void init(QOpenGLContext& context)
 {
     std::cerr << "OpenGL vendor  : " << gl.glGetString(GL_VENDOR) << "\n";
     std::cerr << "OpenGL renderer: " << gl.glGetString(GL_RENDERER) << "\n";
+    if(opts.openglDebug)
+        setupDebugPrintCallback(context);
     initBuffers();
     initTexturesAndFramebuffers();
     checkLimits();

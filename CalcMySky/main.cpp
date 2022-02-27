@@ -1245,7 +1245,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        init();
+        init(context);
 
         const auto timeBegin=std::chrono::steady_clock::now();
 

@@ -165,6 +165,7 @@ void handleCmdLine()
     const QCommandLineOption helpOpt({"h","help"}, "Display this help and exit");
     // We do it a bit differently from QCommandLineParser, so not using addVersionOption()
     const QCommandLineOption versionOpt({"v","version"}, "Display version and exit");
+    const QCommandLineOption openglDebug("opengl-debug","Install a GL_KHR_debug message callback and print all the messages from OpenGL");
     const QCommandLineOption textureOutputDirOpt("out-dir","Directory for the textures computed","output directory",".");
     const QCommandLineOption saveResultAsRadianceOpt("radiance","Save result as radiance instead of XYZW components");
     const QCommandLineOption dbgNoSaveTexturesOpt("no-save-tex","Don't save textures, only save shaders and other fast-to-compute data; don't run the long 4D "
@@ -179,6 +180,7 @@ void handleCmdLine()
     const QList options{
                         helpOpt,
                         versionOpt,
+                        openglDebug,
                         textureOutputDirOpt,
                         dbgNoSaveTexturesOpt,
                         dbgNoEDSTexturesOpt,
@@ -226,6 +228,8 @@ void handleCmdLine()
         opts.dbgSaveAccumScattering=true;
     if(parser.isSet(dbgSaveLightPollutionIntermediateOpt))
         opts.dbgSaveLightPollutionIntermediateTextures=true;
+    if(parser.isSet(openglDebug))
+        opts.openglDebug=true;
 
     const auto posArgs=parser.positionalArguments();
     if(posArgs.size()>1)
