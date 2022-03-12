@@ -5,55 +5,91 @@
 #include "texture-sampling-functions.h.glsl"
 #include "total-scattering-coefficient.h.glsl"
 
+uniform int lightPollutionRadialIntegrationPoints=50; // TODO: remove default value, set it from C++ code
+
 // This function omits ground luminance: it is to be applied somewhere in the calling code.
-vec4 computeSingleScatteringForLightPollutionIntegrand(const float cosViewZenithAngle, const float altitude,
-                                                       const float dist, const bool viewRayIntersectsGround)
+vec4 computeSingleScatteringForLightPollutionIntegrand(const vec3 emitter, const vec3 scatterer, const vec3 viewDir,
+                                                       const float cameraAltitude, const float cameraScattererDistance,
+                                                       const float cosViewZenithAngle, const bool viewRayIntersectsGround)
 {
-    CONST float r=earthRadius+altitude;
-    // Clamping only guards against rounding errors here, we don't try to handle here the case when the
-    // endpoint of the view ray intentionally appears in outer space.
-    CONST float altAtDist=clampAltitude(sqrt(sqr(dist)+sqr(r)+2*r*dist*cosViewZenithAngle)-earthRadius);
+    CONST float R = earthRadius;
+    CONST float r = length(scatterer-earthCenter);
+    CONST float scattererAltitude = r-R;
+    CONST float horizonZenithAngle=acos(clampCosine(cosZenithAngleOfHorizon(scattererAltitude)));
 
-    CONST float horizonZenithAngle=acos(clamp(cosZenithAngleOfHorizon(altAtDist),-1.,1.));
+    CONST vec3 incDir = normalize(emitter-scatterer);
+    CONST vec3 zenithAtScatterer = normalize(scatterer-earthCenter);
+    CONST float cosIncZenithAngle = dot(zenithAtScatterer, incDir);
+    CONST float distToEmitter=length(emitter-scatterer);
+    CONST float dotViewInc = dot(incDir, viewDir);
 
-    vec4 weightedIncomingRadiance=vec4(0);
-    // We want to integrate over all the 4PI solid angle. But we know a priori that
-    //  1. from true horizon to zenith there are no sources of light, so nothing contributes to single scattering there,
-    //  2. incoming radiance doesn't depend on azimuth.
-    // Thus we've integrated out the azimuth, which gives us the 2PI multiplier before the integral, and we only integrate
-    // over zenith angles from nadir to true horizon.
-    // We are using midpoint rule for quadrature.
-    CONST float kMax=lightPollutionAngularIntegrationPoints;
-    CONST float incZenithAngleStep=(PI-horizonZenithAngle)/kMax;
-    CONST float sinViewZenithAngle=safeSqrt(1-sqr(cosViewZenithAngle));
-    for(float k=0; k<kMax; ++k)
-    {
-        CONST float incZenithAngle=horizonZenithAngle+(k+0.5)*incZenithAngleStep;
-        CONST float distToGround=distanceToGround(cos(incZenithAngle), altAtDist);
-        CONST float dotViewInc = sin(incZenithAngle)*sinViewZenithAngle+cos(incZenithAngle)*cosViewZenithAngle;
-        weightedIncomingRadiance += transmittance(cos(incZenithAngle), altAtDist, distToGround, true)
-                                                                *
-                                         totalScatteringCoefficient(altAtDist, dotViewInc)
-                                                                *
-                                                        sin(incZenithAngle);
-    }
+    CONST vec3 zenithAtEmitter = normalize(emitter-earthCenter);
+    // Directivity pattern of the emitter is taken to be cosinusoidal. This will make a grid of such emitters behave like a lambertian source.
+    // FIXME: I don't know how close to reality this is. But in any case it MUST NOT shine downwards! Otherwise we'll see it from under the horizon.
+    CONST float directivityFactor = max(0., dot(-incDir, zenithAtEmitter));
 
-    CONST vec4 xmittanceToScatterer=transmittance(cosViewZenithAngle, altitude, dist, viewRayIntersectsGround);
-    return 2*PI*xmittanceToScatterer*weightedIncomingRadiance*incZenithAngleStep;
+    CONST vec4 radiance = transmittance(cosIncZenithAngle, scattererAltitude, distToEmitter, true)
+                                                        *
+                                 totalScatteringCoefficient(scattererAltitude, dotViewInc)
+                                                        *
+                                                 directivityFactor
+                                                        /
+                                                 sqr(distToEmitter)
+                                                        ;
+    CONST vec4 xmittanceFromCameraToScatterer=transmittance(cosViewZenithAngle, cameraAltitude, cameraScattererDistance,
+                                                            viewRayIntersectsGround);
+    return xmittanceFromCameraToScatterer*radiance;
 }
 
-// This function is basically the same as computeSingleScattering(), just calls a different implementation of integrand
-vec4 computeSingleScatteringForLightPollution(const float cosViewZenithAngle, const float altitude, const bool viewRayIntersectsGround)
+// altitude, cosViewZenithAngle are here just to prevent recalculation of already known quantities. These parameters are not crucial to have.
+vec4 computeSingleScatteringForLightPollution(const vec3 cameraPos, const vec3 viewDir, const vec3 emitterPos,
+                                              const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
 {
-    CONST float integrInterval=distanceToNearestAtmosphereBoundary(cosViewZenithAngle, altitude, viewRayIntersectsGround);
+    CONST float R=earthRadius;
+    CONST float distIntegrInterval=distanceToNearestAtmosphereBoundary(cosViewZenithAngle, altitude, viewRayIntersectsGround);
 
-    // Using the midpoint rule for quadrature
-    vec4 spectrum=vec4(0);
-    CONST float dl=integrInterval/radialIntegrationPoints;
-    for(int n=0; n<radialIntegrationPoints; ++n)
+    // Using the midpoint rule for quadrature over distance, splitting the interval into two regions
+    // to sample near the source more densely. Dense sampling is done by a coordinate transformation:
+    // $\int f(r)dr = \int f(\exp(t))\exp(t)dt$, where r is the distance from the source.
+
+    CONST float distToClosestPointToSource = dot(emitterPos-cameraPos, viewDir);
+    CONST float squaredSmallestDistToSource = dot(emitterPos-cameraPos,emitterPos-cameraPos) - sqr(distToClosestPointToSource);
+
+    vec4 radiance=vec4(0);
+    // Less than 1 cm is negligible, while it might lead to NaNs due to underflows in the callees below
+    CONST float NEGLIGIBLE_DISTANCE = 1e-5*km;
+    if(distToClosestPointToSource > NEGLIGIBLE_DISTANCE)
     {
-        CONST float dist=(n+0.5)*dl;
-        spectrum += computeSingleScatteringForLightPollutionIntegrand(cosViewZenithAngle, altitude, dist, viewRayIntersectsGround);
+        // First region: from camera to the closest distance to the source
+        CONST float maxDist = min(distIntegrInterval, distToClosestPointToSource); // don't drill through the ground
+        CONST float dt=log(maxDist)/lightPollutionRadialIntegrationPoints;
+        vec4 sum=vec4(0);
+        for(int n=0; n<lightPollutionRadialIntegrationPoints; ++n)
+        {
+            CONST float t=(n+0.5)*dt;
+            CONST float dist = maxDist-exp(t);
+            CONST vec3 scatterer = cameraPos+viewDir*dist;
+            sum += exp(t)*computeSingleScatteringForLightPollutionIntegrand(emitterPos, scatterer, viewDir, altitude,
+                                                                            dist, cosViewZenithAngle, viewRayIntersectsGround);
+        }
+        radiance += sum*dt;
     }
-    return spectrum*dl*lightPollutionRelativeRadiance;
+    CONST float secondRegionStartDist = distToClosestPointToSource>0 ? distToClosestPointToSource : 0;
+    CONST float secondRegionLength = distIntegrInterval-secondRegionStartDist;
+    if(secondRegionLength > NEGLIGIBLE_DISTANCE)
+    {
+        // Second region, from closest distance to the source to the atmosphere boundary far away
+        CONST float dt=log(secondRegionLength)/lightPollutionRadialIntegrationPoints;
+        vec4 sum=vec4(0);
+        for(int n=0; n<lightPollutionRadialIntegrationPoints; ++n)
+        {
+            CONST float t = (n+0.5)*dt;
+            CONST float dist = secondRegionStartDist + exp(t);
+            CONST vec3 scatterer = cameraPos+viewDir*dist;
+            sum += exp(t)*computeSingleScatteringForLightPollutionIntegrand(emitterPos, scatterer, viewDir, altitude,
+                                                                            dist, cosViewZenithAngle, viewRayIntersectsGround);
+        }
+        radiance += sum*dt;
+    }
+    return radiance*lightPollutionRelativeRadiance;
 }

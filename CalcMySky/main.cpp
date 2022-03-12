@@ -1046,58 +1046,58 @@ void computeLightPollutionSingleScattering(const unsigned texIndex)
                 {atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]});
 }
 
-void computeLightPollutionMultipleScattering(const unsigned texIndex)
-{
-    std::cerr << indentOutput() << "Computing light pollution multiple scattering...\n";
-    OutputIndentIncrease incr;
-
-    const auto src=makeScattererDensityFunctionsSrc();
-    virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
-    const auto program=compileShaderProgram("compute-light-pollution-multiple-scattering.frag",
-                                            "shader program to compute higher-order scattering of light pollution");
-
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_LIGHT_POLLUTION]);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_LIGHT_POLLUTION_SCATTERING],0);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1, textures[TEX_LIGHT_POLLUTION_DELTA_SCATTERING],0);
-    checkFramebufferStatus("framebuffer for light pollution");
-    gl.glViewport(0, 0, atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
-
-    gl.glBlendFunc(GL_ONE, GL_ONE);
-    for(unsigned scatteringOrder=2; scatteringOrder<=atmo.scatteringOrdersToCompute; ++scatteringOrder)
-    {
-        std::cerr << indentOutput() << "Computing light pollution scattering order " << scatteringOrder << "... ";
-        {
-            // Copy the delta scattering texture of the previous scattering order into a separate
-            // texture, because the former will be overwritten with the new scattering order
-            gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2, textures[TEX_LIGHT_POLLUTION_SCATTERING_PREV_ORDER],0);
-            gl.glReadBuffer(GL_COLOR_ATTACHMENT1);
-            setDrawBuffers({GL_COLOR_ATTACHMENT2});
-            const auto width=atmo.lightPollutionTextureSize[0], height=atmo.lightPollutionTextureSize[1];
-            gl.glBlitFramebuffer(0,0,width,height, 0,0,width,height, GL_COLOR_BUFFER_BIT,GL_NEAREST);
-            gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2, 0,0);
-        }
-        setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
-        gl.glEnablei(GL_BLEND, 0);
-
-        program->bind();
-        setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
-        setUniformTexture(*program,GL_TEXTURE_2D,TEX_LIGHT_POLLUTION_SCATTERING_PREV_ORDER,1,"lightPollutionScatteringTexture");
-        renderQuad();
-
-        gl.glFinish();
-        std::cerr << "done\n";
-
-        if(!opts.dbgSaveLightPollutionIntermediateTextures)
-            continue;
-
-        saveTexture(GL_TEXTURE_2D,textures[TEX_LIGHT_POLLUTION_DELTA_SCATTERING],"light pollution delta multiple scattering texture",
-                    atmo.textureOutputDir+"/light-pollution-delta-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
-                    {atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]});
-    }
-    gl.glDisablei(GL_BLEND, 0);
-
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
-}
+//void computeLightPollutionMultipleScattering(const unsigned texIndex)
+//{
+//    std::cerr << indentOutput() << "Computing light pollution multiple scattering...\n";
+//    OutputIndentIncrease incr;
+//
+//    const auto src=makeScattererDensityFunctionsSrc();
+//    virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
+//    const auto program=compileShaderProgram("compute-light-pollution-multiple-scattering.frag",
+//                                            "shader program to compute higher-order scattering of light pollution");
+//
+//    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_LIGHT_POLLUTION]);
+//    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_LIGHT_POLLUTION_SCATTERING],0);
+//    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1, textures[TEX_LIGHT_POLLUTION_DELTA_SCATTERING],0);
+//    checkFramebufferStatus("framebuffer for light pollution");
+//    gl.glViewport(0, 0, atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
+//
+//    gl.glBlendFunc(GL_ONE, GL_ONE);
+//    for(unsigned scatteringOrder=2; scatteringOrder<=atmo.scatteringOrdersToCompute; ++scatteringOrder)
+//    {
+//        std::cerr << indentOutput() << "Computing light pollution scattering order " << scatteringOrder << "... ";
+//        {
+//            // Copy the delta scattering texture of the previous scattering order into a separate
+//            // texture, because the former will be overwritten with the new scattering order
+//            gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2, textures[TEX_LIGHT_POLLUTION_SCATTERING_PREV_ORDER],0);
+//            gl.glReadBuffer(GL_COLOR_ATTACHMENT1);
+//            setDrawBuffers({GL_COLOR_ATTACHMENT2});
+//            const auto width=atmo.lightPollutionTextureSize[0], height=atmo.lightPollutionTextureSize[1];
+//            gl.glBlitFramebuffer(0,0,width,height, 0,0,width,height, GL_COLOR_BUFFER_BIT,GL_NEAREST);
+//            gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2, 0,0);
+//        }
+//        setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
+//        gl.glEnablei(GL_BLEND, 0);
+//
+//        program->bind();
+//        setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
+//        setUniformTexture(*program,GL_TEXTURE_2D,TEX_LIGHT_POLLUTION_SCATTERING_PREV_ORDER,1,"lightPollutionScatteringTexture");
+//        renderQuad();
+//
+//        gl.glFinish();
+//        std::cerr << "done\n";
+//
+//        if(!opts.dbgSaveLightPollutionIntermediateTextures)
+//            continue;
+//
+//        saveTexture(GL_TEXTURE_2D,textures[TEX_LIGHT_POLLUTION_DELTA_SCATTERING],"light pollution delta multiple scattering texture",
+//                    atmo.textureOutputDir+"/light-pollution-delta-order"+std::to_string(scatteringOrder)+"-wlset"+std::to_string(texIndex)+".f32",
+//                    {atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]});
+//    }
+//    gl.glDisablei(GL_BLEND, 0);
+//
+//    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+//}
 
 void accumulateLightPollutionLuminanceTexture(const unsigned texIndex)
 {
@@ -1274,7 +1274,7 @@ int main(int argc, char** argv)
             }
 
             computeLightPollutionSingleScattering(texIndex);
-            computeLightPollutionMultipleScattering(texIndex);
+//            computeLightPollutionMultipleScattering(texIndex);
             if(opts.saveResultAsRadiance)
             {
                 saveTexture(GL_TEXTURE_2D,textures[TEX_LIGHT_POLLUTION_SCATTERING],"light pollution texture",

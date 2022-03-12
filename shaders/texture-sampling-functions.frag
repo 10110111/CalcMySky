@@ -81,6 +81,6 @@ vec4 scattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
 
 vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
 {
-    CONST vec2 coords = lightPollutionTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    CONST vec4 coords = lightPollutionTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
     return texture(lightPollutionScatteringTexture, coords);
 }

@@ -580,7 +580,7 @@ vec4 sampleEclipseDoubleScattering3DTexture(const sampler3D tex, const float cos
     return texture(tex, texCoords);
 }
 
-LightPollutionTexVars scatteringTexIndicesToLightPollutionTexVars(const vec2 texIndices)
+LightPollutionTexVars scatteringTexIndicesToLightPollutionTexVars(const vec4 texIndices)
 {
     CONST vec2 indexMax=lightPollutionTextureSize-vec2(1);
 
@@ -613,10 +613,12 @@ LightPollutionTexVars scatteringTexIndicesToLightPollutionTexVars(const vec2 tex
                         (2*distToTopAtmoBorder*(altitude+earthRadius)));
     }
 
-    return LightPollutionTexVars(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    return LightPollutionTexVars(altitude, distanceToSource, cosViewZenithAngle, relativeAzimuthFromSource, viewRayIntersectsGround);
 }
 
-LightPollution2DCoords lightPollutionTexVarsTo2DCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
+LightPollution4DCoords lightPollutionTexVarsTo4DCoords(const float altitude, const float distanceToSource,
+                                                       const float cosViewZenithAngle, const float relativeAzimuthFromSource,
+                                                       const bool viewRayIntersectsGround)
 {
     CONST float r=earthRadius+altitude;
 
@@ -651,12 +653,14 @@ LightPollution2DCoords lightPollutionTexVarsTo2DCoords(const float altitude, con
     // ------------------------------------
     CONST float altCoord = distToHorizon / LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA;
 
-    return LightPollution2DCoords(cosVZACoord, altCoord);
+    return LightPollution4DCoords(altCoord, distCoord, cosVZACoord, relAzimuthCoord);
 }
 
-vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
+vec4 lightPollutionTexVarsToTexCoords(const float altitude, const float distanceToSource, const float cosViewZenithAngle,
+                                      const float relativeAzimuthFromSource, const bool viewRayIntersectsGround);
 {
-    CONST LightPollution2DCoords coords = lightPollutionTexVarsTo2DCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    CONST LightPollution4DCoords coords = lightPollutionTexVarsTo4DCoords(altitude, distanceToSource, cosViewZenithAngle,
+                                                                          relativeAzimuthFromSource, viewRayIntersectsGround);
     CONST vec2 texSize = lightPollutionTextureSize;
     CONST float cosVZAtc = viewRayIntersectsGround ?
                             // Coordinate is in ~[0,0.5]
@@ -664,5 +668,5 @@ vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZ
                             // Coordinate is in ~[0.5,1]
                             0.5+0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, texSize[0]/2);
     CONST float altitudeTC = unitRangeToTexCoord(coords.altitude, texSize[1]);
-    return vec2(cosVZAtc, altitudeTC);
+    return vec2(altitudeTC, cosVZAtc);
 }
