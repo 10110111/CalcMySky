@@ -49,9 +49,16 @@ bool MainWindow::eventFilter(QObject* object, QEvent* event)
 void MainWindow::onLoadProgress(QString const& currentActivity, const int stepsDone, const int stepsToDo)
 {
     statusBar()->showMessage(currentActivity);
-    loadProgressBar_->setMaximum(stepsToDo);
-    loadProgressBar_->setValue(stepsDone);
-    loadProgressBar_->setVisible(stepsToDo!=0);
+    if(stepsToDo)
+    {
+        loadProgressBar_->setMaximum(stepsToDo);
+        loadProgressBar_->setValue(stepsDone);
+        loadProgressBar_->setVisible(true);
+    }
+    else
+    {
+        loadProgressBar_->setVisible(false);
+    }
     frameRate_->setVisible(stepsToDo==0);
 }
 
