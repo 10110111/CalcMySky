@@ -83,7 +83,7 @@ Absorber "ozone":
 {
     number density:
     ```
-        const float totalOzoneAmount=300*dobsonUnit;
+        const float totalOzoneAmount=370*dobsonUnit;
 
         float density;
 
