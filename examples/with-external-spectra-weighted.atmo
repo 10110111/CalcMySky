@@ -85,10 +85,23 @@ Absorber "ozone":
     number density:
     ```
         const float totalOzoneAmount=300*dobsonUnit;
-        if(altitude<10*km || altitude>40*km) return 0;
-        if(altitude<25*km)
-            return (altitude-10*km)/sqr(25*km-10*km) * totalOzoneAmount;
-        return (40*km-altitude)/sqr(40*km-25*km) * totalOzoneAmount;
+
+        float density;
+
+        // A fit to AFGL atmospheric constituent profile. U.S. standard atmosphere 1976. (AFGL-TR-86-0110)
+        // Reference was taken from data supplied with libRadtran.
+        if(altitude < 8*km)
+            density = 7.2402403521159135e-6 - 1.206527437798165e-7/km * altitude;
+        else if(altitude < 21.5*km)
+            density = -0.000020590185333577628 + 3.3581504669318765e-6/km * altitude;
+        else if(altitude < 39*km)
+            density = 0.00010542813563268143 - 2.50316678731273e-6/km * altitude;
+        else
+            density = 0.04298160111157969 * exp(-0.2208669270720561/km * altitude);
+
+        density *= totalOzoneAmount;
+
+        return density;
     ```
     # Data were taken from
     # http://www.iup.uni-bremen.de/gruppen/molspec/downloads/serdyuchenkogorshelevversionjuly2013.zip
