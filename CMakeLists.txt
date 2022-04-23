@@ -63,6 +63,7 @@ add_library(version STATIC "${CMAKE_BINARY_DIR}/version.cpp")
 configure_file(config.h.in config.h)
 add_subdirectory(CalcMySky)
 add_subdirectory(ShowMySky)
+add_subdirectory(doc)
 
 enable_testing()
 add_subdirectory(tests)

@@ -22,14 +22,30 @@ class AtmosphereRenderer : public ShowMySky::AtmosphereRenderer
     QOpenGLFunctions_3_3_Core& gl;
 public:
 
+    /**
+     * This is the constructor of the renderer. It saves the reference to \p gl, \p tools for later use (so these objects must outlive AtmosphereRenderer), also saves the \p drawSurface callback. Then the model description file `params.atmo` inside the directory pointed to \p pathToData is parsed.
+     *
+     * If an error occurs while parsing the model description file, ShowMySky::Error is thrown.
+     *
+     * The callback function \p drawSurface has one parameter: a shader program \p shprog that includes, aside from the core atmosphere model GLSL code, the shaders \p viewDirVertShaderSrc and \p viewDirFragShaderSrc that have been passed to #initDataLoading method (this should be done by the application before any other calls). By the point when this callback is called, \p shprog has already been bound to current OpenGL context (via \c glUseProgram).
+     *
+     * The purpose of \p shprog is to enable setting of the necessary uniform values via the \c glUniform* family of functions to make the drawing work. It also includes the \c calcViewDir function implemented in \p viewDirVertShaderSrc shader, so the necessary uniform values (if any) for the operation of \c calcViewDir should also to be set in this callback before issuing any draw calls.
+     *
+     * To create an instance of ::AtmosphereRenderer indirectly having `dlopen`ed the `ShowMySky` library, use ::ShowMySky_AtmosphereRenderer_create.
+     *
+     * \param gl QtOpenGL-provided OpenGL 3.3 function resolver;
+     * \param pathToData path to the data directory of the atmosphere model that contains `params.atmo`;
+     * \param tools pointer to an implementation of the ShowMySky::Settings interface;
+     * \param drawSurface a callback function that will be called each time a surface is to be rendered.
+     */
     AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl,
                        QString const& pathToData,
                        ShowMySky::Settings* tools,
-                       std::function<void(QOpenGLShaderProgram&)> const& drawSurface);
+                       std::function<void(QOpenGLShaderProgram& shprog)> const& drawSurface);
     AtmosphereRenderer(AtmosphereRenderer const&)=delete;
     AtmosphereRenderer(AtmosphereRenderer&&)=delete;
     ~AtmosphereRenderer();
-    void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram&)> const& drawSurface) override;
+    void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram& shprog)> const& drawSurface) override;
     int initDataLoading(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
                         std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations) override;
     LoadingStatus stepDataLoading();

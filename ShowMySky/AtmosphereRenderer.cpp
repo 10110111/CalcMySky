@@ -1905,7 +1905,7 @@ void AtmosphereRenderer::setupRenderTarget()
 }
 
 AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString const& pathToData,
-                                       ShowMySky::Settings* tools, std::function<void(QOpenGLShaderProgram&)> const& drawSurface)
+                                       ShowMySky::Settings* tools, std::function<void(QOpenGLShaderProgram& shprog)> const& drawSurface)
     : gl(gl)
     , tools_(tools)
     , drawSurfaceCallback(drawSurface)
@@ -1915,7 +1915,7 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     params_.parse(pathToData + "/params.atmo", AtmosphereParameters::ForceNoEDSTextures{false}, AtmosphereParameters::SkipSpectra{true});
 }
 
-void AtmosphereRenderer::setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram&)> const& drawSurface)
+void AtmosphereRenderer::setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram& shprog)> const& drawSurface)
 {
     drawSurfaceCallback=drawSurface;
 }
