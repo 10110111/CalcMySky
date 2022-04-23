@@ -675,6 +675,8 @@ void GLWidget::stepShaderReloading()
 {
     makeCurrent();
     const auto status = renderer->stepShaderReloading();
+    if(status.stepsToDo < 0) return;
+
     emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
     if(renderer->isReadyToRender())
         update();
