@@ -2067,6 +2067,9 @@ int AtmosphereRenderer::initShaderReloading()
 {
     OGL_TRACE();
 
+    if(state_ != State::NotReady && state_ != State::ReadyToRender)
+        return -1;
+
     state_ = State::ReloadingShaders;
     currentActivity_=QObject::tr("Reloading shaders...");
     loadingStepsDone_=0;
@@ -2079,6 +2082,9 @@ int AtmosphereRenderer::initShaderReloading()
 auto AtmosphereRenderer::stepShaderReloading() -> LoadingStatus
 {
     OGL_TRACE();
+
+    if(!totalLoadingStepsToDo_)
+        return {0, -1};
 
     currentLoadingIterationStepCounter_=0;
     loadShaders(CountStepsOnly{false});
