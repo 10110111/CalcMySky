@@ -1186,7 +1186,7 @@ double AtmosphereRenderer::cameraMoonDistance() const
     using namespace std;
     const auto hpR=tools_->altitude()+params_.earthRadius;
     const auto moonElevation=M_PI/2-tools_->moonZenithAngle();
-    return -hpR*sin(moonElevation)+sqrt(sqr(tools_->earthMoonDistance())-0.5*sqr(hpR)*(1+cos(2*moonElevation)));
+    return -hpR*sin(moonElevation)+sqrt(sqr(tools_->earthMoonDistance())-sqr(hpR*cos(moonElevation)));
 }
 
 QVector4D AtmosphereRenderer::getPixelLuminance(QPoint const& pixelPos)
