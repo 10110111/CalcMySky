@@ -76,3 +76,12 @@ void MainWindow::showFrameRate(const long long frameTimeInUS)
         frameRate_->setText(tr("%1 FPS (%2 s/frame)").arg(1e6/frameTimeInUS, 0, 'g', 3)
                                                     .arg(frameTimeInUS/1e6, 0, 'g', 3));
 }
+
+void MainWindow::setWindowDecorationEnabled(const bool enabled)
+{
+    const bool windowWasVisible = isVisible();
+    statusBar()->setVisible(enabled);
+    setWindowFlag(Qt::FramelessWindowHint, !enabled);
+    if(windowWasVisible)
+        show();
+}

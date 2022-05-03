@@ -32,7 +32,7 @@ void handleCmdLine()
     parser.addOption(winSizeOpt);
     QCommandLineOption detachedToolsOpt("detached-tools", "Start with tools dock detached");
     parser.addOption(detachedToolsOpt);
-    QCommandLineOption framelessOpt("frameless", "Make main window frameless");
+    QCommandLineOption framelessOpt("frameless", "Make main window frameless and hide status bar");
     parser.addOption(framelessOpt);
 
     parser.process(*qApp);
@@ -113,12 +113,14 @@ int main(int argc, char** argv)
         const auto mainWin=new MainWindow(pathToData, tools);
 
         mainWin->setAttribute(Qt::WA_DeleteOnClose);
-        if(frameless)
-            mainWin->setWindowFlag(Qt::FramelessWindowHint);
         mainWin->setCentralWidget(glWidget);
         mainWin->resize(windowSize);
+
+        QObject::connect(tools, &ToolsWidget::windowDecorationToggled, mainWin, &MainWindow::setWindowDecorationEnabled);
         QObject::connect(glWidget, &GLWidget::loadProgress, mainWin, &MainWindow::onLoadProgress);
         QObject::connect(glWidget, &GLWidget::frameFinished, mainWin, &MainWindow::showFrameRate);
+        if(frameless)
+            tools->setWindowDecorationEnabled(false);
         mainWin->show();
         if(detachedTools)
             tools->setFloating(true);

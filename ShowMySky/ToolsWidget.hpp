@@ -49,6 +49,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QPushButton* showRadiancePlot_=nullptr;
     std::unique_ptr<QWidget> radiancePlotWindow_;
     RadiancePlot* radiancePlot_=nullptr;
+    QCheckBox* windowDecorationEnabled_=nullptr;
     QVector<QCheckBox*> scatterers;
 public:
     ToolsWidget(QWidget* parent=nullptr);
@@ -87,6 +88,7 @@ public:
     void setSunAzimuth(double azimuth);
     void setSunZenithAngle(double elevation);
     void updateParameters(AtmosphereParameters const& params);
+    void setWindowDecorationEnabled(bool enabled);
 
 private:
     void showRadiancePlot();
@@ -100,6 +102,7 @@ signals:
     void setFlatSolarSpectrum();
     void resetSolarSpectrum();
     void setBlackBodySolarSpectrum(double temperature);
+    void windowDecorationToggled(bool enabled);
 };
 
 #endif

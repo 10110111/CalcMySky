@@ -11,6 +11,7 @@ public:
     MainWindow(QString const& pathToData, QDockWidget* tools, QWidget* parent=nullptr);
     void onLoadProgress(QString const& currentActivity, int stepsDone, int stepsToDo);
     void showFrameRate(long long frameTimeInUS);
+    void setWindowDecorationEnabled(bool enabled);
 protected:
     bool eventFilter(QObject* object, QEvent* event) override;
 private:

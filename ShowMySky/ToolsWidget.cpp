@@ -178,6 +178,13 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         layout->addWidget(showRadiancePlot_);
         connect(showRadiancePlot_, &QPushButton::clicked, this, &ToolsWidget::showRadiancePlot);
     }
+    {
+        windowDecorationEnabled_=new QCheckBox("&Window decoration and status bar");
+        windowDecorationEnabled_->setChecked(true);
+        layout->addWidget(windowDecorationEnabled_);
+        connect(windowDecorationEnabled_, &QCheckBox::stateChanged, this,
+                [this](const bool enabled){ emit windowDecorationToggled(enabled); });
+    }
 
     layout->addStretch();
 }
@@ -333,4 +340,9 @@ void ToolsWidget::onSolarSpectrumChanged()
         emit setFlatSolarSpectrum();
         break;
     }
+}
+
+void ToolsWidget::setWindowDecorationEnabled(const bool enabled)
+{
+    windowDecorationEnabled_->setChecked(enabled);
 }
