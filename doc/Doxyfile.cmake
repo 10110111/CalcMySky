@@ -761,7 +761,8 @@ WARN_LOGFILE           =
 INPUT                  = @CMAKE_SOURCE_DIR@/common \
                          @CMAKE_SOURCE_DIR@/CalcMySky \
                          @CMAKE_SOURCE_DIR@/ShowMySky \
-                         @CMAKE_SOURCE_DIR@/ShowMySky/api
+                         @CMAKE_SOURCE_DIR@/ShowMySky/api \
+                         @CMAKE_SOURCE_DIR@/doc
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -897,7 +898,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
 
-USE_MDFILE_AS_MAINPAGE =
+USE_MDFILE_AS_MAINPAGE = @CMAKE_SOURCE_DIR@/doc/mainpage.md
 
 #---------------------------------------------------------------------------
 # Configuration options related to source browsing
