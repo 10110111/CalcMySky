@@ -10,7 +10,9 @@ inputFile="$2"
 outputFile="$3"
 
 cd $(dirname "$0")
-if [ "`whoami`" = root ]; then
+if ! [ -d .git ]; then
+    ver=
+elif [ "`whoami`" = root ]; then
     # Prevent git paranoid "unsafe directory" error when
     # running as root (e.g. while doing `sudo make install`)
     owner=$(stat -c %U .)
