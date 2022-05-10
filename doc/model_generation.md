@@ -13,11 +13,12 @@ This utility has some options that can be listed by running it with `--help` opt
 Model description files consist of entries that represent key-value pairs. Empty lines between entries are ignored, and "#" character starts comments. Single-line entries can also be followed by a comment in the same line.
 
 Any text on a line before the first colon character ":" is considered to be key. Depending on the key, corresponding value can be one of the following:
- * a number, e.g. 123.456;
+ * a number, e.g. `123.456`;
  * a dimensionful quantity (see [Dimensionful quantities](#dimensionful-quantities));
  * a spectrum (see [Spectra](#spectra))
- * a range of wavelengths, e.g. min=360nm,max=830nm,count=16;
- * a section (see [Sections](#sections)).
+ * a range of wavelengths, e.g. `min=360nm,max=830nm,count=16`;
+ * a section (see [Sections](#sections));
+ * a code block (see [Code blocks](#code-blocks)).
 
 ### <a name="dimensionful-quantities">Dimensionful quantities</a>
 
@@ -37,15 +38,15 @@ Spectra are specified in predefined units, which depend on the key to which this
 
 There are several ways to specify a spectrum:
 
-1. A list of numbers, which can be in normal or scientific format, separated with commas. Example:
+1. A list of numbers, which can be in normal or scientific format, separated with commas. Each list item must correspond to a particular wavelength from the `wavelengths` entry. Example of such spectrum:
 ```
     solar irradiance at TOA: 1.037, 1.249, 1.684, 1.975, 1.968, 1.877, 1.854, 1.818, 1.723, 1.604, 1.516, 1.408, 1.309, 1.23, 1.142, 1.062
 ```
-2. A file path prepended by `file `. Example:
+2. A file path prepended with `"file "`. Here the spectrum may be sampled at any points, it will be resampled to match `wavelengths` automatically. Example:
 ```
     solar irradiance at TOA: file spectra/solar-irradiance-at-toa.csv
 ```
-3. Several files added together with weighting coefficients. A filename must be prepended with `weighted file `, and each new such entry accumulates the new values in the corresponding spectrum. Example:
+3. Spectra from several files added together with weighting coefficients. A filename must be prepended with `"weighted file "`, and each new such entry accumulates the new values in the corresponding spectrum. Example:
 ```
     ground albedo: weighted file 0.8 spectra/ground-albedo-grass.csv
     ground albedo: weighted file 0.2 spectra/ground-albedo-snow.csv
@@ -55,47 +56,50 @@ There are several ways to specify a spectrum:
 
 A section begins on the next line after the key, the colon character remains on the line with the key.
 
-Top-level sections are bounded by an opening brace "{" and a closing brace "}". Nested section, which normally are code snippets, are bounded by triple backticks "```", similarly to fenced code blocks in Markdown.
+Top-level sections are bounded by an opening brace "{" and a closing brace "}". Between braces there can be multiple key-value entries.
 
-Example of a section with a nested section:
+Example of a section:
 
-    Scatterer "something":
+    Some section:
     {
-        number density:
-        ```
-            const float rayleighScaleHeight=8*km;
-            return 3.08458e25*exp(-1/rayleighScaleHeight * altitude);
-        ```
+        some value: 234
     }
 
-### Keys and values
+### <a name="code-blocks">Code blocks</a>
 
-The `examples` directory in the source tree has a few `*.atmo` files serving as examples. Let's walk through one of them, `sample.atmo`.
+Code blocks look similarly to sections, but instead of braces they are bounded by triple backticks "```", similarly to fenced code blocks in Markdown.
 
-    atmosphere height: 120 km
-Atmosphere height is the maximum altitude at which density of some constituents of the atmosphere is considered nonzero. The sphere of all the points at this altitude is called TOA, i.e. top of atmosphere. All the textures span altitudes from 0 to atmosphere height.
+Example of a code block:
+
+    number density:
+    ```
+        const float rayleighScaleHeight=8*km;
+        return 3.08458e25*exp(-1/rayleighScaleHeight * altitude);
+    ```
+
+## Keys and values
+
+The keys listed here are grouped by common parts of the name. The omitted parts are marked with `"*"`.  A few examples of complete `*.atmo` files can be found under the `examples` directory in the source tree.
+
+### `atmosphere height`
+This entry is [dimensionful](#dimensionful-quantities). Atmosphere height is the maximum altitude at which density of some constituents of the atmosphere is considered nonzero. The sphere of all the points at this altitude is called TOA, i.e. top of atmosphere. All the textures span altitudes from 0 to atmosphere height.
 Valid values for this entry are length quantities from 1&nbsp;m to 1&nbsp;Mm.
 
-    scattering orders: 4
+### `scattering orders`
 
 When a light ray propagates in the atmosphere, it can be scattered on the inhomogeneities of this medium (molecules, dust, etc.). This produces secondary rays, which, in turn, can also be scattered to produce tertiary rays, etc. The first scattering of the initial ray is called first-order scattering. Scattering of the secondary rays is second-order, and so on.
 
 Radiance in each subsequent scattering order normally becomes smaller, approaching zero in the limit. This makes it possible to ignore the scattering events starting with some order of scattering, with negligible loss of accuracy. The `scattering orders` entry sets number of scattering orders to take into account.
 
-    transmittance texture size for VZA: 256
-    transmittance texture size for altitude: 64
+### `transmittance texture size*`
 
 Transmittance texture holds a map of percentage of light that's transmitted through the atmosphere from the TOA to the camera, given altitude of a camera and view zenith angle (VZA) of this camera. The entries above control the resolution of the transmittance texture in each of these dimensions.
 
-    irradiance texture size for SZA: 64
-    irradiance texture size for altitude: 16
+### `irradiance texture size*`
 
 Irradiance texture contains values of irradiance of a horizontal surface at the point with given altitude and zenith angle of the Sun (SZA). The entries above control the resolution of the irradiance texture in each of these dimensions.
 
-    scattering texture size for VZA: 128
-    scattering texture size for dot(view,sun): 16
-    scattering texture size for SZA: 128
-    scattering texture size for altitude: 64
+### `scattering texture size*`
 
 Scattering textures are the main textures that contain the actual radiance or luminance from given direction as seen by a camera at the given altitude, with the Sun being at a given zenith angle.
 
@@ -105,51 +109,45 @@ The `dot(view,sun)` parameter determines cosine of the angular distance between 
 
 For technical reasons the texture size for VZA here must be even.
 
-    eclipsed scattering texture size for relative azimuth: 32
-    eclipsed scattering texture size for VZA: 128
+### `eclipsed scattering texture size*`
 
 When solar eclipse is simulated, corresponding first-order scattering texture is computed on the fly during rendering, for the current altitude of the camera and the current positions of the Sun and the Moon. This is unlike the case of non-eclipsed calculations, where such radiance is precomputed for all altitudes and solar elevations.
 
 Relative azimuth is the azimuth of the view direction relative to the Sun. VZA is view zenith angle, as described for transmittance texture.
 
-    eclipsed double scattering texture size for relative azimuth: 16
-    eclipsed double scattering texture size for VZA: 128
-    eclipsed double scattering texture size for SZA: 16
+### `eclipsed double scattering texture size*`
 
 When solar eclipse is simulated, it's only simulated for two scattering orders, because going further is prohibitively slow. Even second-order scattering is quite slow on many GPUs. These entries control precomputation of a texture that will hold second-order scattering radiance for the given view zenith angle, solar elevation, and azimuth of view relative to the Sun.
 
-    eclipsed double scattering number of azimuth pairs to sample: 2
-    eclipsed double scattering number of elevation pairs to sample: 10
+### `eclipsed double scattering number of * pairs to sample`
 
 Because second-order scattering is so slow to compute, radiance is sampled on a very sparse grid of points. Several circles at different azimuths are sampled at multiple elevations, with an optimized distribution of samples. The samples are taken in pairs, e.g. if one sampling direction is forward, one more will be backward.
 
 The more samples one takes, the higher the resolution of the final second-order scattering layer.
 
-    light pollution texture size for VZA: 128
-    light pollution texture size for altitude: 64
+### `light pollution texture size*`
 
-Light pollution is simulated with the assumption that the whole Earth glows uniformly with the given luminance (which is controlled at runtime). This makes the radiance quite symmetric, depending only on altitude of the camera and zenith angle of its view direction. These entries control resolution in these parameters.
+Light pollution is simulated with the assumption that the whole Earth glows uniformly with the given luminance (which is controlled at runtime). This makes the radiance quite symmetric (although overestimated near the horizon), depending only on altitude of the camera and zenith angle of its view direction. These entries control resolution in these parameters.
 
-    transmittance integration points: 500
-    radial integration points: 50
+### `transmittance/radial integration points`
 
 Computation of transmittance and inscattered radiance is done in the direction of view from camera position to the TOA. Since transmittance is stored in a 2D texture, rather than 4D, it's relatively cheap to compute it more precisely. Inscattered radiance, OTOH, is stored in a 4D texture, so `radial integration points` value has to be smaller to make the computation faster. This is especially important for eclipsed atmosphere, where this computation is done on the fly.
 
-    angular integration points: 512
-    angular integration points for eclipse: 512
-    light pollution angular integration points: 200
+### `angular integration points*`
 
-<span style="background-color: red;">TODO</span>: write this section
+Angular integration is done at every point of sampling of a ray, to collect the radiance that comes in from all directions, and compute the radiance that is scattered out. The integration is performed using a quasi-uniform spherical Fibonacci lattice, a good explanation of which can be seen [here](https://stackoverflow.com/a/44164075/673852). The entries above all define total number of points in this lattice, for normal and eclipsed atmospheres.
 
-    Earth-Sun distance: 1.01208 AU
-    Earth-Moon distance: 371925 km
-    Earth radius: 6371 km
+### `light pollution angular integration points`
 
-These entries are just the physical constants used in the model. Earth-Sun distance can be from \f$0.5\,\mathrm{AU}\f$ to \f$10^{20}\,\mathrm{AU},\f$ Earth-Moon distance can be from \f$10^{-4}\,\mathrm{AU}\f$ to \f$10^{20}\,\mathrm{AU},\f$ and Earth radius can be from 100&nbsp;km to 10&nbsp;Gm.
+Due to the symmetry of the uniformly-glowing-globe approximation, light pollution is computed as a 1D integral over elevations, so this entry just defines number of points in 1D quadrature.
+
+### `Earth-Sun distance`, `Earth-Moon distance`, `Earth radius`
+
+These entries are [dimensionful](#dimensionful-quantities). They define the physical constants used in the model. Earth-Sun distance can be from \f$0.5\,\mathrm{AU}\f$ to \f$10^{20}\,\mathrm{AU},\f$ Earth-Moon distance can be from \f$10^{-4}\,\mathrm{AU}\f$ to \f$10^{20}\,\mathrm{AU},\f$ and Earth radius can be from 100&nbsp;km to 10&nbsp;Gm.
 
 Note that these limits are rather arbitrary, and nothing too far (like orders of magnitude difference) from the real Earth-Sun-Moon system has ever been tested.
 
-    wavelengths: min=360nm,max=830nm,count=16
+### `wavelengths`
 
 This entry describes the set of wavelengths to use. It consists of smallest wavelength (`min`), largest (`max`), and total number of wavelengths in the set (`count`). The calculations are done separately for each wavelength to obtain radiance from different directions. Then these values are saved into the textures.
 
@@ -157,8 +155,59 @@ After radiance is obtained, to be displayed on a screen it needs to be converted
 
 Scattering textures are stored as either spectral radiance (when requested by `--radiance` option for `calcmysky`), or as \f$XYZW\f$ luminance. \f$XYZ\f$ here are the CIE 1931 tristimulus values, and \f$W\f$ is the scotopic luminance.
 
-    solar irradiance at TOA: 1.037,1.249,1.684,1.975,1.968,1.877,1.854,1.818,1.723,1.604,1.516,1.408,1.309,1.23,1.142,1.062
+### `solar irradiance at TOA`
 
+This entry is a [spectrum](#spectra). It defines spectral irradiance in \f$\mathrm{\frac W{m^2 nm}}\f$ as it would be measured at the TOA when the Sun is at zenith.
 
-<span style="background-color: red;">TODO</span>: write this section
+### `ground albedo`
 
+This entry is a [spectrum](#spectra). It defines ground albedo, where each point is a dimensionless value in the range from 0 to 1. Ground BRDF is hard-coded to be Lambertian.
+
+### `light pollution relative radiance`
+
+This entry is a [spectrum](#spectra). It defines spectral radiance of the ground, in \f$\mathrm{cd/m^2}.\f$ The total luminance here should be normalized to \f$1\,\mathrm{cd/m^2}.\f$
+
+### <a name="scatterer">`Scatterer "*"`</a>
+
+This entry is a [section](#sections). Its name is formed as `Scatterer` keyword followed by name of the scatterer species in quotes. Inside the braces there are several key-value entries, described in the following subsections.
+
+#### <a name="number-density">`number density`</a>
+
+This entry is a [code block](#code-blocks). It defines number density of the scatterer being described in the current section. This code block is used as the implementation of a GLSL function that has a `float` parameter called `altitude`, with a value in meters, and returns a `float` value of number density in \f$\mathrm m^{-3}\f$.
+
+#### `phase function`
+This entry is a [code block](#code-blocks). It takes a `float` parameter called `dotViewSun`, and returns `vec4` relative intensity, where each component of `vec4` corresponds to wavelength in corresponding component of the global `vec4` variable `wavelengths`.
+
+Mathematically, the parameter is cosine of the angle between the incoming ray and the scattered ray. Each component of the output `vec4` (let's call \f$ i\f$th component \f$f_i\f$) must be normalized by the following condition:
+
+\f{equation}{
+\int_{0}^{2\pi}\mathrm{d}\varphi \int_{0}^{\pi} \mathrm{d}\theta \sin(\theta) f_i(\theta)=1.
+\f}
+
+#### `phase function type`
+
+Depending on the properties of the scatterer, there may be some ways to optimize storage of the computation results. This entry can have the following values:
+
+ * `general` — the most general way of storing computation results: first-order scattering in a separate texture, split into separate textures per wavelength set, multiple scattering in another texture.
+ * `achromatic` — denotes a phase function that doesn't depend on wavelength. This lets us merge all the single scattering radiance textures into a single luminance texture without compromising correctness of rendering.
+ * `smooth` — a kind of phase function that doesn't need a high resolution texture to be represented well. This lets the single scattering texture to be merged into the multiple scattering texture, thus avoiding the need for extra storage.
+
+#### `cross section at 1 um`
+
+This entry is a [dimensionful](#dimensionful-quantities) quantity of area. It defines scattering cross section of the current scatterer at \f$1\,\mu m\f$ wavelength. The values for other wavelengths are obtained using the [<code>angstrom exponent</code>](#angstrom-exponent) parameter.
+
+#### <a name="angstrom-exponent">`angstrom exponent`</a>
+
+This entry defines the Angström exponent, which describes the power law dependence of the optical thickness of a medium on wavelength. For Rayleigh scattering its value is 4, while for clouds it is about zero.
+
+### `Absorber "*"`
+
+This entry is a [section](#sections). Its name is formed as `Absorber` keyword followed by name of the absorbing species in quotes. Inside the braces there are several key-value entries, described in the following subsections.
+
+#### `number density`
+
+This entry is of the same kind as [the one in the <code>Scatterer</code> section](#number-density).
+
+#### `cross section`
+
+This entry is a [spectrum](#spectra). It defines cross section of absorption of the current absorber. The data points in this spectrum are in units of \f$\mathrm{\frac{m^2}{particle}}\f$ (where a particle is an atom, a molecule, a droplet or any other similar unit of the medium).
