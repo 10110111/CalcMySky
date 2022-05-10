@@ -21,7 +21,7 @@ fi
 if [ -z "$ver" ]; then
     ver="$staticVersion"
 fi
-cd -
+cd - >/dev/null
 if ! [ -e "$outputFile" ] || ! grep -q "\"$ver\"" "$outputFile"; then
 	sed -e "s@%\<PROJECT_VERSION\>%@\"${ver}\"@" "$inputFile" > "$outputFile"
 fi
