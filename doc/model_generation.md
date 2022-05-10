@@ -169,9 +169,9 @@ This entry is a [spectrum](#spectra). It defines spectral radiance of the ground
 
 ### <a name="scatterer">`Scatterer "*"`</a>
 
-This entry is a [section](#sections). Its name is formed as `Scatterer` keyword followed by name of the scatterer species in quotes. Inside the braces there are several key-value entries, described in the following subsections.
+This entry is a [section](#sections). Its name is formed as `Scatterer` keyword followed by name of the scatterer species in quotes. The species name must consist only of alphanumeric characters and underscores and have no spaces. Inside the braces there are several key-value entries, described in the following subsections.
 
-#### <a name="number-density">`number density`</a>
+#### <a name="scatterer-number-density">`number density`</a>
 
 This entry is a [code block](#code-blocks). It defines number density of the scatterer being described in the current section. This code block is used as the implementation of a GLSL function that has a `float` parameter called `altitude`, with a value in meters, and returns a `float` value of number density in \f$\mathrm m^{-3}\f$.
 
@@ -202,12 +202,12 @@ This entry defines the Angström exponent, which describes the power law depende
 
 ### `Absorber "*"`
 
-This entry is a [section](#sections). Its name is formed as `Absorber` keyword followed by name of the absorbing species in quotes. Inside the braces there are several key-value entries, described in the following subsections.
+This entry is a [section](#sections). Its name is formed as `Absorber` keyword followed by name of the absorbing species in quotes. The species name must consist only of alphanumeric characters and underscores and have no spaces. Inside the braces there are several key-value entries, described in the following subsections.
 
-#### `number density`
+#### <a name="absorber-number-density">`number density`</a>
 
-This entry is of the same kind as [the one in the <code>Scatterer</code> section](#number-density).
+This entry is of the same kind as [the one in the <code>Scatterer</code> section](#scatterer-number-density).
 
 #### `cross section`
 
-This entry is a [spectrum](#spectra). It defines cross section of absorption of the current absorber. The data points in this spectrum are in units of \f$\mathrm{\frac{m^2}{particle}}\f$ (where a particle is an atom, a molecule, a droplet or any other similar unit of the medium).
+This entry is a [spectrum](#spectra). It defines cross section of absorption of the current absorber. The data points in this spectrum are in units of \f$\mathrm{\frac{m^2}{particle}}\f$ (where "particle" is the object counted by the [number density](#absorber-number-density) parameter).
