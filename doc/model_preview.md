@@ -88,7 +88,9 @@ The options are named as R/G/B where R, G, and B are number of bits in correspon
 
 ### Gradual color clipping
 
-This option makes the colors too bright to display smoothly saturate in brightness instead of abruptly stop increasing. This makes gradients that change from displayable colors into very bright colors nicer.
+This option makes the colors too bright to display smoothly saturate in brightness instead of abruptly clamping at maximum value. This makes gradients that change from displayable colors into very bright colors nicer. The plot below shows the comparison of the simple clamping and gradual clipping as brightness of a given color `#fcb55c` increases.
+
+\image html gradual-clipping-plot.png "Gradual clipping applied to input color channels of different brightness"
 
 Below are two examples of the same scene, one with gradual color clipping turned off, and another with it turned on.
 
