@@ -90,7 +90,24 @@ The options are named as R/G/B where R, G, and B are number of bits in correspon
 
 This option makes the colors too bright to display smoothly saturate in brightness instead of abruptly clamping at maximum value. This makes gradients that change from displayable colors into very bright colors nicer. The plot below shows the comparison of the simple clamping and gradual clipping as brightness of a given color `#fcb55c` increases.
 
-\image html gradual-clipping-plot.png "Gradual clipping applied to input color channels of different brightness"
+<!--
+gnuplot -p -e "set key autotitle columnhead right center;
+set yrange [0 to 1.01];
+set xlabel 'computed brightness';
+set ylabel 'displayed brightness';
+set term svg size 600 400;
+set output 'gradual-clipping-plot.svg';
+set datafile separator ',';
+set mouse format '%.15g';
+plot '/tmp/data.csv' using 1:2 with lines dashtype 2 linecolor rgb '#ff0000',
+                  '' using 1:3 with lines dashtype 2 linecolor rgb '#00ff00',
+                  '' using 1:4 with lines dashtype 2 linecolor rgb '#0000ff',
+                  '' using 1:5 with lines linecolor rgb '#ff0000',
+                  '' using 1:6 with lines linecolor rgb '#00ff00',
+                  '' using 1:7 with lines linecolor rgb '#0000ff'"
+-->
+
+\image html gradual-clipping-plot.svg "Gradual clipping applied to input color channels of different brightness"
 
 Below are two examples of the same scene, one with gradual color clipping turned off, and another with it turned on.
 
