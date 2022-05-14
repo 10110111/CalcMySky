@@ -115,7 +115,12 @@ Below are two examples of the same scene, one with gradual color clipping turned
 \image html gradual-color-clipping-on.png "With gradual color clipping"
 
 ### Glare
-<span style="background-color: red;">TODO</span>: write this section
+
+Real-life optical systems (including human eyes) never map a single cone of view to a single pixel. Instead, each pixel samples the whole field of view of the camera with varying weights, and the direction that it's supposed to display has a sharp peak in the weight function. On the one hand, this leads to starburst effect, blur, and other aberrations. On the other hand, it lets one see the colors of bright sources of light that would otherwise be seen as simply white points.
+
+The _Glare_ checkbox enables a simplistic simulation of glare in the scene, letting one perceive brightness and color of the Sun, whose disk is almost always overexposed. In particular, we can see how the solar disk becomes bluish (which is invisible without glare) during sunrise watched through the ozone layer, as shown below.
+
+\image html sunrise-from-50km.png "Sunrise viewed from 50 km altitude"
 
 ### Draw zero-order scattering layer
 <span style="background-color: red;">TODO</span>: write this section
