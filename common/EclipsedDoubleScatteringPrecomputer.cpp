@@ -257,7 +257,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
         {
             const auto [cosVZA, viewRayIntersectsGround]=
                 eclipseTexCoordsToTexVars_cosVZA_VRIG(float(texElevIndex)/(texSizeByViewElevation-1), cameraAltitude);
-            const auto& intFuncs=viewRayIntersectsGround ? intFuncsBelowHorizon : intFuncsAboveHorizon;
+            const auto& intFuncs =  viewRayIntersectsGround ?  intFuncsBelowHorizon  : intFuncsAboveHorizon;
             const double elevMin = (viewRayIntersectsGround ? elevationsBelowHorizon : elevationsAboveHorizon).front();
             const double elevMax = (viewRayIntersectsGround ? elevationsBelowHorizon : elevationsAboveHorizon).back();
             for(const bool oppositeAzimuth : {false, true})
