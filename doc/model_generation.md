@@ -186,7 +186,7 @@ Mathematically, the parameter is cosine of the angle between the incoming ray an
 \int_{0}^{2\pi}\mathrm{d}\varphi \int_{0}^{\pi} \mathrm{d}\theta \sin(\theta) f_i(\theta)=1.
 \f}
 
-#### `phase function type`
+#### <a name="phase-function-type">`phase function type`</a>
 
 Depending on the properties of the scatterer, there may be some ways to optimize storage of the computation results. This entry can have the following values:
 

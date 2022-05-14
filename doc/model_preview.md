@@ -123,13 +123,18 @@ The _Glare_ checkbox enables a simplistic simulation of glare in the scene, lett
 \image html sunrise-from-50km.png "Sunrise viewed from 50 km altitude"
 
 ### Draw zero-order scattering layer
-<span style="background-color: red;">TODO</span>: write this section
+
+Zero-order scattering layer contains radiance from the Sun and from the ground. Technically, the ground doesn't emit visible light on its own, it just scatters the sunlight, but the way the simulation is organized puts it into the zero-order layer. Such separation is also useful for applications such as Stellarium, which renders both the Sun and the ground with its own means.
 
 ### Draw single scattering layers
-<span style="background-color: red;">TODO</span>: write this section
+
+Single scattering layers contain radiance from first-order scattering on the constituents of the atmosphere. This radiance is stored in separate textures, and is only controlled by this checkbox if the values haven't been merged into multiple scattering texture (see [<code>phase function type</code> parameter](md_doc_model_generation.html#phase-function-type) in atmosphere description file).
+
+This option has sub-options corresponding to each separate single scattering layer. This lets one check how much light is scattered by each of these constituents. But note that enabling or disabling these sub-options only affects incoming radiance, it doesn't affect transmittance of the atmosphere. Enabling or disabling these layers is not the same as enabling or disabling a constituent of the atmosphere.
 
 ### Draw multiple scattering layer
-<span style="background-color: red;">TODO</span>: write this section
+
+This layer contains radiance from scattering orders higher than 1, and additionally the first-order scattering by the species whose phase function was marked as smooth (see [<code>phase function type</code> parameter](md_doc_model_generation.html#phase-function-type) in atmosphere description file).
 
 ### Light pollution luminance
 <span style="background-color: red;">TODO</span>: write this section
