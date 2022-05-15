@@ -98,7 +98,10 @@ std::pair<float,bool> EclipsedDoubleScatteringPrecomputer::eclipseTexCoordsToTex
     const bool viewRayIntersectsGround = vzaTexCoordInUnitRange<0.5;
     if(viewRayIntersectsGround)
     {
-        const float cosVZACoord = 1-2*vzaTexCoordInUnitRange;
+        // Bring the [0 .. 4.9xx] range to exact [0 .. 1]
+        const float vzaTexCoordInDoubleRange = vzaTexCoordInUnitRange * (texSizeByViewElevation-1)/(texSizeByViewElevation/2-1);
+        const float cosVZACoord = 1 - vzaTexCoordInDoubleRange;
+
         const float distMin=altitude;
         const float distMax=distToHorizon;
         const float distToGround=cosVZACoord*(distMax-distMin)+distMin;
@@ -108,7 +111,13 @@ std::pair<float,bool> EclipsedDoubleScatteringPrecomputer::eclipseTexCoordsToTex
     }
     else
     {
-        const float cosVZACoord = 2*vzaTexCoordInUnitRange-1;
+        // [0.50xx .. 1] --reverse--> [0.49xx .. 0]
+        const float vzaTexCoordInUnitRangeReversed = 1 - vzaTexCoordInUnitRange;
+        // [0.49xx .. 0] -> [1 .. 0]
+        const float vzaTexCoordInDoubleRange = vzaTexCoordInUnitRangeReversed * (texSizeByViewElevation-1)/(texSizeByViewElevation/2-1);
+        // [1 .. 0] --reverse--> [0 .. 1]
+        const float cosVZACoord = 1 - vzaTexCoordInDoubleRange;
+
         const float distMin=atmo.atmosphereHeight-altitude;
         const float distMax=distToHorizon+atmo.lengthOfHorizRayFromGroundToBorderOfAtmo;
         const float distToTopAtmoBorder=cosVZACoord*(distMax-distMin)+distMin;
