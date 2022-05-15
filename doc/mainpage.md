@@ -1,7 +1,7 @@
 # Table of contents
 
-## [Installation](md_doc_installation.html)
-## [Generating atmosphere model](md_doc_model_generation.html)
-## [Previewing atmosphere model](md_doc_model_preview.html)
+## [Installation](installation.html)
+## [Generating atmosphere model](model-generation.html)
+## [Previewing atmosphere model](model-preview.html)
 ## Using in Stellarium
 ## ShowMySky API

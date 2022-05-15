@@ -1,4 +1,4 @@
-# Installation
+# Installation {#installation}
 
 ## Linux
 
