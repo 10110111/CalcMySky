@@ -109,7 +109,7 @@ int getConsoleWidth(std::ostream& s)
 
 void showHelp(std::ostream& s, QList<QCommandLineOption> const& options, QString const& positionalArgSyntax)
 {
-    s << "Usage: " << qApp->arguments()[0] << " [options] " << positionalArgSyntax << "\n";
+    s << "Usage: " << qApp->arguments()[0] << " [OPTION]... " << positionalArgSyntax << " --out-dir /path/to/output/dir\n";
     s << "\nOptions:\n";
 
     std::vector<std::pair<QString,QString>> allOptionsFormatted;

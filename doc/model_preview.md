@@ -139,7 +139,7 @@ This layer contains radiance from scattering orders higher than 1, and additiona
 ### Light pollution luminance
 <span style="background-color: red;">TODO</span>: write this section
 
-### Solar spectrum
+### <a name="solar-spectrum-control">Solar spectrum</a>
 <span style="background-color: red;">TODO</span>: write this section
 
 ### Texture filtering
@@ -160,7 +160,7 @@ This layer contains radiance from scattering orders higher than 1, and additiona
 ### Reload shaders
 <span style="background-color: red;">TODO</span>: write this section
 
-### Show radiance plot
+### <a name="show-radiance-plot-control">Show radiance plot</a>
 <span style="background-color: red;">TODO</span>: write this section
 
 ### Window decoration and status bar

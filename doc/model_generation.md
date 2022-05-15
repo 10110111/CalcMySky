@@ -8,6 +8,62 @@ will use the input file `description.atmo` and output the model to a directory n
 
 This utility has some options that can be listed by running it with `--help` option.
 
+## Invocation of `calcmysky`
+
+Generally the command line of `calcmysky` utility looks as
+
+    calcmysky [OPTION]... atmosphere-description.atmo --out-dir /path/to/output/dir
+
+### Command-line options
+
+<!-- The ul trickery here is to provide indentation of the text -->
+
+ `-h`, `--help`
+<ul style="list-style-type: none;"><li> Display help and exit. </li></ul>
+
+ `-v`, `--version`
+<ul style="list-style-type: none;"><li> Display version and exit. </li></ul>
+
+ `--out-dir <output directory>`
+<ul style="list-style-type: none;"><li> Set directory for the model generated. This is a mandatory option. </li></ul>
+
+ `--radiance`
+<ul style="list-style-type: none;"><li> Save result as radiance instead of XYZW components. This lets the user change solar spectrum on the fly (see [Solar spectrum](md_doc_model_preview.html#solar-spectrum-control) control in the previewer), as well as examine spectral radiance of the pixels in the rendered image (see [Show radiance plot](md_doc_model_preview.html#show-radiance-plot-control) control). </li></ul>
+
+ `--no-eds-tex`
+<ul style="list-style-type: none;"><li> Don't compute/save eclipsed double scattering textures. The model generated with this option will only be able to render eclipsed atmosphere's double scattering radiance on the fly. </li></ul>
+
+### Debugging options
+
+These options are not useful for a normal user, they are used by developers.
+
+ `--no-save-tex`
+<ul style="list-style-type: none;"><li> Don't save textures, only save shaders and other fast-to-compute data. Also don't run the long 4D textures computations. This option is useful when you edit a shader template and want to regenerate the shaders without recomputing the textures. Note that some changes may actually affect texture data, use with caution. </li></ul>
+
+ `--opengl-debug`
+<ul style="list-style-type: none;"><li> Install a GL_KHR_debug message callback and print all the messages from OpenGL. </li></ul>
+
+ `--opengl-debug-full`
+<ul style="list-style-type: none;"><li> Like --opengl-debug, but don't hide notification-level messages. </li></ul>
+
+ `--save-irradiance`
+<ul style="list-style-type: none;"><li> Save intermediate ground irradiance textures. </li></ul>
+
+ `--save-scat-density2-from-ground`
+<ul style="list-style-type: none;"><li> Save order 2 scattering density from ground. </li></ul>
+
+ `--save-scat-density`
+<ul style="list-style-type: none;"><li> Save scattering density textures. </li></ul>
+
+ `--save-delta-scattering`
+<ul style="list-style-type: none;"><li> Save delta scattering textures for each order. </li></ul>
+
+ `--save-accum-scattering`
+<ul style="list-style-type: none;"><li> Save accumulated multiple scattering textures for each order. </li></ul>
+
+ `--save-light-pollution`
+<ul style="list-style-type: none;"><li> Save intermediate light pollution textures. </li></ul>
+
 ## Format of model description file
 
 Model description files consist of entries that represent key-value pairs. Empty lines between entries are ignored, and "#" character starts comments. Single-line entries can also be followed by a comment in the same line.
