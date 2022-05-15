@@ -11,9 +11,9 @@ This utility has some options that can be listed by running it with `--help` opt
 ## Invocation of `calcmysky`
 
 Generally the command line of `calcmysky` utility looks as
-
-    calcmysky [OPTION]... atmosphere-description.atmo --out-dir /path/to/output/dir
-
+```
+calcmysky [OPTION]... atmosphere-description.atmo --out-dir /path/to/output/dir
+```
 ### Command-line options
 
 <!-- The ul trickery here is to provide indentation of the text -->
