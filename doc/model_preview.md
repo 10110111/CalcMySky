@@ -137,31 +137,45 @@ This option has sub-options corresponding to each separate single scattering lay
 This layer contains radiance from scattering orders higher than 1, and additionally the first-order scattering by the species whose phase function was marked as smooth (see [<code>phase function type</code> parameter](model-generation.html#phase-function-type) in atmosphere description file).
 
 ### Light pollution luminance
-<span style="background-color: red;">TODO</span>: write this section
+
+Luminance of the ground that results in light pollution. Set to zero to remove light pollution from the scene.
 
 ### <a name="solar-spectrum-control">Solar spectrum</a>
 <span style="background-color: red;">TODO</span>: write this section
 
 ### Texture filtering
-<span style="background-color: red;">TODO</span>: write this section
+
+This is a debugging option. Normally all the textures are linearly interpolated when sampling. If this option is disabled, zero-order interpolation is used.
 
 ### Compute single scattering on the fly
-<span style="background-color: red;">TODO</span>: write this section
+
+Compute first-order scattering radiance of each pixel on the fly instead of using precomputed textures. Increases quality, but reduces performance.
 
 ### Precompute double(-only) scattering on the fly
-<span style="background-color: red;">TODO</span>: write this section
+
+This option is only used with eclipse shaders. It's only available when double scattering textures are available (see [<code>--no-eds-tex</code> option](model-generation.html#no-eds-tex-option) for `calcmysky`).
+
+When this option is enabled, double scattering is computed on the fly instead of using precomputed textures. If the textures are not available, it's always enabled.
 
 ### Use eclipse-mode shaders
-<span style="background-color: red;">TODO</span>: write this section
+
+Normal sky, when the Moon doesn't block the Sun, can be rendered using much more performant shaders and with higher quality (i.e. including third- and higher-order scattering radiance). But when the Moon does block the Sun, we have to resort to a more general model, which takes into account relative positions of the Sun and the Moon and simulates solar eclipse. This model only supports first- and second-order scattering, because it's a very expensive computation.
+
+This option lets one use the shaders that can simulate eclipse instead of the default ones that work with normal sky.
 
 ### Pseudo-mirror sky in the ground
-<span style="background-color: red;">TODO</span>: write this section
+
+Some applications like [Stellarium](https://stellarium.org/) (for which this project was initially created) don't want to display ground in any way, and instead they show the sky colors there.
+
+This option enables a kind of mirror image of the sky instead of the ground (it isn't physically a simulation of a mirror).
 
 ### Reload shaders
-<span style="background-color: red;">TODO</span>: write this section
+
+This is a debugging command. It reloads all textures in the current model. Useful with [<code>--no-save-tex</code> option](model-generation.html#no-save-tex-option) of `calcmysky`.
 
 ### <a name="show-radiance-plot-control">Show radiance plot</a>
 <span style="background-color: red;">TODO</span>: write this section
 
 ### Window decoration and status bar
-<span style="background-color: red;">TODO</span>: write this section
+
+Sometimes it's useful to have a bare window, without any controls, just an image. For example, when comparing the rendering with a photograph. Tools widget can be simply undocked, while status bar and window decoration (i.e. borders and title bar) need some way to be hidden. This option lets the user hide this GUI frame.
