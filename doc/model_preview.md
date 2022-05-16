@@ -179,7 +179,12 @@ This option enables a kind of mirror image of the sky instead of the ground (it 
 This is a debugging command. It reloads all textures in the current model. Useful with [<code>\--no-save-tex</code> option](model-generation.html#no-save-tex-option) of `calcmysky`.
 
 ### <a name="show-radiance-plot-control">Show radiance plot</a>
-<span style="background-color: red;">TODO</span>: write this section
+
+When the model has radiance textures (see [<code>\--radiance</code> option](model-generation.html#radiance-option) for `calcmysky`), this command opens (or brings to the front) the window that shows a plot of spectral radiance.
+
+This windows lets one examine simulated spectral radiance of any pixel in the scene. Just click the interesting pixel after opening the _Spectral radiance_ window to see the spectral radiance.
+
+In addition, luminance computed from this spectrum is displayed in the top-right corner of the Spectral radiance window.
 
 ### Window decoration and status bar
 
