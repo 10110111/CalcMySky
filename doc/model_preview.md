@@ -153,7 +153,7 @@ Compute first-order scattering radiance of each pixel on the fly instead of usin
 
 ### Precompute double(-only) scattering on the fly
 
-This option is only used with eclipse shaders. It's only available when double scattering textures are available (see [<code>--no-eds-tex</code> option](model-generation.html#no-eds-tex-option) for `calcmysky`).
+This option is only used with eclipse shaders. It's only available when double scattering textures are available (see [<code>\--no-eds-tex</code> option](model-generation.html#no-eds-tex-option) for `calcmysky`).
 
 When this option is enabled, double scattering is computed on the fly instead of using precomputed textures. If the textures are not available, it's always enabled.
 
@@ -171,7 +171,7 @@ This option enables a kind of mirror image of the sky instead of the ground (it 
 
 ### Reload shaders
 
-This is a debugging command. It reloads all textures in the current model. Useful with [<code>--no-save-tex</code> option](model-generation.html#no-save-tex-option) of `calcmysky`.
+This is a debugging command. It reloads all textures in the current model. Useful with [<code>\--no-save-tex</code> option](model-generation.html#no-save-tex-option) of `calcmysky`.
 
 ### <a name="show-radiance-plot-control">Show radiance plot</a>
 <span style="background-color: red;">TODO</span>: write this section
