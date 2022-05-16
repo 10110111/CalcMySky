@@ -1,6 +1,6 @@
 # Installation {#installation}
 
-## Linux
+## <a name="linux">Linux</a>
 
 Several packages are required to build CalcMySky.
 
@@ -28,7 +28,7 @@ To install (by default into `/usr/local`), issue
 sudo make install
 ```
 
-## Windows
+## <a name="windows">Windows</a>
 
 <span style="background-color: orange;">WARNING</span>: these instructions haven't been tested. The actual Windows builds were done via AppVeyor, using `.appveyor.yml` script in the root of the `CalcMySky` source tree.
 
