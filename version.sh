@@ -1,13 +1,25 @@
 #!/bin/sh -e
 
-if [ $# -ne 3 ]; then
-	echo "Usage: $0 staticVersion inputFile outputFile" >&2
-	exit 1
+usage()
+{
+    echo "Usage: $0 staticVersion inputFile outputFile [--always-overwrite]" >&2
+    exit 1
+}
+
+if [ $# -ne 3 ] && [ $# -ne 4 ]; then
+    usage
 fi
 
 staticVersion="$1"
 inputFile="$2"
 outputFile="$3"
+if [ "$4" = "--always-overwrite" ]; then
+    alwaysOverwrite=true
+elif [ -z "$4" ]; then
+    alwaysOverwrite=false
+else
+    usage
+fi
 
 cd $(dirname "$0")
 if ! [ -d .git ]; then
@@ -24,6 +36,6 @@ if [ -z "$ver" ]; then
     ver="$staticVersion"
 fi
 cd - >/dev/null
-if ! [ -e "$outputFile" ] || ! grep -q "\"$ver\"" "$outputFile"; then
+if $alwaysOverwrite || ! [ -e "$outputFile" ] || ! grep -q "\"$ver\"" "$outputFile"; then
 	sed -e "s@%\<PROJECT_VERSION\>%@\"${ver}\"@" "$inputFile" > "$outputFile"
 fi
