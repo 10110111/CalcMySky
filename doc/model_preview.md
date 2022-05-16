@@ -141,7 +141,12 @@ This layer contains radiance from scattering orders higher than 1, and additiona
 Luminance of the ground that results in light pollution. Set to zero to remove light pollution from the scene.
 
 ### <a name="solar-spectrum-control">Solar spectrum</a>
-<span style="background-color: red;">TODO</span>: write this section
+
+When the model has radiance textures (see [<code>\--radiance</code> option](model-generation.html#radiance-option) for `calcmysky`), this setting lets one replace the solar spectrum with another. The options are:
+
+ * Precomputed (default) — the spectrum that was specified by [<code>solar irradiance at TOA</code>](model-generation.html#solar-irradiance-at-toa) in the atmosphere description file;
+ * Flat \f$1\,\mathrm{W/m^2/nm}\f$ — just a constant spectral power density, useful to separate the effect of the atmosphere from the structure of solar spectrum;
+ * Black body — choosing this option adds a spinbox that lets one choose the temperature of a black body that will replace the Sun. Default temperature in this spinbox is the effective temperature of the (real-world) solar photosphere.
 
 ### Texture filtering
 

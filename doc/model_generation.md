@@ -27,7 +27,7 @@ calcmysky [OPTION]... atmosphere-description.atmo --out-dir /path/to/output/dir
  `--out-dir <output directory>`
 <ul style="list-style-type: none;"><li> Set directory for the model generated. This is a mandatory option. </li></ul>
 
- `--radiance`
+<a name="radiance-option"> `--radiance` </a>
 <ul style="list-style-type: none;"><li> Save result as radiance instead of XYZW components. This lets the user change solar spectrum on the fly (see [Solar spectrum](model-preview.html#solar-spectrum-control) control in the previewer), as well as examine spectral radiance of the pixels in the rendered image (see [Show radiance plot](model-preview.html#show-radiance-plot-control) control). </li></ul>
 
 <a name="no-eds-tex-option"> `--no-eds-tex` </a>
@@ -213,7 +213,7 @@ After radiance is obtained, to be displayed on a screen it needs to be converted
 
 Scattering textures are stored as either spectral radiance (when requested by `--radiance` option for `calcmysky`), or as \f$XYZW\f$ luminance. \f$XYZ\f$ here are the CIE 1931 tristimulus values, and \f$W\f$ is the scotopic luminance.
 
-### `solar irradiance at TOA`
+### <a name="solar-irradiance-at-toa">`solar irradiance at TOA`</a>
 
 This entry is a [spectrum](#spectra). It defines spectral irradiance in \f$\mathrm{\frac W{m^2 nm}}\f$ as it would be measured at the TOA when the Sun is at zenith.
 
