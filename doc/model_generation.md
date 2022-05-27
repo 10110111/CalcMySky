@@ -234,7 +234,7 @@ This entry is a [section](#sections). Its name is formed as `Scatterer` keyword 
 This entry is a [code block](#code-blocks). It defines number density of the scatterer being described in the current section. This code block is used as the implementation of a GLSL function that has a `float` parameter called `altitude`, with a value in meters, and returns a `float` value of number density in \f$\mathrm m^{-3}\f$.
 
 #### `phase function`
-This entry is a [code block](#code-blocks). It takes a `float` parameter called `dotViewSun`, and returns `vec4` relative intensity, where each component of `vec4` corresponds to wavelength in corresponding component of the global `vec4` variable `wavelengths`.
+This entry is a [code block](#code-blocks) that computes the [phase function](single-multiple-scattering.html#phase-function) of the current scatterer. It takes a `float` parameter called `dotViewSun`, and returns `vec4` relative intensity, where each component of `vec4` corresponds to wavelength in corresponding component of the global `vec4` variable `wavelengths`.
 
 Mathematically, the parameter is cosine of the angle between the incoming ray and the scattered ray. Each component of the output `vec4` (let's call \f$ i\f$th component \f$f_i\f$) must be normalized by the following condition:
 

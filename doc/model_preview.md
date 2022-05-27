@@ -134,7 +134,7 @@ This option has sub-options corresponding to each separate single scattering lay
 
 ### Draw multiple scattering layer
 
-This layer contains radiance from scattering orders higher than 1, and additionally the first-order scattering by the species whose phase function was marked as smooth (see [<code>phase function type</code> parameter](model-generation.html#phase-function-type) in atmosphere description file).
+This layer contains radiance from scattering orders higher than 1, and additionally the first-order scattering by the species whose [phase function](single-multiple-scattering.html#phase-function) was marked as smooth (see [<code>phase function type</code> parameter](model-generation.html#phase-function-type) in atmosphere description file).
 
 ### Light pollution luminance
 
