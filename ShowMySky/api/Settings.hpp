@@ -125,7 +125,7 @@ public:
     /**
      * \brief Whether to mirror the sky instead of rendering the ground.
      *
-     * Eclipse wants to show sky-like colors instead of the ground, this option controls whether this is enabled.
+     * Stellarium wants to show sky-like colors instead of the ground, this option controls whether this is enabled.
      *
      * \returns Whether to mirror the sky instead of rendering the ground.
      */
