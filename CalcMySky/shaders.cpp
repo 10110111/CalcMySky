@@ -108,7 +108,7 @@ vec4 opticalDepthToAtmosphereBorder_##agentSpecies(float altitude, float cosZeni
     {
         const float dist=(n+0.5)*dl;
         /* From law of cosines: r₂²=r₁²+l²+2r₁lμ */
-        const float currAlt=-R+sqrt(sqr(r1)+sqr(dist)+2*r1*dist*mu);
+        const float currAlt=-R+safeSqrt(sqr(r1)+sqr(dist)+2*r1*dist*mu);
         sum+=agent##NumberDensity_##agentSpecies(currAlt);
     }
     return sum*dl*crossSection;
