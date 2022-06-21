@@ -107,6 +107,15 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         throw MustQuit{};
     }
 
+    for(size_t i = 0; i < subpixelCount; ++i)
+    {
+        if(std::isnan(subpixels[i]))
+        {
+            std::cerr << "NaN entries detected while saving " << name << "\n";
+            throw MustQuit{};
+        }
+    }
+
     QFile out(QByteArray::fromRawData(path.data(), path.size()));
     if(!out.open(QFile::WriteOnly))
     {
