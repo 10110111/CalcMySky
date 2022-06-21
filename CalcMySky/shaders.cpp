@@ -101,15 +101,13 @@ vec4 opticalDepthToAtmosphereBorder_##agentSpecies(float altitude, float cosZeni
     const float r1=R+altitude;
     const float l=integrInterval;
     const float mu=cosZenithAngle;
-    /* From law of cosines: r₂²=r₁²+l²+2r₁lμ */
-    const float endAltitude=-R+sqrt(sqr(r1)+sqr(l)+2*r1*l*mu);
-
     // Using midpoint rule for quadrature
     const float dl=integrInterval/numTransmittanceIntegrationPoints;
     float sum=0;
     for(int n=0;n<numTransmittanceIntegrationPoints;++n)
     {
         const float dist=(n+0.5)*dl;
+        /* From law of cosines: r₂²=r₁²+l²+2r₁lμ */
         const float currAlt=-R+sqrt(sqr(r1)+sqr(dist)+2*r1*dist*mu);
         sum+=agent##NumberDensity_##agentSpecies(currAlt);
     }
