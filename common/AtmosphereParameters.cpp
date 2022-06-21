@@ -508,7 +508,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
         else if(key=="eclipsed double scattering number of elevation pairs to sample")
             eclipsedDoubleScatteringNumberOfElevationPairsToSample=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
-            earthRadius=getQuantity(value,1e5,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
+            earthRadius=getQuantity(value,1e-3,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
             atmosphereHeight=getQuantity(value,1,1e6,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="earth-sun distance")
