@@ -116,7 +116,7 @@ float cosSZAToUnitRangeTexCoord(const float cosSunZenithAngle)
     // TODO: choose a more descriptive name
     const float a=(distFromGroundToTopAtmoBorder-distMin)/(distMax-distMin);
     // TODO: choose a more descriptive name
-    const float A=earthRadius/(distMax-distMin);
+    const float A=2*earthRadius/(distMax-distMin);
     return max(0.,1-a/A)/(a+1);
 }
 
@@ -125,7 +125,7 @@ float unitRangeTexCoordToCosSZA(const float texCoord)
     const float distMin=atmosphereHeight;
     const float distMax=LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_BORDER_OF_ATMO;
     // TODO: choose a more descriptive name, same as in cosSZAToUnitRangeTexCoord()
-    const float A=earthRadius/(distMax-distMin);
+    const float A=2*earthRadius/(distMax-distMin);
     // TODO: choose a more descriptive name, same as in cosSZAToUnitRangeTexCoord()
     const float a=(A-A*texCoord)/(1+A*texCoord);
     const float distFromGroundToTopAtmoBorder=distMin+min(a,A)*(distMax-distMin);
