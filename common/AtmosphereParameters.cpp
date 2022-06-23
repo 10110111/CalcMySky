@@ -549,7 +549,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
         else if(key.contains(absorberDescriptionKey))
             absorbers.emplace_back(parseAbsorber(*this, skipSpectra, stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
         else if(key=="scattering orders")
-            scatteringOrdersToCompute=getQuantity(value,1,100, DimensionlessQuantity{},atmoDescrFileName,lineNumber);
+            scatteringOrdersToCompute=getQuantity(value,1,INT_MAX, DimensionlessQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="ground albedo")
         {
             if(!skipSpectra)
