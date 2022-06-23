@@ -182,7 +182,7 @@ This is a debugging command. It reloads all textures in the current model. Usefu
 
 When the model has radiance textures (see [<code>\--radiance</code> option](model-generation.html#radiance-option) for `calcmysky`), this command opens (or brings to the front) the window that shows a plot of spectral radiance.
 
-This windows lets one examine simulated spectral radiance of any pixel in the scene. Just click the interesting pixel after opening the _Spectral radiance_ window to see the spectral radiance.
+This window lets one examine simulated spectral radiance of any pixel in the scene. Just click the interesting pixel after opening the _Spectral radiance_ window to see the spectral radiance.
 
 In addition, luminance computed from this spectrum is displayed in the top-right corner of the Spectral radiance window.
 
