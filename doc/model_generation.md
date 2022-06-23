@@ -98,7 +98,7 @@ There are several ways to specify a spectrum:
 ```
     solar irradiance at TOA: 1.037, 1.249, 1.684, 1.975, 1.968, 1.877, 1.854, 1.818, 1.723, 1.604, 1.516, 1.408, 1.309, 1.23, 1.142, 1.062
 ```
-2. A file path prepended with `"file "`. Here the spectrum may be sampled at any points, it will be resampled to match `wavelengths` automatically. Example:
+2. A file path prepended with `"file "`. The format is described in [Spectrum file format](#spectrum-format) section. Here the spectrum may be sampled at any points, it will be resampled to match `wavelengths` automatically. Example:
 ```
     solar irradiance at TOA: file spectra/solar-irradiance-at-toa.csv
 ```
@@ -106,6 +106,18 @@ There are several ways to specify a spectrum:
 ```
     ground albedo: weighted file 0.8 spectra/ground-albedo-grass.csv
     ground albedo: weighted file 0.2 spectra/ground-albedo-snow.csv
+```
+
+### <a name="spectrum-format">Spectrum file format</a>
+
+Spectrum files are CSV (Comma-Separated Values) tables with two columns. Each line corresponds to one spectral point: first column specifies wavelength in nanometers, second column holds value. Empty lines are ignored.
+
+Example of a spectrum from \f$400\,\mathrm{nm}\f$ to \f$700\,\mathrm{nm}\f$ with \f$100\,\mathrm{nm}\f$ interval:
+```
+400,0.2342
+500,0.8134
+600,0.478
+700,1.235
 ```
 
 ### <a name="sections">Sections</a>
