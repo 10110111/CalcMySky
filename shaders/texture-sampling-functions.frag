@@ -23,7 +23,12 @@ vec4 irradiance(const float cosSunZenithAngle, const float altitude)
 vec4 opticalDepthToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
 {
     const vec2 texCoords=transmittanceTexVarsToTexCoord(cosViewZenithAngle, altitude);
-    return texture(transmittanceTexture, texCoords);
+    // We don't use mip mapping here, but for some reason, on my NVidia GTX 750 Ti with Linux-x86 driver 390.116 I get
+    // an artifact when looking into nadir from TOA at some values of texture sizes (in particular, size of
+    // transmittance texture for altitude being 4096). This happens when I simply call texture(eclipsedScatteringTexture,
+    // texCoords) without specifying LOD.
+    // Apparently, the driver uses the derivative for some reason, even though it shouldn't.
+    return textureLod(transmittanceTexture, texCoords, 0);
 }
 
 vec4 transmittanceToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
