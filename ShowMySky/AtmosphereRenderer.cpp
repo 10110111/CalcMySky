@@ -1291,9 +1291,9 @@ void AtmosphereRenderer::prepareRadianceFrames(const bool clear)
 
 bool AtmosphereRenderer::canGrabRadiance() const
 {
-    const auto& sst=singleScatteringTextures_;
-    const bool haveNoLuminanceOnlySingleScatteringTextures = std::find_if(sst.begin(), sst.end(), [=](auto const& texSet)
-                                                                          { return texSet.second.size()==1; }) == sst.end();
+    const bool haveNoLuminanceOnlySingleScatteringTextures =
+        std::find_if(params_.scatterers.begin(), params_.scatterers.end(), [=](auto const& scatterer)
+                     { return scatterer.phaseFunctionType==PhaseFunctionType::Achromatic; }) == params_.scatterers.end();
     return haveNoLuminanceOnlySingleScatteringTextures && multipleScatteringTextures_.size()==params_.allWavelengths.size();
 }
 
