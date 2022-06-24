@@ -592,14 +592,19 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE   ,0,"transmittanceTexture");
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_DELTA_IRRADIANCE,1,"irradianceTexture");
 
-    render3DTexLayers(*program, "Computing scattering density layers for radiation from the ground");
-
-    if(opts.dbgSaveScatDensityOrder2FromGround)
+    // Scattering density is only used to compute multiple scattering at the following stages.
+    // If multiple scattering is not requested, don't take the time needlessly.
+    if(atmo.scatteringOrdersToCompute >= 2)
     {
-        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
-                    "order 2 scattering density from ground texture",
-                    atmo.textureOutputDir+"/scattering-density2-from-ground-wlset"+std::to_string(texIndex)+".f32",
-                    {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
+        render3DTexLayers(*program, "Computing scattering density layers for radiation from the ground");
+
+        if(opts.dbgSaveScatDensityOrder2FromGround)
+        {
+            saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING_DENSITY],
+                        "order 2 scattering density from ground texture",
+                        atmo.textureOutputDir+"/scattering-density2-from-ground-wlset"+std::to_string(texIndex)+".f32",
+                        {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
+        }
     }
 
     gl.glBlendFunc(GL_ONE, GL_ONE);
@@ -627,7 +632,12 @@ void computeScatteringDensityOrder2(const unsigned texIndex)
         setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,1,"firstScatteringTexture");
 
         gl.glEnable(GL_BLEND);
-        render3DTexLayers(*program, "Computing scattering density layers");
+        // Scattering density is only used to compute multiple scattering at the following stages.
+        // If multiple scattering is not requested, don't take the time needlessly.
+        if(atmo.scatteringOrdersToCompute >= 2)
+        {
+            render3DTexLayers(*program, "Computing scattering density layers");
+        }
 
         // Disables blending before returning
         computeIndirectIrradianceOrder1(texIndex, scattererIndex);
@@ -836,7 +846,10 @@ void computeMultipleScattering(const unsigned texIndex)
         OutputIndentIncrease incr;
 
         computeScatteringDensityOrder2(texIndex);
-        computeMultipleScatteringFromDensity(2,texIndex);
+        if(atmo.scatteringOrdersToCompute >= 2)
+        {
+            computeMultipleScatteringFromDensity(2,texIndex);
+        }
     }
     saveEclipsedDoubleScatteringRenderingShader(texIndex);
     for(unsigned scatteringOrder=3; scatteringOrder<=atmo.scatteringOrdersToCompute; ++scatteringOrder)
