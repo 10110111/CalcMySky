@@ -559,7 +559,7 @@ void computeSingleScattering(const unsigned texIndex, AtmosphereParameters::Scat
 }
 
 void computeIndirectIrradianceOrder1(unsigned texIndex, unsigned scattererIndex);
-void computeScatteringDensityOrder2(const unsigned texIndex)
+void computeScatteringOrder1AndScatteringDensityOrder2(const unsigned texIndex)
 {
     constexpr unsigned scatteringOrder=2;
 
@@ -845,7 +845,7 @@ void computeMultipleScattering(const unsigned texIndex)
         std::cerr << indentOutput() << "Working on scattering orders 1 and 2:\n";
         OutputIndentIncrease incr;
 
-        computeScatteringDensityOrder2(texIndex);
+        computeScatteringOrder1AndScatteringDensityOrder2(texIndex);
         if(atmo.scatteringOrdersToCompute >= 2)
         {
             computeMultipleScatteringFromDensity(2,texIndex);
