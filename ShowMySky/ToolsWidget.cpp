@@ -79,6 +79,21 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     moonElevation_= addManipulator(layout, this, tr("Moon &elevation"),  -90,  90, 41, 3, QChar(0x00b0));
     moonAzimuth_  = addManipulator(layout, this, tr("Moon azim&uth"),   -180, 180,  0, 3, QChar(0x00b0));
     earthMoonDistance_ = addManipulator(layout, this, tr("Earth-Moon distance"), 300e3, 1e6,  371925, 0, u8"\u202fkm");
+    {
+        projection_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        projection_->addItem(tr("Equirectangular"));
+        projection_->addItem(tr("Perspective"));
+        projection_->setCurrentIndex(static_cast<int>(GLWidget::Projection::Equirectangular));
+        connect(projection_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](const int index)
+                { emit projectionChanged(static_cast<GLWidget::Projection>(index)); });
+        const auto hbox=new QHBoxLayout;
+        const auto label=new QLabel(tr("Pro&jection"));
+        label->setBuddy(projection_);
+        hbox->addWidget(label);
+        hbox->addWidget(projection_);
+        projection_->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
+        layout->addLayout(hbox);
+    }
     zoomFactor_   = addManipulator(layout, this, tr("&Zoom"), 1, 1e4, 1, 1, "", true);
     cameraPitch_  = addManipulator(layout, this, tr("Camera pitch"), -90, 90, 0, 2, QChar(0x00b0));
     cameraYaw_    = addManipulator(layout, this, tr("Camera yaw")  ,-180,180, 0, 2, QChar(0x00b0));

@@ -13,6 +13,14 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
 {
     Q_OBJECT
 
+public:
+    enum class Projection
+    {
+        Equirectangular,
+        Perspective,
+    };
+
+private:
     std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
     std::unique_ptr<QOpenGLShaderProgram> glareProgram_;
@@ -24,6 +32,7 @@ class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
     GLuint vao_=0, vbo_=0;
     QPoint lastRadianceCapturePosition{-1,-1};
     decltype(::ShowMySky_AtmosphereRenderer_create)* ShowMySky_AtmosphereRenderer_create=nullptr;
+    Projection currentProjection_ = Projection::Equirectangular;
 
     enum class DragMode
     {
@@ -47,7 +56,6 @@ public:
         Bayer,                      //!< Ordered dithering using Bayer threshold texture
         BlueNoiseTriangleRemapped,  //!< Unordered dithering using blue noise of amplitude 1.0, with triangular remapping
     };
-
 public:
     explicit GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* parent=nullptr);
     ~GLWidget();
@@ -78,6 +86,7 @@ private:
     void resetSolarSpectrum();
     void setBlackBodySolarSpectrum(double temperature);
     void saveScreenshot();
+    Projection currentProjection() const { return currentProjection_; }
 
 signals:
     void frameFinished(long long timeInUS);

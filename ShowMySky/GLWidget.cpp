@@ -171,6 +171,8 @@ void GLWidget::initializeGL()
                 const auto camYaw=glm::rotate(yaw, glm::vec3(0,0,1));
                 const auto camPitch=glm::rotate(pitch, glm::vec3(0,-1,0));
                 program.setUniformValue("cameraRotation", toQMatrix(camYaw*camPitch));
+                program.setUniformValue("viewportAspectRatio", float(width())/float(height()));
+                program.setUniformValue("projection", static_cast<int>(currentProjection()));
             }
             glBindVertexArray(vao_);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -179,6 +181,8 @@ void GLWidget::initializeGL()
         renderer.reset(ShowMySky_AtmosphereRenderer_create(this,&pathToData,tools,&drawSurface));
         tools->updateParameters(static_cast<AtmosphereRenderer*>(renderer.get())->atmosphereParameters());
         connect(tools, &ToolsWidget::settingChanged, this, qOverload<>(&GLWidget::update));
+        connect(tools, &ToolsWidget::projectionChanged, this, [this](const Projection newProjection)
+                { currentProjection_ = newProjection; update(); });
         connect(tools, &ToolsWidget::ditheringMethodChanged, this, [this]
                 { makeDitherPatternTexture(); update(); });
         connect(tools, &ToolsWidget::setScattererEnabled, this, [this,renderer=renderer.get()](QString const& name, const bool enable)
@@ -350,13 +354,32 @@ void main()
 in vec3 position;
 uniform float zoomFactor;
 uniform mat3 cameraRotation;
+uniform float viewportAspectRatio;
+
+uniform int projection;
+// These values must match the entries in the Projection enum
+#define PROJ_EQUIRECTANGULAR 0
+#define PROJ_PERSPECTIVE 1
+
 const float PI=3.1415926535897932;
 vec3 calcViewDir()
 {
     vec2 pos=position.xy/zoomFactor;
-    return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
-                               sin(pos.x*PI)*cos(pos.y*(PI/2)),
-                               sin(pos.y*(PI/2)));
+    if(projection==PROJ_EQUIRECTANGULAR)
+    {
+        return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
+                                   sin(pos.x*PI)*cos(pos.y*(PI/2)),
+                                   sin(pos.y*(PI/2)));
+    }
+    else if(projection==PROJ_PERSPECTIVE)
+    {
+        const float horizViewAngle = 120*PI/180;
+        const float camDistToScreen = 0.5 * tan(horizViewAngle);
+        pos.y /= viewportAspectRatio;
+        return cameraRotation * normalize(vec3(-camDistToScreen, pos));
+    }
+
+    return vec3(0);
 }
 )";
         renderer->initDataLoading(viewDirVertShaderSrc, viewDirFragShaderSrc);
