@@ -360,6 +360,7 @@ uniform int projection;
 // These values must match the entries in the Projection enum
 #define PROJ_EQUIRECTANGULAR 0
 #define PROJ_PERSPECTIVE 1
+#define PROJ_FISHEYE 2
 
 const float PI=3.1415926535897932;
 vec3 calcViewDir()
@@ -377,6 +378,16 @@ vec3 calcViewDir()
         const float camDistToScreen = 0.5 * tan(horizViewAngle);
         pos.y /= viewportAspectRatio;
         return cameraRotation * normalize(vec3(-camDistToScreen, pos));
+    }
+    else if(projection==PROJ_FISHEYE)
+    {
+        const float thetaMax=PI;
+        float r=length(pos.xy);
+        float theta=r*thetaMax;
+        float phi = PI - atan(pos.x,pos.y);
+        return cameraRotation*vec3(cos(phi)*sin(theta),
+                                   sin(phi)*sin(theta),
+                                            cos(theta));
     }
 
     return vec3(0);

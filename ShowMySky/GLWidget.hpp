@@ -18,6 +18,7 @@ public:
     {
         Equirectangular,
         Perspective,
+        Fisheye,
     };
 
 private:

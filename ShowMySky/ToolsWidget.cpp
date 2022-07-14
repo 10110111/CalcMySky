@@ -83,6 +83,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         projection_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
         projection_->addItem(tr("Equirectangular"));
         projection_->addItem(tr("Perspective"));
+        projection_->addItem(tr("Fisheye"));
         projection_->setCurrentIndex(static_cast<int>(GLWidget::Projection::Equirectangular));
         connect(projection_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](const int index)
                 { emit projectionChanged(static_cast<GLWidget::Projection>(index)); });
