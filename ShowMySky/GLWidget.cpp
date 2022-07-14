@@ -384,6 +384,8 @@ vec3 calcViewDir()
         const float thetaMax=PI;
         float r=length(pos.xy);
         float theta=r*thetaMax;
+        if(theta > thetaMax)
+            return vec3(0);
         float phi = PI - atan(pos.x,pos.y);
         return cameraRotation*vec3(cos(phi)*sin(theta),
                                    sin(phi)*sin(theta),

@@ -35,6 +35,8 @@ vec4 solarRadiance()
 void main()
 {
     vec3 viewDir=calcViewDir();
+    if(length(viewDir) == 0)
+        discard;
 
     // NOTE: we simply clamp negative altitudes to zero (otherwise the model will break down). This is not
     // quite correct physically: there are places with negative elevation above sea level. But the error of
