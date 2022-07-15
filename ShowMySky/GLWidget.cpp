@@ -211,6 +211,7 @@ uniform int colorMode;
 #define COLMOD_XYZ_CHROMATICITY 3
 #define COLMOD_SRGBL_CHROMATICITY 4
 #define COLMOD_SRGBL_CHROMATICITY_TO_MAX 5
+#define COLMOD_HUE 6
 
 in vec2 texCoord;
 out vec4 color;
@@ -315,6 +316,14 @@ void main()
         vec3 rgb=XYZ2sRGBl*tex.xyz;
         float maxValue = max(rgb.r, max(rgb.g, rgb.b));
         smoothColorOutput = sRGBTransferFunction(rgb / maxValue);
+    }
+    else if(colorMode == COLMOD_HUE)
+    {
+        vec3 rgb=XYZ2sRGBl*tex.xyz;
+        float minValue = min(rgb.r, min(rgb.g, rgb.b));
+        vec3 saturated = rgb - minValue;
+        float maxValue = max(saturated.r, max(saturated.g, saturated.b));
+        smoothColorOutput = sRGBTransferFunction(saturated / maxValue);
     }
     else
         smoothColorOutput = vec3(1,0,1);
