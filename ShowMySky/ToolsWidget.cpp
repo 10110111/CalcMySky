@@ -128,6 +128,26 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         ditheringMode_->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
         layout->addLayout(hbox);
     }
+    {
+        colorMode_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        colorMode_->addItem(tr("sRGB"));
+        colorMode_->addItem(tr("Scotopic luminance"));
+        colorMode_->addItem(tr("Photopic luminance"));
+        colorMode_->addItem(tr("XYZ chromaticity"));
+        colorMode_->addItem(tr("sRGBl chromaticity (smooth)"));
+        colorMode_->addItem(tr("sRGBl chromaticity (bright)"));
+
+        colorMode_->setCurrentIndex(static_cast<int>(GLWidget::ColorMode::sRGB));
+        connect(colorMode_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](const int index)
+                { emit colorModeChanged(static_cast<GLWidget::ColorMode>(index)); });
+        const auto hbox=new QHBoxLayout;
+        const auto label=new QLabel(tr("Color mode"));
+        label->setBuddy(colorMode_);
+        hbox->addWidget(label);
+        hbox->addWidget(colorMode_);
+        colorMode_->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
+        layout->addLayout(hbox);
+    }
     gradualClippingEnabled_ = addCheckBox(layout, this, tr("&Gradual color clipping"), true);
     glareEnabled_ = addCheckBox(layout, this, tr("Glare (visual only)"), false);
     zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw zer&o-order scattering layer"), true);

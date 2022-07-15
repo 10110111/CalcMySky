@@ -24,6 +24,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QComboBox* ditheringMethod_=new QComboBox;
     QComboBox* solarSpectrumMode_=new QComboBox;
     QComboBox* projection_=new QComboBox;
+    QComboBox* colorMode_=new QComboBox;
     QDoubleSpinBox* solarSpectrumTemperature_=new QDoubleSpinBox;
     Manipulator* altitude_=nullptr;
     Manipulator* exposure_=nullptr;
@@ -105,6 +106,7 @@ signals:
     void setBlackBodySolarSpectrum(double temperature);
     void windowDecorationToggled(bool enabled);
     void projectionChanged(GLWidget::Projection);
+    void colorModeChanged(GLWidget::ColorMode);
 };
 
 #endif

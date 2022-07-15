@@ -183,6 +183,8 @@ void GLWidget::initializeGL()
         connect(tools, &ToolsWidget::settingChanged, this, qOverload<>(&GLWidget::update));
         connect(tools, &ToolsWidget::projectionChanged, this, [this](const Projection newProjection)
                 { currentProjection_ = newProjection; update(); });
+        connect(tools, &ToolsWidget::colorModeChanged, this, [this](const ColorMode newColorMode)
+                { currentColorMode_ = newColorMode; update(); });
         connect(tools, &ToolsWidget::ditheringMethodChanged, this, [this]
                 { makeDitherPatternTexture(); update(); });
         connect(tools, &ToolsWidget::setScattererEnabled, this, [this,renderer=renderer.get()](QString const& name, const bool enable)
@@ -201,6 +203,15 @@ void GLWidget::initializeGL()
 #version 330
 uniform float exposure;
 uniform sampler2D luminanceXYZW;
+
+uniform int colorMode;
+#define COLMOD_SRGB 0
+#define COLMOD_SCOTOPIC_LUMINANCE 1
+#define COLMOD_PHOTOPIC_LUMINANCE 2
+#define COLMOD_XYZ_CHROMATICITY 3
+#define COLMOD_SRGBL_CHROMATICITY 4
+#define COLMOD_SRGBL_CHROMATICITY_TO_MAX 5
+
 in vec2 texCoord;
 out vec4 color;
 
@@ -256,21 +267,64 @@ vec3 sRGBTransferFunction(const vec3 c)
     return step(0.0031308,c)*(1.055*pow(c, vec3(1/2.4))-0.055)+step(-0.0031308,-c)*12.92*c;
 }
 
+vec3 applyClipping(const vec3 c)
+{
+    return gradualClipping ? clip(c) : clamp(c, 0., 1.);
+}
+
+const mat3 XYZ2sRGBl=mat3(vec3(3.2406,-0.9689,0.0557),
+                          vec3(-1.5372,1.8758,-0.204),
+                          vec3(-0.4986,0.0415,1.057));
+vec3 XYZ2sRGB(const vec3 XYZ)
+{
+    vec3 rgb=XYZ2sRGBl*XYZ;
+    vec3 clippedRGB = applyClipping(rgb);
+    return sRGBTransferFunction(clippedRGB);
+}
+
+vec3 markOutOfRangeValues(const vec3 c)
+{
+    if(max(c.r, max(c.g, c.b)) > 1)
+        return vec3(mod(gl_FragCoord.x+gl_FragCoord.y, 5) > 2.5 ? 1 : 0);
+    if(max(c.r, max(c.g, c.b)) < 0)
+        return mod(gl_FragCoord.x+gl_FragCoord.y, 5) > 2.5 ? vec3(1,0,1) : vec3(0);
+    return c;
+}
+
 void main()
 {
-    vec3 XYZ=texture(luminanceXYZW, texCoord).xyz;
-    const mat3 XYZ2sRGBl=mat3(vec3(3.2406,-0.9689,0.0557),
-                              vec3(-1.5372,1.8758,-0.204),
-                              vec3(-0.4986,0.0415,1.057));
-    vec3 rgb=XYZ2sRGBl*XYZ*exposure;
-    vec3 clippedRGB = gradualClipping ? clip(rgb) : clamp(rgb, 0., 1.);
-    vec3 srgb=sRGBTransferFunction(clippedRGB);
+    vec4 tex=texture(luminanceXYZW, texCoord);
+
+    vec3 smoothColorOutput;
+    if(colorMode == COLMOD_SRGB)
+        smoothColorOutput = XYZ2sRGB(exposure * tex.xyz);
+    else if(colorMode == COLMOD_SCOTOPIC_LUMINANCE)
+        smoothColorOutput = applyClipping(vec3(exposure * tex.w));
+    else if(colorMode == COLMOD_PHOTOPIC_LUMINANCE)
+        smoothColorOutput = applyClipping(vec3(exposure * tex.y));
+    else if(colorMode == COLMOD_XYZ_CHROMATICITY)
+        smoothColorOutput = XYZ2sRGB(markOutOfRangeValues(exposure * tex.xyz / tex.y));
+    else if(colorMode == COLMOD_SRGBL_CHROMATICITY)
+    {
+        vec3 rgb=XYZ2sRGBl*tex.xyz;
+        float normCoef = (rgb.r + rgb.g + rgb.b);
+        smoothColorOutput = sRGBTransferFunction(markOutOfRangeValues(exposure * rgb / normCoef));
+    }
+    else if(colorMode == COLMOD_SRGBL_CHROMATICITY_TO_MAX)
+    {
+        vec3 rgb=XYZ2sRGBl*tex.xyz;
+        float maxValue = max(rgb.r, max(rgb.g, rgb.b));
+        smoothColorOutput = sRGBTransferFunction(rgb / maxValue);
+    }
+    else
+        smoothColorOutput = vec3(1,0,1);
+
     if(ditheringMethod==DM_BAYER)
-        color=vec4(dither_Bayer(srgb),1);
+        color=vec4(dither_Bayer(smoothColorOutput),1);
     else if(ditheringMethod==DM_BLUE_TRIANG)
-        color=vec4(dither_BlueTriang(srgb),1);
+        color=vec4(dither_BlueTriang(smoothColorOutput),1);
     else if(ditheringMethod==DM_NONE)
-        color=vec4(srgb,1);
+        color=vec4(smoothColorOutput,1);
 }
 )").c_str());
         addShaderCode(*luminanceToScreenRGB_, QOpenGLShader::Vertex, tr("luminanceToScreenRGB vertex shader"), 1+R"(
@@ -513,6 +567,7 @@ void GLWidget::paintGL()
     luminanceToScreenRGB_->setUniformValue("ditheringMethod", static_cast<int>(tools->ditheringMethod()));
     luminanceToScreenRGB_->setUniformValue("gradualClipping", tools->gradualClippingEnabled());
     luminanceToScreenRGB_->setUniformValue("exposure", tools->exposure());
+    luminanceToScreenRGB_->setUniformValue("colorMode", static_cast<int>(currentColorMode()));
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
 

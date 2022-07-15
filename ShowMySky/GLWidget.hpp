@@ -20,6 +20,15 @@ public:
         Perspective,
         Fisheye,
     };
+    enum class ColorMode
+    {
+        sRGB,
+        ScotopicLuminance,
+        PhotopicLuminance,
+        XYZChromaticity,
+        sRGBlChromaticity,
+        sRGBlChromaticityToMax,
+    };
 
 private:
     std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
@@ -34,6 +43,7 @@ private:
     QPoint lastRadianceCapturePosition{-1,-1};
     decltype(::ShowMySky_AtmosphereRenderer_create)* ShowMySky_AtmosphereRenderer_create=nullptr;
     Projection currentProjection_ = Projection::Equirectangular;
+    ColorMode currentColorMode_ = ColorMode::sRGB;
 
     enum class DragMode
     {
@@ -88,6 +98,7 @@ private:
     void setBlackBodySolarSpectrum(double temperature);
     void saveScreenshot();
     Projection currentProjection() const { return currentProjection_; }
+    ColorMode  currentColorMode () const { return currentColorMode_; }
 
 signals:
     void frameFinished(long long timeInUS);
