@@ -4,6 +4,7 @@ add_executable(calcmysky
                 glinit.cpp
                 cmdline.cpp
                 shaders.cpp
+                interpolation-guides.cpp
                 ../common/Spectrum.cpp
                 ../common/AtmosphereParameters.cpp
                 ../common/EclipsedDoubleScatteringPrecomputer.cpp

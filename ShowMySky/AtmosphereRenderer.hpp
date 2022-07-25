@@ -94,6 +94,7 @@ private: // variables
     std::vector<TexturePtr> irradianceTextures_;
     std::vector<TexturePtr> lightPollutionTextures_;
     std::vector<GLuint> radianceRenderBuffers_;
+    std::map<ScattererName,std::vector<TexturePtr>> singleScatteringInterpolationGuidesTextures_;
     GLuint viewDirectionRenderBuffer_=0;
     // Indexed as singleScatteringTextures_[scattererName][wavelengthSetIndex]
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures_;
@@ -158,7 +159,12 @@ private: // methods
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
     glm::ivec2 loadTexture2D(QString const& path);
-    void loadTexture4D(QString const& path, float altitudeCoord);
+    enum class Texture4DType
+    {
+        ScatteringTexture,
+        InterpolationGuides,
+    };
+    void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
     void load4DTexAltitudeSlicePair(QString const& path, QOpenGLTexture& texLower, QOpenGLTexture& texUpper, float altitudeCoord);
     void updateAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);
     void updateEclipsedAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);

@@ -21,6 +21,7 @@ struct AtmosphereParameters
         QString phaseFunction;
         PhaseFunctionType phaseFunctionType=PhaseFunctionType::General;
         QString name;
+        bool needsInterpolationGuides = false;
 
         explicit Scatterer(QString const& name) : name(name) {}
         bool valid() const

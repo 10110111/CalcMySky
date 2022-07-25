@@ -13,6 +13,7 @@
 #include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
 #include_if(RENDERING_ANY_LIGHT_POLLUTION) "texture-sampling-functions.h.glsl"
 
+uniform sampler3D scatteringTextureInterpolationGuides;
 uniform sampler3D scatteringTexture;
 uniform sampler2D eclipsedScatteringTexture;
 uniform sampler3D eclipsedDoubleScatteringTextureLower;
@@ -23,6 +24,7 @@ uniform vec3 moonPosition;
 uniform float lightPollutionGroundLuminance;
 uniform vec4 solarIrradianceFixup=vec4(1); // Used when we want to alter solar irradiance post-precomputation
 uniform bool pseudoMirrorSkyBelowHorizon = false;
+uniform bool useInterpolationGuides=false;
 in vec3 position;
 layout(location=0) out vec4 luminance;
 layout(location=1) out vec4 radianceOutput;
@@ -228,15 +230,33 @@ void main()
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE
-    const vec4 scattering = sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
-                                            dotViewSun, altitude, viewRayIntersectsGround);
+    vec4 scattering;
+    if(useInterpolationGuides)
+    {
+        scattering = sample4DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides, cosSunZenithAngle,
+                                           cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
+    }
+    else
+    {
+        scattering = sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+                                     dotViewSun, altitude, viewRayIntersectsGround);
+    }
     vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
     radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE
-    const vec4 scattering = sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
-                                            dotViewSun, altitude, viewRayIntersectsGround);
+    vec4 scattering;
+    if(useInterpolationGuides)
+    {
+        scattering = sample4DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides, cosSunZenithAngle,
+                                           cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
+    }
+    else
+    {
+        scattering = sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+                                     dotViewSun, altitude, viewRayIntersectsGround);
+    }
     luminance=scattering * (bool(PHASE_FUNCTION_IS_EMBEDDED) ? vec4(1) : currentPhaseFunction(dotViewSun));
 #elif RENDERING_MULTIPLE_SCATTERING_LUMINANCE
     luminance=sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);

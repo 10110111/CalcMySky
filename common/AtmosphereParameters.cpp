@@ -330,12 +330,18 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
             begun=true;
             continue;
         }
-        if(keyValue.size()==1 && keyValue[0]=="}")
+        const auto key=keyValue[0].simplified().toLower();
+        if(keyValue.size()==1 && key=="}")
             break;
+
+        if(keyValue.size()==1 && key=="needs interpolation guides")
+        {
+            description.needsInterpolationGuides=true;
+            continue;
+        }
 
         if(keyValue.size()!=2)
             throw ParsingError{filename,lineNumber,"error: not a key:value pair"};
-        const auto key=keyValue[0].simplified().toLower();
         const auto value=keyValue[1].trimmed();
 
         if(key=="cross section at 1 um")

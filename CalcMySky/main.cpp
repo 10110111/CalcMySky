@@ -23,6 +23,7 @@
 #include "glinit.hpp"
 #include "cmdline.hpp"
 #include "shaders.hpp"
+#include "interpolation-guides.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
 #include "../common/cie-xyzw-functions.hpp"
 #include "../common/timing.hpp"
@@ -510,9 +511,12 @@ void accumulateSingleScattering(const unsigned texIndex, AtmosphereParameters::S
 
     if(texIndex+1==atmo.allWavelengths.size())
     {
+        const auto filePath = atmo.textureOutputDir+"/single-scattering/"+scatterer.name.toStdString()+"-xyzw.f32";
         saveTexture(GL_TEXTURE_3D,targetTexture, "single scattering texture",
-                    atmo.textureOutputDir+"/single-scattering/"+scatterer.name.toStdString()+"-xyzw.f32",
+                    filePath,
                     {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
+        if(scatterer.needsInterpolationGuides && !opts.dbgNoSaveTextures)
+            generateInterpolationGuidesForScatteringTexture(filePath);
     }
 }
 
@@ -543,10 +547,16 @@ void computeSingleScattering(const unsigned texIndex, AtmosphereParameters::Scat
     switch(scatterer.phaseFunctionType)
     {
     case PhaseFunctionType::General:
+    {
+        const auto filePath = atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex)+
+                                "/"+scatterer.name.toStdString()+".f32";
         saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING], "single scattering texture",
-                    atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex)+"/"+scatterer.name.toStdString()+".f32",
+                    filePath,
                     {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
+        if(scatterer.needsInterpolationGuides && !opts.dbgNoSaveTextures)
+            generateInterpolationGuidesForScatteringTexture(filePath);
         break;
+    }
     case PhaseFunctionType::Achromatic:
     case PhaseFunctionType::Smooth:
         accumulateSingleScattering(texIndex, scatterer);

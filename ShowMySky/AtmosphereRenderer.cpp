@@ -94,7 +94,7 @@ void AtmosphereRenderer::updateEclipsedAltitudeTexCoords(const float altitudeCoo
     if(floorAltIndexOut) *floorAltIndexOut=floorAltIndex;
 }
 
-void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord)
+void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord, Texture4DType texType)
 {
     auto log=qDebug().nospace();
 
@@ -119,8 +119,11 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     }
     log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
 
-    if(const qint64 expectedFileSize = sizeof(GLfloat)*4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] + file.pos();
-       expectedFileSize != file.size())
+    const size_t subpixelsPerPixel = texType==Texture4DType::InterpolationGuides ? 1 : 4;
+    const size_t subpixelSize = texType==Texture4DType::InterpolationGuides ? sizeof(GLshort) : sizeof(GLfloat);
+    const size_t pixelSize = subpixelsPerPixel*subpixelSize;
+    const qint64 expectedFileSize = file.pos() + pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+    if(expectedFileSize != file.size())
     {
         throw DataLoadError{QObject::tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4×%5×%6 from file header.\nThe expected size is %7 bytes.")
                             .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(sizes[2]).arg(sizes[3]).arg(expectedFileSize)};
@@ -133,21 +136,20 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     loadedAltitudeURTexCoordRange_[0] = floorAltIndex/numAltIntervalsIn4DTexture_;
     loadedAltitudeURTexCoordRange_[1] = (floorAltIndex+1)/numAltIntervalsIn4DTexture_;
 
-    const auto subpixelReadOffset = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(floorAltIndex);
+    const auto readOffset = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(floorAltIndex);
     sizes[3]=2;
-    const auto subpixelCountToRead = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+    const qint64 sizeToRead = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
 
-    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCountToRead]);
+    const std::unique_ptr<char[]> data(new char[sizeToRead]);
     {
-        const qint64 offset=file.pos()+subpixelReadOffset*sizeof subpixels[0];
+        const qint64 offset=file.pos()+readOffset;
         log << "skipping to offset " << offset << "... ";
         if(!file.seek(offset))
         {
             throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
                                 .arg(offset).arg(path).arg(file.errorString())};
         }
-        const qint64 sizeToRead=subpixelCountToRead*sizeof subpixels[0];
-        const auto actuallyRead=file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead);
+        const auto actuallyRead=file.read(data.get(), sizeToRead);
         if(actuallyRead != sizeToRead)
         {
             const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
@@ -156,8 +158,16 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
         }
     }
     const glm::ivec4 size(sizes[0],sizes[1],sizes[2],sizes[3]);
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,scatTexWidth(size),scatTexHeight(size),scatTexDepth(size),
-                    0,GL_RGBA,GL_FLOAT,subpixels.get());
+    if(texType == Texture4DType::InterpolationGuides)
+    {
+        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_R16_SNORM, scatTexWidth(size), scatTexHeight(size), scatTexDepth(size),
+                        0, GL_RED, GL_SHORT, data.get());
+    }
+    else
+    {
+        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, scatTexWidth(size), scatTexHeight(size), scatTexDepth(size),
+                        0, GL_RGBA, GL_FLOAT, data.get());
+    }
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         throw DataLoadError{QObject::tr("GL error in loadTexture4D(\"%1\") after glTexImage3D() call: %2")
@@ -432,12 +442,24 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
         singleScatteringTextures_.clear();
         ++loadingStepsDone_; return;
     }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+    {
+        singleScatteringInterpolationGuidesTextures_.clear();
+        ++loadingStepsDone_; return;
+    }
+
     for(const auto& scatterer : params_.scatterers)
     {
         auto& texturesPerWLSet=singleScatteringTextures_[scatterer.name];
         switch(scatterer.phaseFunctionType)
         {
         case PhaseFunctionType::General:
+        {
             for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
             {
                 if(countStepsOnly)
@@ -456,25 +478,67 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                 loadTexture4D(QString("%1/single-scattering/%2/%3.f32").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name), altCoord);
                 ++loadingStepsDone_; return;
             }
+            for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+            {
+                const auto filename=QString("%1/single-scattering/%2/%3.guides2d").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name);
+                if(QFile::exists(filename))
+                {
+                    if(countStepsOnly)
+                    {
+                        ++totalLoadingStepsToDo_;
+                    }
+                    else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+                    {
+                        auto& guidesPerWLSet=singleScatteringInterpolationGuidesTextures_[scatterer.name];
+                        auto& tex=*guidesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
+                        tex.setMinificationFilter(QOpenGLTexture::Linear);
+                        tex.setMagnificationFilter(QOpenGLTexture::Linear);
+                        tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+                        tex.bind();
+                        loadTexture4D(filename, altCoord, Texture4DType::InterpolationGuides);
+                        ++loadingStepsDone_; return;
+                    }
+                }
+            }
             break;
+        }
         case PhaseFunctionType::Smooth:
         case PhaseFunctionType::Achromatic:
         {
             if(countStepsOnly)
             {
                 ++totalLoadingStepsToDo_;
-                continue;
             }
-            if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
-                continue;
+            else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+            {
+                auto& texture=*texturesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
+                texture.setMinificationFilter(texFilter);
+                texture.setMagnificationFilter(texFilter);
+                texture.setWrapMode(QOpenGLTexture::ClampToEdge);
+                texture.bind();
+                loadTexture4D(QString("%1/single-scattering/%2-xyzw.f32").arg(pathToData_).arg(scatterer.name), altCoord);
+                ++loadingStepsDone_; return;
+            }
 
-            auto& texture=*texturesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
-            texture.setMinificationFilter(texFilter);
-            texture.setMagnificationFilter(texFilter);
-            texture.setWrapMode(QOpenGLTexture::ClampToEdge);
-            texture.bind();
-            loadTexture4D(QString("%1/single-scattering/%2-xyzw.f32").arg(pathToData_).arg(scatterer.name), altCoord);
-            ++loadingStepsDone_; return;
+            const auto guidesFilename = QString("%1/single-scattering/%2-xyzw.guides2d").arg(pathToData_).arg(scatterer.name);
+            if(QFile::exists(guidesFilename))
+            {
+                if(countStepsOnly)
+                {
+                    ++totalLoadingStepsToDo_;
+                }
+                else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+                {
+                    auto& guidesPerWLSet=singleScatteringInterpolationGuidesTextures_[scatterer.name];
+                    auto& texture=*guidesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
+                    texture.setMinificationFilter(QOpenGLTexture::Linear);
+                    texture.setMagnificationFilter(QOpenGLTexture::Linear);
+                    texture.setWrapMode(QOpenGLTexture::ClampToEdge);
+                    texture.bind();
+                    loadTexture4D(guidesFilename, altCoord, Texture4DType::InterpolationGuides);
+                    ++loadingStepsDone_; return;
+                }
+            }
             break;
         }
         }
@@ -1496,6 +1560,14 @@ void AtmosphereRenderer::renderSingleScattering()
                         prog.setUniformValue("scatteringTexture", 0);
                         prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
                     }
+                    const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures_.find(scatterer.name);
+                    if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures_.end())
+                    {
+                        auto& tex=guidesPerWLSetIt->second[wlSetIndex];
+                        tex->bind(1);
+                        prog.setUniformValue("scatteringTextureInterpolationGuides", 1);
+                        prog.setUniformValue("useInterpolationGuides", true);
+                    }
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
@@ -1520,6 +1592,15 @@ void AtmosphereRenderer::renderSingleScattering()
             prog.setUniformValue("scatteringTexture", 0);
             prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
+
+            const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures_.find(scatterer.name);
+            if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures_.end())
+            {
+                auto& tex=guidesPerWLSetIt->second.front();
+                tex->bind(1);
+                prog.setUniformValue("scatteringTextureInterpolationGuides", 1);
+                prog.setUniformValue("useInterpolationGuides", true);
+            }
 
             drawSurface(prog);
         }
