@@ -547,8 +547,6 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
             continue;
 
         auto& tex=*eclipsedDoubleScatteringPrecomputationTargetTextures_.emplace_back(newTex(QOpenGLTexture::Target3D));
-        tex.setMinificationFilter(QOpenGLTexture::Linear);
-        tex.setMagnificationFilter(QOpenGLTexture::Linear);
         // relative azimuth
         tex.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
         // cosVZA
