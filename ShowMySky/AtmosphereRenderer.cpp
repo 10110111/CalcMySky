@@ -1398,6 +1398,7 @@ void AtmosphereRenderer::renderSingleScattering()
     if(tools_->usingEclipseShader())
         precomputeEclipsedSingleScattering();
 
+    const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
     const auto renderMode = tools_->onTheFlySingleScatteringEnabled() ? SSRM_ON_THE_FLY : SSRM_PRECOMPUTED;
     for(const auto& scatterer : params_.scatterers)
     {
@@ -1469,7 +1470,6 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
                     {
                         auto& tex=*eclipsedSingleScatteringPrecomputationTextures_.at(scatterer.name)[wlSetIndex];
-                        const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
                         tex.setMinificationFilter(texFilter);
                         tex.setMagnificationFilter(texFilter);
                         tex.bind(0);
@@ -1496,7 +1496,6 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
                     {
                         auto& tex=*singleScatteringTextures_.at(scatterer.name)[wlSetIndex];
-                        const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
                         tex.setMinificationFilter(texFilter);
                         tex.setMagnificationFilter(texFilter);
                         tex.bind(0);
@@ -1520,7 +1519,6 @@ void AtmosphereRenderer::renderSingleScattering()
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             {
                 auto& tex=*singleScatteringTextures_.at(scatterer.name).front();
-                const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
                 tex.setMinificationFilter(texFilter);
                 tex.setMagnificationFilter(texFilter);
                 tex.bind(0);
@@ -1540,7 +1538,6 @@ void AtmosphereRenderer::renderSingleScattering()
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             {
                 auto& tex=*eclipsedSingleScatteringPrecomputationTextures_.at(scatterer.name).front();
-                const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
                 tex.setMinificationFilter(texFilter);
                 tex.setMagnificationFilter(texFilter);
                 tex.bind(0);
