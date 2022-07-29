@@ -1498,7 +1498,7 @@ void AtmosphereRenderer::renderSingleScattering()
                         tex.setMagnificationFilter(texFilter);
                         tex.bind(0);
                         prog.setUniformValue("scatteringTexture", 0);
-                        prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
+                        prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
                     }
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
@@ -1522,7 +1522,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 tex.bind(0);
             }
             prog.setUniformValue("scatteringTexture", 0);
-            prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
+            prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
             drawSurface(prog);
@@ -1656,7 +1656,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             tex.setMagnificationFilter(texFilter);
             tex.bind(0);
             prog.setUniformValue("scatteringTexture", 0);
-            prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
+            prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
             drawSurface(prog);
         }
         else
@@ -1680,7 +1680,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                 tex.setMagnificationFilter(texFilter);
                 tex.bind(0);
                 prog.setUniformValue("scatteringTexture", 0);
-                prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
+                prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
                 drawSurface(prog);
             }
         }
@@ -2088,4 +2088,12 @@ auto AtmosphereRenderer::stepShaderReloading() -> LoadingStatus
         finalizeLoading();
 
     return {loadingStepsDone_, totalLoadingStepsToDo_};
+}
+
+float AtmosphereRenderer::chooseStaticAltitudeTexCoord() const
+{
+    if(tools_->textureFilteringEnabled())
+        return staticAltitudeTexCoord_;
+
+    return std::round(staticAltitudeTexCoord_);
 }

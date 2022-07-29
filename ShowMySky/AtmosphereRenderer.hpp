@@ -150,6 +150,7 @@ private: // methods
     void finalizeLoading();
     void drawSurface(QOpenGLShaderProgram& prog);
 
+    float chooseStaticAltitudeTexCoord() const;
     double altitudeUnitRangeTexCoord() const;
     double cameraMoonDistance() const;
     glm::dvec3 sunDirection() const;
