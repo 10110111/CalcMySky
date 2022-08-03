@@ -558,7 +558,7 @@ void computeSingleScattering(const unsigned texIndex, AtmosphereParameters::Scat
     saveEclipsedSingleScatteringComputationShader(texIndex, scatterer);
 }
 
-void computeIndirectIrradianceOrder1(unsigned texIndex, unsigned scattererIndex);
+void computeIndirectIrradianceOrder1(unsigned scattererIndex);
 void computeScatteringOrder1AndScatteringDensityOrder2(const unsigned texIndex)
 {
     constexpr unsigned scatteringOrder=2;
@@ -640,9 +640,10 @@ void computeScatteringOrder1AndScatteringDensityOrder2(const unsigned texIndex)
         }
 
         // Disables blending before returning
-        computeIndirectIrradianceOrder1(texIndex, scattererIndex);
+        computeIndirectIrradianceOrder1(scattererIndex);
     }
     gl.glDisable(GL_BLEND);
+    saveIrradiance(scatteringOrder,texIndex);
     saveScatteringDensity(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -673,7 +674,7 @@ void computeScatteringDensity(const unsigned scatteringOrder, const unsigned tex
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void computeIndirectIrradianceOrder1(const unsigned texIndex, const unsigned scattererIndex)
+void computeIndirectIrradianceOrder1(const unsigned scattererIndex)
 {
     constexpr unsigned scatteringOrder=2;
 
@@ -705,7 +706,6 @@ void computeIndirectIrradianceOrder1(const unsigned texIndex, const unsigned sca
     std::cerr << "done\n";
 
     gl.glDisable(GL_BLEND);
-    saveIrradiance(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
