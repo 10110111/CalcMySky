@@ -52,8 +52,9 @@ inline void setDrawBuffers(std::vector<GLenum> const& bufs)
 void renderQuad();
 inline void checkFramebufferStatus(const char*const fboDescription) { return checkFramebufferStatus(gl, fboDescription); }
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
+DEFINE_EXPLICIT_BOOL(Logarithmize);
 void saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,
-                 std::vector<GLsizei> const& sizes);
+                 std::vector<GLsizei> const& sizes, Logarithmize logarithmize = Logarithmize{false});
 void createDirs(std::string const& path);
 
 class OutputIndentIncrease

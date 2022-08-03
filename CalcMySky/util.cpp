@@ -53,7 +53,7 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
 }
 
 void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
-                 const std::string_view path, std::vector<GLsizei> const& sizes)
+                 const std::string_view path, std::vector<GLsizei> const& sizes, const Logarithmize logarithmize)
 {
     if(opts.dbgNoSaveTextures)
     {
@@ -113,6 +113,13 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         {
             std::cerr << "NaN entries detected while saving " << name << "\n";
             throw MustQuit{};
+        }
+    }
+    if(logarithmize)
+    {
+        for(size_t i = 0; i < subpixelCount; ++i)
+        {
+            subpixels[i] = std::log(std::max(subpixels[i], 1e-37f));
         }
     }
 

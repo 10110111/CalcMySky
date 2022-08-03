@@ -47,6 +47,14 @@ float safeAtan(const float y, const float x)
     return x==0 && y==0 ? 0 : a;
 }
 
+// Assumes that if its argument is non-positive, it's due to rounding
+// errors and should instead be close to FLT_MIN.
+vec4 safeLog(const vec4 x)
+{
+    const float epsilon = 1e-37;
+    return log(max(x, epsilon));
+}
+
 float clampCosine(const float x)
 {
     return clamp(x, -1., 1.);

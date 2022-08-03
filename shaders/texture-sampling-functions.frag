@@ -17,7 +17,7 @@ uniform sampler2D lightPollutionScatteringTexture;
 vec4 irradiance(const float cosSunZenithAngle, const float altitude)
 {
     const vec2 texCoords=irradianceTexVarsToTexCoord(cosSunZenithAngle, altitude);
-    return texture(irradianceTexture, texCoords);
+    return exp(texture(irradianceTexture, texCoords));
 }
 
 vec4 opticalDepthToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
