@@ -19,7 +19,6 @@ vec4 computeIndirectGroundIrradiance(const float cosSunZenithAngle, const float 
     // Beyond that it's under the horizon. We need only the upper part of the sphere, so we stop at k==N/2.
     for(int k=0; k<angularIntegrationPoints/2; ++k)
     {
-        // NOTE: directionIndex must be a half-integer: the range is [0.5, angularIntegrationPoints-0.5]
         const vec3 incDir = sphereIntegrationSampleDir(k, angularIntegrationPoints);
         const float cosIncZenithAngle=incDir.z;
 
