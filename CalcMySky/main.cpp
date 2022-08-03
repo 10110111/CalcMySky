@@ -67,7 +67,7 @@ void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"irradiance texture",
                 atmo.textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
-                {atmo.irradianceTexW, atmo.irradianceTexH}, Logarithmize{true});
+                {atmo.irradianceTexW, atmo.irradianceTexH}, Logarithmize{false});
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                 atmo.textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
