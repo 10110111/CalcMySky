@@ -35,10 +35,6 @@ void main()
     const vec2 texCoord=0.5*position.xy+vec2(0.5);
     const IrradianceTexVars vars=irradianceTexCoordToTexVars(texCoord);
     const vec4 color=computeIndirectGroundIrradiance(vars.cosSunZenithAngle, vars.altitude, SCATTERING_ORDER);
-    // This output is not blended, so we can safely apply logarithm.
-    deltaIrradianceOutput=safeLog(color);
-    // This output will be blended, so to avoid turning addition into multiplication we don't
-    // apply logarithm here. Instead it will be applied after all the accumulation of scattering
-    // orders - during saving the texture in the C++ code.
+    deltaIrradianceOutput=color;
     irradianceOutput=color;
 }
