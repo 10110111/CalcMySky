@@ -164,7 +164,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
                 { frame->setEnabled(state==Qt::Checked); });
     }
     multipleScatteringEnabled_  = addCheckBox(layout, this, text_drawMultipleScattering, true);
-    lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 20, 2, QString::fromUtf8(u8"\u202fcd/m\u00b2"));
+    lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 0, 2, QString::fromUtf8(u8"\u202fcd/m\u00b2"));
 
     {
         const auto hbox=new QHBoxLayout;
