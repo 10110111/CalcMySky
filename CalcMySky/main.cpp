@@ -277,17 +277,16 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, AtmospherePara
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
 
-    if(scatterer.phaseFunctionType==PhaseFunctionType::Smooth)
-        return; // Luminance will be already merged in multiple scattering texture, no need to render it separately
-
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     const auto renderModeDefine = renderMode==SSRM_ON_THE_FLY ? "RENDERING_SINGLE_SCATTERING_ON_THE_FLY" :
                                   scatterer.phaseFunctionType==PhaseFunctionType::General ? "RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE"
                                                                                           : "RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE";
+    const bool phaseFuncIsEmbedded = scatterer.phaseFunctionType==PhaseFunctionType::Smooth;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
                                                 .replace(QRegExp("\\b(RENDERING_ANY_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
                                                 .replace(QRegExp("\\b(RENDERING_ANY_NORMAL_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                                .replace(QRegExp("\\b(PHASE_FUNCTION_IS_EMBEDDED)\\b"), phaseFuncIsEmbedded ? "1" : "0")
                                                 .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
@@ -497,18 +496,19 @@ void accumulateSingleScattering(const unsigned texIndex, AtmosphereParameters::S
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, targetTexture,0);
     checkFramebufferStatus("framebuffer for accumulation of single scattering radiance");
 
-    const auto program=compileShaderProgram("copy-scattering-texture-3d.frag",
-                                            "scattering texture copy-blend shader program",
+    const auto program=compileShaderProgram("accumulate-single-scattering-texture.frag",
+                                            "single scattering accumulation shader program",
                                             UseGeomShader{});
     program->bind();
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
     program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex)));
+    program->setUniformValue("embedPhaseFunction", scatterer.phaseFunctionType==PhaseFunctionType::Smooth);
     render3DTexLayers(*program, "Blending single scattering layers into accumulator texture");
 
     gl.glDisable(GL_BLEND);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 
-    if(texIndex+1==atmo.allWavelengths.size() && scatterer.phaseFunctionType!=PhaseFunctionType::Smooth)
+    if(texIndex+1==atmo.allWavelengths.size())
     {
         saveTexture(GL_TEXTURE_3D,targetTexture, "single scattering texture",
                     atmo.textureOutputDir+"/single-scattering/"+scatterer.name.toStdString()+"-xyzw.f32",
@@ -528,6 +528,8 @@ void computeSingleScattering(const unsigned texIndex, AtmosphereParameters::Scat
                     "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
                     "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(atmo.allWavelengths[texIndex]))+"; }\n";
     virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
+    virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
+        "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
     const auto program=compileShaderProgram("compute-single-scattering.frag",
                                             "single scattering computation shader program",
                                             UseGeomShader{});
@@ -736,29 +738,6 @@ void computeIndirectIrradiance(const unsigned scatteringOrder, const unsigned te
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void mergeSmoothSingleScatteringTexture()
-{
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_MULTIPLE_SCATTERING]);
-    for(const auto& scatterer : atmo.scatterers)
-    {
-        if(scatterer.phaseFunctionType!=PhaseFunctionType::Smooth)
-            continue;
-        virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
-            "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
-        const auto program=compileShaderProgram("merge-smooth-single-scattering-texture.frag",
-                                                "single scattering texture merge shader program",
-                                                UseGeomShader{});
-        program->bind();
-        gl.glBlendFunc(GL_ONE, GL_ONE);
-        gl.glEnable(GL_BLEND);
-        setUniformTexture(*program,GL_TEXTURE_3D,accumulatedSingleScatteringTextures[scatterer.name],0,"tex");
-        render3DTexLayers(*program, "Blending single scattering data for scatterer \""+scatterer.name.toStdString()+
-                                    "\" into multiple scattering texture");
-    }
-    gl.glDisable(GL_BLEND);
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
-}
-
 void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned texIndex)
 {
     // We didn't render to the accumulating texture when computing delta scattering to avoid holding
@@ -795,8 +774,6 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
     }
     if(scatteringOrder==atmo.scatteringOrdersToCompute && (texIndex+1==atmo.allWavelengths.size() || opts.saveResultAsRadiance))
     {
-        mergeSmoothSingleScatteringTexture();
-
         const auto filename = opts.saveResultAsRadiance ?
             atmo.textureOutputDir+"/multiple-scattering-wlset"+std::to_string(texIndex)+".f32" :
             atmo.textureOutputDir+"/multiple-scattering-xyzw.f32";
@@ -1150,11 +1127,8 @@ int main(int argc, char** argv)
                            std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 createDirs(atmo.textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
                            std::to_string(texIndex)+"/"+scatterer.name.toStdString());
-                if(scatterer.phaseFunctionType!=PhaseFunctionType::Smooth)
-                {
-                    createDirs(atmo.textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
-                               std::to_string(texIndex)+"/"+scatterer.name.toStdString());
-                }
+                createDirs(atmo.textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_ON_THE_FLY]+"/"+
+                           std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 if(scatterer.phaseFunctionType==PhaseFunctionType::General)
                 {
                     createDirs(atmo.textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
@@ -1163,13 +1137,10 @@ int main(int argc, char** argv)
                                std::to_string(texIndex)+"/"+scatterer.name.toStdString());
                 }
             }
-            if(scatterer.phaseFunctionType==PhaseFunctionType::Achromatic)
+            if(scatterer.phaseFunctionType!=PhaseFunctionType::General)
             {
                 createDirs(atmo.textureOutputDir+"/shaders/single-scattering/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                            scatterer.name.toStdString());
-            }
-            if(scatterer.phaseFunctionType!=PhaseFunctionType::General)
-            {
                 createDirs(atmo.textureOutputDir+"/shaders/single-scattering-eclipsed/"+singleScatteringRenderModeNames[SSRM_PRECOMPUTED]+"/"+
                            scatterer.name.toStdString());
             }

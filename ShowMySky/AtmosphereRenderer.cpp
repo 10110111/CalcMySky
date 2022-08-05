@@ -457,6 +457,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                 ++loadingStepsDone_; return;
             }
             break;
+        case PhaseFunctionType::Smooth:
         case PhaseFunctionType::Achromatic:
         {
             if(countStepsOnly)
@@ -476,8 +477,6 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
             ++loadingStepsDone_; return;
             break;
         }
-        case PhaseFunctionType::Smooth:
-            break;
         }
     }
 
@@ -645,7 +644,7 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
         for(const auto& scatterer : params_.scatterers)
         {
             auto& programs=programsPerScatterer[scatterer.name];
-            if(scatterer.phaseFunctionType==PhaseFunctionType::General || (scatterer.phaseFunctionType!=PhaseFunctionType::Smooth && renderMode==SSRM_ON_THE_FLY))
+            if(scatterer.phaseFunctionType==PhaseFunctionType::General || renderMode==SSRM_ON_THE_FLY)
             {
                 for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
                 {
@@ -676,7 +675,7 @@ void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
                     ++loadingStepsDone_; return;
                 }
             }
-            else if(scatterer.phaseFunctionType==PhaseFunctionType::Achromatic)
+            else
             {
                 if(countStepsOnly)
                 {
@@ -1291,7 +1290,7 @@ bool AtmosphereRenderer::canGrabRadiance() const
 {
     const bool haveNoLuminanceOnlySingleScatteringTextures =
         std::find_if(params_.scatterers.begin(), params_.scatterers.end(), [=](auto const& scatterer)
-                     { return scatterer.phaseFunctionType==PhaseFunctionType::Achromatic; }) == params_.scatterers.end();
+                     { return scatterer.phaseFunctionType!=PhaseFunctionType::General; }) == params_.scatterers.end();
     return haveNoLuminanceOnlySingleScatteringTextures && multipleScatteringTextures_.size()==params_.allWavelengths.size();
 }
 
@@ -1429,9 +1428,6 @@ void AtmosphereRenderer::renderSingleScattering()
             }
             else
             {
-                if(scatterer.phaseFunctionType==PhaseFunctionType::Smooth)
-                    continue;
-
                 for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
                 {
                     if(!radianceRenderBuffers_.empty())
@@ -1508,7 +1504,7 @@ void AtmosphereRenderer::renderSingleScattering()
                 }
             }
         }
-        else if(scatterer.phaseFunctionType==PhaseFunctionType::Achromatic && !tools_->usingEclipseShader())
+        else if(!tools_->usingEclipseShader())
         {
             auto& prog=*singleScatteringPrograms_[renderMode]->at(scatterer.name).front();
             prog.bind();
@@ -1527,7 +1523,7 @@ void AtmosphereRenderer::renderSingleScattering()
 
             drawSurface(prog);
         }
-        else if(tools_->usingEclipseShader())
+        else
         {
             auto& prog=*eclipsedSingleScatteringPrograms_[renderMode]->at(scatterer.name).front();
             prog.bind();
@@ -1876,7 +1872,7 @@ void AtmosphereRenderer::setupRenderTarget()
             const auto height=params_.eclipsedSingleScatteringTextureSize[1];
             gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
 
-            if(scatterer.phaseFunctionType==PhaseFunctionType::Achromatic || scatterer.phaseFunctionType==PhaseFunctionType::Smooth)
+            if(scatterer.phaseFunctionType!=PhaseFunctionType::General)
                 break;
         }
     }

@@ -9,8 +9,6 @@
 namespace
 {
 
-const auto text_drawMultipleScattering=QObject::tr("Draw &multiple scattering layer");
-const auto text_drawMultipleScattering_plusSomeSingle=QObject::tr("Draw &multiple (and merged single) scattering layer");
 constexpr double initialMaxAltitude = 1e9;
 
 enum class SolarSpectrumMode
@@ -163,7 +161,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         connect(singleScatteringEnabled_, &QCheckBox::stateChanged, frame, [frame](const int state)
                 { frame->setEnabled(state==Qt::Checked); });
     }
-    multipleScatteringEnabled_  = addCheckBox(layout, this, text_drawMultipleScattering, true);
+    multipleScatteringEnabled_  = addCheckBox(layout, this, QObject::tr("Draw &multiple scattering layer"), true);
     lightPollutionGroundLuminance_ = addManipulator(layout, this, tr("Lig&ht pollution luminance"), 0, 100, 0, 2, QString::fromUtf8(u8"\u202fcd/m\u00b2"));
 
     {
@@ -330,15 +328,8 @@ void ToolsWidget::updateParameters(AtmosphereParameters const& params)
         delete checkbox;
     scatterers.clear();
 
-    multipleScatteringEnabled_->setText(text_drawMultipleScattering);
     for(const auto& scatterer : params.scatterers)
     {
-        if(scatterer.phaseFunctionType==PhaseFunctionType::Smooth)
-        {
-            multipleScatteringEnabled_->setText(text_drawMultipleScattering_plusSomeSingle);
-            continue;
-        }
-
         const auto checkbox=new QCheckBox(scatterer.name);
         checkbox->setChecked(true);
         scattererCheckboxes_->addWidget(checkbox);

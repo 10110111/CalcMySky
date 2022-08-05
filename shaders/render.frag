@@ -237,7 +237,7 @@ void main()
 #elif RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE
     const vec4 scattering = sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
                                             dotViewSun, altitude, viewRayIntersectsGround);
-    luminance=scattering*currentPhaseFunction(dotViewSun);
+    luminance=scattering * (bool(PHASE_FUNCTION_IS_EMBEDDED) ? vec4(1) : currentPhaseFunction(dotViewSun));
 #elif RENDERING_MULTIPLE_SCATTERING_LUMINANCE
     luminance=sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
 #elif RENDERING_MULTIPLE_SCATTERING_RADIANCE
