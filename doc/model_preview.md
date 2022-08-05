@@ -8,7 +8,7 @@ The window will show the preview with a toolbox, similar to the screenshot below
 
 ## Image window
 
-The image displayed in the main part of the window is the scene projected onto the screen in equirectangular projection (up to aspect ratio). The top (when zoom, camera pitch and yaw have default values) corresponds to zenith, the bottom to nadir, the sides to the South, and the middle to the North.
+The image displayed in the main part of the window is the scene projected onto the screen in the [projection chosen](#projection). The top (when zoom, camera pitch and yaw have default values) corresponds to zenith, the bottom to nadir, the sides to the South, and the middle to the North.
 
 Keyboard/mouse actions have the following effects:
 
@@ -23,7 +23,7 @@ Keyboard/mouse actions have the following effects:
 
 This manipulator defines altitude of the camera above the ground.
 
-### log<sub>10</sub>(exposure)
+### <a name="exposure">log<sub>10</sub>(exposure)</a>
 
 This manipulator controls brightness of the scene, similar to the exposure setting of a photo camera. The numeric value is a logarithm of the actual brightness factor.
 
@@ -53,9 +53,17 @@ Azimuth of the Moon, zero being North. It's used in the simulation of solar ecli
 
 Distance between the centers of the Earth and the Moon. It's used in the simulation of solar eclipses.
 
-### Zoom
+### <a name="projection">Projection</a>
 
-Zoom in factor. This factor increases the size of the image, hiding directions that are too far from mathematical horizon or North.
+This control lets one choose a projection from the following options:
+
+ * Equirectangular — shows all directions in the [equirectangular projection](https://en.wikipedia.org/wiki/Equirectangular_projection).
+ * Perspective — the usual [perspective projection](https://en.wikipedia.org/wiki/Perspective_projection), with maximum horizontal field of view being 120° (which can be reduced via the [zoom control](#zoom)). Aspect ratio of the window affects vertical field of view.
+ * Fisheye — simulates the view through a [fisheye lens](https://en.wikipedia.org/wiki/Fisheye_lens), with field of view being 360° (it can be reduced via the [zoom control](#zoom)).
+
+### <a name="zoom">Zoom</a>
+
+Zoom in factor. This factor increases the size of the image.
 
 ### <a name="camera-pitch-control">Camera pitch</a>
 
@@ -85,6 +93,18 @@ The options are named as R/G/B where R, G, and B are number of bits in correspon
  * 6/6/6 — this color depth is typical for LCD TN monitors, and sometimes others;
  * 8/8/8 — this should be tried first, unless you have a high-end monitor with support for 10 bit per color channel mode;
  * 10/10/10 — this is the option for high-end monitors with support for 10 bit per color channel mode. On the conventional 8-bit monitors this dithering mode will look as if dithering is disabled.
+
+### Color mode
+
+This control lets one analyze image colors by looking at the following representations them:
+
+ * sRGB — this is the usual mode intended to look as the scene looks to human eyes.
+ * Scotopic luminance — displays the night-vision brightness of the scene instead of full colors. This in particular takes into account the [Purkinje effect](https://en.wikipedia.org/wiki/Purkinje_effect).
+ * Photopic luminance — this displays the brightness of the scene instead of full colors. This brightness represents sensitivity of human vision in daylight conditions.
+ * XYZ chromaticity — normalizes photopic brightness of all pixels to the same value. As it doesn't quite map well to the brightness range of monitor pixels, the [exposure control](#exposure) can be used to brighten or darken the image. In the parts of the image where the brightness of some pixels is too large to represent on the screen, a black-white pattern is drawn.
+ * sRGBl chromaticiy (smooth) — this is almost the same as XYZ chromaticity, but in this case the pre-transfer-function sRGB values are normalized instead of the XYZ values.
+ * sRGBl chromaticity (bright) — this is like "sRGBl chromaticity (smooth)", but all the pixels are brought to maximum representable brightness for the given chromaticity. [Exposure control](#exposure) has no effect in this mode.
+ * Hue — this mode removes all brightness and saturation information from the image. All colors are maximally saturated and bright. [Exposure control](#exposure) has no effect in this mode.
 
 ### Gradual color clipping
 
