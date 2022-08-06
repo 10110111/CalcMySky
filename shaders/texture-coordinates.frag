@@ -179,7 +179,8 @@ Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, co
     return Scattering4DCoords(cosSZACoord, cosVZACoord, dotVSCoord, altCoord, viewRayIntersectsGround);
 }
 
-TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords, const bool forInterpolationGuides)
+TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords,
+                                           const bool forInterpolationGuides01, const bool forInterpolationGuides02)
 {
     const float cosVZAtc = coords.viewRayIntersectsGround ?
                             // Coordinate is in ~[0,0.5]
@@ -189,8 +190,8 @@ TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords, cons
 
     // Width and height of the 2D subspace of the 4D texture - the subspace spanned by
     // the texture coordinates we combine into a single sampler3D coordinate.
-    const float texW = forInterpolationGuides ? scatteringTextureSize[1]-1 : scatteringTextureSize[1];
-    const float texH = scatteringTextureSize[2];
+    const float texW = forInterpolationGuides01 ? scatteringTextureSize[1]-1 : scatteringTextureSize[1];
+    const float texH = forInterpolationGuides02 ? scatteringTextureSize[2]-1 : scatteringTextureSize[2];
     const float cosSZAIndex=coords.cosSunZenithAngle*(texH-1);
     const vec2 combiCoordUnitRange=vec2(floor(cosSZAIndex)*texW+coords.dotViewSun*(texW-1),
                                         ceil (cosSZAIndex)*texW+coords.dotViewSun*(texW-1)) / (texW*texH-1);
@@ -210,7 +211,7 @@ TexCoordPair texVarsToScatteringTexCoords(const float cosSunZenithAngle, const f
 {
     const Scattering4DCoords coords=scatteringTexVarsTo4DCoords(cosSunZenithAngle,cosViewZenithAngle,
                                                                 dotViewSun,altitude,viewRayIntersectsGround);
-    return scattering4DCoordsToTexCoords(coords, false);
+    return scattering4DCoordsToTexCoords(coords, false, false);
 }
 
 vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
@@ -222,15 +223,12 @@ vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const f
            texture(tex, coords.upper) * coords.alphaUpper;
 }
 
-vec4 sample4DTextureGuided(const sampler3D tex, const sampler3D interpolationGuidesTex,
-                           const float cosSunZenithAngle, const float cosViewZenithAngle,
-                           const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
+vec4 sample4DTextureGuided01_log(const sampler3D tex, const sampler3D interpolationGuides01Tex,
+                                 const Scattering4DCoords coords4d)
 {
-    const Scattering4DCoords coords4d = scatteringTexVarsTo4DCoords(cosSunZenithAngle, cosViewZenithAngle,
-                                                                    dotViewSun, altitude, viewRayIntersectsGround);
-    const TexCoordPair guidesCoords = scattering4DCoordsToTexCoords(coords4d, true);
-    const float guidesTex = texture(interpolationGuidesTex, guidesCoords.lower).r * guidesCoords.alphaLower +
-                            texture(interpolationGuidesTex, guidesCoords.upper).r * guidesCoords.alphaUpper;
+    const TexCoordPair guidesCoords = scattering4DCoordsToTexCoords(coords4d, true, false);
+    const float guidesTex = texture(interpolationGuides01Tex, guidesCoords.lower).r * guidesCoords.alphaLower +
+                            texture(interpolationGuides01Tex, guidesCoords.upper).r * guidesCoords.alphaUpper;
     const float interpAngle = PI/2*guidesTex;
 
     const float cosVZAIndex = coords4d.cosViewZenithAngle * (scatteringTextureSize[0]-1);
@@ -246,8 +244,8 @@ vec4 sample4DTextureGuided(const sampler3D tex, const sampler3D interpolationGui
     coords4dCurrRow.dotViewSun =      currRow    / (scatteringTextureSize[1]-1);
     coords4dNextRow.dotViewSun = min((currRow+1) / (scatteringTextureSize[1]-1), 1.);
 
-    const TexCoordPair coordsNextRow = scattering4DCoordsToTexCoords(coords4dNextRow, false);
-    const TexCoordPair coordsCurrRow = scattering4DCoordsToTexCoords(coords4dCurrRow, false);
+    const TexCoordPair coordsNextRow = scattering4DCoordsToTexCoords(coords4dNextRow, false, false);
+    const TexCoordPair coordsCurrRow = scattering4DCoordsToTexCoords(coords4dCurrRow, false, false);
 
     const vec4 valueCurrRow = texture(tex, coordsCurrRow.lower) * coordsCurrRow.alphaLower +
                               texture(tex, coordsCurrRow.upper) * coordsCurrRow.alphaUpper;
@@ -256,6 +254,38 @@ vec4 sample4DTextureGuided(const sampler3D tex, const sampler3D interpolationGui
     const float epsilon = 1e-37; // Prevents passing zero to log
     const vec4 logValNextRow = log(max(valueNextRow, vec4(epsilon)));
     const vec4 logValCurrRow = log(max(valueCurrRow, vec4(epsilon)));
+    return (logValNextRow-logValCurrRow) * posBetweenRows + logValCurrRow;
+}
+
+vec4 sample4DTextureGuided(const sampler3D tex,
+                           const sampler3D interpolationGuides01Tex, const sampler3D interpolationGuides02Tex,
+                           const float cosSunZenithAngle, const float cosViewZenithAngle,
+                           const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
+{
+    const Scattering4DCoords coords4d = scatteringTexVarsTo4DCoords(cosSunZenithAngle, cosViewZenithAngle,
+                                                                    dotViewSun, altitude, viewRayIntersectsGround);
+    // Handle the external interpolation guides: the guides between a pair of VZA-dotViewSun 2D "pictures".
+    const TexCoordPair guidesCoords = scattering4DCoordsToTexCoords(coords4d, false, true);
+    const float guidesTex = texture(interpolationGuides02Tex, guidesCoords.lower).r * guidesCoords.alphaLower +
+                            texture(interpolationGuides02Tex, guidesCoords.upper).r * guidesCoords.alphaUpper;
+    const float interpAngle = PI/2*guidesTex;
+
+    const float cosVZAIndex = coords4d.cosViewZenithAngle * (scatteringTextureSize[0]-1);
+    const float cszaIndex = coords4d.cosSunZenithAngle * (scatteringTextureSize[2]-1);
+    const float currRow = floor(cszaIndex);
+    const float posBetweenRows = cszaIndex - currRow;
+    const float cvzaPosInCurrRow = cosVZAIndex - posBetweenRows*tan(interpAngle);
+    const float cvzaPosInNextRow = cosVZAIndex + (1-posBetweenRows)*tan(interpAngle);
+
+    Scattering4DCoords coords4dCurrRow = coords4d, coords4dNextRow = coords4d;
+    coords4dCurrRow.cosViewZenithAngle = clamp(cvzaPosInCurrRow / (scatteringTextureSize[0]-1), 0., 1.);
+    coords4dNextRow.cosViewZenithAngle = clamp(cvzaPosInNextRow / (scatteringTextureSize[0]-1), 0., 1.);
+    coords4dCurrRow.cosSunZenithAngle =      currRow    / (scatteringTextureSize[2]-1);
+    coords4dNextRow.cosSunZenithAngle = min((currRow+1) / (scatteringTextureSize[2]-1), 1.);
+
+    // The caller will handle the internal interpolation guides: the ones between rows in each 2D "picture".
+    const vec4 logValCurrRow = sample4DTextureGuided01_log(tex, interpolationGuides01Tex, coords4dCurrRow);
+    const vec4 logValNextRow = sample4DTextureGuided01_log(tex, interpolationGuides01Tex, coords4dNextRow);
     return exp((logValNextRow-logValCurrRow) * posBetweenRows + logValCurrRow);
 }
 

@@ -449,7 +449,8 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
     }
     else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
     {
-        singleScatteringInterpolationGuidesTextures_.clear();
+        singleScatteringInterpolationGuidesTextures01_.clear();
+        singleScatteringInterpolationGuidesTextures02_.clear();
         ++loadingStepsDone_; return;
     }
 
@@ -480,7 +481,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
             }
             for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
             {
-                const auto filename=QString("%1/single-scattering/%2/%3.guides2d").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name);
+                const auto filename=QString("%1/single-scattering/%2/%3-dims01.guides2d").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name);
                 if(QFile::exists(filename))
                 {
                     if(countStepsOnly)
@@ -489,7 +490,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                     }
                     else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
                     {
-                        auto& guidesPerWLSet=singleScatteringInterpolationGuidesTextures_[scatterer.name];
+                        auto& guidesPerWLSet=singleScatteringInterpolationGuidesTextures01_[scatterer.name];
                         auto& tex=*guidesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
                         tex.setMinificationFilter(QOpenGLTexture::Linear);
                         tex.setMagnificationFilter(QOpenGLTexture::Linear);
@@ -499,6 +500,44 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                         ++loadingStepsDone_; return;
                     }
                 }
+            }
+            for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+            {
+                const auto filename=QString("%1/single-scattering/%2/%3-dims02.guides2d").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name);
+                if(QFile::exists(filename))
+                {
+                    if(countStepsOnly)
+                    {
+                        ++totalLoadingStepsToDo_;
+                    }
+                    else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+                    {
+                        auto& guidesPerWLSet=singleScatteringInterpolationGuidesTextures02_[scatterer.name];
+                        auto& tex=*guidesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
+                        tex.setMinificationFilter(QOpenGLTexture::Linear);
+                        tex.setMagnificationFilter(QOpenGLTexture::Linear);
+                        tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+                        tex.bind();
+                        loadTexture4D(filename, altCoord, Texture4DType::InterpolationGuides);
+                        ++loadingStepsDone_; return;
+                    }
+                }
+            }
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+            }
+            else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+            {
+                if(singleScatteringInterpolationGuidesTextures02_.size() != singleScatteringInterpolationGuidesTextures01_.size())
+                {
+                    std::cerr << "Warning: interpolation guides inconsistent: dimensions 0-1 have "
+                              << singleScatteringInterpolationGuidesTextures01_.size() << " wavelength sets, while dimensions 0-2 have "
+                              << singleScatteringInterpolationGuidesTextures02_.size() << ". Ignoring the guides.\n";
+                    singleScatteringInterpolationGuidesTextures01_.clear();
+                    singleScatteringInterpolationGuidesTextures02_.clear();
+                }
+                ++loadingStepsDone_; return;
             }
             break;
         }
@@ -520,8 +559,8 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                 ++loadingStepsDone_; return;
             }
 
-            const auto guidesFilename = QString("%1/single-scattering/%2-xyzw.guides2d").arg(pathToData_).arg(scatterer.name);
-            if(QFile::exists(guidesFilename))
+            const auto guidesFilename01 = QString("%1/single-scattering/%2-xyzw-dims01.guides2d").arg(pathToData_).arg(scatterer.name);
+            if(QFile::exists(guidesFilename01))
             {
                 if(countStepsOnly)
                 {
@@ -529,15 +568,52 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                 }
                 else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
                 {
-                    auto& guidesPerWLSet=singleScatteringInterpolationGuidesTextures_[scatterer.name];
+                    auto& guidesPerWLSet=singleScatteringInterpolationGuidesTextures01_[scatterer.name];
                     auto& texture=*guidesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
                     texture.setMinificationFilter(QOpenGLTexture::Linear);
                     texture.setMagnificationFilter(QOpenGLTexture::Linear);
                     texture.setWrapMode(QOpenGLTexture::ClampToEdge);
                     texture.bind();
-                    loadTexture4D(guidesFilename, altCoord, Texture4DType::InterpolationGuides);
+                    loadTexture4D(guidesFilename01, altCoord, Texture4DType::InterpolationGuides);
                     ++loadingStepsDone_; return;
                 }
+            }
+            const auto guidesFilename02 = QString("%1/single-scattering/%2-xyzw-dims02.guides2d").arg(pathToData_).arg(scatterer.name);
+            if(QFile::exists(guidesFilename02))
+            {
+                if(countStepsOnly)
+                {
+                    ++totalLoadingStepsToDo_;
+                }
+                else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+                {
+                    auto& guidesPerWLSet=singleScatteringInterpolationGuidesTextures02_[scatterer.name];
+                    auto& texture=*guidesPerWLSet.emplace_back(newTex(QOpenGLTexture::Target3D));
+                    texture.setMinificationFilter(QOpenGLTexture::Linear);
+                    texture.setMagnificationFilter(QOpenGLTexture::Linear);
+                    texture.setWrapMode(QOpenGLTexture::ClampToEdge);
+                    texture.bind();
+                    loadTexture4D(guidesFilename02, altCoord, Texture4DType::InterpolationGuides);
+                    ++loadingStepsDone_; return;
+                }
+            }
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+            }
+            else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+            {
+                if(singleScatteringInterpolationGuidesTextures02_.size() != singleScatteringInterpolationGuidesTextures01_.size())
+                {
+                    std::cerr << "Warning: interpolation guides inconsistent: dimensions 0-1 is "
+                              << (singleScatteringInterpolationGuidesTextures01_.empty() ? "lacking" : "present")
+                              << ", while dimensions 0-2 is "
+                              << (singleScatteringInterpolationGuidesTextures02_.empty() ? "lacking" : "present")
+                              << ". Ignoring the guides.\n";
+                    singleScatteringInterpolationGuidesTextures01_.clear();
+                    singleScatteringInterpolationGuidesTextures02_.clear();
+                }
+                ++loadingStepsDone_; return;
             }
             break;
         }
@@ -1560,14 +1636,30 @@ void AtmosphereRenderer::renderSingleScattering()
                         prog.setUniformValue("scatteringTexture", 0);
                         prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
                     }
-                    const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures_.find(scatterer.name);
-                    if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures_.end())
+
+                    bool guides01Loaded = false, guides02Loaded = false;
                     {
-                        auto& tex=guidesPerWLSetIt->second[wlSetIndex];
-                        tex->bind(1);
-                        prog.setUniformValue("scatteringTextureInterpolationGuides", 1);
-                        prog.setUniformValue("useInterpolationGuides", true);
+                        const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures01_.find(scatterer.name);
+                        if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures01_.end())
+                        {
+                            auto& tex=guidesPerWLSetIt->second[wlSetIndex];
+                            tex->bind(1);
+                            prog.setUniformValue("scatteringTextureInterpolationGuides01", 1);
+                            guides01Loaded = true;
+                        }
                     }
+                    {
+                        const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures02_.find(scatterer.name);
+                        if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures02_.end())
+                        {
+                            auto& tex=guidesPerWLSetIt->second[wlSetIndex];
+                            tex->bind(2);
+                            prog.setUniformValue("scatteringTextureInterpolationGuides02", 2);
+                            guides02Loaded = true;
+                        }
+                    }
+                    prog.setUniformValue("useInterpolationGuides", guides01Loaded && guides02Loaded);
+
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
@@ -1593,14 +1685,28 @@ void AtmosphereRenderer::renderSingleScattering()
             prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
-            const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures_.find(scatterer.name);
-            if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures_.end())
+            bool guides01Loaded = false, guides02Loaded = false;
             {
-                auto& tex=guidesPerWLSetIt->second.front();
-                tex->bind(1);
-                prog.setUniformValue("scatteringTextureInterpolationGuides", 1);
-                prog.setUniformValue("useInterpolationGuides", true);
+                const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures01_.find(scatterer.name);
+                if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures01_.end())
+                {
+                    auto& tex=guidesPerWLSetIt->second.front();
+                    tex->bind(1);
+                    prog.setUniformValue("scatteringTextureInterpolationGuides01", 1);
+                    guides01Loaded = true;
+                }
             }
+            {
+                const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures02_.find(scatterer.name);
+                if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures02_.end())
+                {
+                    auto& tex=guidesPerWLSetIt->second.front();
+                    tex->bind(2);
+                    prog.setUniformValue("scatteringTextureInterpolationGuides02", 2);
+                    guides02Loaded = true;
+                }
+            }
+            prog.setUniformValue("useInterpolationGuides", guides01Loaded && guides02Loaded);
 
             drawSurface(prog);
         }

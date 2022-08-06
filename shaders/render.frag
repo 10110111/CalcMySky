@@ -13,7 +13,8 @@
 #include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
 #include_if(RENDERING_ANY_LIGHT_POLLUTION) "texture-sampling-functions.h.glsl"
 
-uniform sampler3D scatteringTextureInterpolationGuides;
+uniform sampler3D scatteringTextureInterpolationGuides01;
+uniform sampler3D scatteringTextureInterpolationGuides02;
 uniform sampler3D scatteringTexture;
 uniform sampler2D eclipsedScatteringTexture;
 uniform sampler3D eclipsedDoubleScatteringTextureLower;
@@ -233,7 +234,8 @@ void main()
     vec4 scattering;
     if(useInterpolationGuides)
     {
-        scattering = sample4DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides, cosSunZenithAngle,
+        scattering = sample4DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides01,
+                                           scatteringTextureInterpolationGuides02, cosSunZenithAngle,
                                            cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
     }
     else
@@ -249,7 +251,8 @@ void main()
     vec4 scattering;
     if(useInterpolationGuides)
     {
-        scattering = sample4DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides, cosSunZenithAngle,
+        scattering = sample4DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides01,
+                                           scatteringTextureInterpolationGuides02, cosSunZenithAngle,
                                            cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
     }
     else

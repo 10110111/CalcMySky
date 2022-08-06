@@ -289,8 +289,9 @@ float calcAngle(const int guideOrigin, const float guideTarget, const GuideType 
  * decaying and letting the maximum in the next row increase separately.
  */
 void generateInterpolationGuides2D(glm::vec4 const*const data,
-                                   const unsigned width, const unsigned height, const unsigned rowStride,
-                                   int16_t* angles, const int altIndex, const int szaIndex)
+                                   const unsigned width, const unsigned height, const unsigned rowStride, int16_t* angles,
+                                   const int altIndex, const int secondDimIndex, const char*const secondDimName,
+                                   const bool needCheckForMultipleMaxima)
 {
     if(width==0 || height==0)
     {
@@ -301,21 +302,24 @@ void generateInterpolationGuides2D(glm::vec4 const*const data,
     const int numRows = height;
     const int numCols = width;
 
-    for(int row = 0; row < numRows; ++row)
+    if(needCheckForMultipleMaxima)
     {
-        const auto rowData = data+row*rowStride;
-        const auto numMaxima = countMaxima(rowData, numCols);
-        if(numMaxima > 1)
+        for(int row = 0; row < numRows; ++row)
         {
-            // One single-pixel dip usually doesn't create much problems, so don't report this case of multiple maxima.
-            if(numMaxima == 2 && !minimumIsSinglePoint(rowData,numCols))
+            const auto rowData = data+row*rowStride;
+            const auto numMaxima = countMaxima(rowData, numCols);
+            if(numMaxima > 1)
             {
-                std::cerr << "\nwarning: " << numMaxima << " maxima instead of supported 1 in row " << row
-                          << " at altitude index " << altIndex << ", SZA index " << szaIndex
-                          << ".\n";
-                std::cerr << "Row data:\n";
-                for(int c = 0; c < numCols; ++c)
-                    std::cerr << v2v(rowData[c]) << (c==numCols-1 ? "\n" : ",");
+                // One single-pixel dip usually doesn't create much problems, so don't report this case of multiple maxima.
+                if(numMaxima == 2 && !minimumIsSinglePoint(rowData,numCols))
+                {
+                    std::cerr << "\nwarning: " << numMaxima << " maxima instead of supported 1 in row " << row
+                              << " at altitude index " << altIndex << ", " << secondDimName << " index " << secondDimIndex
+                              << ".\n";
+                    std::cerr << "Row data:\n";
+                    for(int c = 0; c < numCols; ++c)
+                        std::cerr << v2v(rowData[c]) << (c==numCols-1 ? "\n" : ",");
+                }
             }
         }
     }
@@ -385,7 +389,7 @@ void generateInterpolationGuides2D(glm::vec4 const*const data,
 
 void generateInterpolationGuidesForScatteringTexture(const std::string_view filePath)
 {
-    std::cerr << indentOutput() << "Generating interpolation guides... ";
+    std::cerr << indentOutput() << "Generating interpolation guides:\n";
     const auto filePathQt = QByteArray::fromRawData(filePath.data(), filePath.size());
     const std::string_view ext = ".f32";
     if(!filePathQt.endsWith(ext.data()))
@@ -414,63 +418,127 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
         throw MustQuit{};
     }
 
-    const auto outputFilePath = filePathQt.left(filePathQt.size() - ext.size()) + ".guides2d";
-
     const auto altLayerCount = sizes[3];
     const auto szaLayerCount = sizes[2];
     const auto dVSLayerCount = sizes[1];
     const auto vzaPointCount = sizes[0];
+    // Handle dimensions VZA-dotViewSun
+    {
+        OutputIndentIncrease incr;
+        std::cerr << indentOutput() << "Generating interpolation guides for VZA-dotViewSun dimensions... ";
 
-    QFile out(outputFilePath);
-    if(!out.open(QFile::WriteOnly))
-    {
-        std::cerr << "failed to open interpolation guides file for writing: " << in.errorString().toStdString() << "\n";
-        throw MustQuit{};
-    }
-    {
-        // Guides represent points between rows, so there's one less of them than rows.
-        uint16_t outputSizes[4] = {sizes[0], uint16_t(sizes[1]-1), sizes[2], sizes[3]};
-        if(out.write(reinterpret_cast<const char*>(outputSizes), sizeof outputSizes) != sizeof outputSizes)
+        const auto outputFilePath = filePathQt.left(filePathQt.size() - ext.size()) + "-dims01.guides2d";
+        QFile out(outputFilePath);
+        if(!out.open(QFile::WriteOnly))
         {
-            std::cerr << "failed to write interpolation guides header: " << in.errorString().toStdString() << "\n";
+            std::cerr << "failed to open interpolation guides file for writing: " << in.errorString().toStdString() << "\n";
             throw MustQuit{};
         }
-    }
-
-    uint16_t rowStride = vzaPointCount, height = dVSLayerCount;
-    std::vector<int16_t> angles(rowStride*(height-1));
-    for(int altIndex = 0; altIndex < altLayerCount; ++altIndex)
-    {
-        std::ostringstream ss;
-        ss << altIndex << " of " << altLayerCount << " layers done";
-        std::cerr << ss.str();
-
-        for(int szaIndex = 0; szaIndex < szaLayerCount; ++szaIndex)
         {
-            const int altSliceOffset = altIndex*szaLayerCount*dVSLayerCount*vzaPointCount;
-            const int szaSubsliceOffset = szaIndex*vzaPointCount*dVSLayerCount;
-            const int aboveHorizonHalfSpaceOffset = vzaPointCount/2 + 1; // +1 skips zenith point, because it may have an extraneous maximum
-            const int aboveHorizonHalfSpaceSize = vzaPointCount/2 - 1;   // -1 takes into account the +1 in the offset
-            std::fill(angles.begin(), angles.end(), 0.f);
-            generateInterpolationGuides2D(&pixels[altSliceOffset + szaSubsliceOffset + aboveHorizonHalfSpaceOffset],
-                                          aboveHorizonHalfSpaceSize, height, rowStride,
-                                          angles.data()+aboveHorizonHalfSpaceOffset, altIndex, szaIndex);
-            out.write(reinterpret_cast<const char*>(angles.data()), angles.size()*sizeof angles[0]);
+            // Guides represent points between rows, so there's one less of them than rows.
+            uint16_t outputSizes[4] = {sizes[0], uint16_t(sizes[1]-1), sizes[2], sizes[3]};
+            if(out.write(reinterpret_cast<const char*>(outputSizes), sizeof outputSizes) != sizeof outputSizes)
+            {
+                std::cerr << "failed to write interpolation guides header: " << in.errorString().toStdString() << "\n";
+                throw MustQuit{};
+            }
         }
 
-        // Clear previous status and reset cursor position
-        const auto statusWidth=ss.tellp();
-        std::cerr << std::string(statusWidth, '\b') << std::string(statusWidth, ' ')
-                  << std::string(statusWidth, '\b');
-    }
-    std::cerr << "done\n";
-    std::cerr << indentOutput() << "Saving interpolation guides to \"" << outputFilePath.toStdString() << "\"... ";
+        uint16_t rowStride = vzaPointCount, height = dVSLayerCount;
+        std::vector<int16_t> angles(rowStride*(height-1));
+        for(int altIndex = 0; altIndex < altLayerCount; ++altIndex)
+        {
+            std::ostringstream ss;
+            ss << altIndex << " of " << altLayerCount << " layers done";
+            std::cerr << ss.str();
 
-    out.close();
-    if(out.error())
-    {
-        std::cerr << "failed to write file: " << out.errorString().toStdString() << "\n";
-        throw MustQuit{};
+            for(int szaIndex = 0; szaIndex < szaLayerCount; ++szaIndex)
+            {
+                const int altSliceOffset = altIndex*szaLayerCount*dVSLayerCount*vzaPointCount;
+                const int szaSubsliceOffset = szaIndex*vzaPointCount*dVSLayerCount;
+                const int aboveHorizonHalfSpaceOffset = vzaPointCount/2 + 1; // +1 skips zenith point, because it may have an extraneous maximum
+                const int aboveHorizonHalfSpaceSize = vzaPointCount/2 - 1;   // -1 takes into account the +1 in the offset
+                std::fill(angles.begin(), angles.end(), 0.f);
+                generateInterpolationGuides2D(&pixels[altSliceOffset + szaSubsliceOffset + aboveHorizonHalfSpaceOffset],
+                                              aboveHorizonHalfSpaceSize, height, rowStride,
+                                              angles.data()+aboveHorizonHalfSpaceOffset, altIndex, szaIndex, "SZA", true);
+                out.write(reinterpret_cast<const char*>(angles.data()), angles.size()*sizeof angles[0]);
+            }
+
+            // Clear previous status and reset cursor position
+            const auto statusWidth=ss.tellp();
+            std::cerr << std::string(statusWidth, '\b') << std::string(statusWidth, ' ')
+                      << std::string(statusWidth, '\b');
+        }
+        std::cerr << "done\n";
+        std::cerr << indentOutput() << "Saving interpolation guides to \"" << outputFilePath.toStdString() << "\"... ";
+
+        out.close();
+        if(out.error())
+        {
+            std::cerr << "failed to write file: " << out.errorString().toStdString() << "\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
     }
-    std::cerr << "done\n";
+    // Handle dimensions VZA-SZA
+    {
+        OutputIndentIncrease incr;
+        std::cerr << indentOutput() << "Generating interpolation guides for VZA-SZA dimensions... ";
+
+        const auto outputFilePath = filePathQt.left(filePathQt.size() - ext.size()) + "-dims02.guides2d";
+        QFile out(outputFilePath);
+        if(!out.open(QFile::WriteOnly))
+        {
+            std::cerr << "failed to open interpolation guides file for writing: " << in.errorString().toStdString() << "\n";
+            throw MustQuit{};
+        }
+        {
+            // Guides represent points between rows, so there's one less of them than rows.
+            uint16_t outputSizes[4] = {sizes[0], sizes[1], uint16_t(sizes[2]-1), sizes[3]};
+            if(out.write(reinterpret_cast<const char*>(outputSizes), sizeof outputSizes) != sizeof outputSizes)
+            {
+                std::cerr << "failed to write interpolation guides header: " << in.errorString().toStdString() << "\n";
+                throw MustQuit{};
+            }
+        }
+
+        uint16_t rowStride = vzaPointCount*dVSLayerCount, height = szaLayerCount;
+        std::vector<int16_t> angles(rowStride*(height-1));
+        for(int altIndex = 0; altIndex < altLayerCount; ++altIndex)
+        {
+            std::ostringstream ss;
+            ss << altIndex << " of " << altLayerCount << " layers done";
+            std::cerr << ss.str();
+
+            std::fill(angles.begin(), angles.end(), 0.f);
+            for(int dVSIndex = 0; dVSIndex < dVSLayerCount; ++dVSIndex)
+            {
+                const int altSliceOffset = altIndex*szaLayerCount*dVSLayerCount*vzaPointCount;
+                const int dVSSubsliceOffset = vzaPointCount*dVSIndex;
+                const int aboveHorizonHalfSpaceOffset = vzaPointCount/2 + 1; // +1 skips zenith point, because it may have an extraneous maximum
+                const int aboveHorizonHalfSpaceSize = vzaPointCount/2 - 1;   // -1 takes into account the +1 in the offset
+                generateInterpolationGuides2D(&pixels[altSliceOffset + dVSSubsliceOffset + aboveHorizonHalfSpaceOffset],
+                                              aboveHorizonHalfSpaceSize, height, rowStride,
+                                              angles.data() + dVSSubsliceOffset + aboveHorizonHalfSpaceOffset,
+                                              altIndex, dVSIndex, "dotViewSun", false/*same rows, no need to recheck*/);
+            }
+            out.write(reinterpret_cast<const char*>(angles.data()), angles.size()*sizeof angles[0]);
+
+            // Clear previous status and reset cursor position
+            const auto statusWidth=ss.tellp();
+            std::cerr << std::string(statusWidth, '\b') << std::string(statusWidth, ' ')
+                      << std::string(statusWidth, '\b');
+        }
+        std::cerr << "done\n";
+        std::cerr << indentOutput() << "Saving interpolation guides to \"" << outputFilePath.toStdString() << "\"... ";
+
+        out.close();
+        if(out.error())
+        {
+            std::cerr << "failed to write file: " << out.errorString().toStdString() << "\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
 }

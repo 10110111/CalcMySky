@@ -94,7 +94,8 @@ private: // variables
     std::vector<TexturePtr> irradianceTextures_;
     std::vector<TexturePtr> lightPollutionTextures_;
     std::vector<GLuint> radianceRenderBuffers_;
-    std::map<ScattererName,std::vector<TexturePtr>> singleScatteringInterpolationGuidesTextures_;
+    std::map<ScattererName,std::vector<TexturePtr>> singleScatteringInterpolationGuidesTextures01_; // VZA-dotViewSun dimensions
+    std::map<ScattererName,std::vector<TexturePtr>> singleScatteringInterpolationGuidesTextures02_; // VZA-SZA dimensions
     GLuint viewDirectionRenderBuffer_=0;
     // Indexed as singleScatteringTextures_[scattererName][wavelengthSetIndex]
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures_;
