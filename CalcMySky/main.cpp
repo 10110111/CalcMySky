@@ -1172,6 +1172,7 @@ int main(int argc, char** argv)
                 throw MustQuit{};
             }
             QTextStream out(&file);
+            out << "version: " << AtmosphereParameters::FORMAT_VERSION << "\n";
             if(opts.saveResultAsRadiance)
                 out << AtmosphereParameters::ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE << "\n";
             if(opts.dbgNoEDSTextures)

@@ -417,6 +417,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
     descriptionFileText=atmoDescr.readAll();
     QTextStream stream(&descriptionFileText, QIODevice::ReadOnly);
     int lineNumber=1;
+    int version=0;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
     {
         QRegExp scattererDescriptionKey("^scatterer \"([^\"]+)\"$");
@@ -451,7 +452,20 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
         constexpr auto GLSIZEI_MAX = std::numeric_limits<GLsizei>::max();
         const auto key=keyValue[0].simplified().toLower();
         const auto value=keyValue[1].trimmed();
-        if(key=="transmittance texture size for vza")
+        constexpr const char KEY_VERSION[]="version";
+        if(!version && key!=KEY_VERSION)
+            throw ParsingError{atmoDescrFileName,lineNumber,QString("first key must be \"version\"; accepted value is %1").arg(FORMAT_VERSION)};
+
+        if(key==KEY_VERSION)
+        {
+            version=getUInt(value,0,UINT_MAX, atmoDescrFileName, lineNumber);
+            if(version != FORMAT_VERSION)
+            {
+                throw ParsingError{atmoDescrFileName,lineNumber,
+                                   QString("unsupported format version %1: supported is %2").arg(version).arg(FORMAT_VERSION)};
+            }
+        }
+        else if(key=="transmittance texture size for vza")
             transmittanceTexW=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="transmittance texture size for altitude")
             transmittanceTexH=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
