@@ -785,15 +785,27 @@ void GLWidget::reloadShaders()
 
 void GLWidget::stepShaderReloading()
 {
-    makeCurrent();
-    const auto status = renderer->stepShaderReloading();
-    if(status.stepsToDo < 0) return;
+    try
+    {
+        makeCurrent();
+        const auto status = renderer->stepShaderReloading();
+        if(status.stepsToDo < 0) return;
 
-    emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
-    if(renderer->isReadyToRender())
-        update();
-    else if(status.stepsDone < status.stepsToDo)
-        QTimer::singleShot(0, this, &GLWidget::stepShaderReloading);
+        emit loadProgress(renderer->currentActivity(), status.stepsDone, status.stepsToDo);
+        if(renderer->isReadyToRender())
+            update();
+        else if(status.stepsDone < status.stepsToDo)
+            QTimer::singleShot(0, this, &GLWidget::stepShaderReloading);
+    }
+    catch(ShowMySky::Error const& ex)
+    {
+        QTimer::singleShot(0,
+            [this,errorType=ex.errorType(),what=ex.what()]
+            {
+                emit loadProgress(tr("Shader reloading failed"), 0, 0);
+                QMessageBox::critical(this, errorType, what);
+            });
+    }
 }
 
 bool GLWidget::eventFilter(QObject* object, QEvent* event)
