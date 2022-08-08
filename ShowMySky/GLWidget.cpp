@@ -463,8 +463,12 @@ vec3 calcViewDir()
     }
     catch(ShowMySky::Error const& ex)
     {
-        QMessageBox::critical(this, ex.errorType(), ex.what());
-        QTimer::singleShot(0, [this]{ emit loadProgress(tr("Atmosphere renderer initialization failed"), 0, 0); });
+        QTimer::singleShot(0,
+            [this,errorType=ex.errorType(),what=ex.what()]
+            {
+                emit loadProgress(tr("Atmosphere renderer initialization failed"), 0, 0);
+                QMessageBox::critical(this, errorType, what);
+            });
     }
 }
 
@@ -488,8 +492,12 @@ void GLWidget::stepDataLoading()
     }
     catch(ShowMySky::Error const& ex)
     {
-        QMessageBox::critical(this, ex.errorType(), ex.what());
-        QTimer::singleShot(0, [this]{ emit loadProgress(tr("Data loading failed"), 0, 0); });
+        QTimer::singleShot(0,
+            [this,errorType=ex.errorType(),what=ex.what()]
+            {
+                emit loadProgress(tr("Data loading failed"), 0, 0);
+                QMessageBox::critical(this, errorType, what);
+            });
     }
 }
 
@@ -511,8 +519,12 @@ void GLWidget::stepPreparationToDraw(const bool emitProgressStatus)
     }
     catch(ShowMySky::Error const& ex)
     {
-        QMessageBox::critical(this, ex.errorType(), ex.what());
-        QTimer::singleShot(0, [this]{ emit loadProgress(tr("Data loading failed"), 0, 0); });
+        QTimer::singleShot(0,
+            [this,errorType=ex.errorType(),what=ex.what()]
+            {
+                emit loadProgress(tr("Data loading failed"), 0, 0);
+                QMessageBox::critical(this, errorType, what);
+            });
     }
 }
 
