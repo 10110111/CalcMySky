@@ -260,7 +260,7 @@ Depending on the properties of the scatterer, there may be some ways to optimize
 
  * `general` — the most general way of storing computation results: first-order scattering in a separate texture, split into separate textures per wavelength set, multiple scattering in another texture.
  * `achromatic` — denotes a phase function that doesn't depend on wavelength. This lets us merge all the single scattering radiance textures into a single luminance texture without compromising correctness of rendering.
- * `smooth` — a kind of phase function that doesn't need a high resolution texture to be represented well. This lets the single scattering texture to be merged into the multiple scattering texture, thus avoiding the need for extra storage.
+ * `smooth` — a kind of phase function that doesn't need a high resolution texture to be represented well. This lets the phase function be embedded into the texture. Such texture data can be saved as color instead of radiance. This helps save storage space and improve rendering performance.
 
 #### `cross section at 1 um`
 
