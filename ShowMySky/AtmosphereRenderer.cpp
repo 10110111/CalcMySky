@@ -632,37 +632,71 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
     }
     if(!params_.noEclipsedDoubleScatteringTextures)
     {
-        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        if(const auto filename=pathToData_+"/eclipsed-double-scattering-xyzw.f32"; QFile::exists(filename))
         {
             if(countStepsOnly)
             {
                 ++totalLoadingStepsToDo_;
-                continue;
             }
-            if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
-                continue;
+            else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+            {
+                auto& texL=*eclipsedDoubleScatteringTexturesLower_.emplace_back(newTex(QOpenGLTexture::Target3D));
+                texL.setMinificationFilter(texFilter);
+                texL.setMagnificationFilter(texFilter);
+                // relative azimuth
+                texL.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
+                // VZA
+                texL.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+                // SZA
+                texL.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
 
-            auto& texL=*eclipsedDoubleScatteringTexturesLower_.emplace_back(newTex(QOpenGLTexture::Target3D));
-            texL.setMinificationFilter(texFilter);
-            texL.setMagnificationFilter(texFilter);
-            // relative azimuth
-            texL.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
-            // VZA
-            texL.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
-            // SZA
-            texL.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+                auto& texU=*eclipsedDoubleScatteringTexturesUpper_.emplace_back(newTex(QOpenGLTexture::Target3D));
+                texU.setMinificationFilter(texFilter);
+                texU.setMagnificationFilter(texFilter);
+                // relative azimuth
+                texU.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
+                // VZA
+                texU.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+                // SZA
+                texU.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+                load4DTexAltitudeSlicePair(QString("%1/eclipsed-double-scattering-xyzw.f32").arg(pathToData_), texL, texU, altCoord);
+                ++loadingStepsDone_; return;
+            }
+        }
+        else
+        {
+            for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+            {
+                if(countStepsOnly)
+                {
+                    ++totalLoadingStepsToDo_;
+                    continue;
+                }
+                if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
+                    continue;
 
-            auto& texU=*eclipsedDoubleScatteringTexturesUpper_.emplace_back(newTex(QOpenGLTexture::Target3D));
-            texU.setMinificationFilter(texFilter);
-            texU.setMagnificationFilter(texFilter);
-            // relative azimuth
-            texU.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
-            // VZA
-            texU.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
-            // SZA
-            texU.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
-            load4DTexAltitudeSlicePair(QString("%1/eclipsed-double-scattering-wlset%2.f32").arg(pathToData_).arg(wlSetIndex), texL, texU, altCoord);
-            ++loadingStepsDone_; return;
+                auto& texL=*eclipsedDoubleScatteringTexturesLower_.emplace_back(newTex(QOpenGLTexture::Target3D));
+                texL.setMinificationFilter(texFilter);
+                texL.setMagnificationFilter(texFilter);
+                // relative azimuth
+                texL.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
+                // VZA
+                texL.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+                // SZA
+                texL.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+
+                auto& texU=*eclipsedDoubleScatteringTexturesUpper_.emplace_back(newTex(QOpenGLTexture::Target3D));
+                texU.setMinificationFilter(texFilter);
+                texU.setMagnificationFilter(texFilter);
+                // relative azimuth
+                texU.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
+                // VZA
+                texU.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+                // SZA
+                texU.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+                load4DTexAltitudeSlicePair(QString("%1/eclipsed-double-scattering-wlset%2.f32").arg(pathToData_).arg(wlSetIndex), texL, texU, altCoord);
+                ++loadingStepsDone_; return;
+            }
         }
     }
 
@@ -1003,30 +1037,57 @@ void main()
         eclipsedDoubleScatteringPrecomputedPrograms_.clear();
         ++loadingStepsDone_; return;
     }
-    for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+    if(QFile::exists(pathToData_+"/shaders/double-scattering-eclipsed/precomputed/0/"))
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+                continue;
+            }
+            if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
+                continue;
+
+            const auto scatDir=QString("%1/shaders/double-scattering-eclipsed/precomputed/%2").arg(pathToData_).arg(wlSetIndex);
+            qDebug().nospace() << "Loading shaders from " << scatDir << "...";
+            auto& program=*eclipsedDoubleScatteringPrecomputedPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+                addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+
+            program.addShader(viewDirFragShader_.get());
+            program.addShader(viewDirVertShader_.get());
+            for(const auto& b : viewDirBindAttribLocations_)
+                program.bindAttributeLocation(b.first.c_str(), b.second);
+
+            link(program, QObject::tr("precomputed eclipsed double scattering shader program"));
+            ++loadingStepsDone_; return;
+        }
+    }
+    else
     {
         if(countStepsOnly)
         {
             ++totalLoadingStepsToDo_;
-            continue;
         }
-        if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
-            continue;
+        else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+        {
+            const auto scatDir=QString("%1/shaders/double-scattering-eclipsed/precomputed").arg(pathToData_);
+            qDebug().nospace() << "Loading shaders from " << scatDir << "...";
+            auto& program=*eclipsedDoubleScatteringPrecomputedPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
 
-        const auto scatDir=QString("%1/shaders/double-scattering-eclipsed/precomputed/%2").arg(pathToData_).arg(wlSetIndex);
-        qDebug().nospace() << "Loading shaders from " << scatDir << "...";
-        auto& program=*eclipsedDoubleScatteringPrecomputedPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+                addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
 
-        for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
-            addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+            program.addShader(viewDirFragShader_.get());
+            program.addShader(viewDirVertShader_.get());
+            for(const auto& b : viewDirBindAttribLocations_)
+                program.bindAttributeLocation(b.first.c_str(), b.second);
 
-        program.addShader(viewDirFragShader_.get());
-        program.addShader(viewDirVertShader_.get());
-        for(const auto& b : viewDirBindAttribLocations_)
-            program.bindAttributeLocation(b.first.c_str(), b.second);
-
-        link(program, QObject::tr("precomputed eclipsed double scattering shader program"));
-        ++loadingStepsDone_; return;
+            link(program, QObject::tr("precomputed eclipsed double scattering shader program"));
+            ++loadingStepsDone_; return;
+        }
     }
 
     // Rendering with on-the-fly precomputation, useful as a reference on slower machines, and as the production mode on very fast ones
@@ -1738,6 +1799,8 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
     gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseDoubleScatteringPrecomputationFBO_);
     gl.glDisablei(GL_BLEND, 0);
     gl.glBindVertexArray(vao_);
+    const bool renderingNeedsLuminance = !canGrabRadiance();
+    std::unique_ptr<EclipsedDoubleScatteringPrecomputer> precompAccumulator;
     for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
     {
         auto& prog=*eclipsedDoubleScatteringPrecomputationPrograms_[wlSetIndex];
@@ -1749,16 +1812,37 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
             prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
         prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
 
-        EclipsedDoubleScatteringPrecomputer precomputer(prog, gl, eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),
+        auto precomputer = std::make_unique<EclipsedDoubleScatteringPrecomputer>(prog, gl,
+                                                        eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),
                                                         unusedTextureUnitNum, params_,
                                                         params_.eclipsedDoubleScatteringTextureSize[0],
                                                         params_.eclipsedDoubleScatteringTextureSize[1], 1, 1);
-        precomputer.compute(0, 0, tools_->altitude(), tools_->sunZenithAngle(),
-                            tools_->moonZenithAngle(), tools_->moonAzimuth() - tools_->sunAzimuth(), tools_->earthMoonDistance());
-        eclipsedDoubleScatteringPrecomputationTargetTextures_[wlSetIndex]->bind();
-        gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,
-                        params_.eclipsedDoubleScatteringTextureSize[0], params_.eclipsedDoubleScatteringTextureSize[1], 1,
-                        0,GL_RGBA,GL_FLOAT,precomputer.texture().data());
+        precomputer->computeRadianceOnCoarseGrid(tools_->altitude(), tools_->sunZenithAngle(),
+                                                 tools_->moonZenithAngle(), tools_->moonAzimuth() - tools_->sunAzimuth(),
+                                                 tools_->earthMoonDistance());
+        if(renderingNeedsLuminance)
+        {
+            const auto rad2lum = radianceToLuminance(wlSetIndex, params_.allWavelengths);
+            if(wlSetIndex==0)
+            {
+                precompAccumulator = std::move(precomputer);
+                precompAccumulator->convertRadianceToLuminance(rad2lum);
+            }
+            else
+            {
+                precompAccumulator->accumulateLuminance(*precomputer, rad2lum);
+            }
+        }
+
+        if(!renderingNeedsLuminance || wlSetIndex+1 == params_.allWavelengths.size())
+        {
+            auto& generator = renderingNeedsLuminance ? *precompAccumulator : *precomputer;
+            generator.generateTextureFromCoarseGridData(0, 0, tools_->altitude());
+            eclipsedDoubleScatteringPrecomputationTargetTextures_[renderingNeedsLuminance ? 0 : wlSetIndex]->bind();
+            gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,
+                            params_.eclipsedDoubleScatteringTextureSize[0], params_.eclipsedDoubleScatteringTextureSize[1], 1,
+                            0,GL_RGBA,GL_FLOAT,generator.texture().data());
+        }
     }
     gl.glBindVertexArray(0);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,luminanceRadianceFBO_);
@@ -1774,7 +1858,7 @@ void AtmosphereRenderer::renderMultipleScattering()
     {
         if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
             precomputeEclipsedDoubleScattering();
-        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        for(unsigned wlSetIndex=0; wlSetIndex < eclipsedDoubleScatteringPrecomputedPrograms_.size(); ++wlSetIndex)
         {
             if(!radianceRenderBuffers_.empty())
                 gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);

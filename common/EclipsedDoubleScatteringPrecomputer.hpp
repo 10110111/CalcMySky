@@ -23,6 +23,7 @@ class EclipsedDoubleScatteringPrecomputer
     const double texW, texH; // size of the intermediate texture we are rendering to
     std::vector<glm::vec4> texture_; // output 4D texture data
     std::vector<std::complex<float>> fourierIntermediate;
+    std::vector<float> elevationsAboveHorizon, elevationsBelowHorizon;
 
     static constexpr unsigned VEC_ELEM_COUNT=4; // number of components in the partial radiance vector
     // The samples of radiance, one container per vec4 component. These containers are re-used for different altitudes and Sun elevations.
@@ -38,8 +39,7 @@ class EclipsedDoubleScatteringPrecomputer
 
     float cosZenithAngleOfHorizon(const float altitude) const;
     std::pair<float,bool> eclipseTexCoordsToTexVars_cosVZA_VRIG(float vzaTexCoordInUnitRange, float altitude) const;
-    std::pair<std::vector<float>/*above horizon*/,std::vector<float>/*below horizon*/>
-        generateElevationsForEclipsedDoubleScattering(float cameraAltitude) const;
+    void generateElevationsForEclipsedDoubleScattering(float cameraAltitude);
 public:
     /* Preconditions:
      *   * Rendering FBO is bound, and the target texture is attached to it
@@ -53,8 +53,16 @@ public:
                                         unsigned texSizeByViewAzimuth, unsigned texSizeByViewElevation,
                                         unsigned texSizeBySZA, unsigned texSizeByAltitude);
     ~EclipsedDoubleScatteringPrecomputer();
+
     void compute(unsigned altIndex, unsigned szaIndex, double cameraAltitude, double sunZenithAngle,
                  double moonZenithAngle, double moonAzimuthRelativeToSun, double earthMoonDistance);
+
+    void computeRadianceOnCoarseGrid(double cameraAltitude, double sunZenithAngle, double moonZenithAngle,
+                                     double moonAzimuthRelativeToSun, double earthMoonDistance);
+    void convertRadianceToLuminance(glm::mat4 const& radianceToLuminance);
+    void accumulateLuminance(EclipsedDoubleScatteringPrecomputer const& source, glm::mat4 const& sourceRadianceToLuminance);
+    void generateTextureFromCoarseGridData(unsigned altIndex, unsigned szaIndex, double cameraAltitude);
+
     std::vector<glm::vec4> const& texture() const { return texture_; }
 };
 

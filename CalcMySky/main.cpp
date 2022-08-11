@@ -25,35 +25,13 @@
 #include "shaders.hpp"
 #include "interpolation-guides.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
-#include "../common/cie-xyzw-functions.hpp"
 #include "../common/timing.hpp"
 
 QOpenGLFunctions_3_3_Core gl;
 using glm::ivec2;
 using glm::vec2;
 using glm::vec4;
-
-glm::mat4 radianceToLuminance(const unsigned texIndex)
-{
-    using glm::mat4;
-    const auto diag=[](GLfloat x, GLfloat y, GLfloat z, GLfloat w) { return mat4(x,0,0,0,
-                                                                                 0,y,0,0,
-                                                                                 0,0,z,0,
-                                                                                 0,0,0,w); };
-    const auto wlCount = 4*atmo.allWavelengths.size();
-    // Weights for the trapezoidal quadrature rule
-    const mat4 weights = wlCount==4            ? diag(0.5,1,1,0.5) :
-                         texIndex==0           ? diag(0.5,1,1,1  ) :
-                         texIndex+1==wlCount/4 ? diag(  1,1,1,0.5) :
-                                                 diag(  1,1,1,1);
-    const mat4 dlambda = weights * abs(atmo.allWavelengths.back()[3]-atmo.allWavelengths.front()[0]) / (wlCount-1.f);
-    // Ref: Rapport BIPM-2019/05. Principles Governing Photometry, 2nd edition. Sections 6.2, 6.3.
-    const mat4 maxLuminousEfficacy=diag(683.002f,683.002f,683.002f,1700.13f); // lm/W
-    return maxLuminousEfficacy * mat4(wavelengthToXYZW(atmo.allWavelengths[texIndex][0]),
-                                      wavelengthToXYZW(atmo.allWavelengths[texIndex][1]),
-                                      wavelengthToXYZW(atmo.allWavelengths[texIndex][2]),
-                                      wavelengthToXYZW(atmo.allWavelengths[texIndex][3])) * dlambda;
-}
+std::vector<glm::vec4> eclipsedDoubleScatteringAccumulatorTexture;
 
 void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 {
@@ -406,8 +384,10 @@ void saveEclipsedDoubleScatteringRenderingShader(const unsigned texIndex)
 
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
+    const QString macroToReplace = opts.saveResultAsRadiance ? "RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE"
+                                                             : "RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-        .replace(QRegExp("\\b(RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE)\\b"), "1 /*\\1*/");
+        .replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "double scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -415,9 +395,13 @@ void saveEclipsedDoubleScatteringRenderingShader(const unsigned texIndex)
     {
         if(filename==viewDirFuncFileName) continue;
 
-        const auto filePath = QString("%1/shaders/double-scattering-eclipsed/precomputed/%2/%3").arg(atmo.textureOutputDir.c_str())
-                                                                                                .arg(texIndex)
-                                                                                                .arg(filename);
+        const auto filePath = opts.saveResultAsRadiance ? QString("%1/shaders/double-scattering-eclipsed/precomputed/%2/%3")
+                                                                    .arg(atmo.textureOutputDir.c_str())
+                                                                    .arg(texIndex)
+                                                                    .arg(filename)
+                                                        : QString("%1/shaders/double-scattering-eclipsed/precomputed/%2")
+                                                                    .arg(atmo.textureOutputDir.c_str())
+                                                                    .arg(filename);
         std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
         QFile file(filePath);
         if(!file.open(QFile::WriteOnly))
@@ -502,7 +486,7 @@ void accumulateSingleScattering(const unsigned texIndex, AtmosphereParameters::S
                                             UseGeomShader{});
     program->bind();
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
-    program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex)));
+    program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex, atmo.allWavelengths)));
     program->setUniformValue("embedPhaseFunction", scatterer.phaseFunctionType==PhaseFunctionType::Smooth);
     render3DTexLayers(*program, "Blending single scattering layers into accumulator texture");
 
@@ -768,7 +752,7 @@ void accumulateMultipleScattering(const unsigned scatteringOrder, const unsigned
                                             UseGeomShader{});
     program->bind();
     if(!opts.saveResultAsRadiance)
-        program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex)));
+        program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex, atmo.allWavelengths)));
     setUniformTexture(*program,GL_TEXTURE_3D,TEX_DELTA_SCATTERING,0,"tex");
     render3DTexLayers(*program, "Blending multiple scattering layers into accumulator texture");
     gl.glDisable(GL_BLEND);
@@ -838,7 +822,6 @@ void computeMultipleScattering(const unsigned texIndex)
             computeMultipleScatteringFromDensity(2,texIndex);
         }
     }
-    saveEclipsedDoubleScatteringRenderingShader(texIndex);
     for(unsigned scatteringOrder=3; scatteringOrder<=atmo.scatteringOrdersToCompute; ++scatteringOrder)
     {
         std::cerr << indentOutput() << "Working on scattering order " << scatteringOrder << ":\n";
@@ -966,26 +949,57 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
     const auto time1=std::chrono::steady_clock::now();
     std::cerr << "done in " << formatDeltaTime(time0, time1) << "\n";
 
-    const auto path=atmo.textureOutputDir+"/eclipsed-double-scattering-wlset"+std::to_string(texIndex)+".f32";
-    std::cerr << "Saving eclipsed double scattering texture to \"" << path << "\"... ";
-    QFile out(QString::fromStdString(path));
-    if(!out.open(QFile::WriteOnly))
+    if(!opts.saveResultAsRadiance)
     {
-        std::cerr << "failed to open file: " << out.errorString().toStdString() << "\n";
-        throw MustQuit{};
+        std::cerr << indentOutput() << "Blending eclipsed double scattering texture into accumulator... ";
+        const auto time0=std::chrono::steady_clock::now();
+        const auto rad2lum = radianceToLuminance(texIndex, atmo.allWavelengths);
+        constexpr float ALMOST_ZERO = 1e-37;
+        if(texIndex == 0)
+        {
+            // Initialize the accumulator with the first layer...
+            eclipsedDoubleScatteringAccumulatorTexture = precomputer.texture();
+            // ... and apply the weight.
+            for(auto& v : eclipsedDoubleScatteringAccumulatorTexture)
+                v = log(max(rad2lum*exp(v), vec4(ALMOST_ZERO)));
+        }
+        else
+        {
+            // Blend the new texture data into the accumulator.
+            auto& accum = eclipsedDoubleScatteringAccumulatorTexture;
+            const auto& src = precomputer.texture();
+            for(size_t i = 0; i < accum.size(); ++i)
+                accum[i] = log(max(exp(accum[i]) + rad2lum * exp(src[i]), vec4(ALMOST_ZERO)));
+        }
+        const auto time1=std::chrono::steady_clock::now();
+        std::cerr << "done in " << formatDeltaTime(time0, time1) << "\n";
     }
-    for(const uint16_t size : {atmo.eclipsedDoubleScatteringTextureSize[0],atmo.eclipsedDoubleScatteringTextureSize[1],
-                               atmo.eclipsedDoubleScatteringTextureSize[2],atmo.eclipsedDoubleScatteringTextureSize[3]})
-        out.write(reinterpret_cast<const char*>(&size), sizeof size);
-    const auto& texture=precomputer.texture();
-    out.write(reinterpret_cast<const char*>(texture.data()), texture.size()*sizeof texture[0]);
-    out.close();
-    if(out.error())
+
+    if(opts.saveResultAsRadiance || texIndex+1 == atmo.allWavelengths.size())
     {
-        std::cerr << "failed to write file: " << out.errorString().toStdString() << "\n";
-        throw MustQuit{};
+        const auto path = atmo.textureOutputDir+"/eclipsed-double-scattering" +
+                          (opts.saveResultAsRadiance ? "-wlset"+std::to_string(texIndex) : "-xyzw") +
+                          ".f32";
+        std::cerr << "Saving eclipsed double scattering texture to \"" << path << "\"... ";
+        QFile out(QString::fromStdString(path));
+        if(!out.open(QFile::WriteOnly))
+        {
+            std::cerr << "failed to open file: " << out.errorString().toStdString() << "\n";
+            throw MustQuit{};
+        }
+        for(const uint16_t size : {atmo.eclipsedDoubleScatteringTextureSize[0],atmo.eclipsedDoubleScatteringTextureSize[1],
+                                   atmo.eclipsedDoubleScatteringTextureSize[2],atmo.eclipsedDoubleScatteringTextureSize[3]})
+            out.write(reinterpret_cast<const char*>(&size), sizeof size);
+        const auto& texture = opts.saveResultAsRadiance ? precomputer.texture() : eclipsedDoubleScatteringAccumulatorTexture;
+        out.write(reinterpret_cast<const char*>(texture.data()), texture.size()*sizeof texture[0]);
+        out.close();
+        if(out.error())
+        {
+            std::cerr << "failed to write file: " << out.errorString().toStdString() << "\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
     }
-    std::cerr << "done\n";
 }
 
 void computeLightPollutionSingleScattering(const unsigned texIndex)
@@ -1096,7 +1110,7 @@ void accumulateLightPollutionLuminanceTexture(const unsigned texIndex)
                                             UseGeomShader{});
     program->bind();
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_LIGHT_POLLUTION_SCATTERING,0,"tex");
-    program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex)));
+    program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex, atmo.allWavelengths)));
     renderQuad();
 
     if(texIndex+1==atmo.allWavelengths.size())
@@ -1155,11 +1169,13 @@ int main(int argc, char** argv)
                            scatterer.name.toStdString());
             }
         }
+        createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputed/");
         for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
         {
             createDirs(atmo.textureOutputDir+"/shaders/zero-order-scattering/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/shaders/eclipsed-zero-order-scattering/"+std::to_string(texIndex));
-            createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputed/"+std::to_string(texIndex));
+            if(opts.saveResultAsRadiance)
+                createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputed/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputation/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
         }
@@ -1259,7 +1275,7 @@ int main(int argc, char** argv)
             virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc();
             virtualSourceFiles[TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME]=makeTotalScatteringCoefSrc();
             virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +
-                                                                        toString(radianceToLuminance(texIndex)) + ";\n";
+                                                  toString(radianceToLuminance(texIndex, atmo.allWavelengths)) + ";\n";
 
             saveZeroOrderScatteringRenderingShader(texIndex);
             saveEclipsedZeroOrderScatteringRenderingShader(texIndex);
@@ -1290,13 +1306,19 @@ int main(int argc, char** argv)
 
             computeMultipleScattering(texIndex);
             if(opts.saveResultAsRadiance)
+            {
                 saveMultipleScatteringRenderingShader(texIndex);
+                saveEclipsedDoubleScatteringRenderingShader(texIndex);
+            }
 
             computeEclipsedDoubleScattering(texIndex);
 
         }
         if(!opts.saveResultAsRadiance)
+        {
             saveMultipleScatteringRenderingShader(-1);
+            saveEclipsedDoubleScatteringRenderingShader(-1);
+        }
 
         const auto timeEnd=std::chrono::steady_clock::now();
         std::cerr << "Finished in " << formatDeltaTime(timeBegin, timeEnd) << "\n";

@@ -223,6 +223,11 @@ void main()
     radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
+#elif RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_LUMINANCE
+    luminance=exp(sampleEclipseDoubleScattering4DTexture(eclipsedDoubleScatteringTextureLower,
+                                                         eclipsedDoubleScatteringTextureUpper,
+                                                         cosSunZenithAngle, cosViewZenithAngle, azimuthRelativeToSun,
+                                                         altitude, viewRayIntersectsGround));
 #elif RENDERING_SINGLE_SCATTERING_ON_THE_FLY
     const vec4 scattering=computeSingleScattering(cosSunZenithAngle,cosViewZenithAngle,dotViewSun,
                                                   altitude,viewRayIntersectsGround);

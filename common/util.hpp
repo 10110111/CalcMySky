@@ -131,4 +131,6 @@ Number clampCosine(const Number x)
     return std::clamp(x, Number(-1), Number(1));
 }
 
+glm::mat4 radianceToLuminance(unsigned texIndex, std::vector<glm::vec4> const& allWavelengths);
+
 #endif

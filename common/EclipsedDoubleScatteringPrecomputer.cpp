@@ -14,6 +14,14 @@
 #include "timing.hpp"
 #include "util.hpp"
 
+using namespace glm;
+using std::sin;
+using std::cos;
+using std::sqrt;
+using std::asin;
+using std::exp;
+using std::log;
+
 static glm::vec4 sumTexels(QOpenGLFunctions_3_3_Core& gl, const GLuint textureToRead,
                            const double texW, const double texH, const GLenum unusedTextureUnit)
 {
@@ -45,12 +53,8 @@ float EclipsedDoubleScatteringPrecomputer::cosZenithAngleOfHorizon(const float a
     return -std::sqrt(2*h*R+sqr(h))/(R+h);
 }
 
-std::pair<std::vector<float>/*above horizon*/,std::vector<float>/*below horizon*/>
-    EclipsedDoubleScatteringPrecomputer::generateElevationsForEclipsedDoubleScattering(const float cameraAltitude) const
+void EclipsedDoubleScatteringPrecomputer::generateElevationsForEclipsedDoubleScattering(const float cameraAltitude)
 {
-    std::pair<std::vector<float>,std::vector<float>> elevs;
-    auto& [elevationsAboveHorizon, elevationsBelowHorizon] = elevs;
-
     const auto trueHorizonToZenith = acos(cosZenithAngleOfHorizon(cameraAltitude));
     const auto trueHorizonToNadir = M_PI - trueHorizonToZenith;
     const auto elevationOfHorizon = M_PI/2-trueHorizonToZenith;
@@ -70,6 +74,7 @@ std::pair<std::vector<float>/*above horizon*/,std::vector<float>/*below horizon*
     if(baseElevations[0] > firstBaseElev)
         baseElevations[0] = firstBaseElev;
 
+    elevationsBelowHorizon.clear();
     // Elevations from horizon to nadir in backward direction, [-PI, -PI/2] at alt==0
     for(const auto baseElev : baseElevations)
         elevationsBelowHorizon.push_back(-M_PI - elevationOfHorizon + baseElev/mathHorizonToNadir*trueHorizonToNadir);
@@ -77,14 +82,13 @@ std::pair<std::vector<float>/*above horizon*/,std::vector<float>/*below horizon*
     for(unsigned i=baseElevations.size(); i-->0;)
         elevationsBelowHorizon.push_back(elevationOfHorizon - baseElevations[i]/mathHorizonToNadir*trueHorizonToNadir);
 
+    elevationsAboveHorizon.clear();
     // Elevations from horizon to zenith in forward direction, [0, PI/2] at alt==0
     for(const auto baseElev : baseElevations)
         elevationsAboveHorizon.push_back(elevationOfHorizon + baseElev/mathHorizonToZenith*trueHorizonToZenith);
     // Elevations from zenith to horizon in backward direction, [PI/2, PI] at alt==0
     for(unsigned i=baseElevations.size(); i-->0;)
         elevationsAboveHorizon.push_back(M_PI-(elevationOfHorizon + baseElevations[i]/mathHorizonToZenith*trueHorizonToZenith));
-
-    return elevs;
 }
 
 // XXX: keep in sync with the GLSL version in texture-coordinates.{frag,h.glsl}
@@ -172,19 +176,10 @@ EclipsedDoubleScatteringPrecomputer::~EclipsedDoubleScatteringPrecomputer()
     gl.glViewport(0,0, origViewportWidth,origViewportHeight);
 }
 
-void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const unsigned szaIndex,
-                                                  const double cameraAltitude, const double sunZenithAngle,
-                                                  const double moonZenithAngle, const double moonAzimuthRelativeToSun,
-                                                  const double earthMoonDistance)
+void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(const double cameraAltitude, const double sunZenithAngle,
+                                                                      const double moonZenithAngle, const double moonAzimuthRelativeToSun,
+                                                                      const double earthMoonDistance)
 {
-    using namespace glm;
-    using std::sin;
-    using std::cos;
-    using std::sqrt;
-    using std::asin;
-    using std::exp;
-    using std::log;
-
     const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
     const auto nElevationPairsToSample=atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample;
 
@@ -204,11 +199,11 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
     program.setUniformValue("moonPositionRelativeToSunAzimuth", toQVector(moonPos));
     program.setUniformValue("eclipsedDoubleScatteringTextureSize", texSizeByViewAzimuth, texSizeByViewElevation, texSizeBySZA);
 
-    // 1. Sample double scattering on a very coarse grid of elevations and azimuths
+    // Sample double scattering on a very coarse grid of elevations and azimuths
 
     // These elevations span from forward horizon to backward horizon. This is to
     // use spline interpolation to compute the value at the zenith.
-    const auto [elevationsAboveHorizon, elevationsBelowHorizon]=generateElevationsForEclipsedDoubleScattering(cameraAltitude);
+    generateElevationsForEclipsedDoubleScattering(cameraAltitude);
 
     const auto azimuths=[this, nAzimuthPairsToSample]
     {
@@ -225,7 +220,6 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
     for(unsigned azimIndex=0; azimIndex<azimuths.size(); ++azimIndex)
     {
-        static constexpr float ALMOST_LOG_ZERO = -70;
         const auto azimuth=azimuths[azimIndex];
         for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
         {
@@ -237,7 +231,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
             // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
             const auto integral=sumTexels(gl, intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
-                samplesAboveHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]==0 ? ALMOST_LOG_ZERO : log(integral[i]));
+                samplesAboveHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
         }
         for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
         {
@@ -249,11 +243,41 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
             // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
             const auto integral=sumTexels(gl, intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
-                samplesBelowHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]==0 ? ALMOST_LOG_ZERO : log(integral[i]));
+                samplesBelowHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
+        }
+    }
+}
+
+void EclipsedDoubleScatteringPrecomputer::generateTextureFromCoarseGridData(const unsigned altIndex, const unsigned szaIndex, const double cameraAltitude)
+{
+    // 1. EclipsedDoubleScatteringPrecomputer::computeOnCoarseGrid()
+    // This must have been called before we get here.
+
+    const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
+    const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
+
+    // 2. Apply log to all samples: interpolation works much better in logarithmic scale.
+    for(unsigned azimIndex=0; azimIndex<nAzimuthPairsToSample; ++azimIndex)
+    {
+        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+        {
+            const auto pos = azimIndex*elevCount+elevIndex;
+            static constexpr float ALMOST_LOG_ZERO = -70;
+
+            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+            {
+                auto& sample = samplesAboveHorizon[i][pos].y;
+                sample = sample==0 ? ALMOST_LOG_ZERO : log(sample);
+            }
+            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+            {
+                auto& sample = samplesBelowHorizon[i][pos].y;
+                sample = sample==0 ? ALMOST_LOG_ZERO : log(sample);
+            }
         }
     }
 
-    // 2. Interpolate the samples over the circles of elevations using second order spline interpolation
+    // 3. Interpolate the samples over the circles of elevations using second order spline interpolation
     for(unsigned azimIndex=0; azimIndex<nAzimuthPairsToSample; ++azimIndex)
     {
         SplineOrder2InterpolationFunction<float,vec2> intFuncsAboveHorizon[VEC_ELEM_COUNT];
@@ -284,7 +308,7 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
         }
     }
 
-    // 3. Interpolate the resulting interpolations over azimuths using Fourier interpolation and save into the final texture
+    // 4. Interpolate the resulting interpolations over azimuths using Fourier interpolation and save into the final texture
     std::vector<float> interpolated[VEC_ELEM_COUNT];
     for(auto& in : interpolated)
         in.resize(texSizeByViewAzimuth);
@@ -299,5 +323,80 @@ void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const
                                interpolated[i].data(), texSizeByViewAzimuth);
         for(unsigned i=0; i<texSizeByViewAzimuth; ++i)
             texture_[indexOfLineInTexture+i] = vec4(interpolated[0][i],interpolated[1][i],interpolated[2][i],interpolated[3][i]);
+    }
+}
+
+void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const unsigned szaIndex,
+                                                  const double cameraAltitude, const double sunZenithAngle,
+                                                  const double moonZenithAngle, const double moonAzimuthRelativeToSun,
+                                                  const double earthMoonDistance)
+{
+    computeRadianceOnCoarseGrid(cameraAltitude, sunZenithAngle, moonZenithAngle,
+                                moonAzimuthRelativeToSun, earthMoonDistance);
+    generateTextureFromCoarseGridData(altIndex, szaIndex, cameraAltitude);
+}
+
+void EclipsedDoubleScatteringPrecomputer::convertRadianceToLuminance(glm::mat4 const& radianceToLuminance)
+{
+    const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
+    const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
+
+    for(unsigned azimIndex=0; azimIndex<nAzimuthPairsToSample; ++azimIndex)
+    {
+        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+        {
+            const auto pos = azimIndex*elevCount+elevIndex;
+            const auto v = vec4(samplesAboveHorizon[0][pos].y,
+                                samplesAboveHorizon[1][pos].y,
+                                samplesAboveHorizon[2][pos].y,
+                                samplesAboveHorizon[3][pos].y);
+            const auto transformed = radianceToLuminance * v;
+            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+                samplesAboveHorizon[i][pos].y = transformed[i];
+        }
+        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+        {
+            const auto pos = azimIndex*elevCount+elevIndex;
+            const auto v = vec4(samplesBelowHorizon[0][pos].y,
+                                samplesBelowHorizon[1][pos].y,
+                                samplesBelowHorizon[2][pos].y,
+                                samplesBelowHorizon[3][pos].y);
+            const auto transformed = radianceToLuminance * v;
+            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+                samplesBelowHorizon[i][pos].y = transformed[i];
+        }
+    }
+}
+
+void EclipsedDoubleScatteringPrecomputer::accumulateLuminance(EclipsedDoubleScatteringPrecomputer const& source,
+                                                              glm::mat4 const& sourceRadianceToLuminance)
+{
+    const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
+    const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
+
+    for(unsigned azimIndex=0; azimIndex<nAzimuthPairsToSample; ++azimIndex)
+    {
+        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+        {
+            const auto pos = azimIndex*elevCount+elevIndex;
+            const auto v = vec4(source.samplesAboveHorizon[0][pos].y,
+                                source.samplesAboveHorizon[1][pos].y,
+                                source.samplesAboveHorizon[2][pos].y,
+                                source.samplesAboveHorizon[3][pos].y);
+            const auto transformed = sourceRadianceToLuminance * v;
+            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+                samplesAboveHorizon[i][pos].y += transformed[i];
+        }
+        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+        {
+            const auto pos = azimIndex*elevCount+elevIndex;
+            const auto v = vec4(source.samplesBelowHorizon[0][pos].y,
+                                source.samplesBelowHorizon[1][pos].y,
+                                source.samplesBelowHorizon[2][pos].y,
+                                source.samplesBelowHorizon[3][pos].y);
+            const auto transformed = sourceRadianceToLuminance * v;
+            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+                samplesBelowHorizon[i][pos].y += transformed[i];
+        }
     }
 }

@@ -1,5 +1,6 @@
 #include "util.hpp"
 #include <qopengl.h>
+#include "../common/cie-xyzw-functions.hpp"
 
 std::string openglErrorString(const GLenum error)
 {
@@ -60,3 +61,26 @@ void dumpActiveUniforms(QOpenGLFunctions_3_3_Core& gl, const GLuint program)
         std::cerr << ' ' << name.data() << "\n";
     }
 }
+
+glm::mat4 radianceToLuminance(const unsigned texIndex, std::vector<glm::vec4> const& allWavelengths)
+{
+    using glm::mat4;
+    const auto diag=[](GLfloat x, GLfloat y, GLfloat z, GLfloat w) { return mat4(x,0,0,0,
+                                                                                 0,y,0,0,
+                                                                                 0,0,z,0,
+                                                                                 0,0,0,w); };
+    const auto wlCount = 4*allWavelengths.size();
+    // Weights for the trapezoidal quadrature rule
+    const mat4 weights = wlCount==4            ? diag(0.5,1,1,0.5) :
+                         texIndex==0           ? diag(0.5,1,1,1  ) :
+                         texIndex+1==wlCount/4 ? diag(  1,1,1,0.5) :
+                                                 diag(  1,1,1,1);
+    const mat4 dlambda = weights * abs(allWavelengths.back()[3]-allWavelengths.front()[0]) / (wlCount-1.f);
+    // Ref: Rapport BIPM-2019/05. Principles Governing Photometry, 2nd edition. Sections 6.2, 6.3.
+    const mat4 maxLuminousEfficacy=diag(683.002f,683.002f,683.002f,1700.13f); // lm/W
+    return maxLuminousEfficacy * mat4(wavelengthToXYZW(allWavelengths[texIndex][0]),
+                                      wavelengthToXYZW(allWavelengths[texIndex][1]),
+                                      wavelengthToXYZW(allWavelengths[texIndex][2]),
+                                      wavelengthToXYZW(allWavelengths[texIndex][3])) * dlambda;
+}
+
