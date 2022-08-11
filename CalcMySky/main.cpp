@@ -405,7 +405,7 @@ void saveEclipsedDoubleScatteringRenderingShader(const unsigned texIndex)
     virtualSourceFiles.erase(DOUBLE_SCATTERING_ECLIPSED_FILENAME);
 
     std::vector<std::pair<QString, QString>> sourcesToSave;
-    static constexpr char renderShaderFileName[]="render.frag";
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
         .replace(QRegExp("\\b(RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE)\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
