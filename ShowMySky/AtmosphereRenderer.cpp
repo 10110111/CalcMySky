@@ -1825,47 +1825,27 @@ void AtmosphereRenderer::renderMultipleScattering()
     }
     else
     {
-        if(multipleScatteringTextures_.size()==1)
+        for(unsigned wlSetIndex = 0; wlSetIndex < multipleScatteringTextures_.size(); ++wlSetIndex)
         {
-            auto& prog=*multipleScatteringPrograms_.front();
+            if(!radianceRenderBuffers_.empty())
+                gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
+
+            auto& prog=*multipleScatteringPrograms_[wlSetIndex];
             prog.bind();
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
+            if(!solarIrradianceFixup_.empty())
+                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
-            auto& tex=*multipleScatteringTextures_.front();
+            auto& tex=*multipleScatteringTextures_[wlSetIndex];
             tex.setMinificationFilter(texFilter);
             tex.setMagnificationFilter(texFilter);
             tex.bind(0);
             prog.setUniformValue("scatteringTexture", 0);
             prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
             drawSurface(prog);
-        }
-        else
-        {
-            for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
-            {
-                if(!radianceRenderBuffers_.empty())
-                    gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
-
-                auto& prog=*multipleScatteringPrograms_[wlSetIndex];
-                prog.bind();
-                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
-                prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-                prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-                if(!solarIrradianceFixup_.empty())
-                    prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
-
-                auto& tex=*multipleScatteringTextures_[wlSetIndex];
-                tex.setMinificationFilter(texFilter);
-                tex.setMagnificationFilter(texFilter);
-                tex.bind(0);
-                prog.setUniformValue("scatteringTexture", 0);
-                prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
-                drawSurface(prog);
-            }
         }
     }
 }
@@ -1876,47 +1856,27 @@ void AtmosphereRenderer::renderLightPollution()
 
     const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
 
-    if(lightPollutionPrograms_.size()==1)
+    for(unsigned wlSetIndex = 0; wlSetIndex < lightPollutionPrograms_.size(); ++wlSetIndex)
     {
-        auto& prog=*lightPollutionPrograms_.front();
+        if(!radianceRenderBuffers_.empty())
+            gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
+
+        auto& prog=*lightPollutionPrograms_[wlSetIndex];
         prog.bind();
         prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
         prog.setUniformValue("sunDirection", toQVector(sunDirection()));
         prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
         prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
+        if(!solarIrradianceFixup_.empty())
+            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
-        auto& tex=*lightPollutionTextures_.front();
+        auto& tex=*lightPollutionTextures_[wlSetIndex];
         tex.setMinificationFilter(texFilter);
         tex.setMagnificationFilter(texFilter);
         tex.bind(0);
         prog.setUniformValue("lightPollutionScatteringTexture", 0);
         prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
         drawSurface(prog);
-    }
-    else
-    {
-        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
-        {
-            if(!radianceRenderBuffers_.empty())
-                gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
-
-            auto& prog=*lightPollutionPrograms_[wlSetIndex];
-            prog.bind();
-            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
-            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-            if(!solarIrradianceFixup_.empty())
-                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
-
-            auto& tex=*lightPollutionTextures_[wlSetIndex];
-            tex.setMinificationFilter(texFilter);
-            tex.setMagnificationFilter(texFilter);
-            tex.bind(0);
-            prog.setUniformValue("lightPollutionScatteringTexture", 0);
-            prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
-            drawSurface(prog);
-        }
     }
 }
 
