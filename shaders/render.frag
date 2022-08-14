@@ -215,7 +215,7 @@ void main()
     // Apparently, the driver uses the derivative for some reason, even though it shouldn't.
     const vec4 scattering = textureLod(eclipsedScatteringTexture, texCoords, 0);
     luminance=scattering*currentPhaseFunction(dotViewSun);
-#elif RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE // FIXME: we'd better do this rendering at the same time as single scattering, this could improve performance
+#elif RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE
     vec4 radiance=exp(sampleEclipseDoubleScattering4DTexture(eclipsedDoubleScatteringTextureLower,
                                                              eclipsedDoubleScatteringTextureUpper,
                                                              cosSunZenithAngle, cosViewZenithAngle, azimuthRelativeToSun,
