@@ -7,7 +7,15 @@ std::string formatDeltaTime(const std::chrono::time_point<T> timeBegin, const st
     const auto microsecTaken=std::chrono::duration_cast<std::chrono::microseconds>(timeEnd-timeBegin).count();
     const auto secondsTaken=1e-6*microsecTaken;
     std::ostringstream ss;
-    if(secondsTaken<60)
+    if(secondsTaken < 1e-3)
+    {
+        ss << microsecTaken << u8" \u03bcs";
+    }
+    else if(secondsTaken < 1)
+    {
+        ss << secondsTaken*1000 << " ms";
+    }
+    else if(secondsTaken < 60)
     {
         ss << secondsTaken << " s";
     }
