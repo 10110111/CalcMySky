@@ -205,22 +205,14 @@ TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords,
                         vec3(cosVZAtc, combinedCoord.y, altitude), float(alphaUpper));
 }
 
-TexCoordPair texVarsToScatteringTexCoords(const float cosSunZenithAngle, const float cosViewZenithAngle,
-                                          const float dotViewSun, const float altitude,
-                                          const bool viewRayIntersectsGround)
-{
-    const Scattering4DCoords coords=scatteringTexVarsTo4DCoords(cosSunZenithAngle,cosViewZenithAngle,
-                                                                dotViewSun,altitude,viewRayIntersectsGround);
-    return scattering4DCoordsToTexCoords(coords, false, false);
-}
-
 vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
                      const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
 {
-    const TexCoordPair coords=texVarsToScatteringTexCoords(cosSunZenithAngle,cosViewZenithAngle, dotViewSun,
-                                                           altitude, viewRayIntersectsGround);
-    return texture(tex, coords.lower) * coords.alphaLower +
-           texture(tex, coords.upper) * coords.alphaUpper;
+    const Scattering4DCoords coords4d = scatteringTexVarsTo4DCoords(cosSunZenithAngle,cosViewZenithAngle,
+                                                                    dotViewSun,altitude,viewRayIntersectsGround);
+    const TexCoordPair texCoords=scattering4DCoordsToTexCoords(coords4d, false, false);
+    return texture(tex, texCoords.lower) * texCoords.alphaLower +
+           texture(tex, texCoords.upper) * texCoords.alphaUpper;
 }
 
 vec4 sample4DTextureGuided01_log(const sampler3D tex, const sampler3D interpolationGuides01Tex,
