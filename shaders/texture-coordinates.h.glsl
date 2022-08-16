@@ -29,7 +29,9 @@ struct ScatteringTexVars
 ScatteringTexVars scatteringTexIndicesToTexVars(const vec3 texIndices);
 vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
                      const float dotViewSun, const float altitude, const bool viewRayIntersectsGround);
-vec4 sample4DTextureGuided(const sampler3D tex,
+vec4 sample3DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
+                     const float dotViewSun, const float altitude, const bool viewRayIntersectsGround);
+vec4 sample3DTextureGuided(const sampler3D tex,
                            const sampler3D interpolationGuides01Tex, const sampler3D interpolationGuides02Tex,
                            const float cosSunZenithAngle, const float cosViewZenithAngle,
                            const float dotViewSun, const float altitude, const bool viewRayIntersectsGround);

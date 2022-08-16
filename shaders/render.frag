@@ -239,13 +239,13 @@ void main()
     vec4 scattering;
     if(useInterpolationGuides)
     {
-        scattering = sample4DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides01,
+        scattering = sample3DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides01,
                                            scatteringTextureInterpolationGuides02, cosSunZenithAngle,
                                            cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
     }
     else
     {
-        scattering = sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+        scattering = sample3DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
                                      dotViewSun, altitude, viewRayIntersectsGround);
     }
     vec4 radiance=scattering*currentPhaseFunction(dotViewSun);
@@ -256,20 +256,20 @@ void main()
     vec4 scattering;
     if(useInterpolationGuides)
     {
-        scattering = sample4DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides01,
+        scattering = sample3DTextureGuided(scatteringTexture, scatteringTextureInterpolationGuides01,
                                            scatteringTextureInterpolationGuides02, cosSunZenithAngle,
                                            cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
     }
     else
     {
-        scattering = sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+        scattering = sample3DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
                                      dotViewSun, altitude, viewRayIntersectsGround);
     }
     luminance=scattering * (bool(PHASE_FUNCTION_IS_EMBEDDED) ? vec4(1) : currentPhaseFunction(dotViewSun));
 #elif RENDERING_MULTIPLE_SCATTERING_LUMINANCE
-    luminance=sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
+    luminance=sample3DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
 #elif RENDERING_MULTIPLE_SCATTERING_RADIANCE
-    vec4 radiance=sample4DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
+    vec4 radiance=sample3DTexture(scatteringTexture, cosSunZenithAngle, cosViewZenithAngle, dotViewSun, altitude, viewRayIntersectsGround);
     radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;

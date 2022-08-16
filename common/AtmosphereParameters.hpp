@@ -95,7 +95,7 @@ struct AtmosphereParameters
     bool allTexturesAreRadiance=false;
     bool noEclipsedDoubleScatteringTextures=false;
     static constexpr unsigned pointsPerWavelengthItem=4;
-    static constexpr unsigned FORMAT_VERSION = 2;
+    static constexpr unsigned FORMAT_VERSION = 3;
     static constexpr char ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE[]="all textures are radiances";
     static constexpr char NO_ECLIPSED_DOUBLE_SCATTERING_TEXTURES_DIRECTIVE[]="no eclipsed double scattering textures";
     static constexpr char SOLAR_IRRADIANCE_AT_TOA_KEY[]="solar irradiance at toa";

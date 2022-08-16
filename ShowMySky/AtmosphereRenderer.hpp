@@ -105,9 +105,7 @@ private: // variables
     QOpenGLTexture luminanceRenderTargetTexture_;
     QSize viewportSize_;
     double altCoordToLoad_=0; //!< Used to load textures for a single altitude slice, even if input altitude changes during the load
-    float loadedAltitudeURTexCoordRange_[2]={NAN,NAN};
     float loadedEclipsedDoubleScatteringAltitudeURTexCoordRange_[2]={NAN,NAN};
-    float staticAltitudeTexCoord_=-1;
     float eclipsedDoubleScatteringAltitudeAlphaUpper_=-1;
 
     std::vector<ShaderProgPtr> lightPollutionPrograms_;
@@ -152,7 +150,6 @@ private: // methods
     void finalizeLoading();
     void drawSurface(QOpenGLShaderProgram& prog);
 
-    float chooseStaticAltitudeTexCoord() const;
     double altitudeUnitRangeTexCoord() const;
     double cameraMoonDistance() const;
     glm::dvec3 sunDirection() const;
@@ -167,7 +164,6 @@ private: // methods
     };
     void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
     void load4DTexAltitudeSlicePair(QString const& path, QOpenGLTexture& texLower, QOpenGLTexture& texUpper, float altitudeCoord);
-    void updateAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);
     void updateEclipsedAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);
 
     void precomputeEclipsedSingleScattering();

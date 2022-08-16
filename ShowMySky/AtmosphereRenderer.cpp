@@ -24,11 +24,6 @@ namespace fs=std::filesystem;
 namespace
 {
 
-// XXX: keep in sync with those in CalcMySky
-GLsizei scatTexWidth(glm::ivec4 sizes) { return sizes[0]; }
-GLsizei scatTexHeight(glm::ivec4 sizes) { return sizes[1]*sizes[2]; }
-GLsizei scatTexDepth(glm::ivec4 sizes) { return sizes[3]; }
-
 auto newTex(QOpenGLTexture::Target target)
 {
     return std::make_unique<QOpenGLTexture>(target);
@@ -70,17 +65,6 @@ public:
 # define OGL_TRACE()
 #endif
 
-}
-
-void AtmosphereRenderer::updateAltitudeTexCoords(const float altitudeCoord, double* floorAltIndexOut)
-{
-    const auto altTexIndex = altitudeCoord==1 ? numAltIntervalsIn4DTexture_-1 : altitudeCoord*numAltIntervalsIn4DTexture_;
-    const auto floorAltIndex = std::floor(altTexIndex);
-    const auto fractAltIndex = altTexIndex-floorAltIndex;
-
-    staticAltitudeTexCoord_ = unitRangeToTexCoord(fractAltIndex, 2);
-
-    if(floorAltIndexOut) *floorAltIndexOut=floorAltIndex;
 }
 
 void AtmosphereRenderer::updateEclipsedAltitudeTexCoords(const float altitudeCoord, double* floorAltIndexOut)
@@ -130,11 +114,9 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     }
 
     numAltIntervalsIn4DTexture_ = sizes[3]-1;
-    double floorAltIndex;
-    updateAltitudeTexCoords(altitudeCoord, &floorAltIndex);
-
-    loadedAltitudeURTexCoordRange_[0] = floorAltIndex/numAltIntervalsIn4DTexture_;
-    loadedAltitudeURTexCoordRange_[1] = (floorAltIndex+1)/numAltIntervalsIn4DTexture_;
+    const auto altTexIndex = altitudeCoord==1 ? numAltIntervalsIn4DTexture_-1 : altitudeCoord*numAltIntervalsIn4DTexture_;
+    const auto floorAltIndex = std::floor(altTexIndex);
+    const auto fractAltIndex = altTexIndex-floorAltIndex;
 
     const auto readOffset = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(floorAltIndex);
     sizes[3]=2;
@@ -157,16 +139,33 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
             throw DataLoadError{error};
         }
     }
-    const glm::ivec4 size(sizes[0],sizes[1],sizes[2],sizes[3]);
+
+    const auto altSliceSize = size_t(sizes[0])*sizes[1]*sizes[2];
     if(texType == Texture4DType::InterpolationGuides)
     {
-        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_R16_SNORM, scatTexWidth(size), scatTexHeight(size), scatTexDepth(size),
-                        0, GL_RED, GL_SHORT, data.get());
+        std::unique_ptr<uint16_t[]> texData(new uint16_t[altSliceSize]);
+        for(size_t n = 0; n < altSliceSize; ++n)
+        {
+            uint16_t lower, upper;
+            assert(sizeof lower == pixelSize);
+            std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
+            std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
+            texData[n] = lower + fractAltIndex*(upper-lower);
+        }
+        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_R16_SNORM, sizes[0], sizes[1], sizes[2], 0, GL_RED, GL_SHORT, texData.get());
     }
     else
     {
-        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, scatTexWidth(size), scatTexHeight(size), scatTexDepth(size),
-                        0, GL_RGBA, GL_FLOAT, data.get());
+        std::unique_ptr<glm::vec4[]> texData(new glm::vec4[altSliceSize]);
+        for(size_t n = 0; n < altSliceSize; ++n)
+        {
+            glm::vec4 lower, upper;
+            assert(sizeof lower == pixelSize);
+            std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
+            std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
+            texData[n] = lower + fractAltIndex*(upper-lower);
+        }
+        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, sizes[0], sizes[1], sizes[2], 0, GL_RGBA, GL_FLOAT, texData.get());
     }
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -1695,7 +1694,6 @@ void AtmosphereRenderer::renderSingleScattering()
                         tex.setMagnificationFilter(texFilter);
                         tex.bind(0);
                         prog.setUniformValue("scatteringTexture", 0);
-                        prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
                     }
 
                     bool guides01Loaded = false, guides02Loaded = false;
@@ -1743,7 +1741,6 @@ void AtmosphereRenderer::renderSingleScattering()
                 tex.bind(0);
             }
             prog.setUniformValue("scatteringTexture", 0);
-            prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
             bool guides01Loaded = false, guides02Loaded = false;
@@ -1928,7 +1925,6 @@ void AtmosphereRenderer::renderMultipleScattering()
             tex.setMagnificationFilter(texFilter);
             tex.bind(0);
             prog.setUniformValue("scatteringTexture", 0);
-            prog.setUniformValue("staticAltitudeTexCoord", chooseStaticAltitudeTexCoord());
             drawSurface(prog);
         }
     }
@@ -1973,7 +1969,7 @@ int AtmosphereRenderer::initPreparationToDraw()
     if(state_ != State::ReadyToRender) return -1;
 
     const auto altCoord=altitudeUnitRangeTexCoord();
-    if(altCoord < loadedAltitudeURTexCoordRange_[0] || altCoord > loadedAltitudeURTexCoordRange_[1])
+    if(altCoord != altCoordToLoad_)
     {
         [[maybe_unused]] OGLTrace t("reloading textures");
 
@@ -1988,7 +1984,6 @@ int AtmosphereRenderer::initPreparationToDraw()
     {
         if(!params_.noEclipsedDoubleScatteringTextures)
             assert(numAltIntervalsInEclipsed4DTexture_==numAltIntervalsIn4DTexture_); // if we want to support them being different, then altCoord must be calculated separately
-        updateAltitudeTexCoords(altCoord);
         updateEclipsedAltitudeTexCoords(altCoord);
     }
     return totalLoadingStepsToDo_;
@@ -2315,12 +2310,4 @@ auto AtmosphereRenderer::stepShaderReloading() -> LoadingStatus
         finalizeLoading();
 
     return {loadingStepsDone_, totalLoadingStepsToDo_};
-}
-
-float AtmosphereRenderer::chooseStaticAltitudeTexCoord() const
-{
-    if(tools_->textureFilteringEnabled())
-        return staticAltitudeTexCoord_;
-
-    return std::round(staticAltitudeTexCoord_);
 }
