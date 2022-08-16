@@ -8,7 +8,6 @@
 const float LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA=sqrt(atmosphereHeight*(atmosphereHeight+2*earthRadius));
 
 uniform sampler2D transmittanceTexture;
-uniform float eclipsedDoubleScatteringAltitudeAlphaUpper;
 uniform vec3 eclipsedDoubleScatteringTextureSize;
 
 struct Scattering4DCoords
@@ -465,7 +464,7 @@ vec2 eclipseTexVarsToTexCoords(const float azimuthRelativeToSun, const float cos
     return vec2(azimuthTC, cosVZAtc);
 }
 
-vec4 sampleEclipseDoubleScattering4DTexture(sampler3D texLower, sampler3D texUpper, const float cosSunZenithAngle,
+vec4 sampleEclipseDoubleScattering3DTexture(const sampler3D tex, const float cosSunZenithAngle,
                                             const float cosViewZenithAngle, const float azimuthRelativeToSun,
                                             const float altitude, const bool viewRayIntersectsGround)
 {
@@ -474,10 +473,7 @@ vec4 sampleEclipseDoubleScattering4DTexture(sampler3D texLower, sampler3D texUpp
     const float cosSZACoord=unitRangeToTexCoord(cosSZAToUnitRangeTexCoord(cosSunZenithAngle), eclipsedDoubleScatteringTextureSize[2]);
     const vec3 texCoords=vec3(coords2d, cosSZACoord);
 
-    const vec4 upper=texture(texUpper, texCoords);
-    const vec4 lower=texture(texLower, texCoords);
-
-    return mix(lower,upper,eclipsedDoubleScatteringAltitudeAlphaUpper);
+    return texture(tex, texCoords);
 }
 
 LightPollutionTexVars scatteringTexIndicesToLightPollutionTexVars(const vec2 texIndices)

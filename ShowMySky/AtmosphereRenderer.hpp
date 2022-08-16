@@ -88,7 +88,7 @@ private: // variables
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;
     GLuint eclipseDoubleScatteringPrecomputationFBO_=0;
     // Lower and upper altitude slices from the 4D texture
-    std::vector<TexturePtr> eclipsedDoubleScatteringTexturesLower_, eclipsedDoubleScatteringTexturesUpper_;
+    std::vector<TexturePtr> eclipsedDoubleScatteringTextures_;
     std::vector<TexturePtr> multipleScatteringTextures_;
     std::vector<TexturePtr> transmittanceTextures_;
     std::vector<TexturePtr> irradianceTextures_;
@@ -105,8 +105,6 @@ private: // variables
     QOpenGLTexture luminanceRenderTargetTexture_;
     QSize viewportSize_;
     double altCoordToLoad_=0; //!< Used to load textures for a single altitude slice, even if input altitude changes during the load
-    float loadedEclipsedDoubleScatteringAltitudeURTexCoordRange_[2]={NAN,NAN};
-    float eclipsedDoubleScatteringAltitudeAlphaUpper_=-1;
 
     std::vector<ShaderProgPtr> lightPollutionPrograms_;
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
@@ -128,7 +126,6 @@ private: // variables
     std::vector<QVector4D> solarIrradianceFixup_;
 
     int numAltIntervalsIn4DTexture_;
-    int numAltIntervalsInEclipsed4DTexture_;
 
     enum class State
     {
@@ -163,8 +160,6 @@ private: // methods
         InterpolationGuides,
     };
     void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
-    void load4DTexAltitudeSlicePair(QString const& path, QOpenGLTexture& texLower, QOpenGLTexture& texUpper, float altitudeCoord);
-    void updateEclipsedAltitudeTexCoords(float altitudeCoord, double* floorAltIndex = nullptr);
 
     void precomputeEclipsedSingleScattering();
     void precomputeEclipsedDoubleScattering();

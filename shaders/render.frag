@@ -17,8 +17,7 @@ uniform sampler3D scatteringTextureInterpolationGuides01;
 uniform sampler3D scatteringTextureInterpolationGuides02;
 uniform sampler3D scatteringTexture;
 uniform sampler2D eclipsedScatteringTexture;
-uniform sampler3D eclipsedDoubleScatteringTextureLower;
-uniform sampler3D eclipsedDoubleScatteringTextureUpper;
+uniform sampler3D eclipsedDoubleScatteringTexture;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
 uniform vec3 moonPosition;
@@ -216,16 +215,14 @@ void main()
     const vec4 scattering = textureLod(eclipsedScatteringTexture, texCoords, 0);
     luminance=scattering*currentPhaseFunction(dotViewSun);
 #elif RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE
-    vec4 radiance=exp(sampleEclipseDoubleScattering4DTexture(eclipsedDoubleScatteringTextureLower,
-                                                             eclipsedDoubleScatteringTextureUpper,
+    vec4 radiance=exp(sampleEclipseDoubleScattering3DTexture(eclipsedDoubleScatteringTexture,
                                                              cosSunZenithAngle, cosViewZenithAngle, azimuthRelativeToSun,
                                                              altitude, viewRayIntersectsGround));
     radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_LUMINANCE
-    luminance=exp(sampleEclipseDoubleScattering4DTexture(eclipsedDoubleScatteringTextureLower,
-                                                         eclipsedDoubleScatteringTextureUpper,
+    luminance=exp(sampleEclipseDoubleScattering3DTexture(eclipsedDoubleScatteringTexture,
                                                          cosSunZenithAngle, cosViewZenithAngle, azimuthRelativeToSun,
                                                          altitude, viewRayIntersectsGround));
 #elif RENDERING_SINGLE_SCATTERING_ON_THE_FLY

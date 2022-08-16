@@ -67,17 +67,6 @@ public:
 
 }
 
-void AtmosphereRenderer::updateEclipsedAltitudeTexCoords(const float altitudeCoord, double* floorAltIndexOut)
-{
-    const auto altTexIndex = altitudeCoord==1 ? numAltIntervalsInEclipsed4DTexture_-1 : altitudeCoord*numAltIntervalsInEclipsed4DTexture_;
-    const auto floorAltIndex = std::floor(altTexIndex);
-    const auto fractAltIndex = altTexIndex-floorAltIndex;
-
-    eclipsedDoubleScatteringAltitudeAlphaUpper_ = fractAltIndex;
-
-    if(floorAltIndexOut) *floorAltIndexOut=floorAltIndex;
-}
-
 void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord, Texture4DType texType)
 {
     auto log=qDebug().nospace();
@@ -170,96 +159,6 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         throw DataLoadError{QObject::tr("GL error in loadTexture4D(\"%1\") after glTexImage3D() call: %2")
-                            .arg(path).arg(openglErrorString(err).c_str())};
-    }
-
-    log << "done";
-}
-
-void AtmosphereRenderer::load4DTexAltitudeSlicePair(QString const& path, QOpenGLTexture& texLower,
-                                                    QOpenGLTexture& texUpper, const float altitudeCoord)
-{
-    auto log=qDebug().nospace();
-
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
-    {
-        throw DataLoadError{QObject::tr("GL error on entry to load4DTexAltitudeSlicePair(\"%1\"): %2")
-                            .arg(path).arg(openglErrorString(err).c_str())};
-    }
-    log << "Loading texture from " << path << "... ";
-    QFile file(path);
-    if(!file.open(QFile::ReadOnly))
-        throw DataLoadError{QObject::tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
-
-    uint16_t sizes[4];
-    {
-        const qint64 sizeToRead=sizeof sizes;
-        if(file.read(reinterpret_cast<char*>(sizes), sizeToRead) != sizeToRead)
-        {
-            throw DataLoadError{QObject::tr("Failed to read header from file \"%1\": %2")
-                                .arg(path).arg(file.errorString())};
-        }
-    }
-    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
-
-    if(const qint64 expectedFileSize = sizeof(GLfloat)*4*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3] + file.pos();
-       expectedFileSize != file.size())
-    {
-        throw DataLoadError{QObject::tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4×%5×%6"
-                                        " from file header.\nThe expected size is %7 bytes.").arg(path)
-                                                                                             .arg(file.size())
-                                                                                             .arg(sizes[0])
-                                                                                             .arg(sizes[1])
-                                                                                             .arg(sizes[2])
-                                                                                             .arg(sizes[3])
-                                                                                             .arg(expectedFileSize)};
-    }
-
-    numAltIntervalsInEclipsed4DTexture_ = sizes[3]-1;
-    double floorAltIndex;
-    updateEclipsedAltitudeTexCoords(altitudeCoord, &floorAltIndex);
-    loadedEclipsedDoubleScatteringAltitudeURTexCoordRange_[0] = floorAltIndex/numAltIntervalsInEclipsed4DTexture_;
-    loadedEclipsedDoubleScatteringAltitudeURTexCoordRange_[1] = (floorAltIndex+1)/numAltIntervalsInEclipsed4DTexture_;
-
-    const auto subpixelReadOffset = 4*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(floorAltIndex);
-    const auto subpixelsInSingleTexSlice = 4*uint64_t(sizes[0])*sizes[1]*sizes[2];
-    sizes[3]=2;
-    const auto subpixelCountToRead = subpixelsInSingleTexSlice*sizes[3];
-
-    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCountToRead]);
-    {
-        const qint64 offset=file.pos()+subpixelReadOffset*sizeof subpixels[0];
-        log << "skipping to offset " << offset << "... ";
-        if(!file.seek(offset))
-        {
-            throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
-                                .arg(offset).arg(path).arg(file.errorString())};
-        }
-        const qint64 sizeToRead=subpixelCountToRead*sizeof subpixels[0];
-        const auto actuallyRead=file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead);
-        if(actuallyRead != sizeToRead)
-        {
-            const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path)
-                                                                                                                 .arg(file.errorString())
-                                                : QObject::tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3")
-                                                                                                                 .arg(path)
-                                                                                                                 .arg(sizeToRead)
-                                                                                                                 .arg(actuallyRead);
-            throw DataLoadError{error};
-        }
-    }
-    texLower.bind();
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,sizes[0],sizes[1],sizes[2],0,GL_RGBA,GL_FLOAT,&subpixels[0]);
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
-    {
-        throw DataLoadError{QObject::tr("GL error in load4DTexAltitudeSlicePair(\"%1\") after first glTexImage3D() call: %2")
-                            .arg(path).arg(openglErrorString(err).c_str())};
-    }
-    texUpper.bind();
-    gl.glTexImage3D(GL_TEXTURE_3D,0,GL_RGBA32F,sizes[0],sizes[1],sizes[2],0,GL_RGBA,GL_FLOAT,&subpixels[subpixelsInSingleTexSlice]);
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
-    {
-        throw DataLoadError{QObject::tr("GL error in load4DTexAltitudeSlicePair(\"%1\") after second glTexImage3D() call: %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
 
@@ -625,8 +524,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
     }
     else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
     {
-        eclipsedDoubleScatteringTexturesLower_.clear();
-        eclipsedDoubleScatteringTexturesUpper_.clear();
+        eclipsedDoubleScatteringTextures_.clear();
         ++loadingStepsDone_; return;
     }
     if(!params_.noEclipsedDoubleScatteringTextures)
@@ -639,26 +537,19 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
             }
             else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
             {
-                auto& texL=*eclipsedDoubleScatteringTexturesLower_.emplace_back(newTex(QOpenGLTexture::Target3D));
-                texL.setMinificationFilter(texFilter);
-                texL.setMagnificationFilter(texFilter);
+                auto& texture=*eclipsedDoubleScatteringTextures_.emplace_back(newTex(QOpenGLTexture::Target3D));
+                texture.setMinificationFilter(texFilter);
+                texture.setMagnificationFilter(texFilter);
                 // relative azimuth
-                texL.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
+                texture.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
                 // VZA
-                texL.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+                texture.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
                 // SZA
-                texL.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+                texture.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
 
-                auto& texU=*eclipsedDoubleScatteringTexturesUpper_.emplace_back(newTex(QOpenGLTexture::Target3D));
-                texU.setMinificationFilter(texFilter);
-                texU.setMagnificationFilter(texFilter);
-                // relative azimuth
-                texU.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
-                // VZA
-                texU.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
-                // SZA
-                texU.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
-                load4DTexAltitudeSlicePair(QString("%1/eclipsed-double-scattering-xyzw.f32").arg(pathToData_), texL, texU, altCoord);
+                texture.bind();
+                loadTexture4D(QString("%1/eclipsed-double-scattering-xyzw.f32").arg(pathToData_), altCoord);
+
                 ++loadingStepsDone_; return;
             }
         }
@@ -674,26 +565,19 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                 if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
                     continue;
 
-                auto& texL=*eclipsedDoubleScatteringTexturesLower_.emplace_back(newTex(QOpenGLTexture::Target3D));
-                texL.setMinificationFilter(texFilter);
-                texL.setMagnificationFilter(texFilter);
+                auto& texture=*eclipsedDoubleScatteringTextures_.emplace_back(newTex(QOpenGLTexture::Target3D));
+                texture.setMinificationFilter(texFilter);
+                texture.setMagnificationFilter(texFilter);
                 // relative azimuth
-                texL.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
+                texture.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
                 // VZA
-                texL.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+                texture.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
                 // SZA
-                texL.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+                texture.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
 
-                auto& texU=*eclipsedDoubleScatteringTexturesUpper_.emplace_back(newTex(QOpenGLTexture::Target3D));
-                texU.setMinificationFilter(texFilter);
-                texU.setMagnificationFilter(texFilter);
-                // relative azimuth
-                texU.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::Repeat);
-                // VZA
-                texU.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
-                // SZA
-                texU.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
-                load4DTexAltitudeSlicePair(QString("%1/eclipsed-double-scattering-wlset%2.f32").arg(pathToData_).arg(wlSetIndex), texL, texU, altCoord);
+                texture.bind();
+                loadTexture4D(QString("%1/eclipsed-double-scattering-wlset%2.f32").arg(pathToData_).arg(wlSetIndex), altCoord);
+
                 ++loadingStepsDone_; return;
             }
         }
@@ -1876,9 +1760,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                 tex.setMinificationFilter(texFilter);
                 tex.setMagnificationFilter(texFilter);
                 tex.bind(0);
-                prog.setUniformValue("eclipsedDoubleScatteringTextureLower", 0);
-                prog.setUniformValue("eclipsedDoubleScatteringTextureUpper", 0);
-                prog.setUniformValue("eclipsedDoubleScatteringAltitudeAlphaUpper", 0.f);
+                prog.setUniformValue("eclipsedDoubleScatteringTexture", 0);
                 prog.setUniformValue("eclipsedDoubleScatteringTextureSize", QVector3D(params_.eclipsedDoubleScatteringTextureSize[0],
                                                                                       params_.eclipsedDoubleScatteringTextureSize[1], 1));
             }
@@ -1886,19 +1768,12 @@ void AtmosphereRenderer::renderMultipleScattering()
             {
                 assert(!params_.noEclipsedDoubleScatteringTextures);
 
-                auto& texLower=*eclipsedDoubleScatteringTexturesLower_[wlSetIndex];
-                texLower.setMinificationFilter(texFilter);
-                texLower.setMagnificationFilter(texFilter);
-                texLower.bind(0);
-                prog.setUniformValue("eclipsedDoubleScatteringTextureLower", 0);
+                auto& texture=*eclipsedDoubleScatteringTextures_[wlSetIndex];
+                texture.setMinificationFilter(texFilter);
+                texture.setMagnificationFilter(texFilter);
+                texture.bind(0);
+                prog.setUniformValue("eclipsedDoubleScatteringTexture", 0);
 
-                auto& texUpper=*eclipsedDoubleScatteringTexturesUpper_[wlSetIndex];
-                texUpper.setMinificationFilter(texFilter);
-                texUpper.setMagnificationFilter(texFilter);
-                texUpper.bind(1);
-                prog.setUniformValue("eclipsedDoubleScatteringTextureUpper", 1);
-
-                prog.setUniformValue("eclipsedDoubleScatteringAltitudeAlphaUpper", eclipsedDoubleScatteringAltitudeAlphaUpper_);
                 prog.setUniformValue("eclipsedDoubleScatteringTextureSize", toQVector(glm::vec3(params_.eclipsedDoubleScatteringTextureSize)));
             }
             drawSurface(prog);
@@ -1980,12 +1855,7 @@ int AtmosphereRenderer::initPreparationToDraw()
         totalLoadingStepsToDo_=0;
         reloadScatteringTextures(CountStepsOnly{true});
     }
-    else
-    {
-        if(!params_.noEclipsedDoubleScatteringTextures)
-            assert(numAltIntervalsInEclipsed4DTexture_==numAltIntervalsIn4DTexture_); // if we want to support them being different, then altCoord must be calculated separately
-        updateEclipsedAltitudeTexCoords(altCoord);
-    }
+
     return totalLoadingStepsToDo_;
 }
 
