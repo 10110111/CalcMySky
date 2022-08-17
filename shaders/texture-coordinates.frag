@@ -213,7 +213,7 @@ vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const f
 
 // 3D texture is the 3D single-altitude slice of a 4D texture
 vec3 scattering4DCoordsToTex3DCoords(const Scattering4DCoords coords,
-                                             const bool forInterpolationGuides01, const bool forInterpolationGuides02)
+                                     const bool forInterpolationGuides01, const bool forInterpolationGuides02)
 {
     const float cosVZAtc = coords.viewRayIntersectsGround ?
                             // Coordinate is in ~[0,0.5]
