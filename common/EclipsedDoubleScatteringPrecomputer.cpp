@@ -181,7 +181,6 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(const doub
                                                                       const double earthMoonDistance)
 {
     const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
-    const auto nElevationPairsToSample=atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample;
 
     const dvec3 sunDir(sin(sunZenithAngle), 0, cos(sunZenithAngle));
     const dvec3 moonDir = dmat3(rotate(moonAzimuthRelativeToSun,dvec3(0,0,1)))*dvec3(sin(moonZenithAngle), 0, cos(moonZenithAngle));
@@ -213,8 +212,8 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(const doub
             azimuths.push_back(i*step);
         return azimuths;
     }();
-    assert(elevationsAboveHorizon.size()==2*nElevationPairsToSample);
-    assert(elevationsBelowHorizon.size()==2*nElevationPairsToSample);
+    assert(elevationsAboveHorizon.size()==2*atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample);
+    assert(elevationsBelowHorizon.size()==2*atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample);
     assert(azimuths.size()==nAzimuthPairsToSample);
 
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
