@@ -273,12 +273,12 @@ vec4 sample3DTextureGuided(const sampler3D tex,
     const float guidesTex = texture(interpolationGuides02Tex, guidesCoords).r;
     const float interpAngle = PI/2*guidesTex;
 
-    const float cosVZAIndex = coords4d.cosViewZenithAngle * (scatteringTextureSize[0]-1);
+    const float cvzaIndex = coords4d.cosViewZenithAngle * (scatteringTextureSize[0]-1);
     const float cszaIndex = coords4d.cosSunZenithAngle * (scatteringTextureSize[2]-1);
     const float currRow = floor(cszaIndex);
     const float posBetweenRows = cszaIndex - currRow;
-    const float cvzaPosInCurrRow = cosVZAIndex - posBetweenRows*tan(interpAngle);
-    const float cvzaPosInNextRow = cosVZAIndex + (1-posBetweenRows)*tan(interpAngle);
+    const float cvzaPosInCurrRow = cvzaIndex - posBetweenRows*tan(interpAngle);
+    const float cvzaPosInNextRow = cvzaIndex + (1-posBetweenRows)*tan(interpAngle);
 
     Scattering4DCoords coords4dCurrRow = coords4d, coords4dNextRow = coords4d;
     coords4dCurrRow.cosViewZenithAngle = clamp(cvzaPosInCurrRow / (scatteringTextureSize[0]-1), 0., 1.);
