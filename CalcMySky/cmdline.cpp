@@ -169,6 +169,7 @@ void handleCmdLine()
     const QCommandLineOption openglDebugFull("opengl-debug-full","Like --opengl-debug, but don't hide notification-level messages");
     const QCommandLineOption textureOutputDirOpt("out-dir","Directory for the textures computed","output directory",".");
     const QCommandLineOption saveResultAsRadianceOpt("radiance","Save result as radiance instead of XYZW components");
+    const QCommandLineOption textureSavePrecisionOpt("texture-save-precision","Number of bits of precision when saving 3D textures, from 1 to 24. Smaller number improves compressibility. Too small destroys fidelity.","bits");
     const QCommandLineOption dbgNoSaveTexturesOpt("no-save-tex","Don't save textures, only save shaders and other fast-to-compute data; don't run the long 4D "
                                                                 "textures computations (for debugging)");
     const QCommandLineOption dbgNoEDSTexturesOpt("no-eds-tex","Don't compute/save eclipsed double scattering textures (for debugging)");
@@ -183,6 +184,7 @@ void handleCmdLine()
                         versionOpt,
                         textureOutputDirOpt,
                         saveResultAsRadianceOpt,
+                        textureSavePrecisionOpt,
                         dbgNoEDSTexturesOpt,
                         dbgNoSaveTexturesOpt,
                         openglDebug,
@@ -234,6 +236,21 @@ void handleCmdLine()
         opts.openglDebug=true;
     if(parser.isSet(openglDebugFull))
         opts.openglDebugFull=true;
+    if(parser.isSet(textureSavePrecisionOpt))
+    {
+        bool ok=false;
+        opts.textureSavePrecision=parser.value(textureSavePrecisionOpt).toUInt(&ok);
+        if(!ok)
+        {
+            std::cerr << "Failed to parse texture save precision\n";
+            throw MustQuit{};
+        }
+        if(opts.textureSavePrecision < 1 || opts.textureSavePrecision > 24)
+        {
+            std::cerr << "Texture save precision must be from 1 to 24.\n";
+            throw MustQuit{};
+        }
+    }
 
     const auto posArgs=parser.positionalArguments();
     if(posArgs.size()>1)
