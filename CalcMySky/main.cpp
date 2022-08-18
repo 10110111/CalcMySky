@@ -496,11 +496,12 @@ void accumulateSingleScattering(const unsigned texIndex, AtmosphereParameters::S
     if(texIndex+1==atmo.allWavelengths.size())
     {
         const auto filePath = atmo.textureOutputDir+"/single-scattering/"+scatterer.name.toStdString()+"-xyzw.f32";
-        saveTexture(GL_TEXTURE_3D,targetTexture, "single scattering texture",
-                    filePath,
-                    {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
+        const std::vector<int> sizes{atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1],
+                                     atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]};
+        const auto data = saveTexture(GL_TEXTURE_3D,targetTexture, "single scattering texture",
+                                      filePath, sizes, ReturnTextureData{true});
         if(scatterer.needsInterpolationGuides && !opts.dbgNoSaveTextures)
-            generateInterpolationGuidesForScatteringTexture(filePath);
+            generateInterpolationGuidesForScatteringTexture(filePath, data, sizes);
     }
 }
 
@@ -534,11 +535,12 @@ void computeSingleScattering(const unsigned texIndex, AtmosphereParameters::Scat
     {
         const auto filePath = atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex)+
                                 "/"+scatterer.name.toStdString()+".f32";
-        saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING], "single scattering texture",
-                    filePath,
-                    {atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1], atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]});
+        const std::vector<int> sizes{atmo.scatteringTextureSize[0], atmo.scatteringTextureSize[1],
+                                     atmo.scatteringTextureSize[2], atmo.scatteringTextureSize[3]};
+        const auto data = saveTexture(GL_TEXTURE_3D,textures[TEX_DELTA_SCATTERING], "single scattering texture",
+                                      filePath, sizes, ReturnTextureData{true});
         if(scatterer.needsInterpolationGuides && !opts.dbgNoSaveTextures)
-            generateInterpolationGuidesForScatteringTexture(filePath);
+            generateInterpolationGuidesForScatteringTexture(filePath, data, sizes);
         break;
     }
     case PhaseFunctionType::Achromatic:

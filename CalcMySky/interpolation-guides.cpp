@@ -387,7 +387,8 @@ void generateInterpolationGuides2D(glm::vec4 const*const data,
     }
 }
 
-void generateInterpolationGuidesForScatteringTexture(const std::string_view filePath)
+void generateInterpolationGuidesForScatteringTexture(const std::string_view filePath, std::vector<glm::vec4> const& pixels,
+                                                     std::vector<int> const& sizes)
 {
     std::cerr << indentOutput() << "Generating interpolation guides:\n";
     const auto filePathQt = QByteArray::fromRawData(filePath.data(), filePath.size());
@@ -395,26 +396,6 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
     if(!filePathQt.endsWith(ext.data()))
     {
         std::cerr << "wrong input filename extension\n";
-        throw MustQuit{};
-    }
-
-    QFile in(filePathQt);
-    if(!in.open(QFile::ReadOnly))
-    {
-        std::cerr << "failed to open texture file: " << in.errorString().toStdString() << "\n";
-        throw MustQuit{};
-    }
-
-    uint16_t sizes[4];
-    if(in.read(reinterpret_cast<char*>(sizes), sizeof sizes) != sizeof sizes)
-    {
-        std::cerr << "failed to read texture file header: " << in.errorString().toStdString() << "\n";
-        throw MustQuit{};
-    }
-    std::vector<glm::vec4> pixels(sizes[0]*sizes[1]*sizes[2]*sizes[3]);
-    if(in.read(reinterpret_cast<char*>(pixels.data()), pixels.size()*sizeof pixels[0]) != qint64(pixels.size()*sizeof pixels[0]))
-    {
-        std::cerr << "failed to read texels: " << in.errorString().toStdString() << "\n";
         throw MustQuit{};
     }
 
@@ -436,7 +417,7 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
         }
         {
             // Guides represent points between rows, so there's one less of them than rows.
-            uint16_t outputSizes[4] = {sizes[0], uint16_t(sizes[1]-1), sizes[2], sizes[3]};
+            uint16_t outputSizes[4] = {uint16_t(sizes[0]), uint16_t(sizes[1]-1), uint16_t(sizes[2]), uint16_t(sizes[3])};
             if(out.write(reinterpret_cast<const char*>(outputSizes), sizeof outputSizes) != sizeof outputSizes)
             {
                 std::cerr << "failed to write interpolation guides header: " << out.errorString().toStdString() << "\n";
@@ -495,7 +476,7 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
         }
         {
             // Guides represent points between rows, so there's one less of them than rows.
-            uint16_t outputSizes[4] = {sizes[0], sizes[1], uint16_t(sizes[2]-1), sizes[3]};
+            uint16_t outputSizes[4] = {uint16_t(sizes[0]), uint16_t(sizes[1]), uint16_t(sizes[2]-1), uint16_t(sizes[3])};
             if(out.write(reinterpret_cast<const char*>(outputSizes), sizeof outputSizes) != sizeof outputSizes)
             {
                 std::cerr << "failed to write interpolation guides header: " << out.errorString().toStdString() << "\n";

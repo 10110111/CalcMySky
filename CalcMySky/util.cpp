@@ -52,13 +52,14 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
     }
 }
 
-void saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
-                 const std::string_view path, std::vector<GLsizei> const& sizes)
+std::vector<glm::vec4> saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
+                                   const std::string_view path, std::vector<int> const& sizes,
+                                   const ReturnTextureData returnTexData)
 {
     if(opts.dbgNoSaveTextures)
     {
         std::cerr << indentOutput() << "Would save " << name << ", but only shaders are to be saved.\n";
-        return;
+        return {};
     }
 
     std::cerr << indentOutput() << "Saving " << name << " to \"" << path << "\"... ";
@@ -115,6 +116,13 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
             throw MustQuit{};
         }
     }
+    std::vector<glm::vec4> dataToReturn;
+    if(returnTexData)
+    {
+        static_assert(std::is_trivially_copyable_v<glm::vec4>);
+        dataToReturn.assign(reinterpret_cast<const glm::vec4*>(subpixels.get()),
+                            reinterpret_cast<const glm::vec4*>(subpixels.get()+subpixelCount));
+    }
     if(target==GL_TEXTURE_3D && opts.textureSavePrecision)
     {
         using Float = GLfloat;
@@ -150,6 +158,8 @@ void saveTexture(const GLenum target, const GLuint texture, const std::string_vi
         throw MustQuit{};
     }
     std::cerr << "done\n";
+
+    return dataToReturn;
 }
 
 void setupTexture(TextureId id, const GLsizei width, const GLsizei height)
