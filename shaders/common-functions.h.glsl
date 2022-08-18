@@ -20,6 +20,8 @@ float sunVisibilityDueToMoon(const vec3 camera, const vec3 sunDir, const vec3 mo
 vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere);
 float sphereIntegrationSolidAngleDifferential(const int pointCountOnSphere);
 
+void swap(inout float x, inout float y);
+
 bool debugDataPresent();
 vec4 debugData();
 void setDebugData(float a);

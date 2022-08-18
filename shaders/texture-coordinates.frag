@@ -48,6 +48,27 @@ vec2 unitRangeToTexCoord(const vec2 u, const float texSize)
                 unitRangeToTexCoord(u.t,texSize));
 }
 
+float texCoordToIndex(const float texCoord, const float texSize)
+{
+    return texSize*texCoord-0.5;
+}
+float indexToTexCoord(const float index, const float texSize)
+{
+    return (index+0.5)/texSize;
+}
+vec3 texCoordsToIndices(const vec3 texCoords, const vec3 texSizes)
+{
+    return vec3(texCoordToIndex(texCoords[0], texSizes[0]),
+                texCoordToIndex(texCoords[1], texSizes[1]),
+                texCoordToIndex(texCoords[2], texSizes[2]));
+}
+vec3 indicesToTexCoords(const vec3 indices, const vec3 texSizes)
+{
+    return vec3(indexToTexCoord(indices[0], texSizes[0]),
+                indexToTexCoord(indices[1], texSizes[1]),
+                indexToTexCoord(indices[2], texSizes[2]));
+}
+
 TransmittanceTexVars transmittanceTexCoordToTexVars(const vec2 texCoord)
 {
     const float distToHorizon=LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA *
@@ -212,8 +233,7 @@ vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const f
 }
 
 // 3D texture is the 3D single-altitude slice of a 4D texture
-vec3 scattering4DCoordsToTex3DCoords(const Scattering4DCoords coords,
-                                     const bool forInterpolationGuides01, const bool forInterpolationGuides02)
+vec3 scattering4DCoordsToTex3DCoords(const Scattering4DCoords coords)
 {
     const float cosVZAtc = coords.viewRayIntersectsGround ?
                             // Coordinate is in ~[0,0.5]
@@ -221,37 +241,82 @@ vec3 scattering4DCoordsToTex3DCoords(const Scattering4DCoords coords,
                             // Coordinate is in ~[0.5,1]
                             0.5+0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, scatteringTextureSize[0]/2);
 
-    const float dvsSize = forInterpolationGuides01 ? scatteringTextureSize[1]-1 : scatteringTextureSize[1];
+    const float dvsSize = scatteringTextureSize[1];
     const float dotVStc = unitRangeToTexCoord(coords.dotViewSun, dvsSize);
 
-    const float cszaSize = forInterpolationGuides02 ? scatteringTextureSize[2]-1 : scatteringTextureSize[2];
+    const float cszaSize = scatteringTextureSize[2];
     const float cosSZAtc = unitRangeToTexCoord(coords.cosSunZenithAngle, cszaSize);
 
     return vec3(cosVZAtc, dotVStc, cosSZAtc);
 }
 
-vec4 sample3DTextureGuided01_log(const sampler3D tex, const sampler3D interpolationGuides01Tex,
-                                 const Scattering4DCoords coords4d)
+// Sample interpolation guides texture at the given coordinate
+float sampleGuide(const sampler3D guides, const vec3 coords)
 {
-    const vec3 guidesCoords = scattering4DCoordsToTex3DCoords(coords4d, true, false);
-    const float guidesTex = texture(interpolationGuides01Tex, guidesCoords).r;
-    const float interpAngle = PI/2*guidesTex;
+    return texture(guides, coords).r;
+}
+float findGuide01Angle(const sampler3D guides, const vec3 indices)
+{
+    // Row is the line along VZA coordinate.
+    // Position between rows means the position along dotViewSun coordinate.
 
-    const float cosVZAIndex = coords4d.cosViewZenithAngle * (scatteringTextureSize[0]-1);
-    const float dotVSIndex = coords4d.dotViewSun * (scatteringTextureSize[1]-1);
+    const float texCoordVerbatim = indexToTexCoord(indices[2], scatteringTextureSize[2]);
+    const float rowLen = scatteringTextureSize[0];
+    const float numRows = scatteringTextureSize[1];
+    const float posOfRow = indices[1];
+    const float posInRow = indices[0];
+    const float currRow = floor(posOfRow);
+    const float posBetweenRows = posOfRow - currRow;
+
+    // A & B are the endpoints of binary search inside the row
+    float posInRow_A = 0;
+    float posInRow_B = rowLen-1;
+
+    const float angle_A = PI/2*sampleGuide(guides, vec3(indexToTexCoord(posInRow_A, rowLen),
+                                                        indexToTexCoord(currRow, numRows-1),
+                                                        texCoordVerbatim));
+    const float posInRowAtPosBetweenRows_A = posInRow_A + (posBetweenRows-0.5) * tan(angle_A);
+    if(posInRowAtPosBetweenRows_A > posInRow)
+    {
+        swap(posInRow_A, posInRow_B);
+    }
+    for(int n=0; n<8; ++n)
+    {
+        const float currPosInRow = (posInRow_A + posInRow_B)/2;
+        const float currAngle = PI/2*sampleGuide(guides, vec3(indexToTexCoord(currPosInRow, rowLen),
+                                                              indexToTexCoord(currRow, numRows-1),
+                                                              texCoordVerbatim));
+        const float currPosInRowAtPosBetweenRows = currPosInRow + (posBetweenRows-0.5) * tan(currAngle);
+        if(currPosInRowAtPosBetweenRows < posInRow)
+            posInRow_A = currPosInRow;
+        else
+            posInRow_B = currPosInRow;
+    }
+    const float finalPosInRow = (posInRow_A + posInRow_B)/2;
+    return PI/2*sampleGuide(guides, vec3(indexToTexCoord(finalPosInRow, rowLen),
+                                         indexToTexCoord(currRow, numRows-1),
+                                         texCoordVerbatim));
+}
+vec4 sample3DTextureGuided01_log(const sampler3D tex, const sampler3D interpolationGuides01Tex,
+                                 const vec3 indices)
+{
+    const float interpAngle = findGuide01Angle(interpolationGuides01Tex, indices);
+
+    const float cosVZAIndex = indices[0];
+    const float dotVSIndex = indices[1];
     const float currRow = floor(dotVSIndex);
     const float posBetweenRows = dotVSIndex - currRow;
     const float cvzaPosInCurrRow = cosVZAIndex - posBetweenRows*tan(interpAngle);
     const float cvzaPosInNextRow = cosVZAIndex + (1-posBetweenRows)*tan(interpAngle);
 
-    Scattering4DCoords coords4dCurrRow = coords4d, coords4dNextRow = coords4d;
-    coords4dCurrRow.cosViewZenithAngle = clamp(cvzaPosInCurrRow / (scatteringTextureSize[0]-1), 0., 1.);
-    coords4dNextRow.cosViewZenithAngle = clamp(cvzaPosInNextRow / (scatteringTextureSize[0]-1), 0., 1.);
-    coords4dCurrRow.dotViewSun =      currRow    / (scatteringTextureSize[1]-1);
-    coords4dNextRow.dotViewSun = min((currRow+1) / (scatteringTextureSize[1]-1), 1.);
+    vec3 indicesCurrRow = indices, indicesNextRow = indices;
+    indicesCurrRow[0] = clamp(cvzaPosInCurrRow, 0., scatteringTextureSize[0]-1.);
+    indicesNextRow[0] = clamp(cvzaPosInNextRow, 0., scatteringTextureSize[0]-1.);
+    indicesCurrRow[1] =     currRow;
+    indicesNextRow[1] = min(currRow+1, scatteringTextureSize[1]-1.);
 
-    const vec3 coordsNextRow = scattering4DCoordsToTex3DCoords(coords4dNextRow, false, false);
-    const vec3 coordsCurrRow = scattering4DCoordsToTex3DCoords(coords4dCurrRow, false, false);
+    const vec3 coordsNextRow = indicesToTexCoords(indicesNextRow, scatteringTextureSize.stp);
+    const vec3 coordsCurrRow = indicesToTexCoords(indicesCurrRow, scatteringTextureSize.stp);
 
     const vec4 valueCurrRow = texture(tex, coordsCurrRow);
     const vec4 valueNextRow = texture(tex, coordsNextRow);
@@ -259,6 +324,46 @@ vec4 sample3DTextureGuided01_log(const sampler3D tex, const sampler3D interpolat
     const vec4 logValNextRow = log(max(valueNextRow, vec4(epsilon)));
     const vec4 logValCurrRow = log(max(valueCurrRow, vec4(epsilon)));
     return (logValNextRow-logValCurrRow) * posBetweenRows + logValCurrRow;
+}
+
+float findGuide02Angle(const sampler3D guides, const vec3 indices)
+{
+    // Row is the line along VZA coordinate.
+    // Position between rows means the position along SZA coordinate.
+
+    const float texCoordVerbatim = indexToTexCoord(indices[1], scatteringTextureSize[1]);
+    const float rowLen = scatteringTextureSize[0];
+    const float numRows = scatteringTextureSize[2];
+    const float posOfRow = indices[2];
+    const float posInRow = indices[0];
+    const float currRow = floor(posOfRow);
+    const float posBetweenRows = posOfRow - currRow;
+
+    // A & B are the endpoints of binary search inside the row
+    float posInRow_A = 0;
+    float posInRow_B = rowLen-1;
+
+    const float angle_A = PI/2*sampleGuide(guides, vec3(indexToTexCoord(posInRow_A, rowLen),
+                                                        texCoordVerbatim, indexToTexCoord(currRow, numRows-1)));
+    const float posInRowAtPosBetweenRows_A = posInRow_A + (posBetweenRows-0.5) * tan(angle_A);
+    if(posInRowAtPosBetweenRows_A > posInRow)
+    {
+        swap(posInRow_A, posInRow_B);
+    }
+    for(int n=0; n<8; ++n)
+    {
+        const float currPosInRow = (posInRow_A + posInRow_B)/2;
+        const float currAngle = PI/2*sampleGuide(guides, vec3(indexToTexCoord(currPosInRow, rowLen),
+                                                              texCoordVerbatim, indexToTexCoord(currRow, numRows-1)));
+        const float currPosInRowAtPosBetweenRows = currPosInRow + (posBetweenRows-0.5) * tan(currAngle);
+        if(currPosInRowAtPosBetweenRows < posInRow)
+            posInRow_A = currPosInRow;
+        else
+            posInRow_B = currPosInRow;
+    }
+    const float finalPosInRow = (posInRow_A + posInRow_B)/2;
+    return PI/2*sampleGuide(guides, vec3(indexToTexCoord(finalPosInRow, rowLen),
+                                         texCoordVerbatim, indexToTexCoord(currRow, numRows-1)));
 }
 
 vec4 sample3DTextureGuided(const sampler3D tex,
@@ -269,26 +374,26 @@ vec4 sample3DTextureGuided(const sampler3D tex,
     const Scattering4DCoords coords4d = scatteringTexVarsTo4DCoords(cosSunZenithAngle, cosViewZenithAngle,
                                                                     dotViewSun, altitude, viewRayIntersectsGround);
     // Handle the external interpolation guides: the guides between a pair of VZA-dotViewSun 2D "pictures".
-    const vec3 guidesCoords = scattering4DCoordsToTex3DCoords(coords4d, false, true);
-    const float guidesTex = texture(interpolationGuides02Tex, guidesCoords).r;
-    const float interpAngle = PI/2*guidesTex;
+    const vec3 tc = scattering4DCoordsToTex3DCoords(coords4d);
+    const vec3 indices = texCoordsToIndices(tc, scatteringTextureSize.stp);
+    const float interpAngle = findGuide02Angle(interpolationGuides02Tex, indices);
 
-    const float cvzaIndex = coords4d.cosViewZenithAngle * (scatteringTextureSize[0]-1);
-    const float cszaIndex = coords4d.cosSunZenithAngle * (scatteringTextureSize[2]-1);
+    const float cvzaIndex = indices[0];
+    const float cszaIndex = indices[2];
     const float currRow = floor(cszaIndex);
     const float posBetweenRows = cszaIndex - currRow;
     const float cvzaPosInCurrRow = cvzaIndex - posBetweenRows*tan(interpAngle);
     const float cvzaPosInNextRow = cvzaIndex + (1-posBetweenRows)*tan(interpAngle);
 
-    Scattering4DCoords coords4dCurrRow = coords4d, coords4dNextRow = coords4d;
-    coords4dCurrRow.cosViewZenithAngle = clamp(cvzaPosInCurrRow / (scatteringTextureSize[0]-1), 0., 1.);
-    coords4dNextRow.cosViewZenithAngle = clamp(cvzaPosInNextRow / (scatteringTextureSize[0]-1), 0., 1.);
-    coords4dCurrRow.cosSunZenithAngle =      currRow    / (scatteringTextureSize[2]-1);
-    coords4dNextRow.cosSunZenithAngle = min((currRow+1) / (scatteringTextureSize[2]-1), 1.);
+    vec3 indicesCurrRow = indices, indicesNextRow = indices;
+    indicesCurrRow[0] = clamp(cvzaPosInCurrRow, 0., scatteringTextureSize[0]-1.);
+    indicesNextRow[0] = clamp(cvzaPosInNextRow, 0., scatteringTextureSize[0]-1.);
+    indicesCurrRow[2] =     currRow;
+    indicesNextRow[2] = min(currRow+1, scatteringTextureSize[2]-1);
 
     // The caller will handle the internal interpolation guides: the ones between rows in each 2D "picture".
-    const vec4 logValCurrRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, coords4dCurrRow);
-    const vec4 logValNextRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, coords4dNextRow);
+    const vec4 logValCurrRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, indicesCurrRow);
+    const vec4 logValNextRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, indicesNextRow);
     return exp((logValNextRow-logValCurrRow) * posBetweenRows + logValCurrRow);
 }
 
@@ -297,7 +402,7 @@ vec4 sample3DTexture(const sampler3D tex, const float cosSunZenithAngle, const f
 {
     const Scattering4DCoords coords4d = scatteringTexVarsTo4DCoords(cosSunZenithAngle,cosViewZenithAngle,
                                                                     dotViewSun,altitude,viewRayIntersectsGround);
-    const vec3 texCoords=scattering4DCoordsToTex3DCoords(coords4d, false, false);
+    const vec3 texCoords=scattering4DCoordsToTex3DCoords(coords4d);
     return texture(tex, texCoords);
 }
 

@@ -34,6 +34,13 @@ void setDebugData(float a,float b, float c, float d)
     dbgData=vec4(a,b,c,d);
 }
 
+void swap(inout float x, inout float y)
+{
+    const float t = x;
+    x = y;
+    y = t;
+}
+
 // Assumes that if its argument is negative, it's due to rounding errors and
 // should instead be zero.
 float safeSqrt(const float x)
