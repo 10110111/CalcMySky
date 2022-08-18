@@ -84,4 +84,6 @@ void MainWindow::setWindowDecorationEnabled(const bool enabled)
     setWindowFlag(Qt::FramelessWindowHint, !enabled);
     if(windowWasVisible)
         show();
+    if(!enabled)
+        centralWidget()->update();
 }
