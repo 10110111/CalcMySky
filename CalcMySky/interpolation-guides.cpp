@@ -431,7 +431,7 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
         QFile out(outputFilePath);
         if(!out.open(QFile::WriteOnly))
         {
-            std::cerr << "failed to open interpolation guides file for writing: " << in.errorString().toStdString() << "\n";
+            std::cerr << "failed to open interpolation guides file for writing: " << out.errorString().toStdString() << "\n";
             throw MustQuit{};
         }
         {
@@ -439,7 +439,7 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
             uint16_t outputSizes[4] = {sizes[0], uint16_t(sizes[1]-1), sizes[2], sizes[3]};
             if(out.write(reinterpret_cast<const char*>(outputSizes), sizeof outputSizes) != sizeof outputSizes)
             {
-                std::cerr << "failed to write interpolation guides header: " << in.errorString().toStdString() << "\n";
+                std::cerr << "failed to write interpolation guides header: " << out.errorString().toStdString() << "\n";
                 throw MustQuit{};
             }
         }
@@ -490,7 +490,7 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
         QFile out(outputFilePath);
         if(!out.open(QFile::WriteOnly))
         {
-            std::cerr << "failed to open interpolation guides file for writing: " << in.errorString().toStdString() << "\n";
+            std::cerr << "failed to open interpolation guides file for writing: " << out.errorString().toStdString() << "\n";
             throw MustQuit{};
         }
         {
@@ -498,7 +498,7 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
             uint16_t outputSizes[4] = {sizes[0], sizes[1], uint16_t(sizes[2]-1), sizes[3]};
             if(out.write(reinterpret_cast<const char*>(outputSizes), sizeof outputSizes) != sizeof outputSizes)
             {
-                std::cerr << "failed to write interpolation guides header: " << in.errorString().toStdString() << "\n";
+                std::cerr << "failed to write interpolation guides header: " << out.errorString().toStdString() << "\n";
                 throw MustQuit{};
             }
         }
