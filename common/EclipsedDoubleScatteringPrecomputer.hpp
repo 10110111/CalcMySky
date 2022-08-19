@@ -10,11 +10,8 @@
 
 class EclipsedDoubleScatteringPrecomputer
 {
-    QOpenGLShaderProgram& program;
     QOpenGLFunctions_3_3_Core& gl;
     AtmosphereParameters const& atmo;
-    const GLuint intermediateTextureName;
-    const unsigned intermediateTextureTexUnitNum;
     const unsigned texSizeByViewAzimuth;
     const unsigned texSizeByViewElevation;
     const unsigned texSizeBySZA;
@@ -47,21 +44,22 @@ public:
      *   * Transmittance texture uniform is set for program
      *   * VAO for a quad is bound
      */
-    EclipsedDoubleScatteringPrecomputer(QOpenGLShaderProgram& program, QOpenGLFunctions_3_3_Core& gl,
-                                        GLuint intermediateTextureName, GLuint intermediateTextureTexUnitNum,
+    EclipsedDoubleScatteringPrecomputer(QOpenGLFunctions_3_3_Core& gl,
                                         AtmosphereParameters const& atmo,
                                         unsigned texSizeByViewAzimuth, unsigned texSizeByViewElevation,
                                         unsigned texSizeBySZA, unsigned texSizeByAltitude);
     ~EclipsedDoubleScatteringPrecomputer();
 
-    void compute(unsigned altIndex, unsigned szaIndex, double cameraAltitude, double sunZenithAngle,
-                 double moonZenithAngle, double moonAzimuthRelativeToSun, double earthMoonDistance);
-
-    void computeRadianceOnCoarseGrid(double cameraAltitude, double sunZenithAngle, double moonZenithAngle,
+    void computeRadianceOnCoarseGrid(QOpenGLShaderProgram& program,
+                                     GLuint intermediateTextureName, GLuint intermediateTextureTexUnitNum,
+                                     double cameraAltitude, double sunZenithAngle, double moonZenithAngle,
                                      double moonAzimuthRelativeToSun, double earthMoonDistance);
     void convertRadianceToLuminance(glm::mat4 const& radianceToLuminance);
     void accumulateLuminance(EclipsedDoubleScatteringPrecomputer const& source, glm::mat4 const& sourceRadianceToLuminance);
     void generateTextureFromCoarseGridData(unsigned altIndex, unsigned szaIndex, double cameraAltitude);
+
+    size_t appendCoarseGridSamplesTo(std::vector<glm::vec4>& data) const;
+    void loadCoarseGridSamples(double cameraAltitude, glm::vec4 const* data, size_t numElements);
 
     std::vector<glm::vec4> const& texture() const { return texture_; }
 };

@@ -160,6 +160,7 @@ private: // methods
         InterpolationGuides,
     };
     void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
+    void loadEclipsedDoubleScatteringTexture(QString const& path, float altitudeCoord);
 
     void precomputeEclipsedSingleScattering();
     void precomputeEclipsedDoubleScattering();

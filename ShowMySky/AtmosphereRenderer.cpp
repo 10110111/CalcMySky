@@ -67,6 +67,105 @@ public:
 
 }
 
+void AtmosphereRenderer::loadEclipsedDoubleScatteringTexture(QString const& path, const float altitudeCoord)
+{
+    auto log=qDebug().nospace();
+
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error on entry to loadEclipsedDoubleScatteringTexture(\"%1\"): %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+    log << "Loading texture from " << path << "... ";
+    QFile file(path);
+    if(!file.open(QFile::ReadOnly))
+        throw DataLoadError{QObject::tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
+
+    uint16_t numPointsPerSet;
+    {
+        const qint64 sizeToRead=sizeof numPointsPerSet;
+        if(file.read(reinterpret_cast<char*>(&numPointsPerSet), sizeToRead) != sizeToRead)
+        {
+            throw DataLoadError{QObject::tr("Failed to read header from file \"%1\": %2")
+                                .arg(path).arg(file.errorString())};
+        }
+    }
+    const auto texSizeByViewAzimuth = params_.eclipsedDoubleScatteringTextureSize[0];
+    const auto texSizeByViewElevation = params_.eclipsedDoubleScatteringTextureSize[1];
+    const auto texSizeBySZA = params_.eclipsedDoubleScatteringTextureSize[2];
+    const auto texSizeByAltitude = params_.eclipsedDoubleScatteringTextureSize[3];
+    EclipsedDoubleScatteringPrecomputer precomputer(gl, params_, texSizeByViewAzimuth, texSizeByViewElevation, texSizeBySZA, 2);
+
+    const auto altTexIndex = altitudeCoord==1 ? numAltIntervalsIn4DTexture_-1 : altitudeCoord*numAltIntervalsIn4DTexture_;
+    const int floorAltIndex = std::floor(altTexIndex);
+    const auto fractAltIndex = altTexIndex-floorAltIndex;
+    const auto maxAltIndex = floorAltIndex+1;
+
+    std::vector<glm::vec4> data(numPointsPerSet*texSizeBySZA*2);
+
+    {
+        const auto sliceByteSize = numPointsPerSet*sizeof data[0];
+        const auto readOffset = uint64_t(sliceByteSize)*texSizeBySZA*floorAltIndex;
+        const qint64 offset=file.pos()+readOffset;
+        log << "skipping to offset " << offset << "... ";
+        if(!file.seek(offset))
+        {
+            throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
+                .arg(offset).arg(path).arg(file.errorString())};
+        }
+    }
+
+    const qint64 sizeToRead = data.size()*sizeof data[0];
+    if(file.read(reinterpret_cast<char*>(data.data()), sizeToRead) != sizeToRead)
+    {
+        throw DataLoadError{QObject::tr("Failed to read data from file \"%1\": %2")
+            .arg(path).arg(file.errorString())};
+    }
+
+    size_t readOffset = 0;
+    for(int altIndex=floorAltIndex; altIndex<=maxAltIndex; ++altIndex)
+    {
+        for(int szaIndex=0; szaIndex<texSizeBySZA; ++szaIndex)
+        {
+            // Using the same encoding for altitude as in scatteringTex4DCoordsToTexVars()
+            const float distToHorizon = float(altIndex)/(texSizeByAltitude-1)*params_.lengthOfHorizRayFromGroundToBorderOfAtmo;
+            // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
+            // To avoid too many zeros that would make log interpolation problematic, we clamp the bottom value at 1 m. The same at the top.
+            const float cameraAltitude = std::clamp(float(sqrt(sqr(distToHorizon)+sqr(params_.earthRadius))-params_.earthRadius),
+                                                    1.f, params_.atmosphereHeight-1);
+
+            precomputer.loadCoarseGridSamples(cameraAltitude, data.data()+readOffset, numPointsPerSet);
+            precomputer.generateTextureFromCoarseGridData(altIndex-floorAltIndex, szaIndex, cameraAltitude);
+            readOffset += numPointsPerSet;
+        }
+    }
+
+    const size_t altSliceSize = texSizeByViewAzimuth * texSizeByViewElevation * texSizeBySZA;
+    auto texture = precomputer.texture();
+    assert(texture.size() == altSliceSize*2);
+
+    for(size_t n = 0; n < altSliceSize; ++n)
+    {
+        const auto interpolated = texture[n] + fractAltIndex * (texture[n+altSliceSize] - texture[n]);
+        if(std::isnan(interpolated.x))
+        {
+            std::cerr << "NaN computed from " << texture[n].x << " and " << texture[n+altSliceSize].x << " (n = " << n << ")\n";
+        }
+        texture[n] = interpolated;
+    }
+
+    gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, texSizeByViewAzimuth, texSizeByViewElevation, texSizeBySZA,
+                    0, GL_RGBA, GL_FLOAT, texture.data());
+
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error in loadEclipsedDoubleScatteringTexture(\"%1\") after glTexImage3D() call: %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+
+    log << "done";
+}
+
 void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord, Texture4DType texType)
 {
     auto log=qDebug().nospace();
@@ -548,7 +647,8 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                 texture.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
 
                 texture.bind();
-                loadTexture4D(QString("%1/eclipsed-double-scattering-xyzw.f32").arg(pathToData_), altCoord);
+                loadEclipsedDoubleScatteringTexture(QString("%1/eclipsed-double-scattering-xyzw.f32")
+                                                     .arg(pathToData_), altCoord);
 
                 ++loadingStepsDone_; return;
             }
@@ -576,7 +676,8 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                 texture.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
 
                 texture.bind();
-                loadTexture4D(QString("%1/eclipsed-double-scattering-wlset%2.f32").arg(pathToData_).arg(wlSetIndex), altCoord);
+                loadEclipsedDoubleScatteringTexture(QString("%1/eclipsed-double-scattering-wlset%2.f32")
+                                                     .arg(pathToData_).arg(wlSetIndex), altCoord);
 
                 ++loadingStepsDone_; return;
             }
@@ -1693,12 +1794,12 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
             prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
         prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
 
-        auto precomputer = std::make_unique<EclipsedDoubleScatteringPrecomputer>(prog, gl,
-                                                        eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),
-                                                        unusedTextureUnitNum, params_,
+        auto precomputer = std::make_unique<EclipsedDoubleScatteringPrecomputer>(gl,
+                                                        params_,
                                                         params_.eclipsedDoubleScatteringTextureSize[0],
                                                         params_.eclipsedDoubleScatteringTextureSize[1], 1, 1);
-        precomputer->computeRadianceOnCoarseGrid(tools_->altitude(), tools_->sunZenithAngle(),
+        precomputer->computeRadianceOnCoarseGrid(prog, eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),
+                                                 unusedTextureUnitNum, tools_->altitude(), tools_->sunZenithAngle(),
                                                  tools_->moonZenithAngle(), tools_->moonAzimuth() - tools_->sunAzimuth(),
                                                  tools_->earthMoonDistance());
         if(renderingNeedsLuminance)

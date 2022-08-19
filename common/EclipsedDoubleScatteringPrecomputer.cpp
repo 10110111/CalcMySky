@@ -132,17 +132,13 @@ std::pair<float,bool> EclipsedDoubleScatteringPrecomputer::eclipseTexCoordsToTex
     }
 }
 
-EclipsedDoubleScatteringPrecomputer::
-    EclipsedDoubleScatteringPrecomputer(QOpenGLShaderProgram& program, QOpenGLFunctions_3_3_Core& gl,
-                                        const GLuint intermediateTextureName, const GLuint intermediateTextureTexUnitNum,
-                                        AtmosphereParameters const& atmo,
-                                        const unsigned texSizeByViewAzimuth, const unsigned texSizeByViewElevation,
-                                        const unsigned texSizeBySZA, const unsigned texSizeByAltitude)
-    : program(program)
-    , gl(gl)
+EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
+          QOpenGLFunctions_3_3_Core& gl,
+          AtmosphereParameters const& atmo,
+          const unsigned texSizeByViewAzimuth, const unsigned texSizeByViewElevation,
+          const unsigned texSizeBySZA, const unsigned texSizeByAltitude)
+    : gl(gl)
     , atmo(atmo)
-    , intermediateTextureName(intermediateTextureName)
-    , intermediateTextureTexUnitNum(intermediateTextureTexUnitNum)
     , texSizeByViewAzimuth(texSizeByViewAzimuth)
     , texSizeByViewElevation(texSizeByViewElevation)
     , texSizeBySZA(texSizeBySZA)
@@ -176,7 +172,10 @@ EclipsedDoubleScatteringPrecomputer::~EclipsedDoubleScatteringPrecomputer()
     gl.glViewport(0,0, origViewportWidth,origViewportHeight);
 }
 
-void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(const double cameraAltitude, const double sunZenithAngle,
+void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLShaderProgram& program,
+                                                                      const GLuint intermediateTextureName,
+                                                                      const GLuint intermediateTextureTexUnitNum,
+                                                                      const double cameraAltitude, const double sunZenithAngle,
                                                                       const double moonZenithAngle, const double moonAzimuthRelativeToSun,
                                                                       const double earthMoonDistance)
 {
@@ -325,16 +324,6 @@ void EclipsedDoubleScatteringPrecomputer::generateTextureFromCoarseGridData(cons
     }
 }
 
-void EclipsedDoubleScatteringPrecomputer::compute(const unsigned altIndex, const unsigned szaIndex,
-                                                  const double cameraAltitude, const double sunZenithAngle,
-                                                  const double moonZenithAngle, const double moonAzimuthRelativeToSun,
-                                                  const double earthMoonDistance)
-{
-    computeRadianceOnCoarseGrid(cameraAltitude, sunZenithAngle, moonZenithAngle,
-                                moonAzimuthRelativeToSun, earthMoonDistance);
-    generateTextureFromCoarseGridData(altIndex, szaIndex, cameraAltitude);
-}
-
 void EclipsedDoubleScatteringPrecomputer::convertRadianceToLuminance(glm::mat4 const& radianceToLuminance)
 {
     const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
@@ -397,5 +386,72 @@ void EclipsedDoubleScatteringPrecomputer::accumulateLuminance(EclipsedDoubleScat
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
                 samplesBelowHorizon[i][pos].y += transformed[i];
         }
+    }
+}
+
+// The only data that's really expensive to compute is radiance. As we want to
+// keep storage use as small as possible, we intend the other data like the list
+// of elevations to be restored on loading by the renderer.
+size_t EclipsedDoubleScatteringPrecomputer::appendCoarseGridSamplesTo(std::vector<glm::vec4>& data) const
+{
+    const auto initialSize = data.size();
+    for(unsigned n=0; n<samplesAboveHorizon[0].size(); ++n)
+    {
+        data.emplace_back(samplesAboveHorizon[0][n].y,
+                          samplesAboveHorizon[1][n].y,
+                          samplesAboveHorizon[2][n].y,
+                          samplesAboveHorizon[3][n].y);
+    }
+    for(unsigned n=0; n<samplesBelowHorizon[0].size(); ++n)
+    {
+        data.emplace_back(samplesBelowHorizon[0][n].y,
+                          samplesBelowHorizon[1][n].y,
+                          samplesBelowHorizon[2][n].y,
+                          samplesBelowHorizon[3][n].y);
+    }
+    const auto numElementsWritten = data.size() - initialSize;
+    return numElementsWritten;
+}
+
+void EclipsedDoubleScatteringPrecomputer::loadCoarseGridSamples(const double cameraAltitude,
+                                                                glm::vec4 const* data, const size_t numElements)
+{
+    generateElevationsForEclipsedDoubleScattering(cameraAltitude);
+
+    const auto numPointsPerElevSet = numElements/2;
+    unsigned dataOffset = 0;
+
+    for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+        samplesAboveHorizon[i].resize(numPointsPerElevSet);
+    for(unsigned n = 0, elevIndex = 0; n<numPointsPerElevSet; ++n)
+    {
+        const auto elev = elevationsAboveHorizon[elevIndex];
+        samplesAboveHorizon[0][n] = vec2(elev, data[dataOffset][0]);
+        samplesAboveHorizon[1][n] = vec2(elev, data[dataOffset][1]);
+        samplesAboveHorizon[2][n] = vec2(elev, data[dataOffset][2]);
+        samplesAboveHorizon[3][n] = vec2(elev, data[dataOffset][3]);
+        ++dataOffset;
+
+        if(elevIndex+1 < elevationsAboveHorizon.size())
+            ++elevIndex;
+        else
+            elevIndex=0;
+    }
+
+    for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+        samplesBelowHorizon[i].resize(numPointsPerElevSet);
+    for(unsigned n = 0, elevIndex = 0; n<numPointsPerElevSet; ++n)
+    {
+        const auto elev = elevationsBelowHorizon[elevIndex];
+        samplesBelowHorizon[0][n] = vec2(elev, data[dataOffset][0]);
+        samplesBelowHorizon[1][n] = vec2(elev, data[dataOffset][1]);
+        samplesBelowHorizon[2][n] = vec2(elev, data[dataOffset][2]);
+        samplesBelowHorizon[3][n] = vec2(elev, data[dataOffset][3]);
+        ++dataOffset;
+
+        if(elevIndex+1 < elevationsBelowHorizon.size())
+            ++elevIndex;
+        else
+            elevIndex=0;
     }
 }

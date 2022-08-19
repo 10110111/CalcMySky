@@ -917,28 +917,32 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
     int unusedTextureUnitNum=0;
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,unusedTextureUnitNum++,"transmittanceTexture");
 
-    EclipsedDoubleScatteringPrecomputer precomputer(*program, gl,
-                                                    textures[TEX_ECLIPSED_DOUBLE_SCATTERING], unusedTextureUnitNum,
-                                                    atmo, texSizeByViewAzimuth, texSizeByViewElevation, texSizeBySZA, texSizeByAltitude);
+    EclipsedDoubleScatteringPrecomputer precomputer(gl, atmo, texSizeByViewAzimuth, texSizeByViewElevation,
+                                                    texSizeBySZA, texSizeByAltitude);
 
 	gl.glBindVertexArray(vao);
-    for(unsigned szaIndex=0; szaIndex<texSizeBySZA; ++szaIndex)
+    std::vector<glm::vec4> dataToSave;
+    size_t numPointsPerSet=0;
+    for(unsigned altIndex=0; altIndex<texSizeByAltitude; ++altIndex)
     {
-        const double cosSunZenithAngle=unitRangeTexCoordToCosSZA(float(szaIndex)/(texSizeBySZA-1));
-        const double sunZenithAngle=acos(cosSunZenithAngle);
-        for(unsigned altIndex=0; altIndex<texSizeByAltitude; ++altIndex)
+        // Using the same encoding for altitude as in scatteringTex4DCoordsToTexVars()
+        const float distToHorizon = float(altIndex)/(texSizeByAltitude-1)*atmo.lengthOfHorizRayFromGroundToBorderOfAtmo;
+        // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
+        // To avoid too many zeros that would make log interpolation problematic, we clamp the bottom value at 1 m. The same at the top.
+        const float cameraAltitude=clamp(sqrt(sqr(distToHorizon)+sqr(atmo.earthRadius))-atmo.earthRadius, 1.f, atmo.atmosphereHeight-1);
+
+        for(unsigned szaIndex=0; szaIndex<texSizeBySZA; ++szaIndex)
         {
             std::ostringstream ss;
-            ss << szaIndex*texSizeByAltitude+altIndex << " of " << texSizeBySZA*texSizeByAltitude << " samples done";
+            ss << altIndex*texSizeBySZA+szaIndex << " of " << texSizeBySZA*texSizeByAltitude << " samples done";
             std::cerr << ss.str();
 
-            // Using the same encoding for altitude as in scatteringTex4DCoordsToTexVars()
-            const float distToHorizon = float(altIndex)/(texSizeByAltitude-1)*atmo.lengthOfHorizRayFromGroundToBorderOfAtmo;
-            // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
-            // To avoid too many zeros that would make log interpolation problematic, we clamp the bottom value at 1 m. The same at the top.
-            const float cameraAltitude=clamp(sqrt(sqr(distToHorizon)+sqr(atmo.earthRadius))-atmo.earthRadius, 1.f, atmo.atmosphereHeight-1);
+            const double cosSunZenithAngle=unitRangeTexCoordToCosSZA(float(szaIndex)/(texSizeBySZA-1));
+            const double sunZenithAngle=acos(cosSunZenithAngle);
 
-            precomputer.compute(altIndex, szaIndex, cameraAltitude, sunZenithAngle, sunZenithAngle, 0, atmo.earthMoonDistance);
+            precomputer.computeRadianceOnCoarseGrid(*program, textures[TEX_ECLIPSED_DOUBLE_SCATTERING], unusedTextureUnitNum,
+                                                    cameraAltitude, sunZenithAngle, sunZenithAngle, 0, atmo.earthMoonDistance);
+            numPointsPerSet = precomputer.appendCoarseGridSamplesTo(dataToSave);
 
             // Clear previous status and reset cursor position
             const auto statusWidth=ss.tellp();
@@ -956,22 +960,21 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
         std::cerr << indentOutput() << "Blending eclipsed double scattering texture into accumulator... ";
         const auto time0=std::chrono::steady_clock::now();
         const auto rad2lum = radianceToLuminance(texIndex, atmo.allWavelengths);
-        constexpr float ALMOST_ZERO = 1e-37;
         if(texIndex == 0)
         {
             // Initialize the accumulator with the first layer...
-            eclipsedDoubleScatteringAccumulatorTexture = precomputer.texture();
+            eclipsedDoubleScatteringAccumulatorTexture = std::move(dataToSave);
             // ... and apply the weight.
             for(auto& v : eclipsedDoubleScatteringAccumulatorTexture)
-                v = log(max(rad2lum*exp(v), vec4(ALMOST_ZERO)));
+                v = rad2lum*v;
         }
         else
         {
             // Blend the new texture data into the accumulator.
             auto& accum = eclipsedDoubleScatteringAccumulatorTexture;
-            const auto& src = precomputer.texture();
+            const auto& src = dataToSave;
             for(size_t i = 0; i < accum.size(); ++i)
-                accum[i] = log(max(exp(accum[i]) + rad2lum * exp(src[i]), vec4(ALMOST_ZERO)));
+                accum[i] += rad2lum * src[i];
         }
         const auto time1=std::chrono::steady_clock::now();
         std::cerr << "done in " << formatDeltaTime(time0, time1) << "\n";
@@ -989,10 +992,9 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
             std::cerr << "failed to open file: " << out.errorString().toStdString() << "\n";
             throw MustQuit{};
         }
-        for(const uint16_t size : {atmo.eclipsedDoubleScatteringTextureSize[0],atmo.eclipsedDoubleScatteringTextureSize[1],
-                                   atmo.eclipsedDoubleScatteringTextureSize[2],atmo.eclipsedDoubleScatteringTextureSize[3]})
+        for(const uint16_t size : {numPointsPerSet})
             out.write(reinterpret_cast<const char*>(&size), sizeof size);
-        const auto& texture = opts.saveResultAsRadiance ? precomputer.texture() : eclipsedDoubleScatteringAccumulatorTexture;
+        const auto& texture = opts.saveResultAsRadiance ? dataToSave : eclipsedDoubleScatteringAccumulatorTexture;
         out.write(reinterpret_cast<const char*>(texture.data()), texture.size()*sizeof texture[0]);
         out.close();
         if(out.error())
