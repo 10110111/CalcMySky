@@ -149,6 +149,9 @@ Example of a code block:
 
 The keys listed here are grouped by common parts of the name. The omitted parts are marked with `"*"`.  A few examples of complete `*.atmo` files can be found under the `examples` directory in the source tree.
 
+### `version`
+This entry must be the first entry in the atmosphere description file. It defines the layout of the model data and general format of the atmosphere description file. If it doesn't match the format supported by the given version of CalcMySky, an error will be emitted by `calcmysky` and `showmysky` utilities, as well as by the `ShowMySky` library.
+
 ### `atmosphere height`
 This entry is [dimensionful](#dimensionful-quantities). Atmosphere height is the maximum altitude at which density of some constituents of the atmosphere is considered nonzero. The sphere of all the points at this altitude is called TOA, i.e. top of atmosphere. All the textures span altitudes from 0 to atmosphere height.
 Valid values for this entry are length quantities from 1&nbsp;m to 1&nbsp;Mm.
@@ -269,6 +272,14 @@ This entry is a [dimensionful](#dimensionful-quantities) quantity of area. It de
 #### <a name="angstrom-exponent">`angstrom exponent`</a>
 
 This entry defines the Angström exponent, which describes the power law dependence of the optical thickness of a medium on wavelength. For Rayleigh scattering its value is 4, while for clouds it is about zero.
+
+#### `needs interpolation guides`
+
+This entry is a special token that's not a key: it isn't followed by a colon with a value.
+
+Presence of this entry means that single scattering data for the scatterer described in current section have a rapid variation of colors in the Venus belt region, which, if texture resolution is small, will look jumpy when interpolated using the usual quadrilinear filter — either when looking at a single frame (similar to aliasing of lines), or when watching the sunset (the Venus belt will jump from one elevation to the next in the texture as the Sun goes deeper under the horizon). To fix this problem, special files will be created which will guide the renderer's interpolation function to improve quality.
+
+If this entry is not present, interpolation guides are not created, so interpolation will use quadrilinear filter. This is better for performance, so should be the default.
 
 ### `Absorber "*"`
 
