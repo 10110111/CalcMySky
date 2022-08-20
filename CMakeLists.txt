@@ -3,7 +3,7 @@ if(POLICY CMP0110)
     cmake_policy(SET CMP0110 OLD)
 endif()
 
-set(staticProjectVersion 0.0.1)
+set(staticProjectVersion 0.0.2)
 project(CalcMySky VERSION ${staticProjectVersion} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
