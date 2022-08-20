@@ -6,20 +6,6 @@ This set of programs will let the users of the [future precomputed atmospheric s
 
 The model is based on E. Bruneton's [Precomputed Atmospheric Scattering](https://hal.inria.fr/inria-00288758/en) paper and the [updated implementation of the demo](https://ebruneton.github.io/precomputed_atmospheric_scattering).
 
-It's currently in pre-alpha stage, so it's not of much interest to general users.
-
-# Current progress
-
-The planned implementation steps are as follows:
-
- - [x] Generator of textures for normally-lit atmosphere (by unoccluded Sun)
- - [x] Generator of shaders to render normally-lit atmosphere
- - [x] Previewer for the textures generated
- - [x] Support for eclipsed atmosphere (limited to two scattering orders)
- - [x] Generator of air pollution textures
- - [ ] Generator of airglow textures
- - [ ] Renderer in Stellarium
-
 # Interface
 
 After building the package using the usual steps of building CMake-based projects, the binary `calcmysky` appears in `CalcMySky` subdirectory of the build directory. It should be feeded with a file containing description of the parameters of atmosphere, as well as computation settings. A sample of such file resides in the root of source tree, with the name `sample.atmo`.
