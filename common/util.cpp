@@ -1,4 +1,5 @@
 #include "util.hpp"
+#include <cstring>
 #include <qopengl.h>
 #include "../common/cie-xyzw-functions.hpp"
 
@@ -84,3 +85,21 @@ glm::mat4 radianceToLuminance(const unsigned texIndex, std::vector<glm::vec4> co
                                       wavelengthToXYZW(allWavelengths[texIndex][3])) * dlambda;
 }
 
+void roundTexData(GLfloat*const data, const size_t size, const int bitsOfPrecision)
+{
+    using Float = GLfloat;
+    using FloatAsInt = uint32_t;
+    static_assert(sizeof(FloatAsInt) == sizeof(Float));
+    constexpr unsigned maxPrecision = std::numeric_limits<Float>::digits;
+
+    const FloatAsInt mask = ~((1u << (maxPrecision - bitsOfPrecision)) - 1);
+    std::cerr << "mask: 0x" << std::hex << mask << std::dec << " ... ";
+
+    for(size_t i = 0; i < size; ++i)
+    {
+        uint32_t x;
+        std::memcpy(&x, &data[i], sizeof x);
+        x &= mask;
+        std::memcpy(&data[i], &x, sizeof x);
+    }
+}

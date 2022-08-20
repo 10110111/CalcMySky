@@ -994,7 +994,9 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
         }
         for(const uint16_t size : {numPointsPerSet})
             out.write(reinterpret_cast<const char*>(&size), sizeof size);
-        const auto& texture = opts.saveResultAsRadiance ? dataToSave : eclipsedDoubleScatteringAccumulatorTexture;
+        auto& texture = opts.saveResultAsRadiance ? dataToSave : eclipsedDoubleScatteringAccumulatorTexture;
+        if(opts.textureSavePrecision)
+            roundTexData(&texture[0][0], 4*texture.size(), opts.textureSavePrecision);
         out.write(reinterpret_cast<const char*>(texture.data()), texture.size()*sizeof texture[0]);
         out.close();
         if(out.error())

@@ -133,4 +133,7 @@ Number clampCosine(const Number x)
 
 glm::mat4 radianceToLuminance(unsigned texIndex, std::vector<glm::vec4> const& allWavelengths);
 
+// Rounds each float to \p precision bits.
+void roundTexData(GLfloat* data, size_t size, int precision);
+
 #endif

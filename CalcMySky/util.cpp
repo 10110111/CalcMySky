@@ -125,21 +125,7 @@ std::vector<glm::vec4> saveTexture(const GLenum target, const GLuint texture, co
     }
     if(target==GL_TEXTURE_3D && opts.textureSavePrecision)
     {
-        using Float = GLfloat;
-        using FloatAsInt = uint32_t;
-        static_assert(sizeof(FloatAsInt) == sizeof(Float));
-        constexpr unsigned maxPrecision = std::numeric_limits<Float>::digits;
-
-        const FloatAsInt mask = ~((1u << (maxPrecision - opts.textureSavePrecision)) - 1);
-        std::cerr << "mask: 0x" << std::hex << mask << std::dec << " ... ";
-
-        for(size_t i = 0; i < subpixelCount; ++i)
-        {
-            uint32_t x;
-            std::memcpy(&x, &subpixels[i], sizeof x);
-            x &= mask;
-            std::memcpy(&subpixels[i], &x, sizeof x);
-        }
+        roundTexData(subpixels.get(), subpixelCount, opts.textureSavePrecision);
     }
 
     QFile out(QByteArray::fromRawData(path.data(), path.size()));
