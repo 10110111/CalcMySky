@@ -3,6 +3,7 @@
 #include <set>
 #include <iomanip>
 #include <iostream>
+#include <QRegularExpression>
 #include <QApplication>
 #include <QFile>
 #include <QDir>
@@ -243,11 +244,11 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
         int lineNumber=1;
         for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine(), ++lineNumber)
         {
-            QRegExp lineChanger("^\\s*#\\s*line\\s+([0-9]+)\\b.*");
             std::cerr << std::setw(std::ceil(std::log10(lineCount))) << lineNumber << " " << line.toStdString() << "\n";
-            if(lineChanger.exactMatch(line))
+            const auto lineChanger = QRegularExpression("^\\s*#\\s*line\\s+([0-9]+)\\b.*").match(line);
+            if(lineChanger.hasMatch())
             {
-                lineNumber = lineChanger.cap(1).toInt() - 1;
+                lineNumber = lineChanger.captured(1).toInt() - 1;
                 continue;
             }
         }
@@ -273,25 +274,25 @@ QString withHeadersIncluded(QString src, QString const& filename)
     QString newSrc;
     for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine(), ++lineNumber)
     {
-        if(!line.contains(QRegExp("^\\s*#include(?: \"|_if\\s*\\()")))
+        if(!line.contains(QRegularExpression("^\\s*#include(?: \"|_if\\s*\\()")))
         {
             // Not an include line, pass it to output
             newSrc.append(line+'\n');
             continue;
         }
-        if(line.contains(QRegExp("^\\s*#include_if\\([A-Za-z_][A-Za-z0-9_]*\\)")))
+        if(line.contains(QRegularExpression("^\\s*#include_if\\([A-Za-z_][A-Za-z0-9_]*\\)")))
         {
             // Disabled include, skip it (enabled one must have the condition be literal 1)
             newSrc.append('\n');
             continue;
         }
-        auto includePattern=QRegExp("^#include(?:_if\\s*\\(\\s*1\\s*(?:/\\*[^)]*\\*/)?\\))? \"([^\"]+)\"$");
-        if(!includePattern.exactMatch(line))
+        const auto includePattern=QRegularExpression("^#include(?:_if\\s*\\(\\s*1\\s*(?:/\\*[^)]*\\*/)?\\))? \"([^\"]+)\"$").match(line);
+        if(!includePattern.hasMatch())
         {
             std::cerr << filename.toStdString() << ":" << lineNumber << ": syntax error in #include directive:\n" << line << "\n";
             throw MustQuit{};
         }
-        const auto includeFileName=includePattern.cap(1);
+        const auto includeFileName=includePattern.captured(1);
         static const char headerSuffix[]=".h.glsl";
         if(!includeFileName.endsWith(headerSuffix))
         {
@@ -320,11 +321,12 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
     QTextStream srcStream(&shaderSrc);
     for(auto line=srcStream.readLine(); !line.isNull(); line=srcStream.readLine())
     {
-        auto includePattern=QRegExp("^#include(?:_if\\s*\\(\\s*1\\s*(?:/\\*[^)]*\\*/)?\\))? \"([^\"]+)(\\.h\\.glsl)\"$");
-        if(!includePattern.exactMatch(line))
+        const auto includePattern=
+            QRegularExpression("^#include(?:_if\\s*\\(\\s*1\\s*(?:/\\*[^)]*\\*/)?\\))? \"([^\"]+)(\\.h\\.glsl)\"$").match(line);
+        if(!includePattern.hasMatch())
             continue;
-        const auto includeFileBaseName=includePattern.cap(1);
-        const auto headerFileName=includeFileBaseName+includePattern.cap(2);
+        const auto includeFileBaseName=includePattern.captured(1);
+        const auto headerFileName=includeFileBaseName+includePattern.captured(2);
         if(headerFileName == CONSTANTS_HEADER_FILENAME) // no companion source for constants header
             continue;
         if(headerFileName == RADIANCE_TO_LUMINANCE_HEADER_FILENAME) // no companion source for radiance-to-luminance conversion header
