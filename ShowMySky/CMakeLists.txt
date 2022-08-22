@@ -13,7 +13,7 @@ add_library(ShowMySky SHARED
              ../common/util.cpp
              "${CMAKE_BINARY_DIR}/config.h")
 target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
-target_link_libraries(ShowMySky PUBLIC Qt5::Core Qt5::OpenGL PRIVATE version)
+target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version)
 
 if(WIN32)
     # For some reason, showmysky target name conflicts with ShowMySky target,
@@ -23,7 +23,11 @@ if(WIN32)
 else()
     set(showmyskyTarget showmysky)
 endif()
-qt5_add_resources(RES_SOURCES resources.qrc)
+if(${QT_VERSION} STREQUAL 5)
+    qt5_add_resources(RES_SOURCES resources.qrc)
+else(${QT_VERSION} STREQUAL 6)
+    qt6_add_resources(RES_SOURCES resources.qrc)
+endif()
 add_executable(${showmyskyTarget}
                ${RES_SOURCES}
                ${extraSrc}
@@ -37,7 +41,11 @@ add_executable(${showmyskyTarget}
                 DockScrollArea.cpp
                 ../common/Spectrum.cpp
               )
-target_link_libraries(${showmyskyTarget} PUBLIC Qt5::Core Qt5::Widgets Qt5::OpenGL PRIVATE version)
+target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::Widgets Qt${QT_VERSION}::OpenGL PRIVATE version)
+if(${QT_VERSION} STREQUAL 6)
+    target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::OpenGLWidgets)
+endif()
+
 if(WIN32)
     # Addition to the above hack: remove extraneous .exe
     set_target_properties(${showmyskyTarget} PROPERTIES SUFFIX "")

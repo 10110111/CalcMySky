@@ -11,6 +11,6 @@ add_executable(calcmysky
                 ../common/util.cpp
                 "${CMAKE_BINARY_DIR}/config.h")
 target_compile_definitions(calcmysky PRIVATE -DSHOWMYSKY_COMPILING_CALCMYSKY)
-target_link_libraries(calcmysky PUBLIC Qt5::Core Qt5::OpenGL PRIVATE version)
+target_link_libraries(calcmysky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE version)
 
 install(TARGETS calcmysky DESTINATION "${installBinDir}")

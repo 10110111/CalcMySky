@@ -22,7 +22,22 @@ include(cmake/CheckGLM.cmake)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
-find_package(Qt5 5.9 REQUIRED Core OpenGL)
+
+set(DEFAULT_QT_VERSION 5)
+set(ALT_QT_VERSION 6)
+if(NOT DEFINED QT_VERSION)
+    message("** NOTE: QT_VERSION is not defined, using default setup: Qt${DEFAULT_QT_VERSION}. Pass -DQT_VERSION=${ALT_QT_VERSION} to cmake to\n    choose Qt${ALT_QT_VERSION} or -DQT_VERSION=${DEFAULT_QT_VERSION} to get rid of this message and choose Qt${DEFAULT_QT_VERSION}.")
+    set(QT_VERSION ${DEFAULT_QT_VERSION})
+endif()
+
+if("${QT_VERSION}" STREQUAL 5)
+    find_package(Qt5 5.9 REQUIRED Core OpenGL)
+elseif("${QT_VERSION}" STREQUAL 6)
+    find_package(Qt6 6.0 REQUIRED Core OpenGL Widgets OpenGLWidgets)
+else()
+    message(FATAL_ERROR "QT_VERSION must be either 5 or 6")
+endif()
+
 find_package(Eigen3 REQUIRED)
 include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
 include_directories(${CMAKE_BINARY_DIR})
@@ -36,9 +51,9 @@ if(WIN32)
 
     # Deploy Qt
     foreach(lib Core Widgets Gui)
-        install(FILES "$<TARGET_FILE:Qt5::${lib}>" DESTINATION "${installBinDir}")
+        install(FILES "$<TARGET_FILE:Qt${QT_VERSION}::${lib}>" DESTINATION "${installBinDir}")
     endforeach()
-    install(FILES "${Qt5Core_DIR}/../../../plugins/platforms/qwindows$<$<CONFIG:Debug>:d>.dll" DESTINATION "${installBinDir}/platforms")
+    install(FILES "${Qt${QT_VERSION}Core_DIR}/../../../plugins/platforms/qwindows$<$<CONFIG:Debug>:d>.dll" DESTINATION "${installBinDir}/platforms")
 
 else()
     include(GNUInstallDirs)
