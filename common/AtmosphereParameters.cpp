@@ -112,7 +112,7 @@ double getQuantity(QString const& value, const double min, const double max, Dim
 
 double getQuantity(QString const& value, const double min, const double max, Quantity const& quantity, QString const& filename, const int lineNumber, QString const& errorMessagePrefix="")
 {
-    auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z^-0-9]*)");
+    auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z0-9^-]*)");
     if(!regex.exactMatch(value))
     {
         throw ParsingError{filename,lineNumber,
