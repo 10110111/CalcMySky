@@ -1,6 +1,7 @@
 #include "AtmosphereParameters.hpp"
 #include <optional>
 #include <QDebug>
+#include <QRegularExpression>
 #include "Spectrum.hpp"
 #include "const.hpp"
 
@@ -112,19 +113,19 @@ double getQuantity(QString const& value, const double min, const double max, Dim
 
 double getQuantity(QString const& value, const double min, const double max, Quantity const& quantity, QString const& filename, const int lineNumber, QString const& errorMessagePrefix="")
 {
-    auto regex=QRegExp("(-?[0-9.]+) *([a-zA-Z][a-zA-Z0-9^-]*)");
-    if(!regex.exactMatch(value))
+    const auto match = QRegularExpression("^(-?[0-9.]+) *([a-zA-Z][a-zA-Z0-9^-]*)$").match(value);
+    if(!match.hasMatch())
     {
         throw ParsingError{filename,lineNumber,
             (errorMessagePrefix+"bad format of %1 quantity. Must be `NUMBER UNIT', e.g. `30.2 %2' (without the quotes).")
                 .arg(QString::fromStdString(quantity.name())).arg(quantity.basicUnit())};
     }
     bool ok;
-    const auto x=regex.cap(1).toDouble(&ok);
+    const auto x=match.captured(1).toDouble(&ok);
     if(!ok)
         throw ParsingError{filename,lineNumber,"failed to parse numeric part of the quantity"};
     const auto units=quantity.units();
-    const auto unit=regex.cap(2).trimmed();
+    const auto unit=match.captured(2).trimmed();
     const auto scaleIt=units.find(unit);
     if(scaleIt==units.end())
     {
@@ -149,19 +150,19 @@ double getQuantity(QString const& value, const double min, const double max, Qua
 QString readGLSLFunctionBody(QTextStream& stream, const QString filename, int& lineNumber)
 {
     QString function;
-    const QRegExp startEndMarker("^\\s*```\\s*$");
+    const QRegularExpression startEndMarker("^\\s*```\\s*$");
     bool begun=false;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
     {
         if(!begun)
         {
-            if(!startEndMarker.exactMatch(line))
+            if(!line.contains(startEndMarker))
                 throw ParsingError{filename,lineNumber,"function body must start and end with triple backtick placed on a separate line."};
             begun=true;
             continue;
         }
 
-        if(!startEndMarker.exactMatch(line))
+        if(!line.contains(startEndMarker))
             function.append(line+'\n');
         else
             break;
@@ -264,26 +265,26 @@ std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat min
     std::optional<int> countOpt;
     for(const auto& item : items)
     {
-        if(QRegExp minRX("\\s*min\\s*=\\s*(.+)\\s*"); minRX.exactMatch(item))
+        if(const auto match=QRegularExpression("^\\s*min\\s*=\\s*(.+)\\s*$").match(item); match.hasMatch())
         {
             if(minOpt)
                 throw ParsingError{filename,lineNumber,"bad wavelength range: extra `min' key"};
-            minOpt=getQuantity(minRX.capturedTexts()[1], minWL_nm*nm, maxWL_nm*nm, WavelengthQuantity{},
+            minOpt=getQuantity(match.captured(1), minWL_nm*nm, maxWL_nm*nm, WavelengthQuantity{},
                                filename, lineNumber, "wavelength range minimum: ");
         }
-        else if(QRegExp maxRX("\\s*max\\s*=\\s*(.+)\\s*"); maxRX.exactMatch(item))
+        else if(const auto match=QRegularExpression("^\\s*max\\s*=\\s*(.+)\\s*$").match(item); match.hasMatch())
         {
             if(maxOpt)
                 throw ParsingError{filename,lineNumber,"bad wavelength range: extra `max' key"};
-            maxOpt=getQuantity(maxRX.capturedTexts()[1], minWL_nm*nm, maxWL_nm*nm, WavelengthQuantity{},
+            maxOpt=getQuantity(match.captured(1), minWL_nm*nm, maxWL_nm*nm, WavelengthQuantity{},
                                filename, lineNumber, "wavelength range maximum: ");
         }
-        else if(QRegExp countRX("\\s*count\\s*=\\s*([0-9]+)\\s*"); countRX.exactMatch(item))
+        else if(const auto match=QRegularExpression("^\\s*count\\s*=\\s*([0-9]+)\\s*$").match(item); match.hasMatch())
         {
             if(countOpt)
                 throw ParsingError{filename,lineNumber,"bad wavelength range: extra `count' key"};
             bool ok=false;
-            countOpt=countRX.capturedTexts()[1].toInt(&ok);
+            countOpt=match.captured(1).toInt(&ok);
             if(!ok)
                 throw ParsingError{filename,lineNumber,"wavelength range: failed to parse range count."};
         }
@@ -426,8 +427,6 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
     int version=0;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
     {
-        QRegExp scattererDescriptionKey("^scatterer \"([^\"]+)\"$");
-        QRegExp absorberDescriptionKey("^absorber \"([^\"]+)\"$");
         const auto codeAndComment=line.split('#');
         assert(codeAndComment.size());
         if(codeAndComment[0].trimmed().isEmpty())
@@ -549,9 +548,9 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             if(!skipSpectra)
                 getSpectrum(allWavelengths,value,0,1e3,atmoDescrFileName,lineNumber, lightPollutionRelativeRadiance);
         }
-        else if(key.contains(scattererDescriptionKey))
+        else if(const auto match=QRegularExpression("^scatterer \"([^\"]+)\"$").match(key); match.hasMatch())
         {
-            const auto& name=scattererDescriptionKey.cap(1);
+            const auto& name=match.captured(1);
             if(std::find_if(scatterers.begin(), scatterers.end(),
                             [&](const auto& existing) { return existing.name==name; }) != scatterers.end())
             {
@@ -559,8 +558,10 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             }
             scatterers.emplace_back(parseScatterer(stream, name, allTexturesAreRadiance, atmoDescrFileName,++lineNumber));
         }
-        else if(key.contains(absorberDescriptionKey))
-            absorbers.emplace_back(parseAbsorber(*this, skipSpectra, stream, absorberDescriptionKey.cap(1), atmoDescrFileName,++lineNumber));
+        else if(const auto match=QRegularExpression("^absorber \"([^\"]+)\"$").match(key); match.hasMatch())
+        {
+            absorbers.emplace_back(parseAbsorber(*this, skipSpectra, stream, match.captured(1), atmoDescrFileName,++lineNumber));
+        }
         else if(key=="scattering orders")
             scatteringOrdersToCompute=getQuantity(value,1,INT_MAX, DimensionlessQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="ground albedo")
