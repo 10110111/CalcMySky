@@ -10,10 +10,10 @@
 #include <map>
 #include <set>
 
+#include <QRegularExpression>
 #include <QOffscreenSurface>
 #include <QSurfaceFormat>
 #include <QApplication>
-#include <QRegExp>
 #include <QImage>
 #include <QFile>
 
@@ -155,8 +155,8 @@ void saveZeroOrderScatteringRenderingShader(const unsigned texIndex)
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-            .replace(QRegExp("\\b(RENDERING_ANY_ZERO_SCATTERING)\\b"), "1 /*\\1*/")
-            .replace(QRegExp("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 /*\\1*/");
+            .replace(QRegularExpression("\\b(RENDERING_ANY_ZERO_SCATTERING)\\b"), "1 /*\\1*/")
+            .replace(QRegularExpression("\\b(RENDERING_ZERO_SCATTERING)\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "zero-order scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -189,8 +189,8 @@ void saveEclipsedZeroOrderScatteringRenderingShader(const unsigned texIndex)
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-            .replace(QRegExp("\\b(RENDERING_ANY_ZERO_SCATTERING)\\b"), "1 /*\\1*/")
-            .replace(QRegExp("\\b(RENDERING_ECLIPSED_ZERO_SCATTERING)\\b"), "1 /*\\1*/");
+            .replace(QRegularExpression("\\b(RENDERING_ANY_ZERO_SCATTERING)\\b"), "1 /*\\1*/")
+            .replace(QRegularExpression("\\b(RENDERING_ECLIPSED_ZERO_SCATTERING)\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "eclipsed zero-order scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -223,7 +223,8 @@ void saveMultipleScatteringRenderingShader(const unsigned texIndex)
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     const QString macroToReplace = opts.saveResultAsRadiance ? "RENDERING_MULTIPLE_SCATTERING_RADIANCE" : "RENDERING_MULTIPLE_SCATTERING_LUMINANCE";
-    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{}).replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 /*\\1*/");
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+                                                .replace(QRegularExpression("\\b("+macroToReplace+")\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "multiple scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -263,10 +264,10 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, AtmospherePara
                                                                                           : "RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE";
     const bool phaseFuncIsEmbedded = scatterer.phaseFunctionType==PhaseFunctionType::Smooth;
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-                                                .replace(QRegExp("\\b(RENDERING_ANY_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
-                                                .replace(QRegExp("\\b(RENDERING_ANY_NORMAL_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
-                                                .replace(QRegExp("\\b(PHASE_FUNCTION_IS_EMBEDDED)\\b"), phaseFuncIsEmbedded ? "1" : "0")
-                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 /*\\1*/");
+                                 .replace(QRegularExpression("\\b(RENDERING_ANY_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                 .replace(QRegularExpression("\\b(RENDERING_ANY_NORMAL_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                 .replace(QRegularExpression("\\b(PHASE_FUNCTION_IS_EMBEDDED)\\b"), phaseFuncIsEmbedded ? "1" : "0")
+                                 .replace(QRegularExpression(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -307,9 +308,9 @@ void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, Atmosp
                                   scatterer.phaseFunctionType==PhaseFunctionType::General ? "RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE"
                                                                                           : "RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-                                                .replace(QRegExp("\\b(RENDERING_ANY_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
-                                                .replace(QRegExp("\\b(RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
-                                                .replace(QRegExp(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 /*\\1*/");
+                                    .replace(QRegularExpression("\\b(RENDERING_ANY_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                    .replace(QRegularExpression("\\b(RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING)\\b"), "1 /*\\1*/")
+                                    .replace(QRegularExpression(QString("\\b(%1)\\b").arg(renderModeDefine)), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -347,7 +348,8 @@ void saveEclipsedSingleScatteringComputationShader(const unsigned texIndex, Atmo
     std::vector<std::pair<QString, QString>> sourcesToSave;
     static constexpr char renderShaderFileName[]="compute-eclipsed-single-scattering.frag";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-        .replace(QRegExp(QString("\\b(%1)\\b").arg(scatterer.phaseFunctionType==PhaseFunctionType::General ? "COMPUTE_RADIANCE" : "COMPUTE_LUMINANCE")), "1 /*\\1*/");
+        .replace(QRegularExpression(QString("\\b(%1)\\b").arg(scatterer.phaseFunctionType==PhaseFunctionType::General ?
+                                                                  "COMPUTE_RADIANCE" : "COMPUTE_LUMINANCE")), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "single scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -387,7 +389,7 @@ void saveEclipsedDoubleScatteringRenderingShader(const unsigned texIndex)
     const QString macroToReplace = opts.saveResultAsRadiance ? "RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE"
                                                              : "RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_LUMINANCE";
     virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
-        .replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 /*\\1*/");
+        .replace(QRegularExpression("\\b("+macroToReplace+")\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "double scattering rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -431,8 +433,9 @@ void saveLightPollutionRenderingShader(const unsigned texIndex)
     std::vector<std::pair<QString, QString>> sourcesToSave;
     virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
     const QString macroToReplace = opts.saveResultAsRadiance ? "RENDERING_LIGHT_POLLUTION_RADIANCE" : "RENDERING_LIGHT_POLLUTION_LUMINANCE";
-    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{}).replace(QRegExp("\\b("+macroToReplace+")\\b"), "1 /*\\1*/")
-                                                                                             .replace(QRegExp("\\b(RENDERING_ANY_LIGHT_POLLUTION)\\b"), "1/*\\1*/");
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+                                                .replace(QRegularExpression("\\b("+macroToReplace+")\\b"), "1 /*\\1*/")
+                                                .replace(QRegularExpression("\\b(RENDERING_ANY_LIGHT_POLLUTION)\\b"), "1/*\\1*/");
     const auto program=compileShaderProgram(renderShaderFileName,
                                             "light pollution rendering shader program",
                                             UseGeomShader{false}, &sourcesToSave);
@@ -572,8 +575,8 @@ void computeScatteringOrder1AndScatteringDensityOrder2(const unsigned texIndex)
         //  1) Improve performance by statically avoiding branching
         //  2) Ease debugging by clearing the list of really-used uniforms (this can be printed by dumpActiveUniforms())
         virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
-                                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "true")
-                                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
+                                               .replace(QRegularExpression("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "true")
+                                               .replace(QRegularExpression("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
         // recompile the program
         program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
                                      "scattering density computation shader program", UseGeomShader{});
@@ -619,8 +622,8 @@ void computeScatteringOrder1AndScatteringDensityOrder2(const unsigned texIndex)
 
         {
             virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
-                                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
-                                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
+                                                .replace(QRegularExpression("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
+                                                .replace(QRegularExpression("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
             // recompile the program
             program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
                                                         "scattering density computation shader program", UseGeomShader{});
@@ -655,8 +658,8 @@ void computeScatteringDensity(const unsigned scatteringOrder, const unsigned tex
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_DELTA_SCATTERING_DENSITY],0);
 
     virtualSourceFiles[COMPUTE_SCATTERING_DENSITY_FILENAME]=getShaderSrc(COMPUTE_SCATTERING_DENSITY_FILENAME,IgnoreCache{})
-                                                    .replace(QRegExp("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
-                                                    .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
+                                         .replace(QRegularExpression("\\bRADIATION_IS_FROM_GROUND_ONLY\\b"), "false")
+                                         .replace(QRegularExpression("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder));
     // recompile the program
     const std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_SCATTERING_DENSITY_FILENAME,
                                                                              "scattering density computation shader program",
@@ -692,7 +695,7 @@ void computeIndirectIrradianceOrder1(const unsigned scattererIndex)
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
 
     virtualSourceFiles[COMPUTE_INDIRECT_IRRADIANCE_FILENAME]=getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,IgnoreCache{})
-                                                .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1));
+                                           .replace(QRegularExpression("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1));
     std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
                                                                        "indirect irradiance computation shader program");
     program->bind();
@@ -718,7 +721,7 @@ void computeIndirectIrradiance(const unsigned scatteringOrder, const unsigned te
     gl.glEnablei(GL_BLEND, 1); // Accumulate total irradiance
 
     virtualSourceFiles[COMPUTE_INDIRECT_IRRADIANCE_FILENAME]=getShaderSrc(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,IgnoreCache{})
-                                                .replace(QRegExp("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1));
+                                           .replace(QRegularExpression("\\bSCATTERING_ORDER\\b"), QString::number(scatteringOrder-1));
     std::unique_ptr<QOpenGLShaderProgram> program=compileShaderProgram(COMPUTE_INDIRECT_IRRADIANCE_FILENAME,
                                                                        "indirect irradiance computation shader program");
     program->bind();
@@ -862,8 +865,8 @@ std::unique_ptr<QOpenGLShaderProgram> saveEclipsedDoubleScatteringComputationSha
                        ";\n";
     }
     virtualSourceFiles[SINGLE_SCATTERING_ECLIPSED_FILENAME]=getShaderSrc(SINGLE_SCATTERING_ECLIPSED_FILENAME,IgnoreCache{})
-                                                    .replace(QRegExp("\\bCOMPUTE_TOTAL_SCATTERING_COEFFICIENT;"), scatCoefDef)
-                                                    .replace(QRegExp("\\b(ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION)\\b"), "1 /*\\1*/");
+                                       .replace(QRegularExpression("\\bCOMPUTE_TOTAL_SCATTERING_COEFFICIENT;"), scatCoefDef)
+                                       .replace(QRegularExpression("\\b(ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION)\\b"), "1 /*\\1*/");
     std::vector<std::pair<QString, QString>> sourcesToSave;
     auto program=compileShaderProgram(COMPUTE_ECLIPSED_DOUBLE_SCATTERING_FILENAME,
                                       "eclipsed double scattering computation shader program",
