@@ -71,7 +71,7 @@ for:
     - sudo apt-get update
     - sudo apt-get install -y libeigen3-dev libglm-dev libqt5opengl5-dev
   before_build:
-    - cd ~/projects/ && mkdir build && mkdir CalcMySky && cd build
+    - cd ~/projects/ && mkdir build && cd build
     - cmake -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" ../calcmysky -DCMAKE_CXX_COMPILER=g++-9
   build_script:
     - cmake --build .
