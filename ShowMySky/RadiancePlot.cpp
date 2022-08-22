@@ -26,6 +26,10 @@ constexpr double yAxisSpaceAboveLabel=0.5;
 constexpr double topMargin=2;
 constexpr double rightMargin=3;
 
+#if QT_VERSION < QT_VERSION_CHECK(5,11,0)
+# define horizontalAdvance width
+#endif
+
 glm::vec3 RGB2sRGB(glm::vec3 const& RGB)
 {
     using namespace glm;
@@ -172,10 +176,10 @@ QMarginsF RadiancePlot::calcPlotMargins(QPainter const& p, std::vector<std::pair
             maxYTickLabelWidth=w;
     }
     const QFontMetricsF fm(p.font());
-    const auto left   = (yTickSpaceLeft+yTickSpaceRight+yTickLineLength) * fm.width('x')+maxYTickLabelWidth;
+    const auto left   = (yTickSpaceLeft+yTickSpaceRight+yTickLineLength) * fm.horizontalAdvance('x')+maxYTickLabelWidth;
     const auto bottom = fm.height()*(xTickSpaceUnderLabel+1+xTickSpaceAboveLabel+xTickLineLength);
     const auto top    = fm.height()*topMargin;
-    const auto right  = fm.width('x')*rightMargin;
+    const auto right  = fm.horizontalAdvance('x')*rightMargin;
     return {left,top,right,bottom};
 }
 
@@ -197,7 +201,7 @@ void RadiancePlot::drawAxes(QPainter& p, std::vector<std::pair<float,QString>> c
     auto m=p.transform();
     p.resetTransform();
     const QFontMetricsF fm(p.font());
-    const auto charWidth=fm.width('x');
+    const auto charWidth=fm.horizontalAdvance('x');
     const auto td=makeQTextDoc();
     // Y ticks
     const auto yAxisPos=m.dx()+m.m11()*xMin;
@@ -474,7 +478,7 @@ void RadiancePlot::paintEvent(QPaintEvent *event)
     p.setRenderHint(QPainter::Antialiasing,true);
     if(focusedPoint>=0 && focusedPoint<int(wavelengths.size()) && std::isfinite(radiances[focusedPoint]))
     {
-        const float diskSizePx=QFontMetricsF(p.font()).width("o");
+        const float diskSizePx=QFontMetricsF(p.font()).horizontalAdvance('o');
         const auto x=wavelengths[focusedPoint];
         const auto y=radiances[focusedPoint];
         p.setPen(QPen(curveColor(), 0));
