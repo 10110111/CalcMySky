@@ -51,3 +51,29 @@ cp -rv ../CalcMySky/examples ../install/CalcMySky
 ```
 
 The output of these commands is the `install/CalcMySky` directory in the source tree.
+
+## <a name="macos">macOS</a>
+
+<span style="background-color: orange;">WARNING</span>: these instructions haven't been tested. The actual Windows builds were done via AppVeyor, using `.appveyor.yml` script in the root of the `CalcMySky` source tree.
+
+The following instructions assume that the required packages are installed as follows:
+
+ * [CMake](https://cmake.org/) in such a way that its `cmake` executable is accesible via the `$PATH` environment variable
+ * [Qt6](https://download.qt.io/archive/qt/) in `$qtPath` (there should exist `$qtPath/lib/cmake/Qt6` directory)
+ * [GLM](https://github.com/g-truc/glm) in `$glmPath` (there should exist `$glmPath/include` directory) — available in HomeBrew
+ * [Eigen3](https://eigen.tuxfamily.org) in `$eigenPath` (there should exist `$eigenPath/share/eigen3/cmake` directory) — available in HomeBrew
+
+In the terminal `cd` into the directory with `CalcMySky` unarchived, and run the following commands:
+```
+cd ~/projects/ && mkdir build && cd build
+export PATH=$qtPath/bin:$PATH
+cmake ../calcmysky -DCMAKE_BUILD_TYPE=Release \
+                   -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" \
+                   -DQT_VERSION=6 \
+                   -DCMAKE_PREFIX_PATH="$eigenPath/share/eigen3/cmake;$qtPath/lib/cmake/Qt6" \
+                   -DCMAKE_CXX_FLAGS="-I$glmPath/include"
+cmake --build .
+cmake --build . --target install
+```
+
+The output of these commands is the `install/CalcMySky` directory in the source tree.
