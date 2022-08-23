@@ -203,7 +203,7 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
     // use spline interpolation to compute the value at the zenith.
     generateElevationsForEclipsedDoubleScattering(cameraAltitude);
 
-    const auto azimuths=[this, nAzimuthPairsToSample]
+    const auto azimuths=[nAzimuthPairsToSample]
     {
         const auto step=M_PI/nAzimuthPairsToSample;
         std::vector<float> azimuths;

@@ -334,7 +334,7 @@ void ToolsWidget::updateParameters(AtmosphereParameters const& params)
         checkbox->setChecked(true);
         scattererCheckboxes_->addWidget(checkbox);
         connect(checkbox, &QCheckBox::stateChanged, this,
-                [this,checkbox,name=scatterer.name](const int state)
+                [this,name=scatterer.name](const int state)
                 { emit setScattererEnabled(name, state==Qt::Checked); });
         scatterers.push_back(checkbox);
     }
