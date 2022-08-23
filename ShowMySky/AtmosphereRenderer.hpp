@@ -48,7 +48,7 @@ public:
     void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram& shprog)> const& drawSurface) override;
     int initDataLoading(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
                         std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations) override;
-    LoadingStatus stepDataLoading();
+    LoadingStatus stepDataLoading() override;
     int initPreparationToDraw() override;
     LoadingStatus stepPreparationToDraw() override;
     QString currentActivity() const override { return currentActivity_; }
