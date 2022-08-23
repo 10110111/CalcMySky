@@ -37,5 +37,5 @@ if [ -z "$ver" ]; then
 fi
 cd - >/dev/null
 if $alwaysOverwrite || ! [ -e "$outputFile" ] || ! grep -q "\"$ver\"" "$outputFile"; then
-	sed -e "s@%\<PROJECT_VERSION\>%@\"${ver}\"@" "$inputFile" > "$outputFile"
+	sed -e "s@%PROJECT_VERSION%@\"${ver}\"@" "$inputFile" > "$outputFile"
 fi
