@@ -13,6 +13,15 @@
 #include "AtmosphereRenderer.hpp"
 #include "BlueNoiseTriangleRemapped.hpp"
 
+static QPoint position(QMouseEvent* event)
+{
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+    return event->pos();
+#else
+    return event->position().toPoint();
+#endif
+}
+
 GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* parent)
     : QOpenGLWidget(parent)
     , ditherPatternTexture_(QOpenGLTexture::Target2D)
@@ -667,27 +676,28 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
+    const auto pos = position(event);
     switch(dragMode_)
     {
     case DragMode::Sun:
     {
         const auto oldZA=tools->sunZenithAngle(), oldAz=tools->sunAzimuth();
-        tools->setSunZenithAngle(std::clamp(oldZA - (prevMouseY_-event->y())*M_PI/height()/tools->zoomFactor(), 0., M_PI));
-        tools->setSunAzimuth(std::remainder(oldAz - (prevMouseX_-event->x())*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
+        tools->setSunZenithAngle(std::clamp(oldZA - (prevMouseY_-pos.y())*M_PI/height()/tools->zoomFactor(), 0., M_PI));
+        tools->setSunAzimuth(std::remainder(oldAz - (prevMouseX_-pos.x())*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
         break;
     }
     case DragMode::Camera:
     {
         const auto oldPitch=tools->cameraPitch(), oldYaw=tools->cameraYaw();
-        tools->setCameraPitch(std::clamp(oldPitch + (prevMouseY_-event->y())*M_PI/height()/tools->zoomFactor(), -M_PI/2, M_PI/2));
-        tools->setCameraYaw(std::remainder(oldYaw - (prevMouseX_-event->x())*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
+        tools->setCameraPitch(std::clamp(oldPitch + (prevMouseY_-pos.y())*M_PI/height()/tools->zoomFactor(), -M_PI/2, M_PI/2));
+        tools->setCameraYaw(std::remainder(oldYaw - (prevMouseX_-pos.x())*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
         break;
     }
     default:
         break;
     }
-    prevMouseX_=event->x();
-    prevMouseY_=event->y();
+    prevMouseX_=pos.x();
+    prevMouseY_=pos.y();
     update();
 }
 
@@ -699,10 +709,11 @@ void GLWidget::mousePressEvent(QMouseEvent* event)
         return;
     }
 
+    const auto pos = position(event);
     if(event->modifiers() & Qt::ControlModifier)
-        setDragMode(DragMode::Sun, event->x(), event->y());
+        setDragMode(DragMode::Sun, pos.x(), pos.y());
     else
-        setDragMode(DragMode::Camera, event->x(), event->y());
+        setDragMode(DragMode::Camera, pos.x(), pos.y());
 }
 
 void GLWidget::mouseReleaseEvent(QMouseEvent*)
