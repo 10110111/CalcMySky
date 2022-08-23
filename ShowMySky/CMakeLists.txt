@@ -15,14 +15,8 @@ add_library(ShowMySky SHARED
 target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
 target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version)
 
-if(WIN32)
-    # For some reason, showmysky target name conflicts with ShowMySky target,
-    # even though on the filesystem they should result in names differing more
-    # than by case: showmysky.exe and ShowMySky.dll
-    set(showmyskyTarget showmysky.exe)
-else()
-    set(showmyskyTarget showmysky)
-endif()
+set(showmyskyTarget showmysky-cmd)
+
 if(${QT_VERSION} STREQUAL 5)
     qt5_add_resources(RES_SOURCES resources.qrc)
 else(${QT_VERSION} STREQUAL 6)
@@ -46,9 +40,8 @@ if(${QT_VERSION} STREQUAL 6)
     target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::OpenGLWidgets)
 endif()
 
+set_target_properties(${showmyskyTarget} PROPERTIES OUTPUT_NAME showmysky)
 if(WIN32)
-    # Addition to the above hack: remove extraneous .exe
-    set_target_properties(${showmyskyTarget} PROPERTIES SUFFIX "")
     # Default subsystem is console. We don't want the console window to appear, so tweak linker parameters.
     set_target_properties(${showmyskyTarget} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 endif()
