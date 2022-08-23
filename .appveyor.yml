@@ -51,7 +51,6 @@ for:
 
   after_build:
     - if Release == %configuration%  cmake --build . --config %configuration% --target install
-    - if Release == %configuration%  cp -rv ../CalcMySky/examples ../install/CalcMySky
     - if Release == %configuration%  7z a CalcMySky-windows64.zip ../install/CalcMySky
     - if Release == %configuration%  7z l CalcMySky-windows64.zip
 
