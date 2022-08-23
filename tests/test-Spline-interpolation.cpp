@@ -2,7 +2,7 @@
 #include <iostream>
 #include "../common/spline-interpolation.hpp"
 
-constexpr double interpolationAbsoluteTolerance=1e-10;
+constexpr double interpolationAbsoluteTolerance=1.2e-10;
 #define FAIL(details) { std::cerr << __FILE__ << ":" << __LINE__  << ": test failed: " << details << "\n"; return 1; }
 
 struct Point
