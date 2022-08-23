@@ -186,6 +186,8 @@ void setupTexture(TextureId id, const GLsizei width, const GLsizei height, const
 { setupTexture(textures[id],width,height,depth); }
 
 // ------------------------------------ KHR_debug support ----------------------------------------
+#ifdef GL_DEBUG_OUTPUT
+
 std::string sourceToString(const GLenum source)
 {
     switch(source)
@@ -270,3 +272,8 @@ void setupDebugPrintCallback(QOpenGLContext& context, const bool needFullDebugOu
     glDebugMessageControl(GL_DONT_CARE,GL_DONT_CARE,GL_DONT_CARE,0,NULL,GL_TRUE);
     gl.glEnable(GL_DEBUG_OUTPUT);
 }
+#else
+void setupDebugPrintCallback(QOpenGLContext&, const bool)
+{
+}
+#endif

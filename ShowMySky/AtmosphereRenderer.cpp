@@ -29,10 +29,10 @@ auto newTex(QOpenGLTexture::Target target)
     return std::make_unique<QOpenGLTexture>(target);
 }
 
-[[maybe_unused]] PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert;
 void oglDebugMessageInsert([[maybe_unused]] const char*const message)
 {
-#ifndef NDEBUG
+#if defined GL_DEBUG_OUTPUT && !defined NDEBUG
+    static PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert;
     if(!glDebugMessageInsert)
         glDebugMessageInsert=reinterpret_cast<PFNGLDEBUGMESSAGEINSERTPROC>
             (QOpenGLContext::currentContext()->getProcAddress("glDebugMessageInsert"));
