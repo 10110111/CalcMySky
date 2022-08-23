@@ -352,7 +352,7 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     shaderFileNames.insert(mainSrcFileName);
 
     std::vector<std::unique_ptr<QOpenGLShader>> shaders;
-    for(const auto filename : shaderFileNames)
+    for(const auto& filename : shaderFileNames)
     {
         shaders.emplace_back(compileShader(QOpenGLShader::Fragment, filename));
         program->addShader(shaders.back().get());
