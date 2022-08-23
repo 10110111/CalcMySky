@@ -93,7 +93,7 @@ for:
     - cd ~/projects/ && mkdir build && cd build
     - export qtPath=$HOME/Qt/6.2/macos
     - export PATH=$qtPath/bin:$PATH
-    - cmake ../calcmysky -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" -DQT_VERSION=6 -DCMAKE_PREFIX_PATH="$(echo /usr/local/Cellar/eigen/*/share/eigen3/cmake);$qtPath/lib/cmake/Qt6" -DCMAKE_CXX_FLAGS=-I$(echo /usr/local/Cellar/glm/*/include)
+    - cmake ../calcmysky -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" -DQT_VERSION=6 -DCMAKE_PREFIX_PATH="$(echo /usr/local/Cellar/eigen/*/share/eigen3/cmake);$qtPath/lib/cmake/Qt6" -DCMAKE_CXX_FLAGS="-I$(echo /usr/local/Cellar/glm/*/include) -Wno-string-plus-int"
   build_script:
     - cmake --build .
   test_script:
