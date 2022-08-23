@@ -15,7 +15,6 @@ class EclipsedDoubleScatteringPrecomputer
     const unsigned texSizeByViewAzimuth;
     const unsigned texSizeByViewElevation;
     const unsigned texSizeBySZA;
-    const unsigned texSizeByAltitude;
 
     const double texW, texH; // size of the intermediate texture we are rendering to
     std::vector<glm::vec4> texture_; // output 4D texture data

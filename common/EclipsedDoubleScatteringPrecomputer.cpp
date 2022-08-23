@@ -142,7 +142,6 @@ EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
     , texSizeByViewAzimuth(texSizeByViewAzimuth)
     , texSizeByViewElevation(texSizeByViewElevation)
     , texSizeBySZA(texSizeBySZA)
-    , texSizeByAltitude(texSizeByAltitude)
     , texW(atmo.eclipseAngularIntegrationPoints)
     , texH(atmo.radialIntegrationPoints)
     , texture_(texSizeByViewAzimuth*texSizeByViewElevation*texSizeBySZA*texSizeByAltitude)
