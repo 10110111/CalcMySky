@@ -77,7 +77,7 @@ for:
   build_script:
     - cmake --build .
   test_script:
-    - ctest
+    - ctest || { cat Testing/Temporary/LastTest.log; false; }
   after_build:
     - cmake --build . --target install
     - tar cvjf CalcMySky-bin.tar.bz2 -C install CalcMySky
@@ -97,7 +97,7 @@ for:
   build_script:
     - cmake --build .
   test_script:
-    - ctest
+    - ctest || { cat Testing/Temporary/LastTest.log; false; }
   after_build:
     - cmake --build . --target install
     - tar cvjf CalcMySky-bin.tar.bz2 -C install CalcMySky
