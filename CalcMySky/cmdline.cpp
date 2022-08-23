@@ -17,6 +17,7 @@
 
 #include "data.hpp"
 #include "util.hpp"
+#include "../ShowMySky/api/AtmosphereRenderer.hpp"
 
 namespace
 {
@@ -210,6 +211,9 @@ void handleCmdLine()
     if(parser.isSet(versionOpt))
     {
         std::cout << qApp->applicationName() << ' ' << qApp->applicationVersion() << '\n';
+        std::cout << "Compiled against Qt " << QT_VERSION_MAJOR << "." << QT_VERSION_MINOR << "." << QT_VERSION_PATCH << "\n";
+        std::cout << "ABI version: " << ShowMySky_ABI_version << "\n";
+        std::cout << "Atmosphere description format version: " << AtmosphereParameters::FORMAT_VERSION << "\n";
         throw MustQuit{0};
     }
     if(parser.isSet(textureOutputDirOpt))
