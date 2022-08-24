@@ -2,8 +2,14 @@ version: "{build}"
 
 environment:
   matrix:
-    - BUILD_NAME: macOS amd64
+    - BUILD_NAME: macOS amd64 Qt5
       APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+      QT_BASEDIR: /Users/appveyor/Qt/5.15/clang_64
+      QT_VERSION_MAJOR: 5
+    - BUILD_NAME: macOS amd64 Qt6
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+      QT_BASEDIR: /Users/appveyor/Qt/6.2/macos
+      QT_VERSION_MAJOR: 6
     - BUILD_NAME: Win64
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       CMAKE_GENERATOR: Visual Studio 16 2019
@@ -100,9 +106,8 @@ for:
     - brew install glm eigen
   before_build:
     - cd ~/projects/ && mkdir build && cd build
-    - export qtPath=$HOME/Qt/6.2/macos
-    - export PATH=$qtPath/bin:$PATH
-    - cmake ../calcmysky -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" -DQT_VERSION=6 -DCMAKE_PREFIX_PATH="$(echo /usr/local/Cellar/eigen/*/share/eigen3/cmake);$qtPath/lib/cmake/Qt6" -DCMAKE_CXX_FLAGS="-I$(echo /usr/local/Cellar/glm/*/include) -Wno-string-plus-int"
+    - export PATH=$QT_BASEDIR/bin:$PATH
+    - cmake ../calcmysky -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" -DQT_VERSION=$QT_VERSION_MAJOR -DCMAKE_PREFIX_PATH="$(echo /usr/local/Cellar/eigen/*/share/eigen3/cmake)" -DCMAKE_CXX_FLAGS="-I$(echo /usr/local/Cellar/glm/*/include) -Wno-string-plus-int"
   build_script:
     - cmake --build .
   test_script:
