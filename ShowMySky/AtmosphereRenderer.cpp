@@ -1964,6 +1964,16 @@ auto AtmosphereRenderer::stepPreparationToDraw() -> LoadingStatus
     if(state_ != State::ReloadingTextures)
         return {0, -1};
 
+    const auto altCoord=altitudeUnitRangeTexCoord();
+    if(altCoord != altCoordToLoad_)
+    {
+        std::cerr << "While we were reloading textures, the requested altitude changed again "
+                     "(loaded coordinate: " << altCoordToLoad_ << ", requested: " << altCoord
+                  << "). Restarting the reloading process\n";
+        finalizeLoading();
+        initPreparationToDraw();
+    }
+
     currentLoadingIterationStepCounter_=0;
     reloadScatteringTextures(CountStepsOnly{false});
 
