@@ -1948,7 +1948,7 @@ int AtmosphereRenderer::initPreparationToDraw()
 
         altCoordToLoad_ = altCoord;
         state_ = State::ReloadingTextures;
-        currentActivity_=QObject::tr("Reloading textures due to altitude getting out of the currently loaded layers...");
+        currentActivity_=QObject::tr("Reloading textures due to altitude change...");
         loadingStepsDone_=0;
         totalLoadingStepsToDo_=0;
         reloadScatteringTextures(CountStepsOnly{true});
