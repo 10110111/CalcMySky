@@ -95,8 +95,8 @@ for:
     - ctest || { cat Testing/Temporary/LastTest.log; false; }
   after_build:
     - cmake --build . --target install
-    - tar cvJf CalcMySky-linux-amd64.tar.xz -C install CalcMySky
-    - appveyor PushArtifact CalcMySky-linux-amd64.tar.xz
+    - tar cvJf CalcMySky-linux-amd64-qt$QT_VERSION_MAJOR.tar.xz -C install CalcMySky
+    - appveyor PushArtifact CalcMySky-linux-amd64-qt$QT_VERSION_MAJOR.tar.xz
 
 -
   matrix:
@@ -114,5 +114,5 @@ for:
     - ctest || { cat Testing/Temporary/LastTest.log; false; }
   after_build:
     - cmake --build . --target install
-    - tar cvJf CalcMySky-macos-amd64.tar.xz -C install CalcMySky
-    - appveyor PushArtifact CalcMySky-macos-amd64.tar.xz
+    - tar cvJf CalcMySky-macos-amd64-qt$QT_VERSION_MAJOR.tar.xz -C install CalcMySky
+    - appveyor PushArtifact CalcMySky-macos-amd64-qt$QT_VERSION_MAJOR.tar.xz
