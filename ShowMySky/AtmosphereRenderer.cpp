@@ -103,16 +103,14 @@ void AtmosphereRenderer::loadEclipsedDoubleScatteringTexture(QString const& path
 
     std::vector<glm::vec4> data(numPointsPerSet*texSizeBySZA*2);
 
+    const auto sliceByteSize = numPointsPerSet*sizeof data[0];
+    const auto fileReadOffset = uint64_t(sliceByteSize)*texSizeBySZA*floorAltIndex;
+    const qint64 absoluteOffset=file.pos()+fileReadOffset;
+    log << "skipping to offset " << absoluteOffset << "... ";
+    if(!file.seek(absoluteOffset))
     {
-        const auto sliceByteSize = numPointsPerSet*sizeof data[0];
-        const auto readOffset = uint64_t(sliceByteSize)*texSizeBySZA*floorAltIndex;
-        const qint64 offset=file.pos()+readOffset;
-        log << "skipping to offset " << offset << "... ";
-        if(!file.seek(offset))
-        {
-            throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
-                .arg(offset).arg(path).arg(file.errorString())};
-        }
+        throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
+            .arg(absoluteOffset).arg(path).arg(file.errorString())};
     }
 
     const qint64 sizeToRead = data.size()*sizeof data[0];
@@ -211,21 +209,20 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     const qint64 sizeToRead = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
 
     const std::unique_ptr<char[]> data(new char[sizeToRead]);
+
+    const qint64 absoluteOffset=file.pos()+readOffset;
+    log << "skipping to offset " << absoluteOffset << "... ";
+    if(!file.seek(absoluteOffset))
     {
-        const qint64 offset=file.pos()+readOffset;
-        log << "skipping to offset " << offset << "... ";
-        if(!file.seek(offset))
-        {
-            throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
-                                .arg(offset).arg(path).arg(file.errorString())};
-        }
-        const auto actuallyRead=file.read(data.get(), sizeToRead);
-        if(actuallyRead != sizeToRead)
-        {
-            const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
-                                                : QObject::tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
-            throw DataLoadError{error};
-        }
+        throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
+                            .arg(absoluteOffset).arg(path).arg(file.errorString())};
+    }
+    const auto actuallyRead=file.read(data.get(), sizeToRead);
+    if(actuallyRead != sizeToRead)
+    {
+        const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
+                                            : QObject::tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
+        throw DataLoadError{error};
     }
 
     const auto altSliceSize = size_t(sizes[0])*sizes[1]*sizes[2];
