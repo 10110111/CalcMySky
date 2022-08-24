@@ -2,10 +2,16 @@ version: "{build}"
 
 environment:
   matrix:
-    - BUILD_NAME: Win64
+    - BUILD_NAME: Win64 Qt5
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       CMAKE_GENERATOR: Visual Studio 16 2019
       QT_BASEDIR: C:/Qt/5.9/msvc2017_64
+      QT_VERSION_MAJOR: 5
+    - BUILD_NAME: Win64 Qt6
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      CMAKE_GENERATOR: Visual Studio 16 2019
+      QT_BASEDIR: C:/Qt/6.3/msvc2019_64
+      QT_VERSION_MAJOR: 6
     - BUILD_NAME: Ubuntu amd64 Qt5
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
       QT_BASEDIR: /home/appveyor/Qt/5.15/gcc_64
@@ -55,7 +61,8 @@ for:
 
   before_build:
     - cd C:/projects && mkdir build && mkdir install && cd build
-    - cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="%QT_BASEDIR%/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky
+    - set PATH=%PATH%;%QT_BASEDIR%\bin
+    - cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR%
 
   build_script:
       - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
@@ -66,17 +73,17 @@ for:
 
   after_build:
     - if Release == %configuration%  cmake --build . --config %configuration% --target install
-    - if Release == %configuration%  7z a CalcMySky-windows64.zip ../install/CalcMySky
-    - if Release == %configuration%  7z l CalcMySky-windows64.zip
+    - if Release == %configuration%  7z a CalcMySky-windows64-qt%QT_VERSION_MAJOR%.zip ../install/CalcMySky
+    - if Release == %configuration%  7z l CalcMySky-windows64-qt%QT_VERSION_MAJOR%.zip
 
     - if  Debug  == %configuration%  cmake --build . --config %configuration% --target install
     - if  Debug  == %configuration%  for %%F in (msvcp140d vcruntime140d) do copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\debug_nonredist\x64\Microsoft.VC140.DebugCRT\%%F.dll" CalcMySky
     - if  Debug  == %configuration%  copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.25.28508\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll" CalcMySky
     - if  Debug  == %configuration%  copy "C:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll" CalcMySky
     - if  Debug  == %configuration%  cp -v \"/c/Program Files (x86)/Windows Kits/10/bin/x64/ucrt/ucrtbased.dll\" CalcMySky
-    - if  Debug  == %configuration%  7z a CalcMySky-windows64.zip CalcMySky
+    - if  Debug  == %configuration%  7z a CalcMySky-windows64-qt%QT_VERSION_MAJOR%.zip CalcMySky
 
-    - appveyor PushArtifact CalcMySky-windows64.zip
+    - appveyor PushArtifact CalcMySky-windows64-qt%QT_VERSION_MAJOR%.zip
 
 -
   matrix:
