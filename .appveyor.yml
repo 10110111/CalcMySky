@@ -2,11 +2,14 @@ version: "{build}"
 
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    - BUILD_NAME: macOS amd64
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - BUILD_NAME: Win64
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       CMAKE_GENERATOR: Visual Studio 16 2019
       QT_BASEDIR: C:/Qt/5.9/msvc2017_64
-    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    - BUILD_NAME: Ubuntu amd64
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 configuration:
   - Release
