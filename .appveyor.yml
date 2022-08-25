@@ -73,17 +73,24 @@ for:
 
   after_build:
     - if Release == %configuration%  cmake --build . --config %configuration% --target install
-    - if Release == %configuration%  7z a CalcMySky-windows64-qt%QT_VERSION_MAJOR%.zip ../install/CalcMySky
-    - if Release == %configuration%  7z l CalcMySky-windows64-qt%QT_VERSION_MAJOR%.zip
+    - if Release == %configuration%  bash -c "sed -n 's@.* PROJECT_VERSION *= *\"\(.*\)\".*@\1@p' version.cpp > versionVar"
+    - if Release == %configuration%  set /p projectVersion=<versionVar
+    - if Release == %configuration%  set platform=win64-qt%QT_VERSION_MAJOR%
+    - if Release == %configuration%  set tarballBaseName=CalcMySky-%projectVersion%-%platform%
+    - if Release == %configuration%  echo %tarballBaseName%
+    - if Release == %configuration%  bash -c "mv -v ../install/CalcMySky ../install/$tarballBaseName"
+    - if Release == %configuration%  7z a CalcMySky-%projectVersion%-%platform%.zip ../install/CalcMySky-%projectVersion%-%platform%
+    - if Release == %configuration%  7z l CalcMySky-%projectVersion%-%platform%.zip
+    - if Release == %configuration%  appveyor PushArtifact CalcMySky-%projectVersion%-%platform%.zip
 
     - if  Debug  == %configuration%  cmake --build . --config %configuration% --target install
     - if  Debug  == %configuration%  for %%F in (msvcp140d vcruntime140d) do copy "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\debug_nonredist\x64\Microsoft.VC140.DebugCRT\%%F.dll" CalcMySky
     - if  Debug  == %configuration%  copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.25.28508\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll" CalcMySky
     - if  Debug  == %configuration%  copy "C:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll" CalcMySky
     - if  Debug  == %configuration%  cp -v \"/c/Program Files (x86)/Windows Kits/10/bin/x64/ucrt/ucrtbased.dll\" CalcMySky
-    - if  Debug  == %configuration%  7z a CalcMySky-windows64-qt%QT_VERSION_MAJOR%.zip CalcMySky
-
-    - appveyor PushArtifact CalcMySky-windows64-qt%QT_VERSION_MAJOR%.zip
+    - if  Debug  == %configuration%  7z a CalcMySky-win64-qt%QT_VERSION_MAJOR%.zip CalcMySky
+    - if  Debug  == %configuration%  7z l CalcMySky-win64-qt%QT_VERSION_MAJOR%.zip
+    - if  Debug  == %configuration%  appveyor PushArtifact CalcMySky-win64-qt%QT_VERSION_MAJOR%.zip
 
 -
   matrix:
