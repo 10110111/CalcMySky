@@ -33,6 +33,9 @@ calcmysky [OPTION]... atmosphere-description.atmo --out-dir /path/to/output/dir
 <a name="no-eds-tex-option"> `--no-eds-tex` </a>
 <ul style="list-style-type: none;"><li> Don't compute/save eclipsed double scattering textures. The model generated with this option will only be able to render eclipsed atmosphere's double scattering radiance on the fly. </li></ul>
 
+ `--texture-save-precision <bits>`
+<ul style="list-style-type: none;"><li> Reduce precision of the 3D textures to the given number of bits. Valid values are from 1 to 24, the latter meaning full precision. The reduction of precision is achieved by zeroing out the least significant bits of the significand. This lets one improve compressibility of the textures at the expense of fidelity of output. </li></ul>
+
 ### Debugging options
 
 These options are not useful for a normal user, they are used by developers.
