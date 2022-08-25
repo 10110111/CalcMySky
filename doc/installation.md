@@ -44,7 +44,7 @@ In the terminal `cd` into the directory with `CalcMySky` unarchived, and run the
 ```
 mkdir build install
 cd build
-cmake -G "Visual Studio 16 2019" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="C:/Qt/5.9/msvc2017_64/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky
+cmake -G "Visual Studio 16 2019" -DCMAKE_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="C:/Qt/5.9/msvc2017_64/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky
 cmake --build . --config Release
 cmake --build . --config Release --target install
 cp -rv ../CalcMySky/examples ../install/CalcMySky
