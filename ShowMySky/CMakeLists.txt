@@ -7,13 +7,9 @@ add_library(ShowMySky SHARED
              api/AtmosphereRenderer.cpp
              AtmosphereRenderer.cpp
              util.cpp
-             ../common/EclipsedDoubleScatteringPrecomputer.cpp
-             ../common/AtmosphereParameters.cpp
-             ../common/Spectrum.cpp
-             ../common/util.cpp
              "${CMAKE_BINARY_DIR}/config.h")
 target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
-target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version)
+target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version common)
 
 set(showmyskyTarget showmysky-cmd)
 
@@ -33,9 +29,8 @@ add_executable(${showmyskyTarget}
                 Manipulator.cpp
                 RadiancePlot.cpp
                 DockScrollArea.cpp
-                ../common/Spectrum.cpp
               )
-target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::Widgets Qt${QT_VERSION}::OpenGL PRIVATE version)
+target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::Widgets Qt${QT_VERSION}::OpenGL PRIVATE version common)
 if(${QT_VERSION} STREQUAL 6)
     target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::OpenGLWidgets)
 endif()

@@ -5,12 +5,8 @@ add_executable(calcmysky
                 cmdline.cpp
                 shaders.cpp
                 interpolation-guides.cpp
-                ../common/Spectrum.cpp
-                ../common/AtmosphereParameters.cpp
-                ../common/EclipsedDoubleScatteringPrecomputer.cpp
-                ../common/util.cpp
                 "${CMAKE_BINARY_DIR}/config.h")
 target_compile_definitions(calcmysky PRIVATE -DSHOWMYSKY_COMPILING_CALCMYSKY)
-target_link_libraries(calcmysky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE version)
+target_link_libraries(calcmysky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE version common)
 
 install(TARGETS calcmysky DESTINATION "${installBinDir}")

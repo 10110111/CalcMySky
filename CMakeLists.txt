@@ -74,6 +74,12 @@ add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/version.cpp"
                    DEPENDS "${CMAKE_BINARY_DIR}/check version update"
                    COMMAND "${CMAKE_SOURCE_DIR}/version.sh" "${staticProjectVersion}" "${CMAKE_SOURCE_DIR}/version.cpp.in" "${CMAKE_BINARY_DIR}/version.cpp")
 add_library(version STATIC "${CMAKE_BINARY_DIR}/version.cpp")
+add_library(common STATIC
+             common/EclipsedDoubleScatteringPrecomputer.cpp
+             common/AtmosphereParameters.cpp
+             common/Spectrum.cpp
+             common/util.cpp)
+target_link_libraries(common PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets)
 
 configure_file(config.h.in config.h)
 add_subdirectory(CalcMySky)
