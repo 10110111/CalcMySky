@@ -102,8 +102,12 @@ for:
     - ctest || { cat Testing/Temporary/LastTest.log; false; }
   after_build:
     - cmake --build . --target install
-    - tar cvJf CalcMySky-linux-amd64-qt$QT_VERSION_MAJOR.tar.xz -C install CalcMySky
-    - appveyor PushArtifact CalcMySky-linux-amd64-qt$QT_VERSION_MAJOR.tar.xz
+    - projectVersion=$(sed -n 's@.* PROJECT_VERSION *= *"\([^"]\+\)" *;@\1@p' version.cpp)
+    - platform=linux-amd64-qt$QT_VERSION_MAJOR
+    - tarballBaseName="CalcMySky-$projectVersion-$platform"
+    - mv -v install/CalcMySky "install/$tarballBaseName"
+    - tar cvJf "$tarballBaseName.tar.xz" -C install "$tarballBaseName"
+    - appveyor PushArtifact "$tarballBaseName.tar.xz"
 
 -
   matrix:
