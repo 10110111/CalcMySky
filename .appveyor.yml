@@ -61,7 +61,7 @@ for:
 
   before_build:
     - cd C:/projects && mkdir build && mkdir install && cd build
-    - set PATH=%PATH%;%QT_BASEDIR%\bin
+    - set PATH=%QT_BASEDIR%\bin;%PATH%
     - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR%
 
   build_script:
