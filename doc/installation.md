@@ -13,13 +13,13 @@ On Fedora 35 the command is
 sudo dnf install cmake gcc-c++ eigen3-devel glm-devel qt5-qttools-devel
 ```
 
-To fetch and build CalcMySky, in a terminal issue the following commands, changing the number in `-DQT_VERSION=6` option to 5 if you're using Qt5:
+To fetch and build CalcMySky, in a terminal issue the following commands, changing the number in `-DQT_VERSION=5` option to 6 if you're using Qt6:
 ```
 git clone https://github.com/10110111/CalcMySky
 cd CalcMySky
 mkdir build
 cd build
-cmake .. -DQT_VERSION=6
+cmake .. -DQT_VERSION=5
 make
 ```
 
