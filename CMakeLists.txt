@@ -45,6 +45,7 @@ if(WIN32)
     set(installLibDir "${installBinDir}")
     set(installConfDir "${CMAKE_PROJECT_NAME}/lib")
     set(installIncDir "${CMAKE_PROJECT_NAME}/include")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs")
 
     # Deploy Qt
     foreach(lib Core Widgets Gui)
