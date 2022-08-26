@@ -48,7 +48,12 @@ if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs")
 
     # Deploy Qt
-    foreach(lib Core Widgets Gui)
+    if(${QT_VERSION} STREQUAL 6)
+        set(libsToInstall Core;Widgets;Gui;OpenGL;OpenGLWidgets)
+    else()
+        set(libsToInstall Core;Widgets;Gui)
+    endif()
+    foreach(lib ${libsToInstall})
         install(FILES "$<TARGET_FILE:Qt${QT_VERSION}::${lib}>" DESTINATION "${installBinDir}")
     endforeach()
     install(FILES "${Qt${QT_VERSION}Core_DIR}/../../../plugins/platforms/qwindows$<$<CONFIG:Debug>:d>.dll" DESTINATION "${installBinDir}/platforms")
