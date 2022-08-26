@@ -65,11 +65,11 @@ for:
     - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR%
 
   build_script:
-      - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+    - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
   test_script:
-      - set PATH=%PATH%;%QT_BASEDIR%\bin
-      - ctest -C %configuration%
+    - set PATH=%PATH%;%QT_BASEDIR%\bin
+    - ctest -C %configuration%
 
   after_build:
     - if Release == %configuration%  cmake --build . --config %configuration% --target install
