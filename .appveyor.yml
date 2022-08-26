@@ -23,7 +23,7 @@ environment:
       BITS: 64
     - BUILD_NAME: Ubuntu amd64 Qt5
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-      QT_BASEDIR: /home/appveyor/Qt/5.15/gcc_64
+      QT_BASEDIR: /usr
       QT_VERSION_MAJOR: 5
     - BUILD_NAME: Ubuntu amd64 Qt6
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
@@ -108,7 +108,8 @@ for:
       - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
   install:
     - sudo apt-get update
-    - sudo apt-get install -y libeigen3-dev libglm-dev libgl1-mesa-dev
+    - if [[ $QT_VERSION_MAJOR = 5 ]]; then sudo apt-get install -y libeigen3-dev libglm-dev libqt5opengl5-dev; fi
+    - if [[ $QT_VERSION_MAJOR = 6 ]]; then sudo apt-get install -y libeigen3-dev libglm-dev libgl1-mesa-dev; fi
   before_build:
     - cd ~/projects/ && mkdir build && cd build
     - export PATH="$QT_BASEDIR/bin:$PATH"
