@@ -2,16 +2,25 @@ version: "{build}"
 
 environment:
   matrix:
-    - BUILD_NAME: Win64 Qt5
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      CMAKE_GENERATOR: Visual Studio 16 2019
-      QT_BASEDIR: C:/Qt/5.9/msvc2017_64
+    - BUILD_NAME: Win32 Qt5
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_GENERATOR: Visual Studio 15 2017
+      QT_BASEDIR: C:/Qt/5.12/msvc2017
       QT_VERSION_MAJOR: 5
+      BITS: 32
+    - BUILD_NAME: Win64 Qt5
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_GENERATOR: Visual Studio 15 2017
+      QT_BASEDIR: C:/Qt/5.12/msvc2017_64
+      QT_VERSION_MAJOR: 5
+      BITS: 64
+      CMAKE_ARGS: -A x64
     - BUILD_NAME: Win64 Qt6
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       CMAKE_GENERATOR: Visual Studio 16 2019
       QT_BASEDIR: C:/Qt/6.3/msvc2019_64
       QT_VERSION_MAJOR: 6
+      BITS: 64
     - BUILD_NAME: Ubuntu amd64 Qt5
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
       QT_BASEDIR: /home/appveyor/Qt/5.15/gcc_64
@@ -38,6 +47,7 @@ for:
   matrix:
     only:
       - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   install:
   # Make sure we get the bash that comes with git, not WSL bash
     - ps: $env:Path = "C:\msys64\bin;C:\Program Files\Git\bin;$env:Path"
@@ -62,7 +72,7 @@ for:
   before_build:
     - cd C:/projects && mkdir build && mkdir install && cd build
     - set PATH=%QT_BASEDIR%\bin;%PATH%
-    - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR%
+    - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR% %CMAKE_ARGS%
 
   build_script:
     - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
@@ -75,7 +85,7 @@ for:
     - if Release == %configuration%  cmake --build . --config %configuration% --target install
     - if Release == %configuration%  bash -c "sed -n 's@.* PROJECT_VERSION *= *\"\(.*\)\".*@\1@p' version.cpp > versionVar"
     - if Release == %configuration%  set /p projectVersion=<versionVar
-    - if Release == %configuration%  set platform=win64-qt%QT_VERSION_MAJOR%
+    - if Release == %configuration%  set platform=win%BITS%-qt%QT_VERSION_MAJOR%
     - if Release == %configuration%  set tarballBaseName=CalcMySky-%projectVersion%-%platform%
     - if Release == %configuration%  echo %tarballBaseName%
     - if Release == %configuration%  bash -c "mv -v ../install/CalcMySky ../install/$tarballBaseName"
@@ -88,9 +98,9 @@ for:
     - if  Debug  == %configuration%  copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.25.28508\debug_nonredist\x64\Microsoft.VC142.DebugCRT\vcruntime140_1d.dll" CalcMySky
     - if  Debug  == %configuration%  copy "C:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll" CalcMySky
     - if  Debug  == %configuration%  cp -v \"/c/Program Files (x86)/Windows Kits/10/bin/x64/ucrt/ucrtbased.dll\" CalcMySky
-    - if  Debug  == %configuration%  7z a CalcMySky-win64-qt%QT_VERSION_MAJOR%.zip CalcMySky
-    - if  Debug  == %configuration%  7z l CalcMySky-win64-qt%QT_VERSION_MAJOR%.zip
-    - if  Debug  == %configuration%  appveyor PushArtifact CalcMySky-win64-qt%QT_VERSION_MAJOR%.zip
+    - if  Debug  == %configuration%  7z a CalcMySky-win%BITS%-qt%QT_VERSION_MAJOR%.zip CalcMySky
+    - if  Debug  == %configuration%  7z l CalcMySky-win%BITS%-qt%QT_VERSION_MAJOR%.zip
+    - if  Debug  == %configuration%  appveyor PushArtifact CalcMySky-win%BITS%-qt%QT_VERSION_MAJOR%.zip
 
 -
   matrix:
