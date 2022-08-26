@@ -28,7 +28,7 @@ if(NOT DEFINED QT_VERSION)
 endif()
 
 if("${QT_VERSION}" STREQUAL 5)
-    find_package(Qt5 5.9 REQUIRED Core OpenGL)
+    find_package(Qt5 5.12 REQUIRED Core OpenGL)
 elseif("${QT_VERSION}" STREQUAL 6)
     find_package(Qt6 6.0 REQUIRED Core OpenGL Widgets OpenGLWidgets)
 else()
