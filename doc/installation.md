@@ -55,26 +55,28 @@ The output of these commands is the `install/CalcMySky` directory in the source 
 
 ## <a name="macos">macOS</a>
 
-<span style="background-color: orange;">WARNING</span>: these instructions haven't been tested. The actual Windows builds were done via AppVeyor, using `.appveyor.yml` script in the root of the `CalcMySky` source tree.
-
-The following instructions assume that the required packages are installed as follows:
-
- * [CMake](https://cmake.org/) in such a way that its `cmake` executable is accesible via the `$PATH` environment variable
- * [Qt5 or Qt6](https://download.qt.io/archive/qt/) in `$qtPath` (there should exist `$qtPath/bin` directory) — available in HomeBrew
- * [GLM](https://github.com/g-truc/glm) in `$glmPath` (there should exist `$glmPath/include` directory) — available in HomeBrew
- * [Eigen3](https://eigen.tuxfamily.org) in `$eigenPath` (there should exist `$eigenPath/share/eigen3/cmake` directory) — available in HomeBrew
-
-In the terminal `cd` into the directory with `CalcMySky` unarchived, and run the following commands, changing the number in `-DQT_VERSION=6` option to 5 if you're using Qt5:
+Several packages are required to build CalcMySky. They can be installed using HomeBrew by the following command:
 ```
-cd ~/projects/ && mkdir build && cd build
+brew install cmake qt@6 glm eigen
+```
+
+To fetch and build CalcMySky, in a terminal issue the following commands, changing the number in `qtVer=6` option to 5 if you're using Qt5:
+```
+git clone https://github.com/10110111/CalcMySky
+mkdir build && cd build
+qtVer=6
+qtPath=/usr/local/Cellar/qt/$qtVer.*
 export PATH=$qtPath/bin:$PATH
-cmake ../calcmysky -DCMAKE_BUILD_TYPE=Release \
+cmake ../CalcMySky -DCMAKE_BUILD_TYPE=Release \
                    -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" \
-                   -DQT_VERSION=6 \
-                   -DCMAKE_PREFIX_PATH="$eigenPath/share/eigen3/cmake" \
-                   -DCMAKE_CXX_FLAGS="-I$glmPath/include"
+                   -DQT_VERSION=$qtVer \
+                   -DCMAKE_PREFIX_PATH="$(echo /usr/local/Cellar/eigen/*/share/eigen3/cmake)" \
+                   -DCMAKE_CXX_FLAGS="-I$(echo /usr/local/Cellar/glm/*/include)"
 cmake --build .
+```
+
+To install, issue
+```
 cmake --build . --target install
 ```
-
-The output of these commands is the `install/CalcMySky` directory in the source tree.
+This will install into the path specified by `-DCMAKE_INSTALL_PREFIX=...` option above.
