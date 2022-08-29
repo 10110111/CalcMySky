@@ -900,7 +900,7 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
 {
     const auto program=saveEclipsedDoubleScatteringComputationShader(texIndex);
 
-    if(opts.dbgNoEDSTextures) return;
+    if(opts.dbgNoEDSTextures || opts.dbgNoSaveTextures) return;
 
     std::cerr << indentOutput() << "Computing eclipsed double scattering... ";
     const auto time0=std::chrono::steady_clock::now();
