@@ -228,10 +228,10 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     const auto altSliceSize = size_t(sizes[0])*sizes[1]*sizes[2];
     if(texType == Texture4DType::InterpolationGuides)
     {
-        std::unique_ptr<uint16_t[]> texData(new uint16_t[altSliceSize]);
+        std::unique_ptr<int16_t[]> texData(new int16_t[altSliceSize]);
         for(size_t n = 0; n < altSliceSize; ++n)
         {
-            uint16_t lower, upper;
+            int16_t lower, upper;
             assert(sizeof lower == pixelSize);
             std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
             std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
