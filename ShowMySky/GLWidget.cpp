@@ -681,9 +681,53 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
     {
     case DragMode::Sun:
     {
+        const auto mouseDeltaX = pos.x() - prevMouseX_;
+        const auto mouseDeltaY = prevMouseY_ - pos.y();
         const auto oldZA=tools->sunZenithAngle(), oldAz=tools->sunAzimuth();
-        tools->setSunZenithAngle(std::clamp(oldZA - (prevMouseY_-pos.y())*M_PI/height()/tools->zoomFactor(), 0., M_PI));
-        tools->setSunAzimuth(std::remainder(oldAz - (prevMouseX_-pos.x())*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
+        switch(currentProjection())
+        {
+        case Projection::Equirectangular:
+            tools->setSunZenithAngle(std::clamp(oldZA - mouseDeltaY*M_PI/height()/tools->zoomFactor(), 0., M_PI));
+            tools->setSunAzimuth(std::remainder(oldAz + mouseDeltaX*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
+            break;
+        case Projection::Perspective:
+        {
+            const auto scaleX = 0.35;
+            const auto scaleY = 0.75 * height() / width();
+            tools->setSunZenithAngle(std::clamp(oldZA - scaleY*mouseDeltaY*M_PI/height()/tools->zoomFactor(), 0., M_PI));
+            tools->setSunAzimuth(std::remainder(oldAz + scaleX*mouseDeltaX*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
+            break;
+        }
+        case Projection::Fisheye:
+        {
+            const auto sunDir = glm::dvec3(std::cos(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                                           std::sin(tools->sunAzimuth())*std::sin(tools->sunZenithAngle()),
+                                           std::cos(tools->sunZenithAngle()));
+            const auto camYaw=glm::rotate(double(tools->cameraYaw()), glm::dvec3(0,0,1));
+            const auto camPitch=glm::rotate(double(tools->cameraPitch()), glm::dvec3(0,-1,0));
+            const auto cameraRotation = glm::dmat3(camYaw*camPitch);
+            const auto invCamTimesSunDir = transpose(cameraRotation)*sunDir;
+            const auto r = std::acos(std::clamp(invCamTimesSunDir.z, -1., 1.)) * tools->zoomFactor() / M_PI;
+            const auto phi = std::atan2(-invCamTimesSunDir.x, invCamTimesSunDir.y);
+            const auto ndcSunX = r*std::cos(phi);
+            const auto ndcSunY = r*std::sin(phi);
+
+            const auto ndcNewSunX = ndcSunX + mouseDeltaX/(width()/2.);
+            const auto ndcNewSunY = ndcSunY + mouseDeltaY/(height()/2.);
+
+            const auto newR = std::hypot(ndcNewSunX, ndcNewSunY);
+            const auto sinc = newR==0 ? M_PI / tools->zoomFactor() : std::sin(newR * M_PI / tools->zoomFactor()) / newR;
+            const auto newSunDir = glm::dvec3(-ndcNewSunY * sinc, ndcNewSunX * sinc, std::cos(newR * M_PI / tools->zoomFactor()));
+
+            const auto unrotatedNewSunDir = cameraRotation * newSunDir;
+            const auto newSunZenithAngle = std::acos(std::clamp(unrotatedNewSunDir.z, -1., 1.));
+            const auto newSunAzimuth = std::atan2(unrotatedNewSunDir.y, unrotatedNewSunDir.x);
+
+            tools->setSunZenithAngle(newSunZenithAngle);
+            tools->setSunAzimuth(newSunAzimuth);
+            break;
+        }
+        }
         break;
     }
     case DragMode::Camera:
