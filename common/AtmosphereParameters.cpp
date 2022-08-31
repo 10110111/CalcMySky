@@ -311,10 +311,11 @@ std::vector<glm::vec4> getWavelengthRange(QString const& line, const GLfloat min
     return values;
 }
 
-AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString const& name, const bool forceGeneralPhaseFunction,
+AtmosphereParameters::Scatterer parseScatterer(AtmosphereParameters const& atmo, const AtmosphereParameters::SkipSpectra skipSpectrum,
+                                               QTextStream& stream, QString const& name, const bool forceGeneralPhaseFunction,
                                                QString const& filename, int& lineNumber)
 {
-    AtmosphereParameters::Scatterer description(name);
+    AtmosphereParameters::Scatterer description(name, atmo);
     bool begun=false;
     for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
     {
@@ -359,7 +360,10 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
         if(forceGeneralPhaseFunction)
             description.phaseFunctionType=PhaseFunctionType::General;
     }
-    if(!description.valid())
+
+    description.finalizeLoading();
+
+    if(!description.valid(skipSpectrum))
     {
         throw ParsingError{filename,lineNumber,QString("Description of scatterer \"%1\" is incomplete").arg(name)};
     }
@@ -556,7 +560,8 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             {
                 throw ParsingError{atmoDescrFileName,lineNumber, QString("duplicate scatterer \"%1\"").arg(name)};
             }
-            scatterers.emplace_back(parseScatterer(stream, name, allTexturesAreRadiance, atmoDescrFileName,++lineNumber));
+            scatterers.emplace_back(parseScatterer(*this, skipSpectra, stream, name, allTexturesAreRadiance,
+                                                   atmoDescrFileName,++lineNumber));
         }
         else if(const auto match=QRegularExpression("^absorber \"([^\"]+)\"$").match(key); match.hasMatch())
         {

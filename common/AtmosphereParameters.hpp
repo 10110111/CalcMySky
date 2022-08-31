@@ -15,27 +15,45 @@ struct AtmosphereParameters
 
     struct Scatterer
     {
+        QString name;
+        AtmosphereParameters const& atmo;
+
         GLfloat scatteringCrossSectionAt1um = NAN;
         GLfloat angstromExponent = NAN;
+        std::vector<glm::vec4> scatteringCrossSection_;
         QString numberDensity;
         QString phaseFunction;
         PhaseFunctionType phaseFunctionType=PhaseFunctionType::General;
-        QString name;
         bool needsInterpolationGuides = false;
 
-        explicit Scatterer(QString const& name) : name(name) {}
-        bool valid() const
+        explicit Scatterer(QString const& name, AtmosphereParameters const& atmo)
+            : name(name)
+            , atmo(atmo)
+        {}
+        bool valid(const SkipSpectra spectrumSkipped) const
         {
-            return std::isfinite(scatteringCrossSectionAt1um) &&
-                   std::isfinite(angstromExponent) &&
+            return (spectrumSkipped || scatteringCrossSection_.size()==atmo.allWavelengths.size()) &&
                    !numberDensity.isEmpty() &&
                    !phaseFunction.isEmpty() &&
                    !name.isEmpty();
         }
+        void finalizeLoading()
+        {
+            if(!(scatteringCrossSection_.empty() && std::isfinite(scatteringCrossSectionAt1um) && std::isfinite(angstromExponent)))
+                return;
+
+            for(const auto wavelengths : atmo.allWavelengths)
+            {
+                constexpr float refWL=1000; // nm
+                const auto angstromFactor = pow(wavelengths/refWL, glm::vec4(-angstromExponent));
+                const auto wlSetCrossSection = scatteringCrossSectionAt1um * angstromFactor;
+                scatteringCrossSection_.push_back(wlSetCrossSection);
+            }
+        }
         glm::vec4 scatteringCrossSection(glm::vec4 const wavelengths) const
         {
-            constexpr float refWL=1000; // nm
-            return scatteringCrossSectionAt1um*pow(wavelengths/refWL, glm::vec4(-angstromExponent));
+            const auto i=atmo.wavelengthsIndex(wavelengths);
+            return scatteringCrossSection_[i];
         }
     };
     struct Absorber
