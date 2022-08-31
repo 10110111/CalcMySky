@@ -44,7 +44,7 @@ const int eclipseAngularIntegrationPoints=)" + toString(atmo.eclipseAngularInteg
 const int numTransmittanceIntegrationPoints=)" + toString(atmo.numTransmittanceIntegrationPoints) + R"(;
 )";
     for(auto const& scatterer : atmo.scatterers)
-        header += "const vec4 scatteringCrossSection_"+scatterer.name+"="+toString(scatterer.crossSection(wavelengths))+";\n";
+        header += "const vec4 scatteringCrossSection_"+scatterer.name+"="+toString(scatterer.scatteringCrossSection(wavelengths))+";\n";
     const auto wlI=atmo.wavelengthsIndex(wavelengths);
     header += "const vec4 groundAlbedo="+toString(atmo.groundAlbedo[wlI])+";\n";
     header += "const vec4 solarIrradianceAtTOA="+toString(atmo.solarIrradianceAtTOA[wlI])+";\n";
@@ -127,7 +127,7 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
     {
         opticalDepthFunctions += QString(opticalDepthFunctionTemplate).replace("##agentSpecies",scatterer.name).replace("agent##","scatterer");
         computeFunction += "        +opticalDepthToAtmosphereBorder_"+scatterer.name+
-                             "(altitude,cosZenithAngle,"+toString(scatterer.crossSection(wavelengths))+")\n";
+                             "(altitude,cosZenithAngle,"+toString(scatterer.scatteringCrossSection(wavelengths))+")\n";
     }
     for(auto const& absorber : atmo.absorbers)
     {

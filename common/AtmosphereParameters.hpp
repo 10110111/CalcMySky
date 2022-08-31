@@ -15,7 +15,7 @@ struct AtmosphereParameters
 
     struct Scatterer
     {
-        GLfloat crossSectionAt1um = NAN;
+        GLfloat scatteringCrossSectionAt1um = NAN;
         GLfloat angstromExponent = NAN;
         QString numberDensity;
         QString phaseFunction;
@@ -26,16 +26,16 @@ struct AtmosphereParameters
         explicit Scatterer(QString const& name) : name(name) {}
         bool valid() const
         {
-            return std::isfinite(crossSectionAt1um) &&
+            return std::isfinite(scatteringCrossSectionAt1um) &&
                    std::isfinite(angstromExponent) &&
                    !numberDensity.isEmpty() &&
                    !phaseFunction.isEmpty() &&
                    !name.isEmpty();
         }
-        glm::vec4 crossSection(glm::vec4 const wavelengths) const
+        glm::vec4 scatteringCrossSection(glm::vec4 const wavelengths) const
         {
             constexpr float refWL=1000; // nm
-            return crossSectionAt1um*pow(wavelengths/refWL, glm::vec4(-angstromExponent));
+            return scatteringCrossSectionAt1um*pow(wavelengths/refWL, glm::vec4(-angstromExponent));
         }
     };
     struct Absorber

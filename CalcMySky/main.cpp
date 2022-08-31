@@ -518,7 +518,7 @@ void computeSingleScattering(const unsigned texIndex, AtmosphereParameters::Scat
 
     const auto src=makeScattererDensityFunctionsSrc()+
                     "float scattererDensity(float alt) { return scattererNumberDensity_"+scatterer.name+"(alt); }\n"+
-                    "vec4 scatteringCrossSection() { return "+toString(scatterer.crossSection(atmo.allWavelengths[texIndex]))+"; }\n";
+                    "vec4 scatteringCrossSection() { return "+toString(scatterer.scatteringCrossSection(atmo.allWavelengths[texIndex]))+"; }\n";
     virtualSourceFiles[DENSITIES_SHADER_FILENAME]=src;
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";

@@ -346,7 +346,7 @@ AtmosphereParameters::Scatterer parseScatterer(QTextStream& stream, QString cons
         const auto value=keyValue[1].trimmed();
 
         if(key=="cross section at 1 um")
-            description.crossSectionAt1um=getQuantity(value,1e-35,1,AreaQuantity{},filename,lineNumber);
+            description.scatteringCrossSectionAt1um=getQuantity(value,1e-35,1,AreaQuantity{},filename,lineNumber);
         else if(key=="angstrom exponent")
             description.angstromExponent=getQuantity(value,-10,10,DimensionlessQuantity{},filename,lineNumber);
         else if(key=="number density")
