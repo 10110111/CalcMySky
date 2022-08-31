@@ -87,6 +87,9 @@ Spectrum Spectrum::parseFromCSV(QByteArray const& data, QString const& filename,
         lines.pop_back();
     for(int i=0; i<lines.size(); ++i, ++lineNumber)
     {
+        const auto trimmed = lines[i].trimmed();
+        if(trimmed.isEmpty() || trimmed.startsWith('#'))
+            continue;
         const auto keyval=lines[i].split(',');
         if(keyval.size()!=2)
             throw ParsingError{filename,lineNumber,QString("bad spectrum line: expected \"key,value\" pair, got \"%1\"").arg(lines[i].constData())};
