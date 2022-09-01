@@ -283,7 +283,7 @@ where \f$n\f$ is refractive index, \f$\lambda\f$ is the vacuum wavelength (taken
 
 #### <a name="angstrom-exponent">`angstrom exponent`</a>
 
-This entry defines the Angström exponent, which describes the power law dependence of the optical thickness of a medium on wavelength. For Rayleigh scattering its value is 4, while for clouds it is about zero.
+This entry defines the Ångström exponent, which describes the power law dependence of the optical thickness (extinction coefficient) of a medium on wavelength. For Rayleigh scattering its value is 4, while for clouds it is about zero.
 
 #### `needs interpolation guides`
 
