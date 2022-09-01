@@ -285,6 +285,10 @@ where \f$n\f$ is refractive index, \f$\lambda\f$ is the vacuum wavelength (taken
 
 This entry defines the Ångström exponent, which describes the power law dependence of the optical thickness (extinction coefficient) of a medium on wavelength. For Rayleigh scattering its value is 4, while for clouds it is about zero.
 
+#### `single scattering albedo`
+
+This entry is a [spectrum](#spectra). It defines single scattering albedo of current scatterer. Each point of this spectrum is a dimensionless value in the range from 0 to 1. If not specified, the default is albedo of 1 at each wavelength.
+
 #### `needs interpolation guides`
 
 This entry is a special token that's not a key: it isn't followed by a colon with a value.
