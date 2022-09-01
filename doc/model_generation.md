@@ -272,6 +272,15 @@ Depending on the properties of the scatterer, there may be some ways to optimize
 
 This entry is a [dimensionful](#dimensionful-quantities) quantity of area. It defines scattering cross section of the current scatterer at \f$1\,\mathrm{\mu m}\f$ wavelength. The values for other wavelengths are obtained using the [<code>angstrom exponent</code>](#angstrom-exponent) parameter.
 
+For gases Rayleigh scattering cross section can be found from refractive index using the following formula
+(see Landau, Lifshitz, "Electrodynamics of Continuous Media", equation \f$(120.4)\f$ for reference; we augment it with \f$h=\sigma N\f$ to get \f$\sigma\f$):
+
+\f{equation}{
+\sigma_{\text{sc}}=\frac{8\pi^3}3\frac{(n^2-1)^2}{\lambda^4}\left(\frac{k_{\text{B}}T}P\right)^2,
+\f}
+
+where \f$n\f$ is refractive index, \f$\lambda\f$ is the vacuum wavelength (taken as \f$1\,\mathrm{\mu m}\f$ for this entry), \f$k_{\text{B}}\f$ is the Boltzmann constant, and \f$T\f$ and \f$P\f$ are respectively temperature and pressure at which this refractive index was measured.
+
 #### <a name="angstrom-exponent">`angstrom exponent`</a>
 
 This entry defines the Angström exponent, which describes the power law dependence of the optical thickness of a medium on wavelength. For Rayleigh scattering its value is 4, while for clouds it is about zero.
