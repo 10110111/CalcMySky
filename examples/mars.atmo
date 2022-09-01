@@ -1,0 +1,94 @@
+version: 5
+
+transmittance texture size for VZA: 256
+transmittance texture size for altitude: 64
+
+irradiance texture size for SZA: 64
+irradiance texture size for altitude: 16
+
+scattering texture size for VZA: 128 # must be even
+scattering texture size for dot(view,sun): 16
+scattering texture size for SZA: 128
+scattering texture size for altitude: 64
+
+eclipsed scattering texture size for relative azimuth: 32
+eclipsed scattering texture size for VZA: 128
+
+eclipsed double scattering texture size for relative azimuth: 16
+eclipsed double scattering texture size for VZA: 128
+eclipsed double scattering texture size for SZA: 16
+eclipsed double scattering number of azimuth pairs to sample: 2
+eclipsed double scattering number of elevation pairs to sample: 10
+
+light pollution texture size for VZA: 128
+light pollution texture size for altitude: 64
+light pollution angular integration points: 200
+
+transmittance integration points: 500
+radial integration points: 50
+angular integration points: 512
+angular integration points for eclipse: 512
+scattering orders: 8
+
+Earth-Sun distance: 1.66621 AU # aphelion
+Earth-Moon distance: 23460 km
+Earth radius: 3389.5 km
+atmosphere height: 120 km
+
+wavelengths: min=360nm,max=830nm,count=16
+# Data for solar irradiance were taken from
+# https://www.nrel.gov/grid/solar-resource/assets/data/astmg173.zip
+# which is linked to at https://www.nrel.gov/grid/solar-resource/spectra-am1.5.html
+# and then adjusted by multiplying by squared ratio of Earth-Sun to Mars-Sun distances.
+# Values are in W/(m^2*nm).
+solar irradiance at TOA: 0.383,0.461,0.621,0.729,0.726,0.693,0.684,0.671,0.636,0.592,0.559,0.519,0.483,0.454,0.421,0.392
+ground albedo: file spectra/mars-arabia-geom-albedo.csv
+# This spectrum was taken from a measurement of a single HPS lamp and dividing the measured spectrum by its luminance.
+light pollution relative radiance: 0,0,4.3e-7,1.623e-6,2.15e-6,1.114e-6,3.858e-6,0.0000241,0.0000335,0.00001331,9.5e-6,4.304e-6,3.805e-6,4.315e-6,4.956e-6,0.00003008
+
+Scatterer "CO2":
+{
+    number density: # in m^-3
+    ```
+        // Data for density in kg/m^3 from Viking 1 taken from
+        // https://pds-atmospheres.nmsu.edu/data_and_services/atmospheres_data/MARS/mars_lander.html
+        // fitted and converted to number density assuming pure CO2 atmosphere.
+        if(altitude < 39652.4)
+            return 1.0744578e24*exp(-0.129/km * altitude);
+        else
+            return 2.2886392e23*exp(-0.09/km * altitude);
+    ```
+    phase function:
+    ```
+        return vec4(3./(16*PI)*(1+sqr(dotViewSun)));
+    ```
+    # computed from refractive index of CO2, see the formula at https://physics.stackexchange.com/a/652760/21441
+    cross section at 1 um: 0.0897172 fm^2
+    angstrom exponent: 4
+    phase function type: smooth
+}
+Scatterer "dust":
+{
+    number density: # in m^-3
+    ```
+        // Scale height from:
+        // Hoekzema, N., “The Dust Scale Height Of The Martian Atmosphere Around Pavonis Mons From Hrsc Stereo Images”, vol. 38, 2006
+        // The value is given in the abstract, I failed to get access to the article proper.
+        const float scaleHeight=10.8*km;
+        return 4.559e6*exp(-1/scaleHeight*altitude);
+    ```
+    # Asymmetry parameter, single scattering albedo, extinction efficiency were taken from Table 2 in:
+    # Ockert-Bell, M.E., Bell, J.F., I, II., Pollack, J.B., et al., "Absorption and Scattering Properties of the Martian Dust in the Solar Wavelengths", J. Geophys. Res. E, 1997, vol. 102, no. E4, pp. 9039–9050.
+    phase function:
+    ```
+        const vec4 g = 0.64 + 0.23*exp(-0.00002378121*sqr(wavelengths-310)); // a fit to data between 360 and 830 nm
+        const vec4 g2=g*g;
+        // the factor that turns Henyey-Greenstein phase function into Cornette-Shanks one
+        const vec4 cornetteShanksFactor = 1.5*(1+sqr(dotViewSun))/(2+g2);
+        return vec4(cornetteShanksFactor * (1-g2) / pow(1 + g2 - 2*g*dotViewSun, vec4(1.5)) / (4*PI));
+    ```
+    cross section at 1 um: 10.155 um^2 # assuming effective radius of 1 um and extinction efficiency from the reference above
+    angstrom exponent: -0.2 # a fit to data between 360 and 830 nm
+    single scattering albedo: file spectra/mars-dust-single-scattering-albedo.csv
+    phase function type: general
+}
