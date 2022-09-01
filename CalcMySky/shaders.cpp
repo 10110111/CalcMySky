@@ -127,7 +127,7 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
     {
         opticalDepthFunctions += QString(opticalDepthFunctionTemplate).replace("##agentSpecies",scatterer.name).replace("agent##","scatterer");
         computeFunction += "        +opticalDepthToAtmosphereBorder_"+scatterer.name+
-                             "(altitude,cosZenithAngle,"+toString(scatterer.scatteringCrossSection(wavelengths))+")\n";
+                             "(altitude,cosZenithAngle,"+toString(scatterer.extinctionCrossSection(wavelengths))+")\n";
     }
     for(auto const& absorber : atmo.absorbers)
     {

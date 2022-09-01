@@ -20,6 +20,8 @@ struct AtmosphereParameters
 
         GLfloat scatteringCrossSectionAt1um = NAN;
         GLfloat angstromExponent = NAN;
+        std::vector<glm::vec4> singleScatteringAlbedo;
+        std::vector<glm::vec4> extinctionCrossSection_;
         std::vector<glm::vec4> scatteringCrossSection_;
         QString numberDensity;
         QString phaseFunction;
@@ -33,27 +35,22 @@ struct AtmosphereParameters
         bool valid(const SkipSpectra spectrumSkipped) const
         {
             return (spectrumSkipped || scatteringCrossSection_.size()==atmo.allWavelengths.size()) &&
+                   (spectrumSkipped || extinctionCrossSection_.size()==atmo.allWavelengths.size()) &&
+                   (spectrumSkipped || singleScatteringAlbedo .size()==atmo.allWavelengths.size()) &&
                    !numberDensity.isEmpty() &&
                    !phaseFunction.isEmpty() &&
                    !name.isEmpty();
         }
-        void finalizeLoading()
-        {
-            if(!(scatteringCrossSection_.empty() && std::isfinite(scatteringCrossSectionAt1um) && std::isfinite(angstromExponent)))
-                return;
-
-            for(const auto wavelengths : atmo.allWavelengths)
-            {
-                constexpr float refWL=1000; // nm
-                const auto angstromFactor = pow(wavelengths/refWL, glm::vec4(-angstromExponent));
-                const auto wlSetCrossSection = scatteringCrossSectionAt1um * angstromFactor;
-                scatteringCrossSection_.push_back(wlSetCrossSection);
-            }
-        }
+        void finalizeLoading();
         glm::vec4 scatteringCrossSection(glm::vec4 const wavelengths) const
         {
             const auto i=atmo.wavelengthsIndex(wavelengths);
             return scatteringCrossSection_[i];
+        }
+        glm::vec4 extinctionCrossSection(glm::vec4 const wavelengths) const
+        {
+            const auto i=atmo.wavelengthsIndex(wavelengths);
+            return extinctionCrossSection_[i];
         }
     };
     struct Absorber

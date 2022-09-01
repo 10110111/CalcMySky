@@ -350,6 +350,11 @@ AtmosphereParameters::Scatterer parseScatterer(AtmosphereParameters const& atmo,
             description.scatteringCrossSectionAt1um=getQuantity(value,1e-35,1,AreaQuantity{},filename,lineNumber);
         else if(key=="angstrom exponent")
             description.angstromExponent=getQuantity(value,-10,10,DimensionlessQuantity{},filename,lineNumber);
+        else if(key=="single scattering albedo")
+        {
+            if(!skipSpectrum)
+                getSpectrum(atmo.allWavelengths,value,0,1,filename,lineNumber, description.singleScatteringAlbedo);
+        }
         else if(key=="number density")
             description.numberDensity=readGLSLFunctionBody(stream,filename,++lineNumber);
         else if(key=="phase function")
@@ -416,6 +421,31 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, c
     return description;
 }
 
+}
+
+void AtmosphereParameters::Scatterer::finalizeLoading()
+{
+    if(extinctionCrossSection_.empty() && std::isfinite(scatteringCrossSectionAt1um) && std::isfinite(angstromExponent))
+    {
+        for(const auto wavelengths : atmo.allWavelengths)
+        {
+            constexpr float refWL=1000; // nm
+            const auto angstromFactor = pow(wavelengths/refWL, glm::vec4(-angstromExponent));
+            const auto wlSetCrossSection = scatteringCrossSectionAt1um * angstromFactor;
+            extinctionCrossSection_.push_back(wlSetCrossSection);
+        }
+    }
+
+    if(singleScatteringAlbedo.empty())
+    {
+        singleScatteringAlbedo.resize(atmo.allWavelengths.size(), glm::vec4(1));
+    }
+
+    if(extinctionCrossSection_.size() == atmo.allWavelengths.size())
+    {
+        for(size_t i = 0; i < atmo.allWavelengths.size(); ++i)
+            scatteringCrossSection_.push_back(extinctionCrossSection_[i] * singleScatteringAlbedo[i]);
+    }
 }
 
 void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNoEDSTextures forceNoEDSTextures, const SkipSpectra skipSpectra)

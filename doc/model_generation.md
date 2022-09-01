@@ -270,7 +270,7 @@ Depending on the properties of the scatterer, there may be some ways to optimize
 
 #### `cross section at 1 um`
 
-This entry is a [dimensionful](#dimensionful-quantities) quantity of area. It defines scattering cross section of the current scatterer at \f$1\,\mathrm{\mu m}\f$ wavelength. The values for other wavelengths are obtained using the [<code>angstrom exponent</code>](#angstrom-exponent) parameter.
+This entry is a [dimensionful](#dimensionful-quantities) quantity of area. It defines extinction cross section of the current scatterer at \f$1\,\mathrm{\mu m}\f$ wavelength. The values for other wavelengths are obtained using the [<code>angstrom exponent</code>](#angstrom-exponent) parameter.
 
 For gases Rayleigh scattering cross section can be found from refractive index using the following formula
 (see Landau, Lifshitz, "Electrodynamics of Continuous Media", equation \f$(120.4)\f$ for reference; we augment it with \f$h=\sigma N\f$ to get \f$\sigma\f$):
