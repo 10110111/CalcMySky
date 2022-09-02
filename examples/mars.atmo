@@ -83,9 +83,7 @@ Scatterer "dust":
     ```
         const vec4 g = 0.64 + 0.23*exp(-0.00002378121*sqr(wavelengths-310)); // a fit to data between 360 and 830 nm
         const vec4 g2=g*g;
-        // the factor that turns Henyey-Greenstein phase function into Cornette-Shanks one
-        const vec4 cornetteShanksFactor = 1.5*(1+sqr(dotViewSun))/(2+g2);
-        return vec4(cornetteShanksFactor * (1-g2) / pow(1 + g2 - 2*g*dotViewSun, vec4(1.5)) / (4*PI));
+        return vec4((1-g2) / pow(1 + g2 - 2*g*dotViewSun, vec4(1.5)) / (4*PI));
     ```
     cross section at 1 um: 10.155 um^2 # assuming effective radius of 1 um and extinction efficiency from the reference above
     angstrom exponent: -0.2 # a fit to data between 360 and 830 nm
