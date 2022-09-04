@@ -1146,6 +1146,45 @@ int main(int argc, char** argv)
     {
         handleCmdLine();
 
+        QSurfaceFormat format;
+        format.setMajorVersion(3);
+        format.setMinorVersion(3);
+        format.setProfile(QSurfaceFormat::CoreProfile);
+
+        QOpenGLContext context;
+        context.setFormat(format);
+        context.create();
+        if(!context.isValid())
+        {
+            std::cerr << "Failed to create OpenGL "
+                << format.majorVersion() << '.'
+                << format.minorVersion() << " context\n";
+            return 1;
+        }
+
+        QOffscreenSurface surface;
+        surface.setFormat(format);
+        surface.create();
+        if(!surface.isValid())
+        {
+            std::cerr << "Failed to create OpenGL "
+                << format.majorVersion() << '.'
+                << format.minorVersion() << " offscreen surface\n";
+            return 1;
+        }
+
+        context.makeCurrent(&surface);
+
+        if(!gl.initializeOpenGLFunctions())
+        {
+            std::cerr << "Failed to initialize OpenGL "
+                << format.majorVersion() << '.'
+                << format.minorVersion() << " functions\n";
+            return 1;
+        }
+
+        init(context);
+
         if(opts.saveResultAsRadiance)
             for(auto& scatterer : atmo.scatterers)
                 scatterer.phaseFunctionType=PhaseFunctionType::General;
@@ -1227,45 +1266,6 @@ int main(int argc, char** argv)
             }
             std::cerr << " done\n";
         }
-
-        QSurfaceFormat format;
-        format.setMajorVersion(3);
-        format.setMinorVersion(3);
-        format.setProfile(QSurfaceFormat::CoreProfile);
-
-        QOpenGLContext context;
-        context.setFormat(format);
-        context.create();
-        if(!context.isValid())
-        {
-            std::cerr << "Failed to create OpenGL "
-                << format.majorVersion() << '.'
-                << format.minorVersion() << " context\n";
-            return 1;
-        }
-
-        QOffscreenSurface surface;
-        surface.setFormat(format);
-        surface.create();
-        if(!surface.isValid())
-        {
-            std::cerr << "Failed to create OpenGL "
-                << format.majorVersion() << '.'
-                << format.minorVersion() << " offscreen surface\n";
-            return 1;
-        }
-
-        context.makeCurrent(&surface);
-
-        if(!gl.initializeOpenGLFunctions())
-        {
-            std::cerr << "Failed to initialize OpenGL "
-                << format.majorVersion() << '.'
-                << format.minorVersion() << " functions\n";
-            return 1;
-        }
-
-        init(context);
 
         const auto timeBegin=std::chrono::steady_clock::now();
 
