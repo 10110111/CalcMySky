@@ -134,6 +134,12 @@ std::pair<std::unique_ptr<QOffscreenSurface>, std::unique_ptr<QOpenGLContext>> i
         std::cerr << "Failed to obtain GLSL version\n";
     }
 
+    constexpr char ext_GL_ARB_shading_language_420pack[] = "GL_ARB_shading_language_420pack";
+    if(context->hasExtension(QByteArray(ext_GL_ARB_shading_language_420pack)))
+        std::cerr << ext_GL_ARB_shading_language_420pack << " is supported\n";
+    else
+        std::cerr << ext_GL_ARB_shading_language_420pack << " is NOT supported\n";
+
     if(opts.printOpenGLInfoAndQuit)
         throw MustQuit{0};
 
