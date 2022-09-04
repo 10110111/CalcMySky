@@ -71,8 +71,45 @@ void checkLimits()
     }
 }
 
-void init(QOpenGLContext& context)
+std::pair<std::unique_ptr<QOffscreenSurface>, std::unique_ptr<QOpenGLContext>> initOpenGL()
 {
+    QSurfaceFormat format;
+    format.setMajorVersion(3);
+    format.setMinorVersion(3);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+
+    auto context = std::make_unique<QOpenGLContext>();
+    context->setFormat(format);
+    context->create();
+    if(!context->isValid())
+    {
+        std::cerr << "Failed to create OpenGL "
+            << format.majorVersion() << '.'
+            << format.minorVersion() << " context\n";
+        throw MustQuit{};
+    }
+
+    auto surface = std::make_unique<QOffscreenSurface>();
+    surface->setFormat(format);
+    surface->create();
+    if(!surface->isValid())
+    {
+        std::cerr << "Failed to create OpenGL "
+            << format.majorVersion() << '.'
+            << format.minorVersion() << " offscreen surface\n";
+        throw MustQuit{};
+    }
+
+    context->makeCurrent(surface.get());
+
+    if(!gl.initializeOpenGLFunctions())
+    {
+        std::cerr << "Failed to initialize OpenGL "
+            << format.majorVersion() << '.'
+            << format.minorVersion() << " functions\n";
+        throw MustQuit{};
+    }
+
     std::cerr << "OpenGL vendor  : " << gl.glGetString(GL_VENDOR) << "\n";
     std::cerr << "OpenGL renderer: " << gl.glGetString(GL_RENDERER) << "\n";
 
@@ -101,9 +138,11 @@ void init(QOpenGLContext& context)
         throw MustQuit{0};
 
     if(opts.openglDebug || opts.openglDebugFull)
-        setupDebugPrintCallback(context, opts.openglDebugFull);
+        setupDebugPrintCallback(*context, opts.openglDebugFull);
     initBuffers();
     initTexturesAndFramebuffers();
     checkLimits();
+
+    return {std::move(surface),std::move(context)};
 }
 
