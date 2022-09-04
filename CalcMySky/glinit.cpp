@@ -97,6 +97,9 @@ void init(QOpenGLContext& context)
         std::cerr << "Failed to obtain GLSL version\n";
     }
 
+    if(opts.printOpenGLInfoAndQuit)
+        throw MustQuit{0};
+
     if(opts.openglDebug || opts.openglDebugFull)
         setupDebugPrintCallback(context, opts.openglDebugFull);
     initBuffers();

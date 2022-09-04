@@ -55,6 +55,7 @@ struct Options
     unsigned textureSavePrecision = 0; // 0 means not reduced
     bool openglDebug=false;
     bool openglDebugFull=false;
+    bool printOpenGLInfoAndQuit=false;
     bool saveResultAsRadiance=false;
     bool dbgNoSaveTextures=false;
     bool dbgNoEDSTextures=false;

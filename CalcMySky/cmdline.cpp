@@ -168,6 +168,7 @@ void handleCmdLine()
     const QCommandLineOption versionOpt({"v","version"}, "Display version and exit");
     const QCommandLineOption openglDebug("opengl-debug","Install a GL_KHR_debug message callback and print all the messages from OpenGL");
     const QCommandLineOption openglDebugFull("opengl-debug-full","Like --opengl-debug, but don't hide notification-level messages");
+    const QCommandLineOption printOpenGLInfoAndQuit("opengl-info","Print OpenGL info and quit");
     const QCommandLineOption textureOutputDirOpt("out-dir","Directory for the textures computed","output directory",".");
     const QCommandLineOption saveResultAsRadianceOpt("radiance","Save result as radiance instead of XYZW components");
     const QCommandLineOption textureSavePrecisionOpt("texture-save-precision","Number of bits of precision when saving 3D textures, from 1 to 24. Smaller number improves compressibility. Too small destroys fidelity.","bits");
@@ -188,6 +189,7 @@ void handleCmdLine()
                         textureSavePrecisionOpt,
                         dbgNoEDSTexturesOpt,
                         dbgNoSaveTexturesOpt,
+                        printOpenGLInfoAndQuit,
                         openglDebug,
                         openglDebugFull,
                         dbgSaveGroundIrradianceOpt,
@@ -240,6 +242,8 @@ void handleCmdLine()
         opts.openglDebug=true;
     if(parser.isSet(openglDebugFull))
         opts.openglDebugFull=true;
+    if(parser.isSet(printOpenGLInfoAndQuit))
+        opts.printOpenGLInfoAndQuit=true;
     if(parser.isSet(textureSavePrecisionOpt))
     {
         bool ok=false;
@@ -262,12 +266,14 @@ void handleCmdLine()
         std::cerr << "Too many arguments\n";
         throw MustQuit{};
     }
-    if(posArgs.isEmpty())
+    if(!posArgs.isEmpty())
+    {
+        const auto atmoDescrFileName=posArgs[0];
+        atmo.parse(atmoDescrFileName, AtmosphereParameters::ForceNoEDSTextures{opts.dbgNoEDSTextures});
+    }
+    else if(!opts.printOpenGLInfoAndQuit)
     {
         showHelp(std::cerr, options, positionalArgument.first);
         throw MustQuit{};
     }
-
-    const auto atmoDescrFileName=posArgs[0];
-    atmo.parse(atmoDescrFileName, AtmosphereParameters::ForceNoEDSTextures{opts.dbgNoEDSTextures});
 }
