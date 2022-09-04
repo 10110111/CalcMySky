@@ -75,6 +75,28 @@ void init(QOpenGLContext& context)
 {
     std::cerr << "OpenGL vendor  : " << gl.glGetString(GL_VENDOR) << "\n";
     std::cerr << "OpenGL renderer: " << gl.glGetString(GL_RENDERER) << "\n";
+
+    const auto openglVersion = gl.glGetString(GL_VERSION);
+    if(openglVersion)
+    {
+        std::cerr << "OpenGL version : " << openglVersion << "\n";
+    }
+    else
+    {
+        std::cerr << "Failed to obtain OpenGL version\n";
+    }
+
+
+    const auto glslVersion = gl.glGetString(GL_SHADING_LANGUAGE_VERSION);
+    if(glslVersion)
+    {
+        std::cerr << " GLSL  version : " << glslVersion << "\n";
+    }
+    else
+    {
+        std::cerr << "Failed to obtain GLSL version\n";
+    }
+
     if(opts.openglDebug || opts.openglDebugFull)
         setupDebugPrintCallback(context, opts.openglDebugFull);
     initBuffers();
