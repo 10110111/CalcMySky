@@ -89,28 +89,27 @@ QString makeTransmittanceComputeFunctionsSrc(glm::vec4 const& wavelengths)
 {
     const QString head=1+R"(
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 #include "common-functions.h.glsl"
 )";
     const QString opticalDepthFunctionTemplate=R"(
 vec4 opticalDepthToAtmosphereBorder_##agentSpecies(float altitude, float cosZenithAngle, vec4 crossSection)
 {
-    const float integrInterval=distanceToAtmosphereBorder(cosZenithAngle, altitude);
+    CONST float integrInterval=distanceToAtmosphereBorder(cosZenithAngle, altitude);
 
-    const float R=earthRadius;
-    const float r1=R+altitude;
-    const float l=integrInterval;
-    const float mu=cosZenithAngle;
+    CONST float R=earthRadius;
+    CONST float r1=R+altitude;
+    CONST float l=integrInterval;
+    CONST float mu=cosZenithAngle;
     // Using midpoint rule for quadrature
-    const float dl=integrInterval/numTransmittanceIntegrationPoints;
+    CONST float dl=integrInterval/numTransmittanceIntegrationPoints;
     float sum=0;
     for(int n=0;n<numTransmittanceIntegrationPoints;++n)
     {
-        const float dist=(n+0.5)*dl;
+        CONST float dist=(n+0.5)*dl;
         /* From law of cosines: r₂²=r₁²+l²+2r₁lμ */
-        const float currAlt=-R+safeSqrt(sqr(r1)+sqr(dist)+2*r1*dist*mu);
+        CONST float currAlt=-R+safeSqrt(sqr(r1)+sqr(dist)+2*r1*dist*mu);
         sum+=agent##NumberDensity_##agentSpecies(currAlt);
     }
     return sum*dl*crossSection;
@@ -121,7 +120,7 @@ vec4 opticalDepthToAtmosphereBorder_##agentSpecies(float altitude, float cosZeni
 // This assumes that ray doesn't intersect Earth
 vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude)
 {
-    const vec4 depth=
+    CONST vec4 depth=
 )";
     for(auto const& scatterer : atmo.scatterers)
     {
@@ -146,8 +145,7 @@ QString makeScattererDensityFunctionsSrc()
 {
     const QString head=1+R"(
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 )";
     return head+makeDensitiesFunctions();
@@ -157,8 +155,7 @@ QString makePhaseFunctionsSrc()
 {
     QString src = 1+R"(
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 
 )";
@@ -180,8 +177,7 @@ QString makeTotalScatteringCoefSrc()
 {
     QString src=1+R"(
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 #include "densities.h.glsl"
 #include "phase-functions.h.glsl"
@@ -328,6 +324,8 @@ std::set<QString> getShaderFileNamesToLinkWith(QString const& filename, int recu
             continue;
         const auto includeFileBaseName=includePattern.captured(1);
         const auto headerFileName=includeFileBaseName+includePattern.captured(2);
+        if(headerFileName == GLSL_EXTENSIONS_HEADER_FILENAME) // no companion source for extensions header
+            continue;
         if(headerFileName == CONSTANTS_HEADER_FILENAME) // no companion source for constants header
             continue;
         if(headerFileName == RADIANCE_TO_LUMINANCE_HEADER_FILENAME) // no companion source for radiance-to-luminance conversion header

@@ -1,6 +1,5 @@
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 #include "texture-coordinates.h.glsl"
 #include "radiance-to-luminance.h.glsl"
@@ -20,14 +19,14 @@ vec4 solarRadiance()
 
 void main()
 {
-    const EclipseScatteringTexVars texVars=eclipseTexCoordsToTexVars(gl_FragCoord.xy/eclipsedSingleScatteringTextureSize, altitude);
-    const float sinViewZenithAngle=sqrt(1-sqr(texVars.cosViewZenithAngle));
-    const vec3 viewDir=vec3(cos(texVars.azimuthRelativeToSun)*sinViewZenithAngle,
+    CONST EclipseScatteringTexVars texVars=eclipseTexCoordsToTexVars(gl_FragCoord.xy/eclipsedSingleScatteringTextureSize, altitude);
+    CONST float sinViewZenithAngle=sqrt(1-sqr(texVars.cosViewZenithAngle));
+    CONST vec3 viewDir=vec3(cos(texVars.azimuthRelativeToSun)*sinViewZenithAngle,
                             sin(texVars.azimuthRelativeToSun)*sinViewZenithAngle,
                             texVars.cosViewZenithAngle);
-    const vec3 cameraPosition=vec3(0,0,altitude);
-    const vec3 sunDirection=vec3(sin(sunZenithAngle), 0, cos(sunZenithAngle));
-    const vec4 radiance=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPositionRelativeToSunAzimuth,
+    CONST vec3 cameraPosition=vec3(0,0,altitude);
+    CONST vec3 sunDirection=vec3(sin(sunZenithAngle), 0, cos(sunZenithAngle));
+    CONST vec4 radiance=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPositionRelativeToSunAzimuth,
                                                         texVars.viewRayIntersectsGround);
 #if COMPUTE_RADIANCE
     scatteringTextureOutput=radiance;

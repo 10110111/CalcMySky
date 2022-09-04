@@ -1,6 +1,5 @@
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 #include "texture-sampling-functions.h.glsl"
 
@@ -13,7 +12,7 @@ vec4 computeDirectGroundIrradiance(const float cosSunZenithAngle, const float al
     //   value in the center of the solar disk, assuming it to be a kind of "average".
     // * When the Sun is partially behind the astronomical horizon, we approximate the radiative view factor (i.e.
     //   cosine factor integrated over the solar disk) with a simple quadratic spline.
-    const float averageCosFactor = cosSunZenithAngle < -sunAngularRadius ? 0
+    CONST float averageCosFactor = cosSunZenithAngle < -sunAngularRadius ? 0
                                       : cosSunZenithAngle > sunAngularRadius ? cosSunZenithAngle
                                       : sqr(cosSunZenithAngle+sunAngularRadius)/(4*sunAngularRadius);
     return solarIrradianceAtTOA * transmittanceToAtmosphereBorder(cosSunZenithAngle, altitude) * averageCosFactor;

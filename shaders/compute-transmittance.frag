@@ -1,6 +1,5 @@
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 #include "texture-coordinates.h.glsl"
 
@@ -11,7 +10,7 @@ out vec4 color;
 
 void main()
 {
-    const vec2 texCoord=0.5*position.xy+vec2(0.5);
-    const TransmittanceTexVars vars=transmittanceTexCoordToTexVars(texCoord);
+    CONST vec2 texCoord=0.5*position.xy+vec2(0.5);
+    CONST TransmittanceTexVars vars=transmittanceTexCoordToTexVars(texCoord);
     color=computeTransmittanceToAtmosphereBorder(vars.cosViewZenithAngle, vars.altitude);
 }

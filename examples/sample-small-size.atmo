@@ -1,4 +1,4 @@
-version: 5
+version: 6
 
 transmittance texture size for VZA: 256
 transmittance texture size for altitude: 64
@@ -52,7 +52,7 @@ Scatterer "molecules": # Rayleigh scattering
 {
     number density: # in m^-3
     ```
-        const float rayleighScaleHeight=8*km;
+        CONST float rayleighScaleHeight=8*km;
         return 3.08458e25*exp(-1/rayleighScaleHeight * altitude);
     ```
     phase function:
@@ -68,14 +68,14 @@ Scatterer "aerosols": # Mie scattering
 {
     number density: # in m^-3
     ```
-        const float mieScaleHeight=1.2*km;
+        CONST float mieScaleHeight=1.2*km;
         return 1.03333e8*exp(-1/mieScaleHeight*altitude);
     ```
     phase function:
     ```
-        const float g=0.76;
-        const float g2=g*g;
-        const float k = 3/(8*PI)*(1-g2)/(2+g2);
+        CONST float g=0.76;
+        CONST float g2=g*g;
+        CONST float k = 3/(8*PI)*(1-g2)/(2+g2);
         return vec4(k * (1+sqr(dotViewSun)) / pow(1+g2 - 2*g*dotViewSun, 1.5) + 1/((1-dotViewSun)*600+0.05))*0.904;
     ```
     cross section at 1 um: 0.042968 um^2
@@ -86,7 +86,7 @@ Absorber "ozone":
 {
     number density:
     ```
-        const float totalOzoneAmount=370*dobsonUnit;
+        CONST float totalOzoneAmount=370*dobsonUnit;
 
         float density;
 

@@ -1,6 +1,5 @@
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 #include "phase-functions.h.glsl"
 #include "common-functions.h.glsl"
@@ -16,13 +15,13 @@ uniform sampler2D lightPollutionScatteringTexture;
 
 vec4 irradiance(const float cosSunZenithAngle, const float altitude)
 {
-    const vec2 texCoords=irradianceTexVarsToTexCoord(cosSunZenithAngle, altitude);
+    CONST vec2 texCoords=irradianceTexVarsToTexCoord(cosSunZenithAngle, altitude);
     return texture(irradianceTexture, texCoords);
 }
 
 vec4 opticalDepthToAtmosphereBorder(const float cosViewZenithAngle, const float altitude)
 {
-    const vec2 texCoords=transmittanceTexVarsToTexCoord(cosViewZenithAngle, altitude);
+    CONST vec2 texCoords=transmittanceTexVarsToTexCoord(cosViewZenithAngle, altitude);
     // We don't use mip mapping here, but for some reason, on my NVidia GTX 750 Ti with Linux-x86 driver 390.116 I get
     // an artifact when looking into nadir from TOA at some values of texture sizes (in particular, size of
     // transmittance texture for altitude being 4096). This happens when I simply call texture(eclipsedScatteringTexture,
@@ -40,11 +39,11 @@ vec4 transmittanceToAtmosphereBorder(const float cosViewZenithAngle, const float
 vec4 transmittance(const float cosViewZenithAngle, const float altitude, const float dist,
                    const bool viewRayIntersectsGround)
 {
-    const float r=earthRadius+altitude;
+    CONST float r=earthRadius+altitude;
     // Clamping only guards against rounding errors here, we don't try to handle view ray endpoint
     // in space here.
-    const float altAtDist=clampAltitude(sqrt(sqr(dist)+sqr(r)+2*r*dist*cosViewZenithAngle)-earthRadius);
-    const float cosViewZenithAngleAtDist=clampCosine((r*cosViewZenithAngle+dist)/(earthRadius+altAtDist));
+    CONST float altAtDist=clampAltitude(sqrt(sqr(dist)+sqr(r)+2*r*dist*cosViewZenithAngle)-earthRadius);
+    CONST float cosViewZenithAngleAtDist=clampCosine((r*cosViewZenithAngle+dist)/(earthRadius+altAtDist));
 
     vec4 depth;
     if(viewRayIntersectsGround)
@@ -63,7 +62,7 @@ vec4 transmittance(const float cosViewZenithAngle, const float altitude, const f
 vec4 calcFirstScattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
                          const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
 {
-    const vec4 scattering = sample4DTexture(firstScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
+    CONST vec4 scattering = sample4DTexture(firstScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
                                           dotViewSun, altitude, viewRayIntersectsGround);
     return scattering*currentPhaseFunction(dotViewSun);
 }
@@ -82,6 +81,6 @@ vec4 scattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
 
 vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
 {
-    const vec2 coords = lightPollutionTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    CONST vec2 coords = lightPollutionTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
     return texture(lightPollutionScatteringTexture, coords);
 }

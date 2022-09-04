@@ -1,6 +1,5 @@
 #version 330
-#extension GL_ARB_shading_language_420pack : require
-
+#include "version.h.glsl"
 #include "const.h.glsl"
 #include "single-scattering.h.glsl"
 #include "texture-coordinates.h.glsl"
@@ -10,7 +9,7 @@ out vec4 scatteringTextureOutput;
 
 void main()
 {
-    const ScatteringTexVars vars=scatteringTexIndicesToTexVars(vec3(gl_FragCoord.xy-vec2(0.5),layer));
+    CONST ScatteringTexVars vars=scatteringTexIndicesToTexVars(vec3(gl_FragCoord.xy-vec2(0.5),layer));
     scatteringTextureOutput=computeSingleScattering(vars.cosSunZenithAngle,vars.cosViewZenithAngle,vars.dotViewSun,
                                                     vars.altitude,vars.viewRayIntersectsGround);
 }

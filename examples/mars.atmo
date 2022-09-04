@@ -1,4 +1,4 @@
-version: 5
+version: 6
 
 transmittance texture size for VZA: 256
 transmittance texture size for altitude: 64
@@ -74,15 +74,15 @@ Scatterer "dust":
         // Scale height from:
         // Hoekzema, N., “The Dust Scale Height Of The Martian Atmosphere Around Pavonis Mons From Hrsc Stereo Images”, vol. 38, 2006
         // The value is given in the abstract, I failed to get access to the article proper.
-        const float scaleHeight=10.8*km;
+        CONST float scaleHeight=10.8*km;
         return 4.559e6*exp(-1/scaleHeight*altitude);
     ```
     # Asymmetry parameter, single scattering albedo, extinction efficiency were taken from Table 2 in:
     # Ockert-Bell, M.E., Bell, J.F., I, II., Pollack, J.B., et al., "Absorption and Scattering Properties of the Martian Dust in the Solar Wavelengths", J. Geophys. Res. E, 1997, vol. 102, no. E4, pp. 9039–9050.
     phase function:
     ```
-        const vec4 g = 0.64 + 0.23*exp(-0.00002378121*sqr(wavelengths-310)); // a fit to data between 360 and 830 nm
-        const vec4 g2=g*g;
+        CONST vec4 g = 0.64 + 0.23*exp(-0.00002378121*sqr(wavelengths-310)); // a fit to data between 360 and 830 nm
+        CONST vec4 g2=g*g;
         return vec4((1-g2) / pow(1 + g2 - 2*g*dotViewSun, vec4(1.5)) / (4*PI));
     ```
     cross section at 1 um: 10.155 um^2 # assuming effective radius of 1 um and extinction efficiency from the reference above
