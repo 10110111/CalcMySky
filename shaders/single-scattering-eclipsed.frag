@@ -1,4 +1,7 @@
 #version 330
+
+#definitions (ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION)
+
 #include "version.h.glsl"
 #include "const.h.glsl"
 #include "densities.h.glsl"

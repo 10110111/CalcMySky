@@ -1,4 +1,7 @@
 #version 330
+
+#definitions (COMPUTE_RADIANCE,COMPUTE_LUMINANCE)
+
 #include "version.h.glsl"
 #include "const.h.glsl"
 #include "texture-coordinates.h.glsl"

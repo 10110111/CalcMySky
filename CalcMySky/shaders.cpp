@@ -227,10 +227,34 @@ QString getShaderSrc(QString const& fileName, IgnoreCache ignoreCache)
     return file.readAll();
 }
 
-std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString const& description)
+void defineDisabledDefinitions(QString& source)
+{
+    const QRegularExpression pattern("^(\\s*#[ \t]*version[ \t]+[^\n]+\\s*\n)"
+                                     "(#[ \t]*definitions[ \t]*\\()"
+                                     "([^)\n]+)"
+                                     "(\\)[ \t]*\n)");
+    const auto match = pattern.match(source);
+    if(!match.hasMatch()) return;
+
+    source.replace(pattern, "\\1\n");
+    const auto definitions = match.captured(3).split(QChar(','));
+    for(auto def : definitions)
+    {
+        def = def.trimmed();
+        if(def.contains(QRegularExpression("^[0-9]")))
+            continue; // not an undefined identifier
+        source.replace(QRegularExpression("\\b("+def+")\\b"), "0 /*\\1*/");
+    }
+}
+
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString source, QString const& description,
+                                             QString* processedSource = nullptr)
 {
     auto shader=std::make_unique<QOpenGLShader>(type);
+    defineDisabledDefinitions(source);
     source=withHeadersIncluded(source, description);
+    if(processedSource)
+        *processedSource = source;
     if(!shader->compileSourceCode(source))
     {
         std::cerr << "Failed to compile " << description.toStdString() << ":\n"
@@ -260,8 +284,8 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     return shader;
 }
 
-std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString const& filename)
-{ return compileShader(type, getShaderSrc(filename), filename); }
+std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QString const& filename, QString* processedSource = nullptr)
+{ return compileShader(type, getShaderSrc(filename), filename, processedSource); }
 
 QString withHeadersIncluded(QString src, QString const& filename)
 {
@@ -277,7 +301,7 @@ QString withHeadersIncluded(QString src, QString const& filename)
             newSrc.append(line+'\n');
             continue;
         }
-        if(line.contains(QRegularExpression("^\\s*#include_if\\([A-Za-z_][A-Za-z0-9_]*\\)")))
+        if(line.contains(QRegularExpression("^\\s*#include_if\\((?:0\\b[^)]*|[A-Za-z_][A-Za-z0-9_]*)\\)")))
         {
             // Disabled include, skip it (enabled one must have the condition be literal 1)
             newSrc.append('\n');
@@ -353,10 +377,11 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     std::vector<std::unique_ptr<QOpenGLShader>> shaders;
     for(const auto& filename : shaderFileNames)
     {
-        shaders.emplace_back(compileShader(QOpenGLShader::Fragment, filename));
+        QString processedSource;
+        shaders.emplace_back(compileShader(QOpenGLShader::Fragment, filename, &processedSource));
         program->addShader(shaders.back().get());
         if(sourcesToSave)
-            sourcesToSave->push_back({filename, withHeadersIncluded(getShaderSrc(filename), filename)});
+            sourcesToSave->push_back({filename, processedSource});
     }
 
     shaders.emplace_back(compileShader(QOpenGLShader::Vertex, "shader.vert"));
