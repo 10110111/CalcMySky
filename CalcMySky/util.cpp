@@ -21,9 +21,13 @@ void createDirs(std::string const& path)
 
 void renderQuad()
 {
+    OPENGL_DEBUG_CHECK_ERROR("FAILED on entry to renderQuad()");
 	gl.glBindVertexArray(vao);
+    OPENGL_DEBUG_CHECK_ERROR("glBindVertexArray(vao) FAILED inside renderQuad()");
 	gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    OPENGL_DEBUG_CHECK_ERROR("glDrawArrays() FAILED inside renderQuad()");
 	gl.glBindVertexArray(0);
+    OPENGL_DEBUG_CHECK_ERROR("glBindVertexArray(0) FAILED inside renderQuad()");
 }
 
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message)

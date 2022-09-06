@@ -70,4 +70,16 @@ inline std::string indentOutput()
     return std::string(OutputIndentIncrease::outputIndent, ' ');
 }
 
+#define OPENGL_DEBUG_CHECK_ERROR(errorMessage)                                  \
+do {                                                                            \
+    if(opts.openglDebug)                                                        \
+    {                                                                           \
+        if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)                    \
+        {                                                                       \
+            std::cerr << errorMessage << ":" << openglErrorString(err) << "\n"; \
+            throw MustQuit{};                                                   \
+        }                                                                       \
+    }                                                                           \
+} while(0)
+
 #endif

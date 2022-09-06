@@ -82,6 +82,7 @@ void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view wha
         program.setUniformValue("layer",layer);
         renderQuad();
         gl.glFinish();
+        OPENGL_DEBUG_CHECK_ERROR("glFinish() FAILED in render3DTexLayers()");
 
         // Clear previous status and reset cursor position
         const auto statusWidth=ss.tellp();
