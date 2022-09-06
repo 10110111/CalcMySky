@@ -1146,6 +1146,10 @@ int main(int argc, char** argv)
     {
         handleCmdLine();
 
+        std::cerr << qApp->applicationName() << ' ' << qApp->applicationVersion() << '\n';
+        std::cerr << "Compiled against Qt " << QT_VERSION_MAJOR << "." << QT_VERSION_MINOR << "." << QT_VERSION_PATCH << "\n";
+        std::cerr << "Running on " << QSysInfo::prettyProductName().toStdString() << " " << QSysInfo::currentCpuArchitecture() << "\n";
+
         [[maybe_unused]] const auto glCtxAndSfc = initOpenGL();
 
         if(opts.saveResultAsRadiance)
