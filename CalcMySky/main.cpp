@@ -76,7 +76,7 @@ void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view wha
     for(GLsizei layer=0; layer<atmo.scatTexDepth(); ++layer)
     {
         std::ostringstream ss;
-        ss << layer << " of " << atmo.scatTexDepth() << " layers done";
+        ss << layer << " of " << atmo.scatTexDepth() << " layers done ";
         std::cerr << ss.str();
 
         program.setUniformValue("layer",layer);
@@ -938,7 +938,7 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
         for(unsigned szaIndex=0; szaIndex<texSizeBySZA; ++szaIndex)
         {
             std::ostringstream ss;
-            ss << altIndex*texSizeBySZA+szaIndex << " of " << texSizeBySZA*texSizeByAltitude << " samples done";
+            ss << altIndex*texSizeBySZA+szaIndex << " of " << texSizeBySZA*texSizeByAltitude << " samples done ";
             std::cerr << ss.str();
 
             const double cosSunZenithAngle=unitRangeTexCoordToCosSZA(float(szaIndex)/(texSizeBySZA-1));

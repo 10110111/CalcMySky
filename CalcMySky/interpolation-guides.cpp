@@ -430,7 +430,7 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
         for(int altIndex = 0; altIndex < altLayerCount; ++altIndex)
         {
             std::ostringstream ss;
-            ss << altIndex << " of " << altLayerCount << " layers done";
+            ss << altIndex << " of " << altLayerCount << " layers done ";
             std::cerr << ss.str();
 
             for(int szaIndex = 0; szaIndex < szaLayerCount; ++szaIndex)
@@ -489,7 +489,7 @@ void generateInterpolationGuidesForScatteringTexture(const std::string_view file
         for(int altIndex = 0; altIndex < altLayerCount; ++altIndex)
         {
             std::ostringstream ss;
-            ss << altIndex << " of " << altLayerCount << " layers done";
+            ss << altIndex << " of " << altLayerCount << " layers done ";
             std::cerr << ss.str();
 
             std::fill(angles.begin(), angles.end(), 0.f);
