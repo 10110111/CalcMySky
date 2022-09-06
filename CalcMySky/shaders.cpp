@@ -39,7 +39,7 @@ const vec2 eclipsedSingleScatteringTextureSize=)" + toString(glm::vec2(atmo.ecli
 const vec2 lightPollutionTextureSize=)" + toString(glm::vec2(atmo.lightPollutionTextureSize)) +R"(;
 const int radialIntegrationPoints=)" + toString(atmo.radialIntegrationPoints) + R"(;
 const int angularIntegrationPoints=)" + toString(atmo.angularIntegrationPoints) + R"(;
-const int lightPollutionAngularIntegrationPoints=)" + toString(atmo.lightPollutionAngularIntegrationPoints) + R"(;
+#define lightPollutionAngularIntegrationPoints )" + toString(atmo.lightPollutionAngularIntegrationPoints) + R"(
 const int eclipseAngularIntegrationPoints=)" + toString(atmo.eclipseAngularIntegrationPoints) + R"(;
 const int numTransmittanceIntegrationPoints=)" + toString(atmo.numTransmittanceIntegrationPoints) + R"(;
 )";
