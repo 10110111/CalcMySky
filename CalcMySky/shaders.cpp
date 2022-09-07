@@ -397,6 +397,9 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     {
         // Qt prints linking errors to stderr, so don't print them again
         std::cerr << "Failed to link " << description << "\n";
+        std::cerr << "Names of shaders included in this program:\n";
+        for(const auto& name : shaderFileNames)
+            std::cerr << " - \"" << name << "\"\n";
         throw MustQuit{};
     }
     return program;
