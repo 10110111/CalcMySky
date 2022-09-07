@@ -1,11 +1,99 @@
-#include <memory>
 #include <iostream>
 #include <QApplication>
 #include <QSurfaceFormat>
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
-#include <QOpenGLShaderProgram>
 #include <QOpenGLFunctions_3_3_Core>
+
+QOpenGLFunctions_3_3_Core gl;
+
+void runTest(const bool reproduceBug)
+{
+    constexpr const char* vertShaderSrc = 1+R"(
+#version 330
+in vec3 vertex;
+out vec3 position;
+void main()
+{
+    position=vertex;
+    gl_Position=vec4(position,1);
+}
+)";
+    constexpr const char* fragShaderMainSrc_notReproducing = 1+R"(
+#version 330
+const int globalConst=200;
+
+float f()
+{
+    float copy=globalConst;
+    return copy;
+}
+
+void main() {}
+)";
+    constexpr const char* fragShaderMainSrc_reproducing = 1+R"(
+#version 330
+const int globalConst=200;
+
+float f()
+{
+    const float copy=globalConst;
+    return copy;
+}
+
+void main() {}
+)";
+    constexpr const char* fragShaderConstSrc = 1+R"(
+#version 330
+const int globalConst=200;
+)";
+
+    const char*const fragShaderMainSrc = reproduceBug ? fragShaderMainSrc_reproducing
+                                                      : fragShaderMainSrc_notReproducing;
+    const auto program = gl.glCreateProgram();
+    const auto vert      = gl.glCreateShader(GL_VERTEX_SHADER);
+    const auto fragMain  = gl.glCreateShader(GL_FRAGMENT_SHADER);
+    const auto fragConst = gl.glCreateShader(GL_FRAGMENT_SHADER);
+    gl.glShaderSource(vert     , 1, &vertShaderSrc     , nullptr);
+    gl.glShaderSource(fragMain , 1, &fragShaderMainSrc , nullptr);
+    gl.glShaderSource(fragConst, 1, &fragShaderConstSrc, nullptr);
+    gl.glCompileShader(vert);
+    gl.glCompileShader(fragMain);
+    gl.glCompileShader(fragConst);
+    for(const auto shader : {vert, fragMain, fragConst})
+    {
+        GLint compileSuccess = GL_FALSE;
+        gl.glGetShaderiv(shader, GL_COMPILE_STATUS, &compileSuccess);
+        if(!compileSuccess)
+        {
+            std::cout << "failed to compile a shader\n";
+            return;
+        }
+    }
+
+    gl.glAttachShader(program, vert);
+    gl.glAttachShader(program, fragMain);
+    gl.glAttachShader(program, fragConst);
+
+    gl.glLinkProgram(program);
+    GLint linkSuccess = GL_FALSE;
+    gl.glGetProgramiv(program, GL_LINK_STATUS, &linkSuccess);
+
+    if(linkSuccess)
+    {
+        std::cout << "linked successfully\n";
+    }
+    else
+    {
+        std::cout << "failed to link:\n";
+        GLint len = 0;
+        gl.glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
+        if(len <= 0) return;
+        std::string log(len, '\0');
+        gl.glGetProgramInfoLog(program, len-1, nullptr, log.data());
+        std::cout << log << "\n";
+    }
+}
 
 int main(int argc, char** argv)
 {
@@ -16,94 +104,44 @@ int main(int argc, char** argv)
     format.setMinorVersion(3);
     format.setProfile(QSurfaceFormat::CoreProfile);
 
-    auto context = std::make_unique<QOpenGLContext>();
-    context->setFormat(format);
-    context->create();
-    if(!context->isValid())
+    QOpenGLContext context;
+    context.setFormat(format);
+    context.create();
+    if(!context.isValid())
     {
-        std::cerr << "Failed to create OpenGL "
+        std::cout << "Failed to create OpenGL "
             << format.majorVersion() << '.'
             << format.minorVersion() << " context\n";
         return 1;
     }
 
-    auto surface = std::make_unique<QOffscreenSurface>();
-    surface->setFormat(format);
-    surface->create();
-    if(!surface->isValid())
+    QOffscreenSurface surface;
+    surface.setFormat(format);
+    surface.create();
+    if(!surface.isValid())
     {
-        std::cerr << "Failed to create OpenGL "
+        std::cout << "Failed to create OpenGL "
             << format.majorVersion() << '.'
             << format.minorVersion() << " offscreen surface\n";
         return 1;
     }
 
-    context->makeCurrent(surface.get());
+    context.makeCurrent(&surface);
 
-    QOpenGLFunctions_3_3_Core gl;
     if(!gl.initializeOpenGLFunctions())
     {
-        std::cerr << "Failed to initialize OpenGL "
+        std::cout << "Failed to initialize OpenGL "
             << format.majorVersion() << '.'
             << format.minorVersion() << " functions\n";
         return 1;
     }
 
-    std::cerr << "OpenGL vendor  : " << gl.glGetString(GL_VENDOR) << "\n";
-    std::cerr << "OpenGL renderer: " << gl.glGetString(GL_RENDERER) << "\n";
+    std::cout << "OpenGL vendor  : " << gl.glGetString(GL_VENDOR) << "\n";
+    std::cout << "OpenGL renderer: " << gl.glGetString(GL_RENDERER) << "\n";
+    std::cout << "OpenGL version : " << gl.glGetString(GL_VERSION) << "\n\n";
 
-    const auto openglVersion = gl.glGetString(GL_VERSION);
-    if(openglVersion)
-    {
-        std::cerr << "OpenGL version : " << openglVersion << "\n";
-    }
-    else
-    {
-        std::cerr << "Failed to obtain OpenGL version\n";
-    }
-
-
-    const auto glslVersion = gl.glGetString(GL_SHADING_LANGUAGE_VERSION);
-    if(glslVersion)
-    {
-        std::cerr << " GLSL  version : " << glslVersion << "\n";
-    }
-    else
-    {
-        std::cerr << "Failed to obtain GLSL version\n";
-    }
-
-    constexpr char ext_GL_ARB_shading_language_420pack[] = "GL_ARB_shading_language_420pack";
-    if(context->hasExtension(QByteArray(ext_GL_ARB_shading_language_420pack)))
-        std::cerr << ext_GL_ARB_shading_language_420pack << " is supported\n";
-    else
-        std::cerr << ext_GL_ARB_shading_language_420pack << " is NOT supported\n";
-
-    QOpenGLShaderProgram program;
-    program.addShaderFromSourceCode(QOpenGLShader::Vertex, 1+R"(
-#version 330
-in vec3 vertex;
-out vec3 position;
-void main()
-{
-    position=vertex;
-    gl_Position=vec4(position,1);
-}
-)");
-    auto files = app.arguments();
-    files.pop_front();
-    for(const auto file : files)
-    {
-        if(!program.addShaderFromSourceFile(QOpenGLShader::Fragment, file))
-        {
-            std::cerr << "Failed to compile " << file.toStdString() << "\n";
-            return 1;
-        }
-    }
-    if(!program.link())
-    {
-        std::cerr << "Failed to link\n";
-        return 1;
-    }
-    std::cout << "Success\n";
+    std::cout << "Succeeds on Intel: ";
+    runTest(false);
+    std::cout << "Fails on Intel   : ";
+    runTest(true);
 }
