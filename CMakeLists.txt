@@ -89,5 +89,9 @@ add_subdirectory(CalcMySky)
 add_subdirectory(ShowMySky)
 add_subdirectory(doc)
 
+add_executable(compile-and-link compile-and-link.cpp)
+target_link_libraries(compile-and-link PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets)
+install(TARGETS compile-and-link DESTINATION "${installBinDir}")
+
 enable_testing()
 add_subdirectory(tests)
