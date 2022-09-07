@@ -374,6 +374,7 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     auto shaderFileNames=getShaderFileNamesToLinkWith(mainSrcFileName);
     shaderFileNames.insert(mainSrcFileName);
 
+    std::vector<std::pair<QString, QString>> sourcesUsed;
     std::vector<std::unique_ptr<QOpenGLShader>> shaders;
     for(const auto& filename : shaderFileNames)
     {
@@ -382,6 +383,7 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
         program->addShader(shaders.back().get());
         if(sourcesToSave)
             sourcesToSave->push_back({filename, processedSource});
+        sourcesUsed.push_back({filename, processedSource});
     }
 
     shaders.emplace_back(compileShader(QOpenGLShader::Vertex, "shader.vert"));
@@ -397,9 +399,30 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     {
         // Qt prints linking errors to stderr, so don't print them again
         std::cerr << "Failed to link " << description << "\n";
-        std::cerr << "Names of shaders included in this program:\n";
-        for(const auto& name : shaderFileNames)
-            std::cerr << " - \"" << name << "\"\n";
+
+        const auto failedShadersOutputDir = atmo.textureOutputDir + "/failed-linking";
+        std::cerr << "Saving shaders included in the program into \"" << failedShadersOutputDir << "\":\n";
+        createDirs(failedShadersOutputDir);
+        for(const auto& [fileName, src] : sourcesUsed)
+        {
+            OutputIndentIncrease incr;
+            const auto filePath = QString::fromStdString(failedShadersOutputDir)+"/"+fileName;
+            std::cerr << indentOutput() << "- \"" << filePath << "\"... ";
+            QFile file(filePath);
+            if(!file.open(QFile::WriteOnly))
+            {
+                std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+                throw MustQuit{};
+            }
+            file.write(src.toUtf8());
+            file.flush();
+            if(file.error())
+            {
+                std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+                throw MustQuit{};
+            }
+            std::cerr << "done\n";
+        }
         throw MustQuit{};
     }
     return program;
