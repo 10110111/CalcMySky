@@ -112,27 +112,8 @@ std::pair<std::unique_ptr<QOffscreenSurface>, std::unique_ptr<QOpenGLContext>> i
 
     std::cerr << "OpenGL vendor  : " << gl.glGetString(GL_VENDOR) << "\n";
     std::cerr << "OpenGL renderer: " << gl.glGetString(GL_RENDERER) << "\n";
-
-    const auto openglVersion = gl.glGetString(GL_VERSION);
-    if(openglVersion)
-    {
-        std::cerr << "OpenGL version : " << openglVersion << "\n";
-    }
-    else
-    {
-        std::cerr << "Failed to obtain OpenGL version\n";
-    }
-
-
-    const auto glslVersion = gl.glGetString(GL_SHADING_LANGUAGE_VERSION);
-    if(glslVersion)
-    {
-        std::cerr << " GLSL  version : " << glslVersion << "\n";
-    }
-    else
-    {
-        std::cerr << "Failed to obtain GLSL version\n";
-    }
+    std::cerr << "OpenGL version : " << gl.glGetString(GL_VERSION) << "\n";
+    std::cerr << " GLSL  version : " << gl.glGetString(GL_SHADING_LANGUAGE_VERSION) << "\n";
 
     constexpr char ext_GL_ARB_shading_language_420pack[] = "GL_ARB_shading_language_420pack";
     if(context->hasExtension(QByteArray(ext_GL_ARB_shading_language_420pack)))
