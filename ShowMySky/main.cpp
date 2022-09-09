@@ -86,6 +86,21 @@ void handleCmdLine()
     {
         pathToData = posArgs[0];
     }
+
+    if(pathToData.endsWith('/')
+#ifdef Q_OS_WIN
+       || pathToData.endsWith('\\')
+#endif
+      )
+    {
+        // Let error and log messages containing paths be nicer:
+        //  * Avoid double slashes when concatenating the directory and a file;
+        //  * Use the same direction of slashes (forward) for the directory and subdirectories.
+        pathToData.chop(1);
+#ifdef Q_OS_WIN
+        pathToData.replace('\\','/');
+#endif
+    }
 }
 
 int main(int argc, char** argv)
