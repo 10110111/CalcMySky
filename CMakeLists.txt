@@ -35,33 +35,33 @@ else()
     message(FATAL_ERROR "QT_VERSION must be either 5 or 6")
 endif()
 
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # macOS architectures: x86_64 or arm64
-    IF(NOT CMAKE_OSX_ARCHITECTURES)
-        # find utilite 'lipo'
-        FIND_PROGRAM(LIPO_COMMAND lipo)
-        IF(LIPO_COMMAND)
-            MESSAGE(STATUS "Found lipo: ${LIPO_COMMAND}")
-            GET_TARGET_PROPERTY(QMAKE_LOCATION Qt${QT_VERSION}::qmake LOCATION)
-            # get architecture of Qt framework
-            EXECUTE_PROCESS(COMMAND ${LIPO_COMMAND} -archs ${QMAKE_LOCATION} TIMEOUT 30 OUTPUT_VARIABLE QT_ARCHS OUTPUT_STRIP_TRAILING_WHITESPACE)
-            STRING(REPLACE " " ";" QT_ARCHS ${QT_ARCHS})
-            SET(CMAKE_OSX_ARCHITECTURES "${QT_ARCHS}" CACHE STRING "macOS architectures" FORCE)
-        ELSE()
-            # current system's processor architecture
-            SET(CMAKE_OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}" CACHE STRING "macOS architectures" FORCE)
-        ENDIF()
-    ENDIF()
+    if(NOT CMAKE_OSX_ARCHITECTURES)
+        # Find 'lipo' utility
+        find_program(LIPO_COMMAND lipo)
+        if(LIPO_COMMAND)
+            message(STATUS "Found lipo: ${LIPO_COMMAND}")
+            get_target_property(QMAKE_LOCATION Qt${QT_VERSION}::qmake LOCATION)
+            # Get architecture of Qt
+            execute_process(COMMAND ${LIPO_COMMAND} -archs ${QMAKE_LOCATION} TIMEOUT 30 OUTPUT_VARIABLE QT_ARCHS OUTPUT_STRIP_TRAILING_WHITESPACE)
+            string(REPLACE " " ";" QT_ARCHS ${QT_ARCHS})
+            set(CMAKE_OSX_ARCHITECTURES "${QT_ARCHS}" CACHE STRING "macOS architectures" FORCE)
+        else()
+            # If we can't find architecture of Qt, use that of the host system's CPU
+            set(CMAKE_OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}" CACHE STRING "macOS architectures" FORCE)
+        endif()
+    endif()
     # macOS deployment targets
-    IF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        IF("${QT_VERSION}" STREQUAL 6)
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        if("${QT_VERSION}" STREQUAL 6)
             # Qt6: by default - universal binary + minimal operating system is macOS Big Sur
-            SET(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version" FORCE)
-        ELSE()
-            SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment version" FORCE)
-        ENDIF()
-    ENDIF()
-ENDIF()
+            set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version" FORCE)
+        else()
+            set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment version" FORCE)
+        endif()
+    endif()
+endif()
 
 find_package(Eigen3 REQUIRED)
 include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
