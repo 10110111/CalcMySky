@@ -2239,7 +2239,7 @@ void AtmosphereRenderer::resizeEvent(const int width, const int height)
     gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER,luminanceRadianceFBO_);
 
     GLint origTex=-1;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &origTex);
+    gl.glGetIntegerv(GL_TEXTURE_BINDING_2D, &origTex);
     luminanceRenderTargetTexture_.bind();
 
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
