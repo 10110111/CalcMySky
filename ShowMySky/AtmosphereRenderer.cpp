@@ -2234,12 +2234,20 @@ void AtmosphereRenderer::resizeEvent(const int width, const int height)
     viewportSize_=QSize(width,height);
     if(!luminanceRadianceFBO_) return;
 
+    GLint origFBO=-1;
+    gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &origFBO);
+    gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER,luminanceRadianceFBO_);
+
+    GLint origTex=-1;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &origTex);
     luminanceRenderTargetTexture_.bind();
+
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,luminanceRadianceFBO_);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,luminanceRenderTargetTexture_.textureId(),0);
     checkFramebufferStatus(gl, "Atmosphere renderer FBO");
-    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+
+    gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, origFBO);
+    gl.glBindTexture(GL_TEXTURE_2D, origTex);
 
     if(!radianceRenderBuffers_.empty())
     {
