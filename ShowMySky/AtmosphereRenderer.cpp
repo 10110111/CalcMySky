@@ -1371,14 +1371,14 @@ double AtmosphereRenderer::cameraMoonDistance() const
 QVector4D AtmosphereRenderer::getPixelLuminance(QPoint const& pixelPos)
 {
     GLint origFBO=-1;
-    gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &origFBO);
+    gl.glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &origFBO);
 
-    gl.glBindFramebuffer(GL_FRAMEBUFFER, luminanceRadianceFBO_);
+    gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, luminanceRadianceFBO_);
     gl.glReadBuffer(GL_COLOR_ATTACHMENT0);
     glm::vec4 pixel;
     gl.glReadPixels(pixelPos.x(), viewportSize_.height()-pixelPos.y()-1, 1,1, GL_RGBA, GL_FLOAT, &pixel[0]);
 
-    gl.glBindFramebuffer(GL_FRAMEBUFFER, origFBO);
+    gl.glBindFramebuffer(GL_READ_FRAMEBUFFER, origFBO);
 
     return toQVector(pixel);
 }
@@ -2002,7 +2002,7 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
     gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFBO);
 
     {
-        gl.glBindFramebuffer(GL_FRAMEBUFFER,luminanceRadianceFBO_);
+        gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER,luminanceRadianceFBO_);
         if(canGrabRadiance())
         {
             prepareRadianceFrames(clear);
@@ -2028,7 +2028,7 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
         }
         gl.glDisablei(GL_BLEND, 0);
 
-        gl.glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
+        gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER,targetFBO);
     }
 }
 
