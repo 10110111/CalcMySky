@@ -3,13 +3,13 @@ if(WIN32)
 endif()
 
 add_definitions(-D_USE_MATH_DEFINES)
-add_library(ShowMySky SHARED
+add_library(ShowMySky-Qt${QT_VERSION} SHARED
              api/AtmosphereRenderer.cpp
              AtmosphereRenderer.cpp
              util.cpp
              "${CMAKE_BINARY_DIR}/config.h")
-target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
-target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version common)
+target_compile_definitions(ShowMySky-Qt${QT_VERSION} PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
+target_link_libraries(ShowMySky-Qt${QT_VERSION} PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version common)
 
 set(showmyskyTarget showmysky-cmd)
 
@@ -42,13 +42,13 @@ if(WIN32)
 endif()
 
 install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
-install(TARGETS ShowMySky
-        EXPORT ShowMySkyConfig
+install(TARGETS ShowMySky-Qt${QT_VERSION}
+        EXPORT ShowMySky-Qt${QT_VERSION}Config
         LIBRARY DESTINATION "${installLibDir}"
         RUNTIME DESTINATION "${installLibDir}"
         ARCHIVE DESTINATION "${installLibDir}"
         INCLUDES DESTINATION "${installIncDir}"
         )
-export(TARGETS ShowMySky NAMESPACE ShowMySky:: FILE "${CMAKE_CURRENT_BINARY_DIR}/ShowMySkyConfig.cmake")
-install(EXPORT ShowMySkyConfig NAMESPACE ShowMySky:: DESTINATION "${installConfDir}/ShowMySky/cmake")
+export(TARGETS ShowMySky-Qt${QT_VERSION} NAMESPACE ShowMySky:: FILE "${CMAKE_CURRENT_BINARY_DIR}/ShowMySky-Qt${QT_VERSION}Config.cmake")
+install(EXPORT ShowMySky-Qt${QT_VERSION}Config NAMESPACE ShowMySky:: DESTINATION "${installConfDir}/ShowMySky-Qt${QT_VERSION}/cmake")
 install(FILES api/Exception.hpp api/AtmosphereRenderer.hpp api/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")
