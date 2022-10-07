@@ -8,8 +8,11 @@ add_library(ShowMySky SHARED
              AtmosphereRenderer.cpp
              util.cpp
              "${CMAKE_BINARY_DIR}/config.h")
-set_target_properties(ShowMySky PROPERTIES VERSION ${CMAKE_PROJECT_VERSION}
-                      SOVERSION ${PROJECT_VERSION_MAJOR})
+file(READ api/AtmosphereRenderer.hpp rendererHeader)
+string(REGEX MATCH "#define ShowMySky_ABI_version [0-9]+\n" abiVersionLine "${rendererHeader}")
+string(REGEX REPLACE "#define ShowMySky_ABI_version ([0-9]+)\n" "\\1" abiVersion "${abiVersionLine}")
+message("++ ABI version: ${abiVersion}")
+set_target_properties(ShowMySky PROPERTIES VERSION ${abiVersion}.0.0 SOVERSION ${abiVersion})
 target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
 target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version common)
 set_target_properties(ShowMySky PROPERTIES OUTPUT_NAME ShowMySky-Qt${QT_VERSION})

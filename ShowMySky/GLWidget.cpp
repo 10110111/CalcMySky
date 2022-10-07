@@ -156,7 +156,7 @@ void GLWidget::initializeGL()
     {
         if(!ShowMySky_AtmosphereRenderer_create)
         {
-            QLibrary showMySky(SHOWMYSKY_LIB_NAME);
+            QLibrary showMySky(SHOWMYSKY_LIB_NAME, ShowMySky_ABI_version);
             if(!showMySky.load())
                 throw DataLoadError(tr("Failed to load ShowMySky library"));
             const auto abi=reinterpret_cast<const quint32*>(showMySky.resolve("ShowMySky_ABI_version"));

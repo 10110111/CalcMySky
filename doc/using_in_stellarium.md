@@ -29,8 +29,6 @@ On GNU/Linux systems `libShowMySky.so` should usually be under `/usr/lib` or `/u
 
 On Windows systems the library should either be in the same directory as `Stellarium.exe`, or the directory containing `ShowMySky.dll` should be listed in the `PATH` environment variable.
 
-### ABI version of ShowMySky library is 500000013, but this program has been compiled against version 600000013.
+### ABI version of ShowMySky library is 14, but this program has been compiled against version 13.
 
-ABI version is composed of two parts: highest digit denotes the major version of Qt framework that was used to compile `ShowMySky` library: Qt5 or Qt6. If it doesn't match the one used to compile Stellarium, you'll get such an error with 5xxxxxxxx vs 6xxxxxxxx mismatch. Both Stellarium and the `ShowMySky` library must use the same major version of Qt.
-
-The second part of the ABI version, the digits after the highest one, depend on the version of `CalcMySky` package. If the `ShowMySky` library has larger value in this part of the ABI version, then Stellarium needs to be recompiled to use it. Otherwise you may need to upgrade the library.
+If the `ShowMySky` library has larger value of the ABI version, then Stellarium needs to be recompiled to use it. Otherwise you may need to upgrade the library. A special case is when the ABI version is larger than 500000000. This corresponds to an older versioning scheme. In this case the highest digit should be omitted when comparing versions.

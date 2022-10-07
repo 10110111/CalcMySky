@@ -7,7 +7,7 @@ To use ShowMySky from your C++ application, you need to do the following.
 ## Initializing atmosphere renderer
 
 1. **Include the header.** In the C++ source include [<code>\<ShowMySky/AtmosphereRenderer.hpp\></code>](api_2AtmosphereRenderer_8hpp.html) to get access to the relevant classes.
-2. **Load ShowMySky library.** This can be done either by linking to it directly as a usual shared object, or by `dlopen`/`LoadLibrary[Ex]`/`QLibrary::load` etc. The name of the library to load is in the #SHOWMYSKY_LIB_NAME macro.
+2. **Load ShowMySky library.** This can be done either by linking to it directly as a usual shared object, or by `dlopen`/`LoadLibrary[Ex]`/`QLibrary::load` etc. The name of the library to load is in the #SHOWMYSKY_LIB_NAME macro. Use #ShowMySky_ABI_version as the soversion (the second parameter of `QLibrary` constructor).
 3. **Check ABI verison.** To do this, find a symbol named `ShowMySky_ABI_version` of type `uint32_t` in the loaded library (via `dlsym`/`GetProcAddress`/`QLibrary::resolve` etc.), compare its value with #ShowMySky_ABI_version macro defined in the header included in step 1. If it doesn't match, the library is incompatible with the header, use of such a library has undefined behavior.
 4. **Locate API entry point.** If ABI version is validated successfully in step 3, then find a symbol named #ShowMySky_AtmosphereRenderer_create with the function-pointer type `decltype(ShowMySky_AtmosphereRenderer_create)`.
 5. **Create the settings object.** To provide the renderer with the necessary settings, ShowMySky uses a helper interface, #ShowMySky::Settings. This interface must be implemented by some object in the application. A pointer to this object will later be supplied to the constructor of the renderer.
