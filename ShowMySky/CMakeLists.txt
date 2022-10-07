@@ -8,6 +8,8 @@ add_library(ShowMySky SHARED
              AtmosphereRenderer.cpp
              util.cpp
              "${CMAKE_BINARY_DIR}/config.h")
+set_target_properties(ShowMySky PROPERTIES VERSION ${CMAKE_PROJECT_VERSION}
+                      SOVERSION ${PROJECT_VERSION_MAJOR})
 target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
 target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version common)
 
