@@ -7,8 +7,8 @@ add_library(ShowMySky SHARED
              api/AtmosphereRenderer.cpp
              AtmosphereRenderer.cpp
              util.cpp
-             "${CMAKE_BINARY_DIR}/config.h")
-file(READ api/AtmosphereRenderer.hpp rendererHeader)
+             "${PROJECT_BINARY_DIR}/config.h")
+file(READ api/ShowMySky/AtmosphereRenderer.hpp rendererHeader)
 string(REGEX MATCH "#define ShowMySky_ABI_version [0-9]+\n" abiVersionLine "${rendererHeader}")
 string(REGEX REPLACE "#define ShowMySky_ABI_version ([0-9]+)\n" "\\1" abiVersion "${abiVersionLine}")
 message("++ ABI version: ${abiVersion}")
@@ -16,6 +16,9 @@ set_target_properties(ShowMySky PROPERTIES VERSION ${abiVersion}.0.0 SOVERSION $
 target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
 target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version common)
 set_target_properties(ShowMySky PROPERTIES OUTPUT_NAME ShowMySky-Qt${QT_VERSION})
+
+add_library(ShowMySky::ShowMySky ALIAS ShowMySky)
+target_include_directories(ShowMySky PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api>)
 
 set(showmyskyTarget showmysky-cmd)
 
@@ -57,4 +60,4 @@ install(TARGETS ShowMySky
         )
 export(TARGETS ShowMySky NAMESPACE ShowMySky:: FILE "${CMAKE_CURRENT_BINARY_DIR}/ShowMySky-Qt${QT_VERSION}Config.cmake")
 install(EXPORT ShowMySky-Qt${QT_VERSION}Config NAMESPACE ShowMySky:: DESTINATION "${installConfDir}/ShowMySky-Qt${QT_VERSION}/cmake")
-install(FILES api/Exception.hpp api/AtmosphereRenderer.hpp api/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")
+install(FILES api/ShowMySky/Exception.hpp api/ShowMySky/AtmosphereRenderer.hpp api/ShowMySky/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")

@@ -17,7 +17,7 @@
 
 #include "data.hpp"
 #include "util.hpp"
-#include "../ShowMySky/api/AtmosphereRenderer.hpp"
+#include "../ShowMySky/api/ShowMySky/AtmosphereRenderer.hpp"
 
 namespace
 {

@@ -5,7 +5,7 @@ add_executable(calcmysky
                 cmdline.cpp
                 shaders.cpp
                 interpolation-guides.cpp
-                "${CMAKE_BINARY_DIR}/config.h")
+                "${PROJECT_BINARY_DIR}/config.h")
 target_compile_definitions(calcmysky PRIVATE -DSHOWMYSKY_COMPILING_CALCMYSKY)
 target_link_libraries(calcmysky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE version common)
 

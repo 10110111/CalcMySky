@@ -1,7 +1,7 @@
 #ifndef INCLUDE_ONCE_02040F35_0604_4759_A47D_71849AAC953D
 #define INCLUDE_ONCE_02040F35_0604_4759_A47D_71849AAC953D
 
-/** \file ShowMySky/api/AtmosphereRenderer.hpp */
+/** \file ShowMySky/api/ShowMySky/AtmosphereRenderer.hpp */
 
 #include <memory>
 #include <functional>

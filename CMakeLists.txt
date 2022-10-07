@@ -100,11 +100,11 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}"
 # The first command is a dummy, it doesn't actually create its output: it's
 # only needed to force re-running of version.sh for the case when we've changed
 # the version but didn't touch other dependencies.
-add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/check version update" COMMAND true)
-add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/version.cpp"
-                   DEPENDS "${CMAKE_BINARY_DIR}/check version update"
-                   COMMAND "${CMAKE_SOURCE_DIR}/version.sh" "${staticProjectVersion}" "${CMAKE_SOURCE_DIR}/version.cpp.in" "${CMAKE_BINARY_DIR}/version.cpp")
-add_library(version STATIC "${CMAKE_BINARY_DIR}/version.cpp")
+add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/check version update" COMMAND true)
+add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/version.cpp"
+                   DEPENDS "${PROJECT_BINARY_DIR}/check version update"
+                   COMMAND "${PROJECT_SOURCE_DIR}/version.sh" "${staticProjectVersion}" "${PROJECT_SOURCE_DIR}/version.cpp.in" "${PROJECT_BINARY_DIR}/version.cpp")
+add_library(version STATIC "${PROJECT_BINARY_DIR}/version.cpp")
 add_library(common STATIC
              common/EclipsedDoubleScatteringPrecomputer.cpp
              common/AtmosphereParameters.cpp

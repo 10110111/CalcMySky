@@ -12,7 +12,7 @@
 #include <QOpenGLFunctions_3_3_Core>
 #include "../common/types.hpp"
 #include "../common/AtmosphereParameters.hpp"
-#include "api/AtmosphereRenderer.hpp"
+#include "api/ShowMySky/AtmosphereRenderer.hpp"
 
 class AtmosphereRenderer : public ShowMySky::AtmosphereRenderer
 {

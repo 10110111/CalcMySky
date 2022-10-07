@@ -1,4 +1,4 @@
-#include "AtmosphereRenderer.hpp"
+#include "ShowMySky/AtmosphereRenderer.hpp"
 #include "../AtmosphereRenderer.hpp"
 
 constexpr quint32 abi=ShowMySky_ABI_version;

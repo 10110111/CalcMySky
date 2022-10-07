@@ -8,7 +8,7 @@
 #include <QVector4D>
 #include <QGenericMatrix>
 #include <QOpenGLFunctions_3_3_Core>
-#include "../ShowMySky/api/Exception.hpp"
+#include "../ShowMySky/api/ShowMySky/Exception.hpp"
 
 #define DEFINE_EXPLICIT_BOOL(Type)          \
 struct Type                                 \
