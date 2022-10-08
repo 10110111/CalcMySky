@@ -816,7 +816,7 @@ WARN_LOGFILE           =
 INPUT                  = @CMAKE_SOURCE_DIR@/common \
                          @CMAKE_SOURCE_DIR@/CalcMySky \
                          @CMAKE_SOURCE_DIR@/ShowMySky \
-                         @CMAKE_SOURCE_DIR@/ShowMySky/api \
+                         @CMAKE_SOURCE_DIR@/ShowMySky/api/ShowMySky \
                          @CMAKE_SOURCE_DIR@/doc
 
 # This tag can be used to specify the character encoding of the source files
