@@ -295,11 +295,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
  *
  * This is the name that should be passed to dlopen-like functions. Use this macro for portability instead of hard-coding a string.
  */
-#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
-# define SHOWMYSKY_LIB_NAME "ShowMySky-Qt5"
-#else
-# define SHOWMYSKY_LIB_NAME "ShowMySky-Qt6"
-#endif
+#define SHOWMYSKY_LIB_NAME (QT_VERSION_MAJOR==5 ? "ShowMySky-Qt5" : "ShowMySky-Qt6")
 }
 
 #endif
