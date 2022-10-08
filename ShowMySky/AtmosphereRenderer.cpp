@@ -2227,9 +2227,16 @@ void AtmosphereRenderer::drawSurface(QOpenGLShaderProgram& prog)
     drawSurfaceCallback(prog);
 }
 
-void AtmosphereRenderer::resizeEvent(const int width, const int height)
+void AtmosphereRenderer::resizeEvent(int width, int height)
 {
     OGL_TRACE();
+
+    if(width<=0 || height<=0)
+    {
+        qWarning().nospace() << "AtmosphereRenderer::resizeEvent(" << width << ", " << height << "): non-positive-area framebuffer specified";
+        width  = std::max(1, width);
+        height = std::max(1, height);
+    }
 
     viewportSize_=QSize(width,height);
     if(!luminanceRadianceFBO_) return;
