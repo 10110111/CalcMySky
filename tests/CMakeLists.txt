@@ -13,4 +13,9 @@ endforeach()
 add_executable(test-Spline-interpolation test-Spline-interpolation.cpp)
 add_test(NAME "\"Spline interpolation\"" COMMAND test-Spline-interpolation)
 
+add_executable(test-exception-catch test-exception-catch.cpp)
+target_link_libraries(test-exception-catch PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::Widgets Qt${QT_VERSION}::OpenGL)
+target_compile_definitions(test-exception-catch PRIVATE -DLIBRARY_FILE_PATH="$<TARGET_FILE:ShowMySky>")
+add_test(NAME "\"Catching exceptions from libShowMySky\"" COMMAND test-exception-catch)
+
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --verbose)
