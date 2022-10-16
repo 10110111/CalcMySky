@@ -2036,6 +2036,9 @@ void AtmosphereRenderer::setupRenderTarget()
 {
     OGL_TRACE();
 
+    GLint origFBO=-1;
+    gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &origFBO);
+
     gl.glGenFramebuffers(1,&luminanceRadianceFBO_);
     luminanceRenderTargetTexture_.setMinificationFilter(QOpenGLTexture::Nearest);
     luminanceRenderTargetTexture_.setMagnificationFilter(QOpenGLTexture::Nearest);
@@ -2053,7 +2056,7 @@ void AtmosphereRenderer::setupRenderTarget()
         gl.glBindRenderbuffer(GL_RENDERBUFFER, viewDirectionRenderBuffer_);
         gl.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, 1, 1); // dummy size just to initialize the renderbuffer
         gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, viewDirectionRenderBuffer_);
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, origFBO);
         gl.glBindRenderbuffer(GL_RENDERBUFFER, 0);
     }
 
@@ -2091,7 +2094,7 @@ void AtmosphereRenderer::setupRenderTarget()
     gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseDoubleScatteringPrecomputationFBO_);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),0);
     checkFramebufferStatus(gl, "Eclipsed double scattering precomputation FBO");
-    gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    gl.glBindFramebuffer(GL_FRAMEBUFFER, origFBO);
 
     GLint viewport[4];
     gl.glGetIntegerv(GL_VIEWPORT, viewport);
