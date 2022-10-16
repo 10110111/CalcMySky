@@ -2052,11 +2052,11 @@ void AtmosphereRenderer::setupRenderTarget()
 
         gl.glGenFramebuffers(1, &viewDirectionFBO_);
         gl.glGenRenderbuffers(1, &viewDirectionRenderBuffer_);
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, viewDirectionFBO_);
+        gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, viewDirectionFBO_);
         gl.glBindRenderbuffer(GL_RENDERBUFFER, viewDirectionRenderBuffer_);
         gl.glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, 1, 1); // dummy size just to initialize the renderbuffer
-        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, viewDirectionRenderBuffer_);
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, origFBO);
+        gl.glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, viewDirectionRenderBuffer_);
+        gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, origFBO);
         gl.glBindRenderbuffer(GL_RENDERBUFFER, 0);
     }
 
@@ -2091,10 +2091,10 @@ void AtmosphereRenderer::setupRenderTarget()
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,
                     params_.eclipseAngularIntegrationPoints, params_.radialIntegrationPoints,
                     0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseDoubleScatteringPrecomputationFBO_);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),0);
+    gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, eclipseDoubleScatteringPrecomputationFBO_);
+    gl.glFramebufferTexture(GL_DRAW_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),0);
     checkFramebufferStatus(gl, "Eclipsed double scattering precomputation FBO");
-    gl.glBindFramebuffer(GL_FRAMEBUFFER, origFBO);
+    gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, origFBO);
 
     GLint viewport[4];
     gl.glGetIntegerv(GL_VIEWPORT, viewport);
@@ -2253,7 +2253,7 @@ void AtmosphereRenderer::resizeEvent(int width, int height)
     luminanceRenderTargetTexture_.bind();
 
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
-    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,luminanceRenderTargetTexture_.textureId(),0);
+    gl.glFramebufferTexture(GL_DRAW_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,luminanceRenderTargetTexture_.textureId(),0);
     checkFramebufferStatus(gl, "Atmosphere renderer FBO");
 
     gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, origFBO);
