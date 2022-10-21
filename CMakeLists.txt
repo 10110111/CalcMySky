@@ -15,6 +15,7 @@ endif()
 if(MSVC)
     set(CMAKE_CXX_FLAGS "/wd4267 /wd4305 /wd4244 ${CMAKE_CXX_FLAGS}")
 endif()
+include(cmake/CPM.cmake)
 include(cmake/CheckGLM.cmake)
 
 set(CMAKE_AUTOMOC ON)
@@ -110,7 +111,8 @@ add_library(common STATIC
              common/AtmosphereParameters.cpp
              common/Spectrum.cpp
              common/util.cpp)
-target_link_libraries(common PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets)
+target_link_libraries(common PUBLIC Qt${QT_VERSION}::Core
+	Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE glm::glm)
 
 configure_file(config.h.in config.h)
 add_subdirectory(CalcMySky)

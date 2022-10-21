@@ -7,6 +7,8 @@ add_executable(calcmysky
                 interpolation-guides.cpp
                 "${PROJECT_BINARY_DIR}/config.h")
 target_compile_definitions(calcmysky PRIVATE -DSHOWMYSKY_COMPILING_CALCMYSKY)
-target_link_libraries(calcmysky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE version common)
+target_link_libraries(calcmysky PUBLIC Qt${QT_VERSION}::Core
+	Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE version common
+	glm::glm)
 
 install(TARGETS calcmysky DESTINATION "${installBinDir}")
