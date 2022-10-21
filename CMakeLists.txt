@@ -5,6 +5,7 @@ endif()
 
 set(staticProjectVersion 0.1.0)
 project(CalcMySky VERSION ${staticProjectVersion} LANGUAGES CXX)
+set(CMAKE_FIND_USE_PACKAGE_REGISTRY false)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -64,8 +65,17 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     endif()
 endif()
 
-find_package(Eigen3 REQUIRED)
-include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
+CPMFindPackage(NAME Eigen3
+	URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.bz2
+	URL_HASH SHA256=b4c198460eba6f28d34894e3a5710998818515104d6e74e5cc331ce31e46e626
+	EXCLUDE_FROM_ALL yes
+	DOWNLOAD_ONLY yes
+	OPTIONS "EIGEN_BUILD_DOC no" "BUILD_TESTING no")
+if(Eigen3_ADDED)
+	# Eigen3's CMakeLists.txt works, but is very heavy
+	add_library(Eigen3::Eigen IMPORTED INTERFACE)
+	target_include_directories(Eigen3::Eigen INTERFACE ${Eigen3_SOURCE_DIR})
+endif()
 include_directories(${CMAKE_BINARY_DIR})
 
 if(WIN32)
@@ -112,7 +122,8 @@ add_library(common STATIC
              common/Spectrum.cpp
              common/util.cpp)
 target_link_libraries(common PUBLIC Qt${QT_VERSION}::Core
-	Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE glm::glm)
+	Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE glm::glm
+	Eigen3::Eigen)
 
 configure_file(config.h.in config.h)
 add_subdirectory(CalcMySky)

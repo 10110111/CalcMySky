@@ -19,5 +19,6 @@ if(GLM_WORKS)
 else()
 	CPMAddPackage(NAME glm
 		URL https://github.com/g-truc/glm/releases/download/0.9.9.8/glm-0.9.9.8.7z
-		URL_HASH SHA256=46d3ec588aaf270dab3ee0a2c70eb67aae7e6d245e067c412c1ef32070ad9299)
+		URL_HASH SHA256=46d3ec588aaf270dab3ee0a2c70eb67aae7e6d245e067c412c1ef32070ad9299
+		EXCLUDE_FROM_ALL yes)
 endif()
