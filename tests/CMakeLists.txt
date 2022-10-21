@@ -6,12 +6,14 @@ foreach(testNum RANGE 1 4)
 endforeach()
 
 add_executable(test-Fourier-interpolation test-Fourier-interpolation.cpp)
+target_link_libraries(test-Fourier-interpolation Eigen3::Eigen)
 foreach(testId "identity transformation" "integral upsampling" "fractional upsampling")
     add_test(NAME "\"Fourier interpolation,  odd-length input, ${testId}\"" COMMAND test-Fourier-interpolation ${testId} odd)
     add_test(NAME "\"Fourier interpolation, even-length input, ${testId}\"" COMMAND test-Fourier-interpolation ${testId} even)
 endforeach()
 
 add_executable(test-Spline-interpolation test-Spline-interpolation.cpp)
+target_link_libraries(test-Spline-interpolation Eigen3::Eigen)
 add_test(NAME "\"Spline interpolation\"" COMMAND test-Spline-interpolation)
 
 add_executable(test-exception-catch test-exception-catch.cpp)
