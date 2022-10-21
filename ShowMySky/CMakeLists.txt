@@ -14,7 +14,8 @@ string(REGEX REPLACE "#define ShowMySky_ABI_version ([0-9]+)\n" "\\1" abiVersion
 message(STATUS "ABI version: ${abiVersion}")
 set_target_properties(ShowMySky PROPERTIES VERSION ${abiVersion}.0.0 SOVERSION ${abiVersion})
 target_compile_definitions(ShowMySky PRIVATE -DSHOWMYSKY_COMPILING_SHARED_LIB)
-target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::OpenGL PRIVATE version common)
+target_link_libraries(ShowMySky PUBLIC Qt${QT_VERSION}::Core
+	Qt${QT_VERSION}::OpenGL PRIVATE version common glm::glm)
 set_target_properties(ShowMySky PROPERTIES OUTPUT_NAME ShowMySky-Qt${QT_VERSION})
 
 add_library(ShowMySky::ShowMySky ALIAS ShowMySky)
@@ -39,7 +40,9 @@ add_executable(${showmyskyTarget}
                 RadiancePlot.cpp
                 DockScrollArea.cpp
               )
-target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::Core Qt${QT_VERSION}::Widgets Qt${QT_VERSION}::OpenGL PRIVATE version common)
+target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::Core
+	Qt${QT_VERSION}::Widgets Qt${QT_VERSION}::OpenGL PRIVATE version common
+	glm::glm)
 if(${QT_VERSION} STREQUAL 6)
     target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::OpenGLWidgets)
 endif()
