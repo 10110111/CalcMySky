@@ -109,12 +109,17 @@ endif()
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")
 
 # The first command is a dummy, it doesn't actually create its output: it's
-# only needed to force re-running of version.sh for the case when we've changed
+# only needed to force re-running of gen_version.cmake for the case when we've changed
 # the version but didn't touch other dependencies.
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/check version update" COMMAND true)
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/version.cpp"
-                   DEPENDS "${PROJECT_BINARY_DIR}/check version update"
-                   COMMAND "${PROJECT_SOURCE_DIR}/version.sh" "${staticProjectVersion}" "${PROJECT_SOURCE_DIR}/version.cpp.in" "${PROJECT_BINARY_DIR}/version.cpp")
+	DEPENDS "${PROJECT_BINARY_DIR}/check version update"
+	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+	COMMAND "${CMAKE_COMMAND}"
+		-D "staticVersion=${staticProjectVersion}"
+		-D "inputFile=${PROJECT_SOURCE_DIR}/version.cpp.in"
+		-D "outputFile=${PROJECT_BINARY_DIR}/version.cpp"
+		-P "${PROJECT_SOURCE_DIR}/cmake/gen_version.cmake")
 add_library(version STATIC "${PROJECT_BINARY_DIR}/version.cpp")
 add_library(common STATIC
              common/EclipsedDoubleScatteringPrecomputer.cpp
