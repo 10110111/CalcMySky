@@ -51,28 +51,11 @@ for:
   install:
   # Make sure we get the bash that comes with git, not WSL bash
     - ps: $env:Path = "C:\msys64\bin;C:\Program Files\Git\bin;$env:Path"
-  # Get and extract GLM
-    - ps: new-item -itemtype directory -path C:\glm | out-null
-    - ps: (new-object net.webclient).DownloadFile("https://github.com/g-truc/glm/releases/download/0.9.9.7/glm-0.9.9.7.zip", 'C:/glm.zip')
-    - ps: expand-archive 'C:/glm.zip' -destinationpath 'C:\'
-  # Get and extract Eigen
-    - ps: new-item -itemtype directory -path C:\eigen | out-null
-    - ps: (new-object net.webclient).DownloadFile("https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.zip", 'C:/eigen-src.zip')
-    - ps: expand-archive 'C:/eigen-src.zip' -destinationpath 'C:\'
-  # Install Eigen into its final prefix
-    - cd C:\eigen-3.3.7
-  # The following commented out command is toooo sloooow at the configuration stage. So we install the
-  # headers manually, and also create a simple CMake config file that's sufficient for our needs.
-  # Use this general command if you need to use newer Eigen version or if our config file ceases to be not sufficient:
-  #  - mkdir build && cd build && cmake -G "%CMAKE_GENERATOR%" -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=C:/eigen .. && cmake --build . --target install
-    - bash -c "mkdir -pv /c/eigen/{include/eigen3,share/eigen3/cmake}"
-    - bash -c "find Eigen unsupported/Eigen -not -name '*.txt' | tar cf - -T - | tar xf - -C /c/eigen/include/eigen3"
-    - bash -c "echo $'find_path(EIGEN3_INCLUDE_DIR Eigen/Core PATHS c:/eigen/include/eigen3)\nif(EIGEN3_INCLUDE_DIR)\nset(Eigen3_FOUND 1)\nelse()\nset(Eigen3_FOUND 0)\nendif()\n' > /c/eigen/share/eigen3/cmake/Eigen3Config.cmake"
 
   before_build:
     - cd C:/projects && mkdir build && mkdir install && cd build
     - set PATH=%QT_BASEDIR%\bin;%PATH%
-    - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR% %CMAKE_ARGS%
+    - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR% %CMAKE_ARGS%
 
   build_script:
     - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
@@ -131,12 +114,10 @@ for:
   matrix:
     only:
       - APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-  install:
-    - brew install glm eigen
   before_build:
     - cd ~/projects/ && mkdir build && cd build
     - export PATH=$QT_BASEDIR/bin:$PATH
-    - cmake ../calcmysky -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" -DQT_VERSION=$QT_VERSION_MAJOR -DCMAKE_PREFIX_PATH="$(echo /usr/local/Cellar/eigen/*/share/eigen3/cmake)" -DCMAKE_CXX_FLAGS="-I$(echo /usr/local/Cellar/glm/*/include) -Wno-string-plus-int"
+    - cmake ../calcmysky -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" -DQT_VERSION=$QT_VERSION_MAJOR -DCMAKE_CXX_FLAGS="-Wno-string-plus-int"
   build_script:
     - cmake --build .
   test_script:
