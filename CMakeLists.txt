@@ -77,7 +77,7 @@ if(Eigen3_ADDED)
 	add_library(Eigen3::Eigen IMPORTED INTERFACE)
 	target_include_directories(Eigen3::Eigen INTERFACE ${Eigen3_SOURCE_DIR})
 endif()
-include_directories(${CMAKE_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 if(WIN32 AND (NOT MINGW))
     set(shadersDestPath "${CMAKE_PROJECT_NAME}")
@@ -107,7 +107,7 @@ else()
     set(installIncDir "${CMAKE_INSTALL_INCLUDEDIR}")
 endif()
 
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")
 
 # The first command is a dummy, it doesn't actually create its output: it's
 # only needed to force re-running of gen_version.cmake for the case when we've changed
