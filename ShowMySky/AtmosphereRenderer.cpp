@@ -2147,6 +2147,61 @@ int AtmosphereRenderer::initDataLoading(QByteArray viewDirVertShaderSrc, QByteAr
     return totalLoadingStepsToDo_;
 }
 
+void AtmosphereRenderer::setViewDirShaders(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
+                                           std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations)
+{
+    viewDirVertShaderSrc_ = viewDirVertShaderSrc;
+    viewDirFragShaderSrc_ = viewDirFragShaderSrc;
+
+    std::unique_ptr<QOpenGLShader> newVertShader(new QOpenGLShader(QOpenGLShader::Vertex));
+    std::unique_ptr<QOpenGLShader> newFragShader(new QOpenGLShader(QOpenGLShader::Fragment));
+
+    if(!newVertShader->compileSourceCode(viewDirVertShaderSrc_))
+        throw DataLoadError{QObject::tr("Failed to compile view direction vertex shader:\n%2").arg(viewDirVertShader_->log())};
+    if(!newFragShader->compileSourceCode(viewDirFragShaderSrc_))
+        throw DataLoadError{QObject::tr("Failed to compile view direction fragment shader:\n%2").arg(viewDirFragShader_->log())};
+
+    const auto replaceShaders = [oldVert=viewDirVertShader_.get(),
+                                 oldFrag=viewDirFragShader_.get(),
+                                 newVert=newVertShader.get(),
+                                 newFrag=newFragShader.get()](QOpenGLShaderProgram& prog, QString const& name)
+                                {
+                                    prog.removeShader(oldVert);
+                                    prog.removeShader(oldFrag);
+                                    prog.addShader(newVert);
+                                    prog.addShader(newFrag);
+                                    link(prog, name);
+                                };
+
+    for(const auto& map : singleScatteringPrograms_)
+        for(auto& item : *map)
+            for(auto& prog : item.second)
+                replaceShaders(*prog, QObject::tr("single scattering shader program"));
+
+    for(const auto& map : eclipsedSingleScatteringPrograms_)
+        for(auto& item : *map)
+            for(auto& prog : item.second)
+                replaceShaders(*prog, QObject::tr("eclipsed single scattering shader program"));
+
+    for(const auto& prog : eclipsedDoubleScatteringPrecomputedPrograms_)
+        replaceShaders(*prog, QObject::tr("eclipsed double scattering shader program"));
+    for(const auto& prog : lightPollutionPrograms_)
+        replaceShaders(*prog, QObject::tr("light pollution shader program"));
+    for(const auto& prog : zeroOrderScatteringPrograms_)
+        replaceShaders(*prog, QObject::tr("zero-order scattering shader program"));
+    for(const auto& prog : eclipsedZeroOrderScatteringPrograms_)
+        replaceShaders(*prog, QObject::tr("eclipsed zero-order scattering shader program"));
+    for(const auto& prog : multipleScatteringPrograms_)
+        replaceShaders(*prog, QObject::tr("multiple scattering shader program"));
+
+    replaceShaders(*viewDirectionGetterProgram_, QObject::tr("view direction getter shader program"));
+
+    viewDirVertShader_ = std::move(newVertShader);
+    viewDirFragShader_ = std::move(newFragShader);
+    viewDirBindAttribLocations_ = std::move(viewDirBindAttribLocations);
+
+}
+
 auto AtmosphereRenderer::stepDataLoading() -> LoadingStatus
 {
     OGL_TRACE();
