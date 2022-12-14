@@ -111,7 +111,7 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}"
 # The first command is a dummy, it doesn't actually create its output: it's
 # only needed to force re-running of gen_version.cmake for the case when we've changed
 # the version but didn't touch other dependencies.
-add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/check version update" COMMAND true)
+add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/check version update" COMMAND $<IF:$<BOOL:${WIN32}>,echo.,true>)
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/version.cpp"
 	DEPENDS "${PROJECT_BINARY_DIR}/check version update"
 	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
