@@ -92,10 +92,12 @@ public:
      * \param viewDirVertShaderSrc a vertex shader that will be used by all the shader programs that implement the atmosphere model;
      * \param viewDirFragShaderSrc a fragment shader that implements \c calcViewDir function;
      * \param viewDirBindAttribLocations locations of vertex attributes necessary to render the screen surface. Each \c pair consists of an attribute name and its location.
+     * \param numberOfViewDirTextures number of textures necessary to get view direction. The surface draw callback should assign them to samplers starting from 0th.
      * \return Total number of loading steps to complete the loading.
      */
     virtual int initDataLoading(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                                std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations={}) = 0;
+                                std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations = {},
+                                unsigned numberOfViewDirTextures = 0) = 0;
     /**
      * \brief Replace the current view direction shaders with a new set.
      *
@@ -299,7 +301,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
  *
  * If the value of the symbol doesn't match the value of this constant, the library loaded is incompatible with the header against which the binary was compiled. Mixing incompatible header and library leads to undefined behavior.
  */
-#define ShowMySky_ABI_version 15
+#define ShowMySky_ABI_version 16
 
 /**
  * \brief Name of library to be dlopen()-ed

@@ -47,7 +47,8 @@ public:
     ~AtmosphereRenderer();
     void setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram& shprog)> const& drawSurface) override;
     int initDataLoading(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                        std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations) override;
+                        std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations,
+                        unsigned numberOfViewDirTextures) override;
     void setViewDirShaders(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
                            std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations) override;
     LoadingStatus stepDataLoading() override;
@@ -85,6 +86,7 @@ private: // variables
 
     QByteArray viewDirVertShaderSrc_, viewDirFragShaderSrc_;
     std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations_;
+    int numberOfViewDirTextures_=0;
 
     GLuint vao_=0, vbo_=0, luminanceRadianceFBO_=0, viewDirectionFBO_=0;
     GLuint eclipseSingleScatteringPrecomputationFBO_=0;

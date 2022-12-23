@@ -1501,8 +1501,8 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("moonPosition", toQVector(moonPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-            transmittanceTextures_[wlSetIndex]->bind(0);
-            prog.setUniformValue("transmittanceTexture", 0);
+            transmittanceTextures_[wlSetIndex]->bind(numberOfViewDirTextures_+0);
+            prog.setUniformValue("transmittanceTexture", numberOfViewDirTextures_+0);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             if(!solarIrradianceFixup_.empty())
@@ -1516,10 +1516,10 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-            transmittanceTextures_[wlSetIndex]->bind(0);
-            prog.setUniformValue("transmittanceTexture", 0);
-            irradianceTextures_[wlSetIndex]->bind(1);
-            prog.setUniformValue("irradianceTexture",1);
+            transmittanceTextures_[wlSetIndex]->bind(numberOfViewDirTextures_+0);
+            prog.setUniformValue("transmittanceTexture", numberOfViewDirTextures_+0);
+            irradianceTextures_[wlSetIndex]->bind(numberOfViewDirTextures_+1);
+            prog.setUniformValue("irradianceTexture", numberOfViewDirTextures_+1);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             if(!solarIrradianceFixup_.empty())
@@ -1599,8 +1599,8 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("moonPosition", toQVector(moonPosition()));
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-                    transmittanceTextures_[wlSetIndex]->bind(0);
-                    prog.setUniformValue("transmittanceTexture", 0);
+                    transmittanceTextures_[wlSetIndex]->bind(numberOfViewDirTextures_+0);
+                    prog.setUniformValue("transmittanceTexture", numberOfViewDirTextures_+0);
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
@@ -1620,8 +1620,8 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-                    transmittanceTextures_[wlSetIndex]->bind(0);
-                    prog.setUniformValue("transmittanceTexture", 0);
+                    transmittanceTextures_[wlSetIndex]->bind(numberOfViewDirTextures_+0);
+                    prog.setUniformValue("transmittanceTexture", numberOfViewDirTextures_+0);
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
@@ -1648,8 +1648,8 @@ void AtmosphereRenderer::renderSingleScattering()
                         auto& tex=*eclipsedSingleScatteringPrecomputationTextures_.at(scatterer.name)[wlSetIndex];
                         tex.setMinificationFilter(texFilter);
                         tex.setMagnificationFilter(texFilter);
-                        tex.bind(0);
-                        prog.setUniformValue("eclipsedScatteringTexture", 0);
+                        tex.bind(numberOfViewDirTextures_+0);
+                        prog.setUniformValue("eclipsedScatteringTexture", numberOfViewDirTextures_+0);
                     }
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
                     if(!solarIrradianceFixup_.empty())
@@ -1674,8 +1674,8 @@ void AtmosphereRenderer::renderSingleScattering()
                         auto& tex=*singleScatteringTextures_.at(scatterer.name)[wlSetIndex];
                         tex.setMinificationFilter(texFilter);
                         tex.setMagnificationFilter(texFilter);
-                        tex.bind(0);
-                        prog.setUniformValue("scatteringTexture", 0);
+                        tex.bind(numberOfViewDirTextures_+0);
+                        prog.setUniformValue("scatteringTexture", numberOfViewDirTextures_+0);
                     }
 
                     bool guides01Loaded = false, guides02Loaded = false;
@@ -1684,20 +1684,22 @@ void AtmosphereRenderer::renderSingleScattering()
                         if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures01_.end())
                         {
                             auto& tex=guidesPerWLSetIt->second[wlSetIndex];
-                            tex->bind(1);
-                            prog.setUniformValue("scatteringTextureInterpolationGuides01", 1);
+                            tex->bind(numberOfViewDirTextures_+1);
                             guides01Loaded = true;
                         }
+                        // This has to be set anyway, otherwise the default sampler unit 0 may conflict with view dir texture
+                        prog.setUniformValue("scatteringTextureInterpolationGuides01", numberOfViewDirTextures_+1);
                     }
                     {
                         const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures02_.find(scatterer.name);
                         if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures02_.end())
                         {
                             auto& tex=guidesPerWLSetIt->second[wlSetIndex];
-                            tex->bind(2);
-                            prog.setUniformValue("scatteringTextureInterpolationGuides02", 2);
+                            tex->bind(numberOfViewDirTextures_+2);
                             guides02Loaded = true;
                         }
+                        // This has to be set anyway, otherwise the default sampler unit 0 may conflict with view dir texture
+                        prog.setUniformValue("scatteringTextureInterpolationGuides02", numberOfViewDirTextures_+2);
                     }
                     prog.setUniformValue("useInterpolationGuides", guides01Loaded && guides02Loaded);
 
@@ -1720,9 +1722,9 @@ void AtmosphereRenderer::renderSingleScattering()
                 auto& tex=*singleScatteringTextures_.at(scatterer.name).front();
                 tex.setMinificationFilter(texFilter);
                 tex.setMagnificationFilter(texFilter);
-                tex.bind(0);
+                tex.bind(numberOfViewDirTextures_+0);
             }
-            prog.setUniformValue("scatteringTexture", 0);
+            prog.setUniformValue("scatteringTexture", numberOfViewDirTextures_+0);
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
             bool guides01Loaded = false, guides02Loaded = false;
@@ -1731,20 +1733,22 @@ void AtmosphereRenderer::renderSingleScattering()
                 if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures01_.end())
                 {
                     auto& tex=guidesPerWLSetIt->second.front();
-                    tex->bind(1);
-                    prog.setUniformValue("scatteringTextureInterpolationGuides01", 1);
+                    tex->bind(numberOfViewDirTextures_+1);
                     guides01Loaded = true;
                 }
+                // This has to be set anyway, otherwise the default sampler unit 0 may conflict with view dir texture
+                prog.setUniformValue("scatteringTextureInterpolationGuides01", numberOfViewDirTextures_+1);
             }
             {
                 const auto guidesPerWLSetIt = singleScatteringInterpolationGuidesTextures02_.find(scatterer.name);
                 if(guidesPerWLSetIt != singleScatteringInterpolationGuidesTextures02_.end())
                 {
                     auto& tex=guidesPerWLSetIt->second.front();
-                    tex->bind(2);
-                    prog.setUniformValue("scatteringTextureInterpolationGuides02", 2);
+                    tex->bind(numberOfViewDirTextures_+2);
                     guides02Loaded = true;
                 }
+                // This has to be set anyway, otherwise the default sampler unit 0 may conflict with view dir texture
+                prog.setUniformValue("scatteringTextureInterpolationGuides02", numberOfViewDirTextures_+2);
             }
             prog.setUniformValue("useInterpolationGuides", guides01Loaded && guides02Loaded);
 
@@ -1761,8 +1765,8 @@ void AtmosphereRenderer::renderSingleScattering()
                 auto& tex=*eclipsedSingleScatteringPrecomputationTextures_.at(scatterer.name).front();
                 tex.setMinificationFilter(texFilter);
                 tex.setMagnificationFilter(texFilter);
-                tex.bind(0);
-                prog.setUniformValue("eclipsedScatteringTexture", 0);
+                tex.bind(numberOfViewDirTextures_+0);
+                prog.setUniformValue("eclipsedScatteringTexture", numberOfViewDirTextures_+0);
             }
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
 
@@ -1857,8 +1861,8 @@ void AtmosphereRenderer::renderMultipleScattering()
                 auto& tex=*eclipsedDoubleScatteringPrecomputationTargetTextures_[wlSetIndex];
                 tex.setMinificationFilter(texFilter);
                 tex.setMagnificationFilter(texFilter);
-                tex.bind(0);
-                prog.setUniformValue("eclipsedDoubleScatteringTexture", 0);
+                tex.bind(numberOfViewDirTextures_+0);
+                prog.setUniformValue("eclipsedDoubleScatteringTexture", numberOfViewDirTextures_+0);
                 prog.setUniformValue("eclipsedDoubleScatteringTextureSize", QVector3D(params_.eclipsedDoubleScatteringTextureSize[0],
                                                                                       params_.eclipsedDoubleScatteringTextureSize[1], 1));
             }
@@ -1869,8 +1873,8 @@ void AtmosphereRenderer::renderMultipleScattering()
                 auto& texture=*eclipsedDoubleScatteringTextures_[wlSetIndex];
                 texture.setMinificationFilter(texFilter);
                 texture.setMagnificationFilter(texFilter);
-                texture.bind(0);
-                prog.setUniformValue("eclipsedDoubleScatteringTexture", 0);
+                texture.bind(numberOfViewDirTextures_+0);
+                prog.setUniformValue("eclipsedDoubleScatteringTexture", numberOfViewDirTextures_+0);
 
                 prog.setUniformValue("eclipsedDoubleScatteringTextureSize", toQVector(glm::vec3(params_.eclipsedDoubleScatteringTextureSize)));
             }
@@ -1896,8 +1900,8 @@ void AtmosphereRenderer::renderMultipleScattering()
             auto& tex=*multipleScatteringTextures_[wlSetIndex];
             tex.setMinificationFilter(texFilter);
             tex.setMagnificationFilter(texFilter);
-            tex.bind(0);
-            prog.setUniformValue("scatteringTexture", 0);
+            tex.bind(numberOfViewDirTextures_+0);
+            prog.setUniformValue("scatteringTexture", numberOfViewDirTextures_+0);
             drawSurface(prog);
         }
     }
@@ -1926,8 +1930,8 @@ void AtmosphereRenderer::renderLightPollution()
         auto& tex=*lightPollutionTextures_[wlSetIndex];
         tex.setMinificationFilter(texFilter);
         tex.setMagnificationFilter(texFilter);
-        tex.bind(0);
-        prog.setUniformValue("lightPollutionScatteringTexture", 0);
+        tex.bind(numberOfViewDirTextures_+0);
+        prog.setUniformValue("lightPollutionScatteringTexture", numberOfViewDirTextures_+0);
         prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
         drawSurface(prog);
     }
@@ -2119,7 +2123,8 @@ void AtmosphereRenderer::setDrawSurfaceCallback(std::function<void(QOpenGLShader
 }
 
 int AtmosphereRenderer::initDataLoading(QByteArray viewDirVertShaderSrc, QByteArray viewDirFragShaderSrc,
-                                        std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations)
+                                        std::vector<std::pair<std::string,GLuint>> viewDirBindAttribLocations,
+                                        const unsigned numberOfViewDirTextures)
 {
     try
     {
@@ -2133,6 +2138,7 @@ int AtmosphereRenderer::initDataLoading(QByteArray viewDirVertShaderSrc, QByteAr
         viewDirVertShaderSrc_=std::move(viewDirVertShaderSrc);
         viewDirFragShaderSrc_=std::move(viewDirFragShaderSrc);
         viewDirBindAttribLocations_=std::move(viewDirBindAttribLocations);
+        numberOfViewDirTextures_=numberOfViewDirTextures;
 
         for(const auto& scatterer : params_.scatterers)
             scatterersEnabledStates_[scatterer.name]=true;
