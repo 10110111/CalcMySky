@@ -62,5 +62,5 @@ install(TARGETS ShowMySky
         INCLUDES DESTINATION "${installIncDir}"
         )
 export(TARGETS ShowMySky NAMESPACE ShowMySky:: FILE "${CMAKE_CURRENT_BINARY_DIR}/ShowMySky-Qt${QT_VERSION}Config.cmake")
-install(EXPORT ShowMySky-Qt${QT_VERSION}Config NAMESPACE ShowMySky:: DESTINATION "${installConfDir}/ShowMySky-Qt${QT_VERSION}/cmake")
+install(EXPORT ShowMySky-Qt${QT_VERSION}Config NAMESPACE ShowMySky:: DESTINATION "${installConfDir}/cmake/ShowMySky-Qt${QT_VERSION}")
 install(FILES api/ShowMySky/Exception.hpp api/ShowMySky/AtmosphereRenderer.hpp api/ShowMySky/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")
