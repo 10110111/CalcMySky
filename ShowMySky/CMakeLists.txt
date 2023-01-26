@@ -39,6 +39,7 @@ add_executable(${showmyskyTarget}
                 Manipulator.cpp
                 RadiancePlot.cpp
                 DockScrollArea.cpp
+                GLSLCosineQualityChecker.cpp
               )
 target_link_libraries(${showmyskyTarget} PUBLIC Qt${QT_VERSION}::Core
 	Qt${QT_VERSION}::Widgets Qt${QT_VERSION}::OpenGL PRIVATE version common

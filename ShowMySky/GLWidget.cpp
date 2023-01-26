@@ -11,6 +11,7 @@
 #include "util.hpp"
 #include "ToolsWidget.hpp"
 #include "AtmosphereRenderer.hpp"
+#include "GLSLCosineQualityChecker.hpp"
 #include "BlueNoiseTriangleRemapped.hpp"
 
 static QPoint position(QMouseEvent* event)
@@ -206,6 +207,9 @@ void GLWidget::initializeGL()
         makeDitherPatternTexture();
         makeGlareRenderTarget();
         setupBuffers();
+
+        GLSLCosineQualityChecker cosineChecker(*this);
+        const bool cosineIsOK = cosineChecker.isGood();
 
         luminanceToScreenRGB_=std::make_unique<QOpenGLShaderProgram>();
         addShaderCode(*luminanceToScreenRGB_, QOpenGLShader::Fragment, tr("luminanceToScreenRGB fragment shader"), (1+R"(
@@ -421,7 +425,7 @@ void main()
     gl_Position=vec4(position,1);
 }
 )";
-        static constexpr const char* viewDirFragShaderSrc=1+R"(
+        QByteArray viewDirFragShaderSrc=1+R"(
 #version 330
 in vec3 position;
 uniform float zoomFactor;
@@ -435,6 +439,21 @@ uniform int projection;
 #define PROJ_FISHEYE 2
 
 const float PI=3.1415926535897932;
+
+#if COSINE_IS_BROKEN
+// Define Chebyshoff approximations for sin and cos
+float sin(float x)
+{
+    x = mod(x+PI, 2*PI)-PI;
+    return x*(0.999999599920672 + x*x*(-0.166665526354071 + x*x*(0.00833240298869917 + x*x*(-0.0001980863334175 + x*x*(2.69971463693744e-6 - 2.03622449118901e-8*x*x)))));
+}
+float cos(float x)
+{
+    x = mod(x+PI, 2*PI)-PI;
+    return 0.999999210782322 + x*x*(-0.499994213384716 + x*x*(0.0416597778065509 + x*x*(-0.00138587899196014 + x*x*(0.0000242029413673591 - 2.19729638194131e-7*x*x))));
+}
+#endif
+
 vec3 calcViewDir()
 {
     vec2 pos=position.xy/zoomFactor;
@@ -467,6 +486,7 @@ vec3 calcViewDir()
     return vec3(0);
 }
 )";
+        viewDirFragShaderSrc.replace("COSINE_IS_BROKEN", cosineIsOK ? "0" : "1");
         renderer->initDataLoading(viewDirVertShaderSrc, viewDirFragShaderSrc);
         stepDataLoading();
     }
