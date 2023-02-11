@@ -112,12 +112,12 @@ std::vector<glm::vec4> saveTexture(const GLenum target, const GLuint texture, co
         throw MustQuit{};
     }
 
+    unsigned nanCount = 0;
     for(size_t i = 0; i < subpixelCount; ++i)
     {
         if(std::isnan(subpixels[i]))
         {
-            std::cerr << "NaN entries detected while saving " << name << "\n";
-            throw MustQuit{};
+            ++nanCount;
         }
     }
     std::vector<glm::vec4> dataToReturn;
@@ -145,6 +145,12 @@ std::vector<glm::vec4> saveTexture(const GLenum target, const GLuint texture, co
     if(out.error())
     {
         std::cerr << "failed to write file: " << out.errorString().toStdString() << "\n";
+        throw MustQuit{};
+    }
+    if(nanCount)
+    {
+        std::cerr << nanCount << " NaN entries out of " << subpixelCount << " detected while saving " << name << "\n";
+        std::cerr << "The texture was saved for diagnostics, further computation is useless.\n";
         throw MustQuit{};
     }
     std::cerr << "done\n";
