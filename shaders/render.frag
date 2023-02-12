@@ -12,6 +12,7 @@
 #include "texture-coordinates.h.glsl"
 #include "radiance-to-luminance.h.glsl"
 #include_if(RENDERING_ZERO_SCATTERING) "direct-irradiance.h.glsl"
+#include_if(RENDERING_ANY_ZERO_SCATTERING) "ground-brdf.h.glsl"
 #include_if(RENDERING_ANY_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
 #include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
 #include_if(RENDERING_ANY_LIGHT_POLLUTION) "texture-sampling-functions.h.glsl"
@@ -138,12 +139,16 @@ void main()
         CONST float distToGround = distanceToGround(cosViewZenithAngle, altitude);
         CONST vec4 transmittanceToGround=transmittance(cosViewZenithAngle, altitude, distToGround, viewRayIntersectsGround);
         CONST vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+viewDir*distToGround);
-        CONST vec4 groundIrradianceOrder0 = computeDirectGroundIrradiance(dot(groundNormal, sunDirection), 0);
-        CONST vec4 groundIrradianceHigherOrders = irradiance(dot(groundNormal, sunDirection), 0);
-        CONST vec4 groundIrradiance = groundIrradianceOrder0 + groundIrradianceHigherOrders;
-        // Radiation scattered by the ground
-        CONST float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF
+        CONST float cosSZAatGround = dot(groundNormal, sunDirection);
+        CONST vec4 groundIrradianceOrder0 = computeDirectGroundIrradiance(cosSZAatGround, 0);
+        CONST vec4 groundIrradianceHigherOrders = irradiance(cosSZAatGround, 0);
+        // Radiation scattered by the ground.
+        // We use the actual BRDF of the ground to compute the scattering of direct sunlight from the ground, but
+        // for the indirect illumination, which comes from all directions, we can't assign a single light direction
+        // to pass to the BRDF, so we approximate the scattered light assuming constant, Lambertian, BRDF.
+        radiance = transmittanceToGround*groundAlbedo*solarIrradianceFixup
+                        * (groundIrradianceOrder0 * groundBRDF(groundNormal,-viewDir,sunDirection) +
+                           groundIrradianceHigherOrders * (1/PI))
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
     else if(dotViewSun>cos(sunAngularRadius))
@@ -171,11 +176,12 @@ void main()
         CONST vec4 directGroundIrradiance = calcEclipsedDirectGroundIrradiance(pointOnGround, sunDirection, moonPosition);
         // FIXME: add first-order indirect irradiance too: it's done in non-eclipsed irradiance (in the same
         // conditions: when limited to 2 orders). This should be calculated at the same time when second order
-        // is: all the infrastructure is already there.
+        // is: all the infrastructure is already there. NOTE: in this case the BRDF input sunDirection will be wrong.
         CONST vec4 groundIrradiance = directGroundIrradiance;
+        CONST vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+viewDir*distToGround);
         // Radiation scattered by the ground
-        CONST float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF
+        radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup
+                        * groundBRDF(groundNormal,-viewDir,sunDirection)
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
     else if(dotViewSun>cos(sunAngularRadius) && dotViewMoon<cos(moonAngularRadius(cameraPosition,moonPosition)))

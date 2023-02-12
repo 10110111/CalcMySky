@@ -7,6 +7,7 @@ float distanceToGround(const float cosZenithAngle, const float observerAltitude)
 float cosZenithAngleOfHorizon(const float altitude);
 bool rayIntersectsGround(const float cosViewZenithAngle, const float observerAltitude);
 float safeSqrt(const float x);
+float safeAcos(const float x);
 float safeAtan(const float y, const float x);
 float clampCosine(const float x);
 float clampDistance(const float x);

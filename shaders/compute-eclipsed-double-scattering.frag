@@ -1,6 +1,7 @@
 #version 330
 #include "version.h.glsl"
 #include "const.h.glsl"
+#include "ground-brdf.h.glsl"
 #include "phase-functions.h.glsl"
 #include "common-functions.h.glsl"
 #include "texture-coordinates.h.glsl"
@@ -53,8 +54,8 @@ vec4 computeDoubleScatteringEclipsedDensitySample(const int directionIndex, cons
         CONST vec3 pointOnGround = scatterer+incDir*distToGround;
         CONST vec4 groundIrradiance = calcEclipsedDirectGroundIrradiance(pointOnGround, sunDir, moonPos);
         // Radiation scattered by the ground
-        CONST float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-        incidentRadiance += transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
+        CONST vec3 groundNormal = normalize(pointOnGround - earthCenter);
+        incidentRadiance += transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF(groundNormal,incDir,sunDir);
     }
     // Radiation scattered by the atmosphere
     incidentRadiance+=computeSingleScatteringEclipsed(scatterer,incDir,sunDir,moonPos,incRayIntersectsGround);

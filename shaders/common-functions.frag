@@ -47,6 +47,12 @@ float safeSqrt(const float x)
     return sqrt(max(x,0.));
 }
 
+// Assumes that if |x|>1, it's due to rounding errors and should be clamped.
+float safeAcos(const float x)
+{
+    return acos(clamp(x, -1., 1.));
+}
+
 float safeAtan(const float y, const float x)
 {
     CONST float a = atan(y,x);

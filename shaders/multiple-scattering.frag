@@ -1,7 +1,9 @@
 #version 330
 #include "version.h.glsl"
 #include "const.h.glsl"
+#include "ground-brdf.h.glsl"
 #include "common-functions.h.glsl"
+#include "direct-irradiance.h.glsl"
 #include "texture-coordinates.h.glsl"
 #include "texture-sampling-functions.h.glsl"
 #include "total-scattering-coefficient.h.glsl"
@@ -54,10 +56,21 @@ vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosView
 
             // Normal to ground at the point where incident light originates on the ground, with current incDir
             CONST vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+incDir*distToGround);
-            CONST vec4 groundIrradiance = irradiance(dot(groundNormal, sunDir), 0);
-            // Radiation scattered by the ground
-            CONST float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-            incidentRadiance += transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
+            CONST float cosSZAatGround = dot(groundNormal, sunDir);
+            // Radiation scattered by the ground.
+            // We use the actual BRDF of the ground to compute the scattering of direct sunlight from the
+            // ground, but for the indirect illumination, which comes from all directions, we can't assign a
+            // single light direction to pass to the BRDF, so we approximate the scattered light assuming
+            // constant, Lambertian, BRDF.
+            if(scatteringOrder==2)
+            {
+                incidentRadiance += transmittanceToGround * groundAlbedo *
+                        computeDirectGroundIrradiance(cosSZAatGround, 0) * groundBRDF(groundNormal,incDir,sunDir);
+            }
+            else
+            {
+                incidentRadiance += transmittanceToGround * groundAlbedo * irradiance(cosSZAatGround, 0) * (1/PI);
+            }
         }
         if(!radiationIsFromGroundOnly)
         {
