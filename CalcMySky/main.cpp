@@ -39,7 +39,8 @@ void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                     atmo.textureOutputDir+"/irradiance-wlset"+std::to_string(texIndex)+".f32",
-                    {atmo.irradianceTexW, atmo.irradianceTexH});
+                    {atmo.irradianceTexW, atmo.irradianceTexH},
+                    ReturnTextureData{false}, ApplyLogarithm{true});
     }
 
     if(!opts.dbgSaveGroundIrradiance) return;
@@ -97,6 +98,29 @@ void render3DTexLayers(QOpenGLShaderProgram& program, const std::string_view wha
     std::cerr << "done\n";
 }
 
+void applyLogarithmToTexture2D(const GLuint texId, const unsigned width, const unsigned height)
+{
+    // We do it on the CPU for simplicity, since a 2D texture is not a large object to process.
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_2D, texId);
+    const auto subpixelCount = 4*width*height;
+    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
+    gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, subpixels.get());
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in applyLogarithmToTexture2D() after glGetTexImage() call: " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
+    for(unsigned i = 0; i < subpixelCount; ++i)
+        subpixels[i] = std::log(std::max(1e-30f, subpixels[i]));
+    gl.glTexSubImage2D(GL_TEXTURE_2D,0,0,0,width,height,GL_RGBA,GL_FLOAT,subpixels.get());
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        std::cerr << "GL error in applyLogarithmToTexture2D() after glTexSubImage2D() call: " << openglErrorString(err) << "\n";
+        throw MustQuit{};
+    }
+}
+
 void computeTransmittance(const unsigned texIndex)
 {
     const auto program=compileShaderProgram("compute-transmittance.frag", "transmittance computation shader program");
@@ -144,6 +168,7 @@ void computeDirectGroundIrradiance(const unsigned texIndex)
     gl.glFinish();
     std::cerr << "done\n";
 
+    applyLogarithmToTexture2D(textures[TEX_DELTA_IRRADIANCE], atmo.irradianceTexW, atmo.irradianceTexH);
     saveIrradiance(1,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
@@ -645,6 +670,7 @@ void computeScatteringOrder1AndScatteringDensityOrder2(const unsigned texIndex)
         computeIndirectIrradianceOrder1(scattererIndex);
     }
     gl.glDisable(GL_BLEND);
+    applyLogarithmToTexture2D(textures[TEX_DELTA_IRRADIANCE], atmo.irradianceTexW, atmo.irradianceTexH);
     saveIrradiance(scatteringOrder,texIndex);
     saveScatteringDensity(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -734,6 +760,7 @@ void computeIndirectIrradiance(const unsigned scatteringOrder, const unsigned te
     std::cerr << "done\n";
 
     gl.glDisable(GL_BLEND);
+    applyLogarithmToTexture2D(textures[TEX_DELTA_IRRADIANCE], atmo.irradianceTexW, atmo.irradianceTexH);
     saveIrradiance(scatteringOrder,texIndex);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
