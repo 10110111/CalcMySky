@@ -11,6 +11,7 @@
 #include_if(RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING) "single-scattering-eclipsed.h.glsl"
 #include "texture-coordinates.h.glsl"
 #include "radiance-to-luminance.h.glsl"
+#include_if(RENDERING_ZERO_SCATTERING) "direct-irradiance.h.glsl"
 #include_if(RENDERING_ANY_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
 #include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
 #include_if(RENDERING_ANY_LIGHT_POLLUTION) "texture-sampling-functions.h.glsl"
@@ -137,7 +138,9 @@ void main()
         CONST float distToGround = distanceToGround(cosViewZenithAngle, altitude);
         CONST vec4 transmittanceToGround=transmittance(cosViewZenithAngle, altitude, distToGround, viewRayIntersectsGround);
         CONST vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+viewDir*distToGround);
-        CONST vec4 groundIrradiance = irradiance(dot(groundNormal, sunDirection), 0);
+        CONST vec4 groundIrradianceOrder0 = computeDirectGroundIrradiance(dot(groundNormal, sunDirection), 0);
+        CONST vec4 groundIrradianceHigherOrders = irradiance(dot(groundNormal, sunDirection), 0);
+        CONST vec4 groundIrradiance = groundIrradianceOrder0 + groundIrradianceHigherOrders;
         // Radiation scattered by the ground
         CONST float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
         radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF

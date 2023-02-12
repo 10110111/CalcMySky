@@ -711,10 +711,15 @@ void computeIndirectIrradianceOrder1(const unsigned scattererIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
     gl.glBlendFunc(GL_ONE, GL_ONE);
     if(scattererIndex==0)
+    {
         gl.glDisablei(GL_BLEND, 0); // First scatterer overwrites delta-irradiance-texture
+        gl.glDisablei(GL_BLEND, 1); // Total irradiance is only accumulated since order 1, so we overwrite order 0 now
+    }
     else
+    {
         gl.glEnablei(GL_BLEND, 0); // Second and subsequent scatterers blend into delta-irradiance-texture
-    gl.glEnablei(GL_BLEND, 1); // Total irradiance is always accumulated
+        gl.glEnablei(GL_BLEND, 1); // Second and subsequent scatterers blend into accum-irradiance-texture
+    }
 
     const auto& scatterer=atmo.scatterers[scattererIndex];
 
