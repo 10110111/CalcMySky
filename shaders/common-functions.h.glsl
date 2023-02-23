@@ -20,6 +20,7 @@ float moonAngularRadius(const vec3 cameraPosition, const vec3 moonPosition);
 float sunVisibilityDueToMoon(const vec3 camera, const vec3 sunDir, const vec3 moonDir);
 vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere);
 float sphereIntegrationSolidAngleDifferential(const int pointCountOnSphere);
+vec3 sRGB2RGB(const vec3 c);
 
 void swap(inout float x, inout float y);
 

@@ -211,3 +211,8 @@ vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere)
                 sin(azimuth)*sin(zenithAngle),
                 cos(zenithAngle));
 }
+
+vec3 sRGB2RGB(const vec3 c)
+{
+    return mix(pow(c+0.055, vec3(2.4)) / 1.055, c/12.92, lessThan(c, vec3(0.04045)));
+}

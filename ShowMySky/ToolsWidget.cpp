@@ -2,7 +2,9 @@
 #include <QFrame>
 #include <QLabel>
 #include <QPushButton>
+#include <QFileDialog>
 #include <cmath>
+#include <cstring>
 #include "RadiancePlot.hpp"
 #include "DockScrollArea.hpp"
 
@@ -150,6 +152,24 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     gradualClippingEnabled_ = addCheckBox(layout, this, tr("&Gradual color clipping"), true);
     glareEnabled_ = addCheckBox(layout, this, tr("Glare (visual only)"), false);
     zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw zer&o-order scattering layer"), true);
+    {
+        const auto frame=new QFrame;
+        frame->setLayout(zeroOrderScatteringDetails_);
+        auto margins=frame->contentsMargins();
+        margins.setLeft(zeroOrderScatteringEnabled_->style()->pixelMetric(QStyle::PM_IndicatorWidth));
+        frame->setContentsMargins(margins);
+        layout->addWidget(frame);
+        connect(zeroOrderScatteringEnabled_, &QCheckBox::stateChanged, frame, [frame](const int state)
+                { frame->setEnabled(state==Qt::Checked); });
+
+        zeroOrderScatteringDetails_->addWidget(albedoMapEnabled_);
+        zeroOrderScatteringDetails_->addWidget(albedoMapPath_);
+        const auto browse = new QPushButton("...");
+        zeroOrderScatteringDetails_->addWidget(browse);
+        connect(albedoMapEnabled_, &QCheckBox::stateChanged, this, &ToolsWidget::settingChanged);
+        connect(albedoMapPath_, &QLineEdit::editingFinished, this, &ToolsWidget::updateAlbedoMapData);
+        connect(browse, &QPushButton::clicked, this, &ToolsWidget::onAlbedoMapBrowseClicked);
+    }
     singleScatteringEnabled_    = addCheckBox(layout, this, tr("Draw &single scattering layers"), true);
     {
         const auto frame=new QFrame;
@@ -368,6 +388,61 @@ void ToolsWidget::onSolarSpectrumChanged()
         emit setFlatSolarSpectrum();
         break;
     }
+}
+
+void ToolsWidget::onAlbedoMapBrowseClicked()
+{
+    const auto path = QFileDialog::getOpenFileName(this, "Open albedo map", {},
+                                                   "Images (*.jpg *.jpeg *.png *.bmp *.tif *.tiff)");
+    if(path.isNull()) return;
+    albedoMapPath_->setText(path);
+    updateAlbedoMapData();
+}
+
+auto ToolsWidget::albedoMapTextureData() -> TextureData
+{
+    if(!albedoMapEnabled_->isChecked())
+        return {albedoMapTexels_.data(), albedoMapWidth_, albedoMapHeight_, false};
+
+    if(!albedoMapTexels_.empty())
+        return {albedoMapTexels_.data(), albedoMapWidth_, albedoMapHeight_, true};
+
+    return {};
+}
+
+bool ToolsWidget::albedoMapChanged(const bool reset)
+{
+    const bool changed = albedoMapChanged_;
+    if(reset)
+        albedoMapChanged_ = false;
+    return changed;
+}
+
+void ToolsWidget::updateAlbedoMapData()
+{
+    const auto& path = albedoMapPath_->text();
+    if(!QFileInfo(path).exists())
+    {
+        albedoMapPath_->setStyleSheet("color:red;");
+        albedoMapPath_->setToolTip(tr("File doesn't exist"));
+        return;
+    }
+    albedoMapPath_->setStyleSheet("");
+    albedoMapPath_->setToolTip("");
+
+    const auto img = QImage(path).convertToFormat(QImage::Format_RGBA8888);
+    if(img.isNull())
+    {
+        albedoMapPath_->setStyleSheet("color:red;");
+        albedoMapPath_->setToolTip(tr("Failed to read the image"));
+    }
+    albedoMapTexels_.resize(img.width()*img.height()*4);
+    std::memcpy(albedoMapTexels_.data(), img.bits(), img.bytesPerLine()*img.height());
+    albedoMapWidth_=img.width();
+    albedoMapHeight_=img.height();
+
+    albedoMapChanged_ = true;
+    emit settingChanged();
 }
 
 void ToolsWidget::setWindowDecorationEnabled(const bool enabled)

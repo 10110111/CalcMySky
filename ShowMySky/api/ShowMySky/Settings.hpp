@@ -10,6 +10,16 @@ class Settings
 {
 public:
     /**
+     * TODO: document
+     */
+    struct TextureData
+    {
+        const float* data;
+        int width;
+        int height;
+        bool enabled;
+    };
+    /**
      * \brief Camera altitude.
      *
      * \returns Camera altitude in meters.
@@ -130,6 +140,15 @@ public:
      * \returns Whether to mirror the sky instead of rendering the ground.
      */
     virtual bool pseudoMirrorEnabled() = 0;
+
+    /**
+     * TODO: document
+     */
+    virtual TextureData albedoMapTextureData() = 0;
+    /**
+     * TODO: document
+     */
+    virtual bool albedoMapChanged(bool reset) = 0;
 
     virtual ~Settings() = default;
 };

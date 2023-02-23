@@ -14,6 +14,7 @@
 #include <QRegularExpression>
 
 #include "util.hpp"
+#include "../common/rgb-to-albedo.hpp"
 #include "../common/const.hpp"
 #include "../common/util.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
@@ -1501,10 +1502,36 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("moonPosition", toQVector(moonPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-            transmittanceTextures_[wlSetIndex]->bind(0);
-            prog.setUniformValue("transmittanceTexture", 0);
+
+            int sampler = 0;
+
+            transmittanceTextures_[wlSetIndex]->bind(sampler);
+            prog.setUniformValue("transmittanceTexture", sampler);
+            ++sampler;
+
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
+            if(albedoMapTexture_ && tools_->albedoMapTextureData().enabled)
+            {
+                prog.setUniformValue("albedoMapEnabled", true);
+
+                albedoMapTexture_->bind(sampler);
+                prog.setUniformValue("groundAlbedoMapTexture", sampler);
+                ++sampler;
+
+                const auto lambdas = params_.allWavelengths[wlSetIndex];
+                // FIXME: weights on the ends should be half as much as the internal ones
+                const auto rgbToAlbedoT = glm::mat4x3(srgbToAlbedo(lambdas[0]),
+                                                      srgbToAlbedo(lambdas[1]),
+                                                      srgbToAlbedo(lambdas[2]),
+                                                      srgbToAlbedo(lambdas[3]));
+                const auto loc = prog.uniformLocation("rgbToAlbedo");
+                gl.glUniformMatrix3x4fv(loc, 1, true, &rgbToAlbedoT[0][0]);
+            }
+            else
+            {
+                prog.setUniformValue("albedoMapEnabled", false);
+            }
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
             drawSurface(prog);
@@ -1516,12 +1543,40 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-            transmittanceTextures_[wlSetIndex]->bind(0);
-            prog.setUniformValue("transmittanceTexture", 0);
-            irradianceTextures_[wlSetIndex]->bind(1);
-            prog.setUniformValue("irradianceTexture",1);
+
+            int sampler = 0;
+
+            transmittanceTextures_[wlSetIndex]->bind(sampler);
+            prog.setUniformValue("transmittanceTexture", sampler);
+            ++sampler;
+
+            irradianceTextures_[wlSetIndex]->bind(sampler);
+            prog.setUniformValue("irradianceTexture",sampler);
+            ++sampler;
+
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
+            if(albedoMapTexture_ && tools_->albedoMapTextureData().enabled)
+            {
+                prog.setUniformValue("albedoMapEnabled", true);
+
+                albedoMapTexture_->bind(sampler);
+                prog.setUniformValue("groundAlbedoMapTexture", sampler);
+                ++sampler;
+
+                const auto lambdas = params_.allWavelengths[wlSetIndex];
+                // FIXME: weights on the ends should be half as much as the internal ones
+                const auto rgbToAlbedoT = glm::mat4x3(srgbToAlbedo(lambdas[0]),
+                                                      srgbToAlbedo(lambdas[1]),
+                                                      srgbToAlbedo(lambdas[2]),
+                                                      srgbToAlbedo(lambdas[3]));
+                const auto loc = prog.uniformLocation("rgbToAlbedo");
+                gl.glUniformMatrix3x4fv(loc, 1, true, &rgbToAlbedoT[0][0]);
+            }
+            else
+            {
+                prog.setUniformValue("albedoMapEnabled", false);
+            }
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
             drawSurface(prog);
@@ -1983,6 +2038,20 @@ auto AtmosphereRenderer::stepPreparationToDraw() -> LoadingStatus
     return {loadingStepsDone_, totalLoadingStepsToDo_};
 }
 
+void AtmosphereRenderer::updateAlbedoMapTexture()
+{
+    const auto data = tools_->albedoMapTextureData();
+    if(!data.data) return;
+
+    albedoMapTexture_ = newTex(QOpenGLTexture::Target2D);
+    albedoMapTexture_->create();
+    albedoMapTexture_->bind(0);
+    albedoMapTexture_->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,data.width,data.height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.data);
+    gl.glGenerateMipmap(GL_TEXTURE_2D);
+    albedoMapTexture_->release();
+}
+
 void AtmosphereRenderer::draw(const double brightness, const bool clear)
 {
     OGL_TRACE();
@@ -1995,6 +2064,9 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
     }
 
     if(state_ != State::ReadyToRender) return;
+
+    if(tools_->albedoMapChanged(true))
+        updateAlbedoMapTexture();
 
     oglDebugMessageInsert("AtmosphereRenderer::draw() begins drawing");
 

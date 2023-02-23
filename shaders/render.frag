@@ -29,6 +29,7 @@ uniform float lightPollutionGroundLuminance;
 uniform vec4 solarIrradianceFixup=vec4(1); // Used when we want to alter solar irradiance post-precomputation
 uniform bool pseudoMirrorSkyBelowHorizon = false;
 uniform bool useInterpolationGuides=false;
+uniform bool albedoMapEnabled=false;
 in vec3 position;
 layout(location=0) out vec4 luminance;
 layout(location=1) out vec4 radianceOutput;
@@ -138,15 +139,36 @@ void main()
         //      the difference in the usage of viewDir vs incDir.
         CONST float distToGround = distanceToGround(cosViewZenithAngle, altitude);
         CONST vec4 transmittanceToGround=transmittance(cosViewZenithAngle, altitude, distToGround, viewRayIntersectsGround);
-        CONST vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+viewDir*distToGround);
+        CONST vec3 pointOnGround = zenith*(earthRadius+altitude)+viewDir*distToGround;
+        CONST vec3 groundNormal = normalize(pointOnGround);
         CONST float cosSZAatGround = dot(groundNormal, sunDirection);
         CONST vec4 groundIrradianceOrder0 = computeDirectGroundIrradiance(cosSZAatGround, 0);
         CONST vec4 groundIrradianceHigherOrders = irradiance(cosSZAatGround, 0);
+        vec4 albedo = groundAlbedo;
+        if(albedoMapEnabled)
+        {
+            // If we were initially above the TOA, we have forced ourselves to
+            // TOA, changing zenith direction etc. But here we need the
+            // original state, so let's reset these variables.
+            CONST vec3 cameraPosition = oldCamPos;
+            CONST float altitude = max(cameraPosition.z, 0.);
+            CONST vec3 zenith = vec3(0,0,1);
+            CONST float cosViewZenithAngle=dot(zenith,viewDir);
+            CONST float distToGround = distanceToGround(cosViewZenithAngle, altitude);
+            CONST vec3 pointOnGround = cameraPosition+viewDir*distToGround;
+            CONST vec3 groundNormal = normalize(pointOnGround-earthCenter);
+            // XXX: North is defined to be the solar azimuth.
+            CONST vec3 northDir = normalize(sunDirection - dot(zenith,sunDirection)*zenith);
+            CONST vec3 eastDir = cross(northDir, zenith);
+            CONST float latitude = safeAcos(dot(northDir, groundNormal))-PI/2;
+            CONST float longitude = safeAcos(dot(eastDir, groundNormal))-PI/2;
+            albedo = groundAlbedoMap(longitude,latitude);
+        }
         // Radiation scattered by the ground.
         // We use the actual BRDF of the ground to compute the scattering of direct sunlight from the ground, but
         // for the indirect illumination, which comes from all directions, we can't assign a single light direction
         // to pass to the BRDF, so we approximate the scattered light assuming constant, Lambertian, BRDF.
-        radiance = transmittanceToGround*groundAlbedo*solarIrradianceFixup
+        radiance = transmittanceToGround*albedo*solarIrradianceFixup
                         * (groundIrradianceOrder0 * groundBRDF(groundNormal,-viewDir,sunDirection) +
                            groundIrradianceHigherOrders * (1/PI))
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
@@ -180,6 +202,7 @@ void main()
         CONST vec4 groundIrradiance = directGroundIrradiance;
         CONST vec3 groundNormal = normalize(zenith*(earthRadius+altitude)+viewDir*distToGround);
         // Radiation scattered by the ground
+        // TODO: implement albedo map sampling here too
         radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup
                         * groundBRDF(groundNormal,-viewDir,sunDirection)
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;

@@ -13,6 +13,9 @@ uniform sampler3D multipleScatteringTexture;
 
 uniform sampler2D lightPollutionScatteringTexture;
 
+uniform sampler2D groundAlbedoMapTexture;
+uniform mat3x4 rgbToAlbedo;
+
 vec4 irradiance(const float cosSunZenithAngle, const float altitude)
 {
     CONST vec2 texCoords=irradianceTexVarsToTexCoord(cosSunZenithAngle, altitude);
@@ -83,4 +86,10 @@ vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAng
 {
     CONST vec2 coords = lightPollutionTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
     return texture(lightPollutionScatteringTexture, coords);
+}
+
+vec4 groundAlbedoMap(const float longitude, const float latitude)
+{
+    CONST vec2 texc = vec2((longitude+PI)/(2*PI), (latitude+PI/2)/PI);
+    return rgbToAlbedo * sRGB2RGB(texture(groundAlbedoMapTexture, texc).rgb);
 }

@@ -103,6 +103,7 @@ private: // variables
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures_;
     std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures_;
     TexturePtr eclipsedDoubleScatteringPrecomputationScratchTexture_;
+    TexturePtr albedoMapTexture_;
     std::vector<TexturePtr> eclipsedDoubleScatteringPrecomputationTargetTextures_;
     QOpenGLTexture luminanceRenderTargetTexture_;
     QSize viewportSize_;
@@ -148,6 +149,7 @@ private: // methods
     void clearResources();
     void finalizeLoading();
     void drawSurface(QOpenGLShaderProgram& prog);
+    void updateAlbedoMapTexture();
 
     double altitudeUnitRangeTexCoord() const;
     double cameraMoonDistance() const;

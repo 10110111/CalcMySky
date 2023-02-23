@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QCheckBox>
+#include <QLineEdit>
 #include "Manipulator.hpp"
 #include "RadiancePlot.hpp"
 #include "GLWidget.hpp"
@@ -20,6 +21,9 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     static constexpr double degree=M_PI/180;
 
     QVBoxLayout* scattererCheckboxes_=new QVBoxLayout;
+    QHBoxLayout* zeroOrderScatteringDetails_=new QHBoxLayout;
+    QCheckBox* albedoMapEnabled_=new QCheckBox(tr("Map"));
+    QLineEdit* albedoMapPath_=new QLineEdit;
     QComboBox* ditheringMode_=new QComboBox;
     QComboBox* ditheringMethod_=new QComboBox;
     QComboBox* solarSpectrumMode_=new QComboBox;
@@ -53,6 +57,10 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     RadiancePlot* radiancePlot_=nullptr;
     QCheckBox* windowDecorationEnabled_=nullptr;
     QVector<QCheckBox*> scatterers;
+    std::vector<float> albedoMapTexels_;
+    int albedoMapWidth_=0;
+    int albedoMapHeight_=0;
+    bool albedoMapChanged_=false;
 public:
     ToolsWidget(QWidget* parent=nullptr);
 
@@ -75,6 +83,8 @@ public:
     bool textureFilteringEnabled() override { return textureFilteringEnabled_->isChecked(); }
     bool usingEclipseShader() override { return usingEclipseShader_->isChecked(); }
     bool pseudoMirrorEnabled() override { return pseudoMirrorEnabled_->isChecked(); }
+    TextureData albedoMapTextureData() override;
+    bool albedoMapChanged(bool reset) override;
     bool gradualClippingEnabled() const { return gradualClippingEnabled_->isChecked(); }
     bool glareEnabled() const { return glareEnabled_->isChecked(); }
     float exposure() const { return std::pow(10., exposure_->value()); }
@@ -95,6 +105,8 @@ public:
 private:
     void showRadiancePlot();
     void onSolarSpectrumChanged();
+    void onAlbedoMapBrowseClicked();
+    void updateAlbedoMapData();
 
 signals:
     void settingChanged();
