@@ -278,7 +278,10 @@ vec3 clip(vec3 rgb)
 
 vec3 sRGBTransferFunction(const vec3 c)
 {
-    return step(0.0031308,c)*(1.055*pow(c, vec3(1/2.4))-0.055)+step(-0.0031308,-c)*12.92*c;
+    vec3 s = step(vec3(0.0031308), c);
+    vec3 d = vec3(1) - s;
+    return s * (1.055*pow(c, vec3(1./2.4))-0.055) +
+               d *  12.92*c;
 }
 
 vec3 applyClipping(const vec3 c)
