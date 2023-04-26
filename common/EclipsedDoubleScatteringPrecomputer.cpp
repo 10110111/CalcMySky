@@ -9,6 +9,7 @@
 #include <QOpenGLShaderProgram>
 
 #include "const.hpp"
+#include "TextureAverageComputer.hpp"
 #include "fourier-interpolation.hpp"
 #include "spline-interpolation.hpp"
 #include "timing.hpp"
@@ -22,28 +23,12 @@ using std::asin;
 using std::exp;
 using std::log;
 
-static glm::vec4 sumTexels(QOpenGLFunctions_3_3_Core& gl, const GLuint textureToRead,
-                           const double texW, const double texH, const GLenum unusedTextureUnit)
+static glm::vec4 sumTexels(TextureAverageComputer& averager, const GLuint textureToRead,
+                           const float texW, const float texH, const GLuint unusedTextureUnitNum)
 {
-    gl.glActiveTexture(unusedTextureUnit);
-    gl.glBindTexture(GL_TEXTURE_2D, textureToRead);
-    gl.glGenerateMipmap(GL_TEXTURE_2D);
-    using namespace std;
-    // Formula from the glspec, "Mipmapping" subsection in section 3.8.11 Texture Minification
-    const int totalMipmapLevels = 1+floor(log2(std::max(texW,texH)));
-    const int deepestLevel=totalMipmapLevels-1;
-#ifndef NDEBUG
-    // Sanity check
-    int deepestMipmapLevelWidth=-1, deepestMipmapLevelHeight=-1;
-    gl.glGetTexLevelParameteriv(GL_TEXTURE_2D, deepestLevel, GL_TEXTURE_WIDTH, &deepestMipmapLevelWidth);
-    gl.glGetTexLevelParameteriv(GL_TEXTURE_2D, deepestLevel, GL_TEXTURE_HEIGHT, &deepestMipmapLevelHeight);
-    assert(deepestMipmapLevelWidth==1);
-    assert(deepestMipmapLevelHeight==1);
-#endif
-
-    glm::vec4 pixel;
-    gl.glGetTexImage(GL_TEXTURE_2D, deepestLevel, GL_RGBA, GL_FLOAT, &pixel[0]);
-    return pixel * float(texW*texH); // deepest mipmap level is a mean, while we need the sum
+    const auto average = averager.getTextureAverage(textureToRead, unusedTextureUnitNum);
+    // We need the sum instead of the average
+    return texW*texH * average;
 }
 
 float EclipsedDoubleScatteringPrecomputer::cosZenithAngleOfHorizon(const float altitude) const
@@ -214,6 +199,8 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
     assert(elevationsBelowHorizon.size()==2*atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample);
     assert(azimuths.size()==nAzimuthPairsToSample);
 
+    TextureAverageComputer averager(gl, texW, texH, GL_RGBA32F, intermediateTextureTexUnitNum);
+
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
     for(unsigned azimIndex=0; azimIndex<azimuths.size(); ++azimIndex)
     {
@@ -226,7 +213,7 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
             // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-            const auto integral=sumTexels(gl, intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
+            const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
                 samplesAboveHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
         }
@@ -238,7 +225,7 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
             gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
             // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-            const auto integral=sumTexels(gl, intermediateTextureName, texW, texH, GL_TEXTURE0+intermediateTextureTexUnitNum);
+            const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
             for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
                 samplesBelowHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
         }

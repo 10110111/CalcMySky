@@ -123,6 +123,7 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/version.cpp"
 add_library(version STATIC "${PROJECT_BINARY_DIR}/version.cpp")
 add_library(common STATIC
              common/EclipsedDoubleScatteringPrecomputer.cpp
+             common/TextureAverageComputer.cpp
              common/AtmosphereParameters.cpp
              common/Spectrum.cpp
              common/util.cpp)
