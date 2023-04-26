@@ -25,6 +25,7 @@
 #include "shaders.hpp"
 #include "interpolation-guides.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
+#include "../common/TextureAverageComputer.hpp"
 #include "../common/timing.hpp"
 
 QOpenGLFunctions_3_3_Core gl;
@@ -1236,6 +1237,10 @@ int main(int argc, char** argv)
         }
 
         const auto timeBegin=std::chrono::steady_clock::now();
+
+        // Initialize texture averager before anything to make it emit possible
+        // warnings not mixing them into computation status reports.
+        TextureAverageComputer{gl, 10, 10, GL_RGBA32F, 0};
 
         for(unsigned texIndex=0;texIndex<atmo.allWavelengths.size();++texIndex)
         {
