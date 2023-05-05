@@ -571,6 +571,7 @@ void GLWidget::paintGL()
 
     if(!renderer->isReadyToRender()) return;
 
+    glFinish();
     const auto t0=std::chrono::steady_clock::now();
     renderer->draw(1, true);
 
