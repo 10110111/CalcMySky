@@ -1,8 +1,8 @@
 # Using in Stellarium {#using-in-stellarium}
 
-As of this writing, upstream Stellarium doesn't have this feature merged (see upstream [issue #624](https://github.com/Stellarium/stellarium/issues/624)). To use the ShowMySky atmosphere model, you'll need to build Stellarium from [`showmysky` branch](https://github.com/10110111/Stellarium/tree/showmysky) of 10110111's repository (unless you already have a binary installation of it — or the feature has finally been merged upstream).
+Stellarium supports ShowMySky atmosphere model since Stellarium v1.0. This model is available for machines capable of OpenGL 3.3.
 
-Having the ShowMySky-enabled version of Stellarium, launch it, and open the _View_ dialog (accessible via <kbd>F4</kbd> key), and click _Atmosphere settings_ button (next to _Atmosphere visualization_ checkbox). _Atmosphere Details_ dialog will open, where in the _Choose model_ combobox you can select either _Preetham_, which is the legacy atmosphere model, or _ShowMySky_, which is powered by this library.
+Having installed a ShowMySky-enabled version of Stellarium, launch it, open the _View_ dialog (accessible via <kbd>F4</kbd> key), and click _Atmosphere settings_ button (next to _Atmosphere visualization_ checkbox). _Atmosphere Details_ dialog will open, where in the _Choose model_ combobox you can select either _Preetham_, which is the legacy atmosphere model, or _ShowMySky_, which is powered by this library.
 
 Having chosen _ShowMySky_ atmosphere, select a path to the atmosphere model data directory in the _Path to data_ field. The model data directory must contain `params.atmo` file. If it doesn't, it's not a model directory, or some files are missing. The path field marks the path in red if there's no `params.atmo` file in this directory, or the directory is not accessible.
 
