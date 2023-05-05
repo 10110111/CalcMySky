@@ -65,7 +65,7 @@ Scatterer "CO2":
     # computed from refractive index of CO2, see the formula at https://physics.stackexchange.com/a/652760/21441
     cross section at 1 um: 0.0897172 fm^2
     angstrom exponent: 4
-    phase function type: smooth
+    phase function type: achromatic
 }
 Scatterer "dust":
 {
