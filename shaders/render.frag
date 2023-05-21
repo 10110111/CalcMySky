@@ -14,6 +14,7 @@
 #include_if(RENDERING_ANY_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
 #include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
 #include_if(RENDERING_ANY_LIGHT_POLLUTION) "texture-sampling-functions.h.glsl"
+#include_if(RENDERING_LIGHT_POLLUTION_RADIANCE) "single-scattering-light-pollution.h.glsl"
 
 uniform sampler3D scatteringTextureInterpolationGuides01;
 uniform sampler3D scatteringTextureInterpolationGuides02;
@@ -295,10 +296,12 @@ void main()
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_LIGHT_POLLUTION_RADIANCE
-    vec4 radiance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    vec3 emitterPos = earthCenter + sunDirection*earthRadius;
+    vec4 radiance=lightPollutionGroundLuminance*computeSingleScatteringForLightPollution(cameraPosition, viewDir, emitterPos, altitude, cosViewZenithAngle, viewRayIntersectsGround);
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;
 #elif RENDERING_LIGHT_POLLUTION_LUMINANCE
+#error "Not implemented"
     luminance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, cosViewZenithAngle, viewRayIntersectsGround);
 #else
 #error What to render?
