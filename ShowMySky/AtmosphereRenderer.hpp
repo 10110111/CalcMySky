@@ -5,6 +5,7 @@
 #include <array>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <glm/glm.hpp>
 #include <QObject>
 #include <QOpenGLTexture>

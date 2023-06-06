@@ -1736,7 +1736,7 @@ void AtmosphereRenderer::renderLadogaFrame()
             gl.glBlendColor(localBrightness, localBrightness, localBrightness, localBrightness);
         }
         gl.glClear(GL_COLOR_BUFFER_BIT);
-        glScissor(n,0, 1,viewportSize_.height());
+        gl.glScissor(n,0, 1,viewportSize_.height());
         drawSurface(prog);
     }
     gl.glDisable(GL_SCISSOR_TEST);
@@ -2216,7 +2216,7 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
                         gl.glBlendColor(localBrightness, localBrightness, localBrightness, localBrightness);
                     }
                     gl.glClear(GL_COLOR_BUFFER_BIT);
-                    glScissor(n,0, 1,viewportSize_.height());
+                    gl.glScissor(n,0, 1,viewportSize_.height());
                     if(tools_->zeroOrderScatteringEnabled())
                         renderZeroOrderScattering();
                     if(tools_->singleScatteringEnabled())
@@ -2226,8 +2226,8 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
                     if(tools_->lightPollutionGroundLuminance())
                         renderLightPollution();
                 }
-                glScissor(0,0, viewportSize_.width(),viewportSize_.height());
-                glDisable(GL_SCISSOR_TEST);
+                gl.glScissor(0,0, viewportSize_.width(),viewportSize_.height());
+                gl.glDisable(GL_SCISSOR_TEST);
             }
         }
         gl.glDisablei(GL_BLEND, 0);
