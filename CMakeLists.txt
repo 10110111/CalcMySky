@@ -3,7 +3,7 @@ if(POLICY CMP0110)
     cmake_policy(SET CMP0110 OLD)
 endif()
 
-set(staticProjectVersion 0.3.0)
+set(staticProjectVersion 0.3.1)
 project(CalcMySky VERSION ${staticProjectVersion} LANGUAGES CXX)
 set(CMAKE_FIND_USE_PACKAGE_REGISTRY false)
 
