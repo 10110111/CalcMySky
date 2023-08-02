@@ -90,7 +90,7 @@ for:
     only:
       - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
   install:
-    - sudo apt-get update
+    - sudo apt-get update --allow-releaseinfo-change
     - if [[ $QT_VERSION_MAJOR = 5 ]]; then sudo apt-get install -y libeigen3-dev libglm-dev libqt5opengl5-dev; fi
     - if [[ $QT_VERSION_MAJOR = 6 ]]; then sudo apt-get install -y libeigen3-dev libglm-dev libgl1-mesa-dev; fi
   before_build:
