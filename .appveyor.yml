@@ -18,7 +18,7 @@ environment:
     - BUILD_NAME: Win64 Qt6
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       CMAKE_GENERATOR: Visual Studio 16 2019
-      QT_BASEDIR: C:/Qt/6.3/msvc2019_64
+      QT_BASEDIR: C:/Qt/6.5/msvc2019_64
       QT_VERSION_MAJOR: 6
       BITS: 64
     - BUILD_NAME: Ubuntu amd64 Qt5
