@@ -78,7 +78,7 @@ if(Eigen3_ADDED)
 endif()
 include_directories(${CMAKE_BINARY_DIR})
 
-if(WIN32)
+if(WIN32 AND (NOT MINGW))
     set(shadersDestPath "${CMAKE_PROJECT_NAME}")
     set(installBinDir "${CMAKE_PROJECT_NAME}")
     set(installLibDir "${installBinDir}")
