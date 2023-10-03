@@ -49,7 +49,7 @@ if(${QT_VERSION} STREQUAL 6)
 endif()
 
 set_target_properties(${showmyskyTarget} PROPERTIES OUTPUT_NAME showmysky)
-if(WIN32)
+if(WIN32 AND (NOT MINGW))
     # Default subsystem is console. We don't want the console window to appear, so tweak linker parameters.
     set_target_properties(${showmyskyTarget} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 endif()
