@@ -2,7 +2,6 @@
 #define INCLUDE_ONCE_386B7A49_CC0D_40CF_AC50_73493DF4B289
 
 #include <memory>
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <QOpenGLContext>
 #include <QOpenGLShaderProgram>

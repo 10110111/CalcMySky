@@ -4,7 +4,6 @@
 #include <vector>
 #include <utility>
 #include <complex>
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <QtOpenGL>
 #include "AtmosphereParameters.hpp"
