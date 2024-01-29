@@ -6,6 +6,7 @@
 #include <string_view>
 #include <QVector4D>
 #include <QOpenGLFunctions_3_3_Core>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include "data.hpp"
 #include "../common/util.hpp"

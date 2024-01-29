@@ -1,5 +1,6 @@
 #include <vector>
 #include <string_view>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
 void generateInterpolationGuides2D(glm::vec4 const* data, unsigned vecIndex,

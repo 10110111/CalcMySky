@@ -2,6 +2,7 @@
 #define INCLUDE_ONCE_D1C5F1EB_B6E7_4260_8AC3_57C35BB9B0DF
 
 #include <cmath>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <QtGui>
 #include "types.hpp"

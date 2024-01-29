@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include <QOpenGLShader>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include "const.hpp"
 #include "../common/AtmosphereParameters.hpp"

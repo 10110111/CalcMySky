@@ -1,3 +1,4 @@
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
 inline glm::vec4 wavelengthToXYZW(const float wavelength)

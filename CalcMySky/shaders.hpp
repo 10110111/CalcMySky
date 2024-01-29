@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <QOpenGLShader>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include "../common/util.hpp"
 

@@ -2,6 +2,7 @@
 #define INCLUDE_ONCE_E28E88C6_7992_4205_828C_8E04CC339B83
 
 #include <iostream>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <QString>
 #include <QVector3D>
