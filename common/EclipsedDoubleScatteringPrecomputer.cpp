@@ -3,6 +3,7 @@
 #include <iostream>
 #include <chrono>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 
 #include <QFile>
