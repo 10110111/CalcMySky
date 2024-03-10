@@ -27,7 +27,7 @@ environment:
       QT_VERSION_MAJOR: 5
     - BUILD_NAME: Ubuntu amd64 Qt6
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-      QT_BASEDIR: /home/appveyor/Qt/6.3/gcc_64
+      QT_BASEDIR: /home/appveyor/Qt/6.5/gcc_64
       QT_VERSION_MAJOR: 6
     - BUILD_NAME: macOS amd64 Qt5
       APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
