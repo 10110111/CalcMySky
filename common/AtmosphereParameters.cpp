@@ -350,6 +350,16 @@ AtmosphereParameters::Scatterer parseScatterer(AtmosphereParameters const& atmo,
             description.scatteringCrossSectionAt1um=getQuantity(value,1e-35,1,AreaQuantity{},filename,lineNumber);
         else if(key=="angstrom exponent")
             description.angstromExponent=getQuantity(value,-10,10,DimensionlessQuantity{},filename,lineNumber);
+        else if(key=="scattering cross section")
+        {
+            if(!skipSpectrum)
+                getSpectrum(atmo.allWavelengths,value,0,1,filename,lineNumber, description.scatteringCrossSection_);
+        }
+        else if(key=="extinction cross section")
+        {
+            if(!skipSpectrum)
+                getSpectrum(atmo.allWavelengths,value,0,1,filename,lineNumber, description.extinctionCrossSection_);
+        }
         else if(key=="single scattering albedo")
         {
             if(!skipSpectrum)
@@ -438,10 +448,19 @@ void AtmosphereParameters::Scatterer::finalizeLoading()
 
     if(singleScatteringAlbedo.empty())
     {
-        singleScatteringAlbedo.resize(atmo.allWavelengths.size(), glm::vec4(1));
+        if(scatteringCrossSection_.empty())
+        {
+            singleScatteringAlbedo.resize(atmo.allWavelengths.size(), glm::vec4(1));
+            for(size_t i = 0; i < atmo.allWavelengths.size(); ++i)
+                scatteringCrossSection_.push_back(extinctionCrossSection_[i]);
+        }
+        else
+        {
+            for(size_t i = 0; i < atmo.allWavelengths.size(); ++i)
+                singleScatteringAlbedo.push_back(scatteringCrossSection_[i] / extinctionCrossSection_[i]);
+        }
     }
-
-    if(extinctionCrossSection_.size() == atmo.allWavelengths.size())
+    else if(extinctionCrossSection_.size() == atmo.allWavelengths.size() && scatteringCrossSection_.empty())
     {
         for(size_t i = 0; i < atmo.allWavelengths.size(); ++i)
             scatteringCrossSection_.push_back(extinctionCrossSection_[i] * singleScatteringAlbedo[i]);
