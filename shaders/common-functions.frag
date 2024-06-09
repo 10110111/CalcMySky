@@ -141,8 +141,8 @@ float circlesIntersectionArea(float R1, float R2, float d)
     if(d>=R1+R2) return 0.;
 
     // Return area of the lens with radii R1 and R2 and offset d
-    return sqr(R1)*acos(clamp( (sqr(d)+sqr(R1)-sqr(R2))/(2*d*R1) ,-1.,1.)) +
-           sqr(R2)*acos(clamp( (sqr(d)+sqr(R2)-sqr(R1))/(2*d*R2) ,-1.,1.)) -
+    return sqr(R1)*acos(clampCosine( (sqr(d)+sqr(R1)-sqr(R2))/(2*d*R1) )) +
+           sqr(R2)*acos(clampCosine( (sqr(d)+sqr(R2)-sqr(R1))/(2*d*R2) )) -
            0.5*sqrt(max( (-d+R1+R2)*(d+R1-R2)*(d-R1+R2)*(d+R1+R2) ,0.));
 }
 
