@@ -1,6 +1,9 @@
 #ifndef INCLUDE_ONCE_E28E88C6_7992_4205_828C_8E04CC339B83
 #define INCLUDE_ONCE_E28E88C6_7992_4205_828C_8E04CC339B83
 
+#ifdef Q_OS_WIN
+# include <windows.h>
+#endif
 #include <iostream>
 #include <glm/glm.hpp>
 #include <QString>
