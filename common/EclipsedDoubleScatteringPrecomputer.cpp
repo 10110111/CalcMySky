@@ -8,6 +8,7 @@
 
 #include <QFile>
 #include <QOpenGLShaderProgram>
+#include <QOpenGLFunctions_4_3_Core>
 
 #include "const.hpp"
 #include "TextureAverageComputer.hpp"
@@ -133,6 +134,12 @@ EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
     , texture_(texSizeByViewAzimuth*texSizeByViewElevation*texSizeBySZA*texSizeByAltitude)
     , fourierIntermediate(texSizeByViewAzimuth)
 {
+# if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+	gl43 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_3_Core>(QOpenGLContext::currentContext());
+# else
+	gl43 = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_3_Core>();
+# endif
+
     // XXX: keep in sync with its use in GLSL computeDoubleScatteringEclipsedDensitySample() and C++ initTexturesAndFramebuffers()
 
     GLint viewport[4];
@@ -200,7 +207,7 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
     assert(elevationsBelowHorizon.size()==2*atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample);
     assert(azimuths.size()==nAzimuthPairsToSample);
 
-    TextureAverageComputer averager(gl, texW, texH, GL_RGBA32F, intermediateTextureTexUnitNum);
+    TextureAverageComputer averager(gl, gl43, texW, texH, GL_RGBA32F, intermediateTextureTexUnitNum);
 
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
     for(unsigned azimIndex=0; azimIndex<azimuths.size(); ++azimIndex)
@@ -218,6 +225,7 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
 
                 // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
                 const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
+                program.bind(); // restore after averager
                 auto*const samples = aboveHorizon ? samplesAboveHorizon : samplesBelowHorizon;
                 for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
                     samples[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);

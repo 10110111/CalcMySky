@@ -7,7 +7,8 @@
 #include <QOpenGLShaderProgram>
 
 class QOpenGLFunctions_3_3_Core;
-class TextureAverageComputer
+class QOpenGLFunctions_4_3_Core;
+class TextureAverageComputerGL33
 {
     QOpenGLFunctions_3_3_Core& gl;
     std::unique_ptr<QOpenGLShaderProgram> blitTexProgram;
@@ -23,9 +24,41 @@ class TextureAverageComputer
     glm::vec4 getTextureAverageWithWorkaround(GLuint texture, GLuint unusedTextureUnitNum);
 public:
     glm::vec4 getTextureAverage(GLuint texture, GLuint unusedTextureUnitNum);
-    TextureAverageComputer(QOpenGLFunctions_3_3_Core&, int texW, int texH,
-                           GLenum internalFormat, GLuint unusedTextureUnitNum);
-    ~TextureAverageComputer();
+    TextureAverageComputerGL33(QOpenGLFunctions_3_3_Core&, int texW, int texH,
+                               GLenum internalFormat, GLuint unusedTextureUnitNum);
+    ~TextureAverageComputerGL33();
+};
+
+class TextureAverageComputerGL43
+{
+public:
+    // NOTE: we require the internalFormat to be RGBA32F for now, because it's
+    // simpler to manage the shader then (which hard-codes this format too).
+    TextureAverageComputerGL43(QOpenGLFunctions_4_3_Core& gl, int texW, int texH, GLuint unusedTextureUnitNum);
+    glm::vec4 getTextureAverage(GLuint tex, GLuint unusedTextureUnitNum);
+    ~TextureAverageComputerGL43();
+private:
+    void buildShaderProgram();
+
+    QOpenGLFunctions_4_3_Core& gl;
+    int texW;
+    int texH;
+    int workGroupSizeX;
+    int workGroupSizeY;
+    int pixelsPerSideAtOnce;
+    std::unique_ptr<QOpenGLShaderProgram> computeProgram;
+    GLuint scratchTex = 0;
+    GLuint outputTex = 0;
+};
+
+class TextureAverageComputer
+{
+    std::unique_ptr<TextureAverageComputerGL33> averagerGL33;
+    std::unique_ptr<TextureAverageComputerGL43> averagerGL43;
+public:
+    TextureAverageComputer(QOpenGLFunctions_3_3_Core&, QOpenGLFunctions_4_3_Core*,
+                           int texW, int texH, GLenum internalFormat, GLuint unusedTextureUnitNum);
+    glm::vec4 getTextureAverage(GLuint texture, GLuint unusedTextureUnitNum);
 };
 
 #endif

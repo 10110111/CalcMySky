@@ -8,9 +8,11 @@
 #include <QtOpenGL>
 #include "AtmosphereParameters.hpp"
 
+class QOpenGLFunctions_4_3_Core;
 class EclipsedDoubleScatteringPrecomputer
 {
     QOpenGLFunctions_3_3_Core& gl;
+    QOpenGLFunctions_4_3_Core* gl43 = nullptr;
     AtmosphereParameters const& atmo;
     const unsigned texSizeByViewAzimuth;
     const unsigned texSizeByViewElevation;

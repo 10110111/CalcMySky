@@ -10,6 +10,7 @@
 #include <map>
 #include <set>
 
+#include <QOpenGLFunctions_4_3_Core>
 #include <QRegularExpression>
 #include <QOffscreenSurface>
 #include <QSurfaceFormat>
@@ -1239,9 +1240,14 @@ int main(int argc, char** argv)
 
         const auto timeBegin=std::chrono::steady_clock::now();
 
+# if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+        const auto gl43 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_3_Core>(QOpenGLContext::currentContext());
+# else
+        const auto gl43 = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_3_Core>();
+# endif
         // Initialize texture averager before anything to make it emit possible
         // warnings not mixing them into computation status reports.
-        TextureAverageComputer{gl, 10, 10, GL_RGBA32F, 0};
+        TextureAverageComputer{gl, gl43, 10, 10, GL_RGBA32F, 0};
 
         for(unsigned texIndex=0;texIndex<atmo.allWavelengths.size();++texIndex)
         {
