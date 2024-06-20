@@ -144,9 +144,9 @@ EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
     const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
     const auto nElevationPairsToSample=atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample;
     for(auto& s : samplesAboveHorizon)
-        s.resize(4*nElevationPairsToSample*nAzimuthPairsToSample);
+        s.resize(2*nElevationPairsToSample*nAzimuthPairsToSample);
     for(auto& s : samplesBelowHorizon)
-        s.resize(4*nElevationPairsToSample*nAzimuthPairsToSample);
+        s.resize(2*nElevationPairsToSample*nAzimuthPairsToSample);
 
     for(auto& r : radianceInterpolatedOverElevations)
         r.resize(texSizeByViewElevation*2*nAzimuthPairsToSample);
