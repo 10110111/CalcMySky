@@ -3,6 +3,7 @@
 #include <iostream>
 #include "util.hpp"
 #include "data.hpp"
+#include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
 
 void initBuffers()
 {
@@ -51,7 +52,8 @@ void initTexturesAndFramebuffers()
     }
     setupTexture(TEX_MULTIPLE_SCATTERING,width,height,depth);
     // XXX: keep in sync with its use in GLSL computeDoubleScatteringEclipsedDensitySample() and EclipsedDoubleScatteringPrecomputer's constructor
-    setupTexture(TEX_ECLIPSED_DOUBLE_SCATTERING, atmo.eclipseAngularIntegrationPoints, atmo.radialIntegrationPoints);
+    const auto edsTexSize = EclipsedDoubleScatteringPrecomputer::intermediateTexSize(atmo);
+    setupTexture(TEX_ECLIPSED_DOUBLE_SCATTERING, edsTexSize.width(), edsTexSize.height());
 
     setupTexture(TEX_LIGHT_POLLUTION_SCATTERING           , atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
     setupTexture(TEX_LIGHT_POLLUTION_DELTA_SCATTERING     , atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);

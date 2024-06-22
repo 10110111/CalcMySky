@@ -928,6 +928,7 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
 	gl.glBindVertexArray(vao);
     std::vector<glm::vec4> dataToSave;
     size_t numPointsPerSet=0;
+    GLuint directionsTextureName = 0;
     for(unsigned altIndex=0; altIndex<texSizeByAltitude; ++altIndex)
     {
         // Using the same encoding for altitude as in scatteringTex4DCoordsToTexVars()
@@ -946,7 +947,8 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
             const double sunZenithAngle=acos(cosSunZenithAngle);
 
             precomputer.computeRadianceOnCoarseGrid(*program, textures[TEX_ECLIPSED_DOUBLE_SCATTERING], unusedTextureUnitNum,
-                                                    cameraAltitude, sunZenithAngle, sunZenithAngle, 0, atmo.earthMoonDistance);
+                                                    cameraAltitude, sunZenithAngle, sunZenithAngle, 0, atmo.earthMoonDistance,
+                                                    directionsTextureName);
             numPointsPerSet = precomputer.appendCoarseGridSamplesTo(dataToSave);
 
             // Clear previous status and reset cursor position
@@ -955,6 +957,7 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
                       << std::string(statusWidth, '\b');
         }
     }
+    gl.glDeleteTextures(1, &directionsTextureName);
 	gl.glBindVertexArray(0);
 
     const auto time1=std::chrono::steady_clock::now();

@@ -16,7 +16,8 @@ class EclipsedDoubleScatteringPrecomputer
     const unsigned texSizeByViewElevation;
     const unsigned texSizeBySZA;
 
-    const double texW, texH; // size of the intermediate texture we are rendering to
+    unsigned texW, texH; // size of the intermediate texture we are rendering to
+    unsigned subTexW, subTexH; // size of the summable part of the intermediate texture (integrand samples for a single view direction)
     std::vector<glm::vec4> texture_; // output 4D texture data
     std::vector<std::complex<float>> fourierIntermediate;
     std::vector<float> elevationsAboveHorizon, elevationsBelowHorizon;
@@ -52,7 +53,7 @@ public:
     void computeRadianceOnCoarseGrid(QOpenGLShaderProgram& program,
                                      GLuint intermediateTextureName, GLuint intermediateTextureTexUnitNum,
                                      double cameraAltitude, double sunZenithAngle, double moonZenithAngle,
-                                     double moonAzimuthRelativeToSun, double earthMoonDistance);
+                                     double moonAzimuthRelativeToSun, double earthMoonDistance, GLuint& directionsTextureName);
     void convertRadianceToLuminance(glm::mat4 const& radianceToLuminance);
     void accumulateLuminance(EclipsedDoubleScatteringPrecomputer const& source, glm::mat4 const& sourceRadianceToLuminance);
     void generateTextureFromCoarseGridData(unsigned altIndex, unsigned szaIndex, double cameraAltitude);
@@ -61,6 +62,8 @@ public:
     void loadCoarseGridSamples(double cameraAltitude, glm::vec4 const* data, size_t numElements);
 
     std::vector<glm::vec4> const& texture() const { return texture_; }
+
+    static QSize intermediateTexSize(AtmosphereParameters const& atmo, QSize* subTexSize = nullptr);
 };
 
 #endif

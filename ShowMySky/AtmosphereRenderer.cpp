@@ -1780,6 +1780,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
     gl.glBindVertexArray(vao_);
     const bool renderingNeedsLuminance = !canGrabRadiance();
     std::unique_ptr<EclipsedDoubleScatteringPrecomputer> precompAccumulator;
+    GLuint directionsTextureName = 0;
     for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
     {
         auto& prog=*eclipsedDoubleScatteringPrecomputationPrograms_[wlSetIndex];
@@ -1798,7 +1799,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
         precomputer->computeRadianceOnCoarseGrid(prog, eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),
                                                  unusedTextureUnitNum, tools_->altitude(), tools_->sunZenithAngle(),
                                                  tools_->moonZenithAngle(), tools_->moonAzimuth() - tools_->sunAzimuth(),
-                                                 tools_->earthMoonDistance());
+                                                 tools_->earthMoonDistance(), directionsTextureName);
         if(renderingNeedsLuminance)
         {
             const auto rad2lum = radianceToLuminance(wlSetIndex, params_.allWavelengths);
@@ -1823,6 +1824,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
                             0,GL_RGBA,GL_FLOAT,generator.texture().data());
         }
     }
+    gl.glDeleteTextures(1, &directionsTextureName);
     gl.glBindVertexArray(0);
     gl.glBindFramebuffer(GL_FRAMEBUFFER,luminanceRadianceFBO_);
     gl.glEnablei(GL_BLEND, 0);
@@ -2088,9 +2090,8 @@ void AtmosphereRenderer::setupRenderTarget()
     eclipsedDoubleScatteringPrecomputationScratchTexture_=newTex(QOpenGLTexture::Target2D);
     eclipsedDoubleScatteringPrecomputationScratchTexture_->create();
     eclipsedDoubleScatteringPrecomputationScratchTexture_->bind();
-    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,
-                    params_.eclipseAngularIntegrationPoints, params_.radialIntegrationPoints,
-                    0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    const auto texSize = EclipsedDoubleScatteringPrecomputer::intermediateTexSize(params_);
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F, texSize.width(), texSize.height(), 0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
     gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, eclipseDoubleScatteringPrecomputationFBO_);
     gl.glFramebufferTexture(GL_DRAW_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),0);
     checkFramebufferStatus(gl, "Eclipsed double scattering precomputation FBO");

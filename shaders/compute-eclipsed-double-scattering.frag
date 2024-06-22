@@ -64,12 +64,22 @@ vec4 computeDoubleScatteringEclipsedDensitySample(const int directionIndex, cons
 }
 
 uniform float cameraAltitude;
-uniform vec3 cameraViewDir;
 uniform float sunZenithAngle;
 uniform vec3 moonPositionRelativeToSunAzimuth;
 
+uniform sampler2D cameraViewDirs;
+uniform ivec2 subTexSize;
+
+vec3 getViewDir()
+{
+    CONST int tileX = int(gl_FragCoord.x) / subTexSize.x;
+    CONST int tileY = int(gl_FragCoord.y) / subTexSize.y;
+    return texture(cameraViewDirs, (vec2(tileX, tileY) + 0.5) / textureSize(cameraViewDirs, 0).xy).xyz;
+}
+
 void main()
 {
+    CONST vec3 cameraViewDir = getViewDir();
     CONST vec3 sunDir=vec3(sin(sunZenithAngle), 0, cos(sunZenithAngle));
     CONST vec3 cameraPos=vec3(0,0,cameraAltitude);
     CONST bool viewRayIntersectsGround=rayIntersectsGround(cameraViewDir.z, cameraAltitude);
@@ -77,8 +87,10 @@ void main()
     CONST float radialIntegrInterval=distanceToNearestAtmosphereBoundary(cameraViewDir.z, cameraAltitude,
                                                                          viewRayIntersectsGround);
 
-    CONST int directionIndex=int(gl_FragCoord.x);
-    CONST int radialDistIndex=int(gl_FragCoord.y);
+    CONST ivec2 posInSubTex = ivec2(gl_FragCoord.xy) % subTexSize;
+    CONST int dirAndDistIndex = posInSubTex.y * subTexSize.x + posInSubTex.x;
+    CONST int directionIndex = dirAndDistIndex % eclipseAngularIntegrationPoints;
+    CONST int radialDistIndex = dirAndDistIndex / eclipseAngularIntegrationPoints;
 
     // Using midpoint rule for quadrature
     CONST float dl=radialIntegrInterval/radialIntegrationPoints;

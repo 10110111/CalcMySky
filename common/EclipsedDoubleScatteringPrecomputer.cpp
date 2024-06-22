@@ -23,13 +23,23 @@ using std::sqrt;
 using std::asin;
 using std::exp;
 using std::log;
+using std::ceil;
+using std::floor;
+using std::lround;
+using std::round;
 
-static glm::vec4 sumTexels(TextureAverageComputer& averager, const GLuint textureToRead,
-                           const float texW, const float texH, const GLuint unusedTextureUnitNum)
+namespace
 {
-    const auto average = averager.getTextureAverage(textureToRead, unusedTextureUnitNum);
-    // We need the sum instead of the average
-    return texW*texH * average;
+
+// Returns sides of a rectangle that has the given area or a bit higher, and is
+// as close to a square as possible.
+std::pair<unsigned, unsigned> computeSidesOfSquarestRect(const unsigned area)
+{
+    const unsigned a = floor(area / floor(sqrt(area)));
+    const unsigned b = ceil(area / a);
+    return {a,b};
+}
+
 }
 
 float EclipsedDoubleScatteringPrecomputer::cosZenithAngleOfHorizon(const float altitude) const
@@ -128,12 +138,16 @@ EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
     , texSizeByViewAzimuth(texSizeByViewAzimuth)
     , texSizeByViewElevation(texSizeByViewElevation)
     , texSizeBySZA(texSizeBySZA)
-    , texW(atmo.eclipseAngularIntegrationPoints)
-    , texH(atmo.radialIntegrationPoints)
     , texture_(texSizeByViewAzimuth*texSizeByViewElevation*texSizeBySZA*texSizeByAltitude)
     , fourierIntermediate(texSizeByViewAzimuth)
 {
     // XXX: keep in sync with its use in GLSL computeDoubleScatteringEclipsedDensitySample() and C++ initTexturesAndFramebuffers()
+    QSize subTexSize;
+    const auto texSize = intermediateTexSize(atmo, &subTexSize);
+    subTexW = subTexSize.width();
+    subTexH = subTexSize.height();
+    texW = texSize.width();
+    texH = texSize.height();
 
     GLint viewport[4];
     gl.glGetIntegerv(GL_VIEWPORT, viewport);
@@ -143,6 +157,7 @@ EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
 
     const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
     const auto nElevationPairsToSample=atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample;
+
     for(auto& s : samplesAboveHorizon)
         s.resize(2*nElevationPairsToSample*nAzimuthPairsToSample);
     for(auto& s : samplesBelowHorizon)
@@ -157,12 +172,46 @@ EclipsedDoubleScatteringPrecomputer::~EclipsedDoubleScatteringPrecomputer()
     gl.glViewport(0,0, origViewportWidth,origViewportHeight);
 }
 
+QSize EclipsedDoubleScatteringPrecomputer::intermediateTexSize(AtmosphereParameters const& atmo, QSize* subTexSize)
+{
+    const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
+    const auto nElevationPairsToSample=atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample;
+
+    const unsigned totalQuadraturePointsToSum = atmo.eclipseAngularIntegrationPoints * atmo.radialIntegrationPoints;
+    // We arrange all the directions of camera view together with all the
+    // directions of second scattering and radial points in such a way that the
+    // second scattering directions that are to be summed over are contained in
+    // smaller PoT-sized subtextures, and the full texture is a tiling of these
+    // subtextures. We try to make the subtextures as square as possible to
+    // reduce the number of summation on the CPU (so that isotropic mipmap
+    // could be used at the deepest possible level), and also the grid of these
+    // subtextures should be as square as possible, so that we don't hit
+    // texture size limits.
+    const int pot = std::ceil(std::log2(totalQuadraturePointsToSum));
+    // NOTE: we want the subtexture to be horizontal, this will simplify getting data from the sum later.
+    const int subTexH = 1 << (pot / 2);
+    const int subTexW = (1 << pot) / subTexH;
+    // Check that it's horizontal. The above computation should ensure this.
+    if(subTexW < subTexH)
+    {
+        throw std::logic_error("EclipsedDoubleScatteringPrecomputer: subTexW<subTexH (" +
+                               std::to_string(subTexW) + "<" + std::to_string(subTexH) + ")");
+    }
+    const auto [tileW, tileH] = computeSidesOfSquarestRect(4 * nAzimuthPairsToSample * nElevationPairsToSample);
+    const int texW = tileW * subTexW;
+    const int texH = tileH * subTexH;
+    if(subTexSize)
+        *subTexSize = {subTexW, subTexH};
+    return {texW, texH};
+}
+
 void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLShaderProgram& program,
                                                                       const GLuint intermediateTextureName,
                                                                       const GLuint intermediateTextureTexUnitNum,
                                                                       const double cameraAltitude, const double sunZenithAngle,
                                                                       const double moonZenithAngle, const double moonAzimuthRelativeToSun,
-                                                                      const double earthMoonDistance)
+                                                                      const double earthMoonDistance,
+                                                                      GLuint& directionsTextureName)
 {
     const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
 
@@ -200,35 +249,75 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
     assert(elevationsBelowHorizon.size()==2*atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample);
     assert(azimuths.size()==nAzimuthPairsToSample);
 
-    TextureAverageComputer averager(gl, texW, texH, GL_RGBA32F, intermediateTextureTexUnitNum);
-
+    const auto tileW = texW / subTexW;
+    const auto tileH = texH / subTexH;
+    std::vector<vec3> dirsPerTile;
+    dirsPerTile.reserve(tileW*tileH);
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
     for(unsigned azimIndex=0; azimIndex<azimuths.size(); ++azimIndex)
     {
         const auto azimuth=azimuths[azimIndex];
-        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+        for(const auto& elevs : {&elevationsAboveHorizon, &elevationsBelowHorizon})
         {
-            const auto elev=elevationsAboveHorizon[elevIndex];
-            const auto viewDir=mat3(rotate(azimuth,vec3(0,0,1)))*vec3(cos(elev),0,sin(elev));
-            program.setUniformValue("cameraViewDir", toQVector(viewDir));
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-            // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-            const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
-            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
-                samplesAboveHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
+            for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+            {
+                const auto elev=(*elevs)[elevIndex];
+                const auto viewDir=mat3(rotate(azimuth,vec3(0,0,1)))*vec3(cos(elev),0,sin(elev));
+                dirsPerTile.push_back(viewDir);
+            }
         }
-        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
-        {
-            const auto elev=elevationsBelowHorizon[elevIndex];
-            const auto viewDir=mat3(rotate(azimuth,vec3(0,0,1)))*vec3(cos(elev),0,sin(elev));
-            program.setUniformValue("cameraViewDir", toQVector(viewDir));
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
 
-            // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-            const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
-            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
-                samplesBelowHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
+    if(!directionsTextureName)
+        gl.glGenTextures(1, &directionsTextureName);
+    const auto directionsTextureTexUnitNum = intermediateTextureTexUnitNum + 1;
+    gl.glActiveTexture(GL_TEXTURE0 + directionsTextureTexUnitNum);
+    gl.glBindTexture(GL_TEXTURE_2D, directionsTextureName);
+    gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,tileW,tileH,0,GL_RGB,GL_FLOAT,dirsPerTile.data());
+    program.setUniformValue("cameraViewDirs", directionsTextureTexUnitNum);
+    gl.glUniform2iv(gl.glGetUniformLocation(program.programId(), "subTexSize"),
+                    1, std::array{int(subTexW), int(subTexH)}.data());
+
+    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    gl.glActiveTexture(GL_TEXTURE0 + intermediateTextureTexUnitNum);
+    gl.glBindTexture(GL_TEXTURE_2D, intermediateTextureName);
+    gl.glGenerateMipmap(GL_TEXTURE_2D);
+    const float reductionFactor = std::min(subTexW, subTexH);
+    const unsigned finalSumElemCount = subTexW*subTexH/sqr(reductionFactor);
+    std::vector<vec4> computedData(tileW*tileH*finalSumElemCount);
+    const int mipmapLevelToFetch = lround(std::log2(std::min(subTexW, subTexH)));
+    gl.glGetTexImage(GL_TEXTURE_2D, mipmapLevelToFetch, GL_RGBA, GL_FLOAT, computedData.data());
+
+    // Our summands are in a PoT subtexture, which is always either a square (aspect ratio 1:1),
+    // or a double square (aspect ratio 2:1 (we've made sure that subTexW>=subTexH)), so the deepest
+    // usable mip level yields either 1 or 2 subtexels.
+    assert(finalSumElemCount==1 || finalSumElemCount==2);
+
+    for(unsigned azimIndex = 0, dirIndex = 0; azimIndex<azimuths.size(); ++azimIndex)
+    {
+        for(const bool aboveHorizon : {true, false})
+        {
+            for(unsigned elevIndex = 0; elevIndex<elevCount; ++elevIndex, ++dirIndex)
+            {
+                const auto& elev = (aboveHorizon ? elevationsAboveHorizon : elevationsBelowHorizon)[elevIndex];
+
+                // Extracting the pixel containing the sum - the integral over the view ray and scattering directions
+
+                const unsigned pos = dirIndex * finalSumElemCount;
+                // If we have a single summed texel, it's the average that we want to multiply by
+                // the original number of texels to get the sum instead of the average. Otherwise
+                // there's two texels to sum, each of which is an average. In this case we also need
+                // to multiply by the same factor to get the sum of texels.
+                const auto sum = finalSumElemCount==1 ? computedData[pos]
+                                                      : computedData[pos]+computedData[pos+1];
+                const auto integral = sum * sqr(reductionFactor);
+
+                auto*const samples = aboveHorizon ? samplesAboveHorizon : samplesBelowHorizon;
+                for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+                    samples[i][azimIndex*elevCount+elevIndex] = vec2(elev, integral[i]);
+            }
         }
     }
 }
