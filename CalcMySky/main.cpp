@@ -1143,6 +1143,7 @@ int main(int argc, char** argv)
     QApplication app(argc, argv);
     app.setApplicationName("CalcMySky");
     app.setApplicationVersion(PROJECT_VERSION);
+    app.processEvents(); // prevent a SIGPIPE due to QTBUG-58709
 
     try
     {
