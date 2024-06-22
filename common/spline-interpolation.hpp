@@ -28,7 +28,7 @@ public:
         for(chunkIndex=0; chunkIndex<chunks.size() && x > chunks[chunkIndex].xMax; ++chunkIndex);
 
         if(chunkIndex==chunks.size())
-            throw std::out_of_range("Too large x");
+            throw std::out_of_range("SplineOrder2InterpolationFunction::sample: too large x");
 
         const auto a = chunks[chunkIndex].a;
         const auto b = chunks[chunkIndex].b;
