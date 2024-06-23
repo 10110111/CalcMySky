@@ -205,30 +205,23 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
     for(unsigned azimIndex=0; azimIndex<azimuths.size(); ++azimIndex)
     {
-        const auto azimuth=azimuths[azimIndex];
-        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+        for(const bool aboveHorizon : {true, false})
         {
-            const auto elev=elevationsAboveHorizon[elevIndex];
-            const auto viewDir=mat3(rotate(azimuth,vec3(0,0,1)))*vec3(cos(elev),0,sin(elev));
-            program.setUniformValue("cameraViewDir", toQVector(viewDir));
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            const auto& elevs = aboveHorizon ? elevationsAboveHorizon : elevationsBelowHorizon;
+            const auto azimuth=azimuths[azimIndex];
+            for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+            {
+                const auto elev=elevs[elevIndex];
+                const auto viewDir=mat3(rotate(azimuth,vec3(0,0,1)))*vec3(cos(elev),0,sin(elev));
+                program.setUniformValue("cameraViewDir", toQVector(viewDir));
+                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-            // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-            const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
-            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
-                samplesAboveHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
-        }
-        for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
-        {
-            const auto elev=elevationsBelowHorizon[elevIndex];
-            const auto viewDir=mat3(rotate(azimuth,vec3(0,0,1)))*vec3(cos(elev),0,sin(elev));
-            program.setUniformValue("cameraViewDir", toQVector(viewDir));
-            gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-            // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-            const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
-            for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
-                samplesBelowHorizon[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
+                // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
+                const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
+                auto*const samples = aboveHorizon ? samplesAboveHorizon : samplesBelowHorizon;
+                for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
+                    samples[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
+            }
         }
     }
 }
