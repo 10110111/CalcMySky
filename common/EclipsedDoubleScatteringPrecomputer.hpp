@@ -22,6 +22,11 @@ class EclipsedDoubleScatteringPrecomputer
     std::vector<glm::vec4> texture_; // output 4D texture data
     std::vector<std::complex<float>> fourierIntermediate;
     std::vector<float> elevationsAboveHorizon, elevationsBelowHorizon;
+    // Variables for the compute shader
+    inline static glm::ivec3 workGroupSize_;
+    inline static glm::ivec3 numWGs;
+    GLuint computeBuffer;
+    std::vector<glm::vec4> bufferData;
 
     static constexpr unsigned VEC_ELEM_COUNT=4; // number of components in the partial radiance vector
     // The samples of radiance, one container per vec4 component. These containers are re-used for different altitudes and Sun elevations.
@@ -38,6 +43,7 @@ class EclipsedDoubleScatteringPrecomputer
     float cosZenithAngleOfHorizon(const float altitude) const;
     std::pair<float,bool> eclipseTexCoordsToTexVars_cosVZA_VRIG(float vzaTexCoordInUnitRange, float altitude) const;
     void generateElevationsForEclipsedDoubleScattering(float cameraAltitude);
+    void computeWorkGroupSizes();
 public:
     /* Preconditions:
      *   * Rendering FBO is bound, and the target texture is attached to it
@@ -46,6 +52,7 @@ public:
      *   * VAO for a quad is bound
      */
     EclipsedDoubleScatteringPrecomputer(QOpenGLFunctions_3_3_Core& gl,
+                                        QOpenGLFunctions_4_3_Core* gl43,
                                         AtmosphereParameters const& atmo,
                                         unsigned texSizeByViewAzimuth, unsigned texSizeByViewElevation,
                                         unsigned texSizeBySZA, unsigned texSizeByAltitude);
@@ -61,6 +68,7 @@ public:
 
     size_t appendCoarseGridSamplesTo(std::vector<glm::vec4>& data) const;
     void loadCoarseGridSamples(double cameraAltitude, glm::vec4 const* data, size_t numElements);
+    glm::ivec3 workGroupSize() const { return workGroupSize_; }
 
     std::vector<glm::vec4> const& texture() const { return texture_; }
 };

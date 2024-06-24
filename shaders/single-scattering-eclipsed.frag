@@ -73,3 +73,32 @@ vec4 computeSingleScatteringEclipsed(const vec3 camera, const vec3 viewDir, cons
 
     return spectrum;
 }
+
+vec4 computeSingleScatteringEclipsedSample(const int depthIndex, const vec3 camera, const vec3 viewDir,
+                                           const vec3 sunDir, const vec3 moonPos, const bool viewRayIntersectsGround)
+{
+    CONST float cosViewZenithAngle=cosZenithAngle(camera,viewDir);
+    CONST float cosSunZenithAngle=cosZenithAngle(camera,sunDir);
+    CONST float altitude=pointAltitude(camera);
+    CONST float dotViewSun=dot(viewDir,sunDir);
+    CONST float integrInterval=distanceToNearestAtmosphereBoundary(cosViewZenithAngle, altitude,
+                                                                   viewRayIntersectsGround);
+
+    // Using the midpoint rule for quadrature
+    vec4 spectrum=vec4(0);
+    CONST float dl=integrInterval/radialIntegrationPoints;
+    CONST float dist=(depthIndex+0.5)*dl;
+    spectrum += computeSingleScatteringIntegrandEclipsed(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
+                                                         altitude, dist, viewRayIntersectsGround,
+                                                         camera+viewDir*dist, sunDir, moonPos);
+
+    spectrum *= dl*solarIrradianceAtTOA
+#if ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION
+                                // the multiplier is already included
+#else
+                                        * scatteringCrossSection()
+#endif
+        ;
+
+    return spectrum;
+}

@@ -16,6 +16,7 @@ constexpr char PHASE_FUNCTIONS_HEADER_FILENAME[]="phase-functions.h.glsl";
 constexpr char TOTAL_SCATTERING_COEFFICIENT_HEADER_FILENAME[]="total-scattering-coefficient.h.glsl";
 constexpr char COMPUTE_SCATTERING_DENSITY_FILENAME[]="compute-scattering-density.frag";
 constexpr char COMPUTE_ECLIPSED_DOUBLE_SCATTERING_FILENAME[]="compute-eclipsed-double-scattering.frag";
+constexpr char COMPUTE_ECLIPSED_DOUBLE_SCATTERING_COMPUTE_FILENAME[]="compute-eclipsed-double-scattering.compute.glsl";
 constexpr char SINGLE_SCATTERING_ECLIPSED_FILENAME[]="single-scattering-eclipsed.frag";
 constexpr char DOUBLE_SCATTERING_ECLIPSED_FILENAME[]="double-scattering-eclipsed.frag";
 constexpr char COMPUTE_INDIRECT_IRRADIANCE_FILENAME[]="compute-indirect-irradiance.frag";

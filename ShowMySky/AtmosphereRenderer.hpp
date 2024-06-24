@@ -14,12 +14,14 @@
 #include "../common/AtmosphereParameters.hpp"
 #include "api/ShowMySky/AtmosphereRenderer.hpp"
 
+class QOpenGLFunctions_4_3_Core;
 class AtmosphereRenderer : public ShowMySky::AtmosphereRenderer
 {
     using ShaderProgPtr=std::unique_ptr<QOpenGLShaderProgram>;
     using TexturePtr=std::unique_ptr<QOpenGLTexture>;
     using ScattererName=QString;
     QOpenGLFunctions_3_3_Core& gl;
+    QOpenGLFunctions_4_3_Core* gl43 = nullptr;
 public:
 
     /**

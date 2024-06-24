@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QDebug>
 #include <QRegularExpression>
+#include <QOpenGLFunctions_4_3_Core>
 
 #include "util.hpp"
 #include "../common/const.hpp"
@@ -94,7 +95,7 @@ void AtmosphereRenderer::loadEclipsedDoubleScatteringTexture(QString const& path
     const auto texSizeByViewElevation = params_.eclipsedDoubleScatteringTextureSize[1];
     const auto texSizeBySZA = params_.eclipsedDoubleScatteringTextureSize[2];
     const auto texSizeByAltitude = params_.eclipsedDoubleScatteringTextureSize[3];
-    EclipsedDoubleScatteringPrecomputer precomputer(gl, params_, texSizeByViewAzimuth, texSizeByViewElevation, texSizeBySZA, 2);
+    EclipsedDoubleScatteringPrecomputer precomputer(gl, gl43, params_, texSizeByViewAzimuth, texSizeByViewElevation, texSizeBySZA, 2);
 
     const auto altTexIndex = altitudeCoord==1 ? numAltIntervalsIn4DTexture_-1 : altitudeCoord*numAltIntervalsIn4DTexture_;
     const int floorAltIndex = std::floor(altTexIndex);
@@ -1091,16 +1092,39 @@ void main()
         if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
             continue;
 
-        const auto scatDir=QString("%1/shaders/double-scattering-eclipsed/precomputation/%2").arg(pathToData_).arg(wlSetIndex);
-        qDebug().nospace() << "Loading shaders from " << scatDir << "...";
-        auto& program=*eclipsedDoubleScatteringPrecomputationPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+        QOpenGLShaderProgram* program;
+        if(gl43)
+        {
+            const auto scatDir=QString("%1/shaders/double-scattering-eclipsed/precomputation/compute-shader/%2").arg(pathToData_).arg(wlSetIndex);
+            qDebug().nospace() << "Loading shaders from " << scatDir << "...";
+            program = eclipsedDoubleScatteringPrecomputationPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>()).get();
+            EclipsedDoubleScatteringPrecomputer precomputer(gl, gl43, params_,
+                                                            params_.eclipsedDoubleScatteringTextureSize[0],
+                                                            params_.eclipsedDoubleScatteringTextureSize[1], 1, 1);
+            const auto workGroupSize = precomputer.workGroupSize();
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+            {
+                const auto path = QString::fromStdString(shaderFile.path().u8string());
+                auto data = QString::fromUtf8(readFullFile(path));
+                data.replace(QRegularExpression("\\bWORK_GROUP_SIZE_X\\b"), QString("%1").arg(workGroupSize[0]));
+                data.replace(QRegularExpression("\\bWORK_GROUP_SIZE_Y\\b"), QString("%1").arg(workGroupSize[1]));
+                data.replace(QRegularExpression("\\bWORK_GROUP_SIZE_Z\\b"), QString("%1").arg(workGroupSize[2]));
+                addShaderCode(*program, QOpenGLShader::Compute, QObject::tr("shader file \"%1\"").arg(path), data.toUtf8());
+            }
+        }
+        else
+        {
+            const auto scatDir=QString("%1/shaders/double-scattering-eclipsed/precomputation/%2").arg(pathToData_).arg(wlSetIndex);
+            qDebug().nospace() << "Loading shaders from " << scatDir << "...";
+            program = eclipsedDoubleScatteringPrecomputationPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>()).get();
 
-        for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
-            addShaderFile(program,QOpenGLShader::Fragment,shaderFile.path());
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(scatDir.toStdString())))
+                addShaderFile(*program,QOpenGLShader::Fragment,shaderFile.path());
 
-        program.addShader(precomputationProgramsVertShader_.get());
+            program->addShader(precomputationProgramsVertShader_.get());
+        }
 
-        link(program, QObject::tr("on-the-fly eclipsed double scattering shader program"));
+        link(*program, QObject::tr("on-the-fly eclipsed double scattering shader program"));
         ++loadingStepsDone_; return;
     }
 
@@ -1791,7 +1815,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
             prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
         prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
 
-        auto precomputer = std::make_unique<EclipsedDoubleScatteringPrecomputer>(gl,
+        auto precomputer = std::make_unique<EclipsedDoubleScatteringPrecomputer>(gl, gl43,
                                                         params_,
                                                         params_.eclipsedDoubleScatteringTextureSize[0],
                                                         params_.eclipsedDoubleScatteringTextureSize[1], 1, 1);
@@ -2110,6 +2134,15 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     , pathToData_(pathToData)
     , luminanceRenderTargetTexture_(QOpenGLTexture::Target2D)
 {
+    // TODO: move this to the constructor parameters
+    if(const auto ctxt = QOpenGLContext::currentContext())
+    {
+# if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+        gl43 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_3_Core>(ctxt);
+# else
+        gl43 = ctxt->versionFunctions<QOpenGLFunctions_4_3_Core>();
+# endif
+    }
     params_.parse(pathToData + "/params.atmo", AtmosphereParameters::ForceNoEDSTextures{false}, AtmosphereParameters::SkipSpectra{true});
 }
 

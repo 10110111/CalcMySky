@@ -17,6 +17,16 @@
 #include "timing.hpp"
 #include "util.hpp"
 
+// macOS doesn't define these, which breaks compilation
+#ifndef GL_VERSION_4_3
+# define GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS 0x90EB
+# define GL_TEXTURE_UPDATE_BARRIER_BIT     0x00000100
+# define GL_BUFFER_UPDATE_BARRIER_BIT      0x00000200
+# define GL_MAX_COMPUTE_WORK_GROUP_COUNT   0x91BE
+# define GL_MAX_COMPUTE_WORK_GROUP_SIZE    0x91BF
+# define GL_SHADER_STORAGE_BUFFER          0x90D2
+#endif
+
 using namespace glm;
 using std::sin;
 using std::cos;
@@ -121,10 +131,12 @@ std::pair<float,bool> EclipsedDoubleScatteringPrecomputer::eclipseTexCoordsToTex
 
 EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
           QOpenGLFunctions_3_3_Core& gl,
+          QOpenGLFunctions_4_3_Core* gl43,
           AtmosphereParameters const& atmo,
           const unsigned texSizeByViewAzimuth, const unsigned texSizeByViewElevation,
           const unsigned texSizeBySZA, const unsigned texSizeByAltitude)
     : gl(gl)
+    , gl43(gl43)
     , atmo(atmo)
     , texSizeByViewAzimuth(texSizeByViewAzimuth)
     , texSizeByViewElevation(texSizeByViewElevation)
@@ -134,11 +146,16 @@ EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
     , texture_(texSizeByViewAzimuth*texSizeByViewElevation*texSizeBySZA*texSizeByAltitude)
     , fourierIntermediate(texSizeByViewAzimuth)
 {
-# if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-	gl43 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_3_Core>(QOpenGLContext::currentContext());
-# else
-	gl43 = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_3_Core>();
-# endif
+
+    if(gl43)
+    {
+        computeWorkGroupSizes();
+        gl.glGenBuffers(1, &computeBuffer);
+        gl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, computeBuffer);
+        bufferData.resize(numWGs[0]*numWGs[1]*numWGs[2]);
+        gl.glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size() * sizeof bufferData[0], nullptr, GL_DYNAMIC_READ);
+        gl.glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
 
     // XXX: keep in sync with its use in GLSL computeDoubleScatteringEclipsedDensitySample() and C++ initTexturesAndFramebuffers()
 
@@ -162,6 +179,63 @@ EclipsedDoubleScatteringPrecomputer::EclipsedDoubleScatteringPrecomputer(
 EclipsedDoubleScatteringPrecomputer::~EclipsedDoubleScatteringPrecomputer()
 {
     gl.glViewport(0,0, origViewportWidth,origViewportHeight);
+    gl.glDeleteBuffers(1, &computeBuffer);
+}
+
+void EclipsedDoubleScatteringPrecomputer::computeWorkGroupSizes()
+{
+    if(workGroupSize_[0] != 0)
+        return; // the size is already computed or the computation failed
+
+    workGroupSize_[0] = 32;
+    workGroupSize_[2] = 1;
+
+    int maxInvocations = -1;
+    gl43->glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvocations);
+    if(maxInvocations % workGroupSize_[0])
+    {
+        std::cerr << "EclipsedDoubleScatteringPrecomputer: warning: Max work group invocations " << maxInvocations
+                  << " is not a multiple of " << workGroupSize_[0] << "\n";
+    }
+
+    glm::ivec3 maxWGSize;
+    for(int i = 0; i < 3; ++i)
+        gl43->glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, i, &maxWGSize[i]);
+
+    glm::ivec3 maxWGcount;
+    for(int i = 0; i < 3; ++i)
+        gl43->glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, i, &maxWGcount[i]);
+
+    workGroupSize_[1] = maxInvocations / workGroupSize_[0];
+    if(workGroupSize_[0] > maxWGSize[0] || workGroupSize_[1] > maxWGSize[1] || workGroupSize_[2] > maxWGSize[2])
+    {
+        std::cerr << "EclipsedDoubleScatteringPrecomputer: error: work group size chosen is larger than maximum: ("
+                  << workGroupSize_[0] << "," << workGroupSize_[1] << "," << workGroupSize_[2] << ") > ("
+                  << maxWGSize[0] << "," << maxWGSize[1] << "," << maxWGSize[2] << ")\n";
+        workGroupSize_[0] = workGroupSize_[1] = workGroupSize_[2] = -1;
+        return;
+    }
+    const int totalPointsToSum = atmo.radialIntegrationPoints *
+                                 atmo.radialIntegrationPoints *
+                                 atmo.eclipseAngularIntegrationPoints;
+    const int totalWGs = (totalPointsToSum + maxInvocations - 1) / maxInvocations;
+    // FIXME: this is not an optimal choice, just a quick-and-dirty way to have things up and running
+    numWGs[0] = totalWGs;
+    numWGs[1] = 1;
+    numWGs[2] = 1;
+    if(numWGs[0] > maxWGSize[0] || numWGs[1] > maxWGSize[1] || numWGs[2] > maxWGSize[2])
+    {
+        std::cerr << "EclipsedDoubleScatteringPrecomputer: number of work groups chosen exceeds OpenGL limits:"
+                  << numWGs[0] << u8"×" << numWGs[1] << u8"×" << numWGs[2] << " > "
+                  << maxWGSize[0] << u8"×" << maxWGSize[1] << u8"×" << maxWGSize[2] << ". The computation will fail.\n";
+    }
+    else
+    {
+        std::cerr << "EclipsedDoubleScatteringPrecomputer: work group size : "
+                  << workGroupSize_[0] << u8"×" << workGroupSize_[1] << u8"×" << workGroupSize_[2] << '\n'
+                  << "                                     work group count: "
+                  << numWGs[0] << u8"×" << numWGs[1] << u8"×" << numWGs[2] << "\n";
+    }
 }
 
 void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLShaderProgram& program,
@@ -207,7 +281,15 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
     assert(elevationsBelowHorizon.size()==2*atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample);
     assert(azimuths.size()==nAzimuthPairsToSample);
 
-    TextureAverageComputer averager(gl, gl43, texW, texH, GL_RGBA32F, intermediateTextureTexUnitNum);
+    std::unique_ptr<TextureAverageComputer> averager;
+    if(gl43)
+    {
+        gl.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, computeBuffer);
+    }
+    else
+    {
+        averager.reset(new TextureAverageComputer(gl, gl43, texW, texH, GL_RGBA32F, intermediateTextureTexUnitNum));
+    }
 
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
     for(unsigned azimIndex=0; azimIndex<azimuths.size(); ++azimIndex)
@@ -220,12 +302,30 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
             {
                 const auto elev=elevs[elevIndex];
                 const auto viewDir=mat3(rotate(azimuth,vec3(0,0,1)))*vec3(cos(elev),0,sin(elev));
+                // Try rebinding to fix a failure to set the uniform except for the first time on NVIDIA GeForce GTX 750Ti
+                program.bind();
                 program.setUniformValue("cameraViewDir", toQVector(viewDir));
-                gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                glm::vec4 integral(0);
+                if(gl43)
+                {
+                    program.setUniformValue("shiftInBuffer", 0);
+                    gl43->glDispatchCompute(numWGs[0], numWGs[1], numWGs[2]);
+                    gl43->glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+                    // FIXME: this should be summed on the GPU in the second pass and only copied as
+                    // the few values remaining for the last (CPU) pass.
+                    gl.glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bufferData.size() * sizeof bufferData[0],
+                                          bufferData.data());
+                    for(const auto& v : bufferData)
+                        integral += v;
+                }
+                else
+                {
+                    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                    // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
+                    integral = sumTexels(*averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
+                    program.bind(); // restore after averager
+                }
 
-                // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-                const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
-                program.bind(); // restore after averager
                 auto*const samples = aboveHorizon ? samplesAboveHorizon : samplesBelowHorizon;
                 for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
                     samples[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);

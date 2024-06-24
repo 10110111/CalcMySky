@@ -253,6 +253,8 @@ std::unique_ptr<QOpenGLShader> compileShader(QOpenGLShader::ShaderType type, QSt
     auto shader=std::make_unique<QOpenGLShader>(type);
     defineDisabledDefinitions(source);
     source=withHeadersIncluded(source, description);
+    source.replace(QRegularExpression("^#version\\s+330\\b", QRegularExpression::MultilineOption),
+                   "#version 430");
     if(processedSource)
         *processedSource = source;
     if(!shader->compileSourceCode(source))
@@ -374,17 +376,21 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
     auto shaderFileNames=getShaderFileNamesToLinkWith(mainSrcFileName);
     shaderFileNames.insert(mainSrcFileName);
 
+    const auto mainShaderType = mainSrcFileName.endsWith(".compute.glsl") ? QOpenGLShader::Compute
+                                                                          : QOpenGLShader::Fragment;
+
     std::vector<std::unique_ptr<QOpenGLShader>> shaders;
     for(const auto& filename : shaderFileNames)
     {
         QString processedSource;
-        shaders.emplace_back(compileShader(QOpenGLShader::Fragment, filename, &processedSource));
+        shaders.emplace_back(compileShader(mainShaderType, filename, &processedSource));
         program->addShader(shaders.back().get());
         if(sourcesToSave)
             sourcesToSave->push_back({filename, processedSource});
     }
 
-    shaders.emplace_back(compileShader(QOpenGLShader::Vertex, "shader.vert"));
+    if(mainShaderType == QOpenGLShader::Fragment)
+        shaders.emplace_back(compileShader(QOpenGLShader::Vertex, "shader.vert"));
     program->addShader(shaders.back().get());
 
     if(useGeomShader)

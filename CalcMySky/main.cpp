@@ -30,6 +30,7 @@
 #include "../common/timing.hpp"
 
 QOpenGLFunctions_3_3_Core gl;
+QOpenGLFunctions_4_3_Core* gl43;
 using glm::ivec2;
 using glm::vec2;
 using glm::vec4;
@@ -856,7 +857,8 @@ float unitRangeTexCoordToCosSZA(const float texCoord)
                     (2*atmo.earthRadius*distFromGroundToTopAtmoBorder));
 }
 
-std::unique_ptr<QOpenGLShaderProgram> saveEclipsedDoubleScatteringComputationShader(const unsigned texIndex)
+std::unique_ptr<QOpenGLShaderProgram> saveEclipsedDoubleScatteringComputationShader(
+                                                const unsigned texIndex, const EclipsedDoubleScatteringPrecomputer& precomputer)
 {
     QString scatCoefDef="vec4 totalScatteringCoefficient=vec4(0);\n";
     for(const auto& scatterer : atmo.scatterers)
@@ -896,18 +898,56 @@ std::unique_ptr<QOpenGLShaderProgram> saveEclipsedDoubleScatteringComputationSha
         }
         std::cerr << "done\n";
     }
+    if(gl43)
+    {
+        sourcesToSave.clear();
+        const auto workGroupSize = precomputer.workGroupSize();
+        static const QLatin1String wgsMarkerX("4e2012a1-acef-47ad-9590-341213a0c64a");
+        static const QLatin1String wgsMarkerY("083792f8-1fb1-4176-a111-1e469cdb7de4");
+        static const QLatin1String wgsMarkerZ("286d52da-5091-4c8e-aeb5-912cceb6b8c5");
+        virtualSourceFiles[COMPUTE_ECLIPSED_DOUBLE_SCATTERING_COMPUTE_FILENAME] =
+              getShaderSrc(COMPUTE_ECLIPSED_DOUBLE_SCATTERING_COMPUTE_FILENAME,IgnoreCache{})
+                  .replace(QRegularExpression("\\bWORK_GROUP_SIZE_X\\b"), QString("%1 /*%2*/").arg(workGroupSize[0]).arg(wgsMarkerX))
+                  .replace(QRegularExpression("\\bWORK_GROUP_SIZE_Y\\b"), QString("%1 /*%2*/").arg(workGroupSize[1]).arg(wgsMarkerY))
+                  .replace(QRegularExpression("\\bWORK_GROUP_SIZE_Z\\b"), QString("%1 /*%2*/").arg(workGroupSize[2]).arg(wgsMarkerZ));
+        program=compileShaderProgram(COMPUTE_ECLIPSED_DOUBLE_SCATTERING_COMPUTE_FILENAME,
+                                     "eclipsed double scattering computation compute-shader program",
+                                     UseGeomShader{false}, &sourcesToSave);
+        for(auto [filename, src] : sourcesToSave)
+        {
+            if(filename == viewDirFuncFileName) continue;
+            if(filename == COMPUTE_ECLIPSED_DOUBLE_SCATTERING_COMPUTE_FILENAME)
+            {
+                // Undo the platform-dependent changes we did above
+                src.replace(QRegularExpression("\\b[0-9]+ /\\*"+wgsMarkerX+"\\*/"), "WORK_GROUP_SIZE_X");
+                src.replace(QRegularExpression("\\b[0-9]+ /\\*"+wgsMarkerY+"\\*/"), "WORK_GROUP_SIZE_Y");
+                src.replace(QRegularExpression("\\b[0-9]+ /\\*"+wgsMarkerZ+"\\*/"), "WORK_GROUP_SIZE_Z");
+            }
+
+            const auto filePath = QString("%1/shaders/double-scattering-eclipsed/precomputation/compute-shader/%2/%3").arg(atmo.textureOutputDir.c_str())
+                                        .arg(texIndex).arg(filename);
+            std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
+            QFile file(filePath);
+            if(!file.open(QFile::WriteOnly))
+            {
+                std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+                throw MustQuit{};
+            }
+            file.write(src.toUtf8());
+            file.flush();
+            if(file.error())
+            {
+                std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+                throw MustQuit{};
+            }
+            std::cerr << "done\n";
+        }
+    }
     return program;
 }
 
 void computeEclipsedDoubleScattering(const unsigned texIndex)
 {
-    const auto program=saveEclipsedDoubleScatteringComputationShader(texIndex);
-
-    if(opts.dbgNoEDSTextures || opts.dbgNoSaveTextures) return;
-
-    std::cerr << indentOutput() << "Computing eclipsed double scattering... ";
-    const auto time0=std::chrono::steady_clock::now();
-
     using namespace glm;
     using std::acos;
 
@@ -916,6 +956,16 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
     const unsigned texSizeBySZA = atmo.eclipsedDoubleScatteringTextureSize[2];
     const unsigned texSizeByAltitude = atmo.eclipsedDoubleScatteringTextureSize[3];
 
+    EclipsedDoubleScatteringPrecomputer precomputer(gl, gl43, atmo, texSizeByViewAzimuth, texSizeByViewElevation,
+                                                    texSizeBySZA, texSizeByAltitude);
+
+    const auto program=saveEclipsedDoubleScatteringComputationShader(texIndex, precomputer);
+
+    if(opts.dbgNoEDSTextures || opts.dbgNoSaveTextures) return;
+
+    std::cerr << indentOutput() << "Computing eclipsed double scattering... ";
+    const auto time0=std::chrono::steady_clock::now();
+
     gl.glBindFramebuffer(GL_FRAMEBUFFER, fbos[FBO_ECLIPSED_DOUBLE_SCATTERING]);
     gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_ECLIPSED_DOUBLE_SCATTERING],0);
     checkFramebufferStatus("framebuffer for eclipsed double scattering");
@@ -923,8 +973,6 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
     int unusedTextureUnitNum=0;
     setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,unusedTextureUnitNum++,"transmittanceTexture");
 
-    EclipsedDoubleScatteringPrecomputer precomputer(gl, atmo, texSizeByViewAzimuth, texSizeByViewElevation,
-                                                    texSizeBySZA, texSizeByAltitude);
 
 	gl.glBindVertexArray(vao);
     std::vector<glm::vec4> dataToSave;
@@ -1196,6 +1244,7 @@ int main(int argc, char** argv)
             if(opts.saveResultAsRadiance)
                 createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputed/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputation/"+std::to_string(texIndex));
+            createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputation/compute-shader/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
         }
         createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/");
@@ -1241,9 +1290,9 @@ int main(int argc, char** argv)
         const auto timeBegin=std::chrono::steady_clock::now();
 
 # if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-        const auto gl43 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_3_Core>(QOpenGLContext::currentContext());
+        gl43 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_3_Core>(QOpenGLContext::currentContext());
 # else
-        const auto gl43 = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_3_Core>();
+        gl43 = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_3_Core>();
 # endif
         // Initialize texture averager before anything to make it emit possible
         // warnings not mixing them into computation status reports.
