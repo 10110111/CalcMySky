@@ -74,7 +74,7 @@ void checkLimits()
 std::pair<std::unique_ptr<QOffscreenSurface>, std::unique_ptr<QOpenGLContext>> initOpenGL()
 {
     QSurfaceFormat format;
-    format.setMajorVersion(3);
+    format.setMajorVersion(4);
     format.setMinorVersion(3);
     format.setProfile(QSurfaceFormat::CoreProfile);
 
