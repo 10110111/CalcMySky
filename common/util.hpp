@@ -149,4 +149,11 @@ inline int roundDownToClosestPowerOfTwo(const int x)
     return 1<<(shift-1);
 }
 
+inline int roundUpToClosestPowerOfTwo(const int x)
+{
+    int p=1;
+    while(p < x) p<<=1;
+    return p;
+}
+
 #endif

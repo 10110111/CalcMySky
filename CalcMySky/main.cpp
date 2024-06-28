@@ -945,7 +945,7 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
             const double cosSunZenithAngle=unitRangeTexCoordToCosSZA(float(szaIndex)/(texSizeBySZA-1));
             const double sunZenithAngle=acos(cosSunZenithAngle);
 
-            precomputer.computeRadianceOnCoarseGrid(*program, textures[TEX_ECLIPSED_DOUBLE_SCATTERING], unusedTextureUnitNum,
+            precomputer.computeRadianceOnCoarseGrid(*program, {}, unusedTextureUnitNum,
                                                     cameraAltitude, sunZenithAngle, sunZenithAngle, 0, atmo.earthMoonDistance);
             numPointsPerSet = precomputer.appendCoarseGridSamplesTo(dataToSave);
 

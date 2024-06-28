@@ -12,10 +12,12 @@
 #include <QFile>
 #include <QDebug>
 #include <QRegularExpression>
+#include <QOpenGLFunctions_4_2_Core>
 
 #include "util.hpp"
 #include "../common/const.hpp"
 #include "../common/util.hpp"
+#include "../common/TextureAverageComputer.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
 #include "api/ShowMySky/Settings.hpp"
 
@@ -1795,7 +1797,8 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
                                                         params_,
                                                         params_.eclipsedDoubleScatteringTextureSize[0],
                                                         params_.eclipsedDoubleScatteringTextureSize[1], 1, 1);
-        precomputer->computeRadianceOnCoarseGrid(prog, eclipsedDoubleScatteringPrecomputationScratchTexture_->textureId(),
+        precomputer->computeRadianceOnCoarseGrid(prog,
+                                                 eclipsedDoubleScatteringPrecomputationDataTextures_,
                                                  unusedTextureUnitNum, tools_->altitude(), tools_->sunZenithAngle(),
                                                  tools_->moonZenithAngle(), tools_->moonAzimuth() - tools_->sunAzimuth(),
                                                  tools_->earthMoonDistance());
@@ -2036,6 +2039,11 @@ void AtmosphereRenderer::setupRenderTarget()
 {
     OGL_TRACE();
 
+    // Need to get it before creating EclipsedDoubleScatteringPrecomputer,
+    // since its constructor clobbers viewport.
+    GLint viewport[4];
+    gl.glGetIntegerv(GL_VIEWPORT, viewport);
+
     GLint origFBO=-1;
     gl.glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &origFBO);
 
@@ -2096,8 +2104,46 @@ void AtmosphereRenderer::setupRenderTarget()
     checkFramebufferStatus(gl, "Eclipsed double scattering precomputation FBO");
     gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, origFBO);
 
-    GLint viewport[4];
-    gl.glGetIntegerv(GL_VIEWPORT, viewport);
+    // Prepare the EDS precomputation data textures, filling them with zeros
+    int edsTexWidth = params_.eclipseAngularIntegrationPoints;
+    int edsTexHeight = params_.radialIntegrationPoints;
+    TextureAverageComputer{gl, edsTexWidth,edsTexHeight, GL_RGBA32F, 0};
+    if(!TextureAverageComputer::npotTexturesWorkWell())
+    {
+        edsTexWidth = roundUpToClosestPowerOfTwo(edsTexWidth);
+        edsTexHeight = roundUpToClosestPowerOfTwo(edsTexHeight);
+    }
+    std::vector<glm::vec4> precompDataTexData(edsTexWidth * edsTexHeight);
+    EclipsedDoubleScatteringPrecomputer precomputer(gl, params_,
+                                                    params_.eclipsedDoubleScatteringTextureSize[0],
+                                                    params_.eclipsedDoubleScatteringTextureSize[1], 1, 1);
+    const auto numDataTextures = precomputer.numDataTextures();
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+    const auto gl42 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_2_Core>(QOpenGLContext::currentContext());
+#else
+    const auto gl42 = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_2_Core>();
+#endif
+    for(unsigned n = 0; n < numDataTextures; ++n)
+    {
+        eclipsedDoubleScatteringPrecomputationDataTextures_.push_back(newTex(QOpenGLTexture::Target2D));
+        auto& tex = eclipsedDoubleScatteringPrecomputationDataTextures_.back();
+        tex->create();
+        tex->bind();
+
+        using namespace std;
+        // Formula from the glspec, "Mipmapping" subsection in section 3.8.11 Texture Minification
+        const auto totalMipmapLevels = 1+floor(log2(max(edsTexWidth,edsTexHeight)));
+        const auto deepestLevel=totalMipmapLevels-1;
+
+        // This is just to query these values later in EclipsedDoubleScatteringPrecomputer
+        tex->setMipMaxLevel(deepestLevel);
+        tex->setSize(edsTexWidth, edsTexHeight);
+
+        gl42->glTexStorage2D(GL_TEXTURE_2D, totalMipmapLevels, GL_RGBA32F, edsTexWidth,edsTexHeight);
+        gl42->glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, edsTexWidth,edsTexHeight, GL_RGBA, GL_FLOAT, precompDataTexData.data());
+    }
+    gl.glBindTexture(GL_TEXTURE_2D, 0);
+
     const int width=viewport[2], height=viewport[3];
     resizeEvent(width,height);
 }

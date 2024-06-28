@@ -50,7 +50,8 @@ public:
     ~EclipsedDoubleScatteringPrecomputer();
 
     void computeRadianceOnCoarseGrid(QOpenGLShaderProgram& program,
-                                     GLuint intermediateTextureName, GLuint intermediateTextureTexUnitNum,
+                                     std::vector<std::unique_ptr<QOpenGLTexture>> const& dataTextures,
+                                     GLuint intermediateTextureTexUnitNum,
                                      double cameraAltitude, double sunZenithAngle, double moonZenithAngle,
                                      double moonAzimuthRelativeToSun, double earthMoonDistance);
     void convertRadianceToLuminance(glm::mat4 const& radianceToLuminance);
@@ -59,6 +60,7 @@ public:
 
     size_t appendCoarseGridSamplesTo(std::vector<glm::vec4>& data) const;
     void loadCoarseGridSamples(double cameraAltitude, glm::vec4 const* data, size_t numElements);
+    unsigned numDataTextures() const;
 
     std::vector<glm::vec4> const& texture() const { return texture_; }
 };

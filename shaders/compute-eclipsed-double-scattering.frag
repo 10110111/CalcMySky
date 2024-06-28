@@ -1,4 +1,6 @@
 #version 330
+#extension GL_ARB_shader_image_load_store : require
+
 #include "version.h.glsl"
 #include "const.h.glsl"
 #include "phase-functions.h.glsl"
@@ -67,6 +69,7 @@ uniform float cameraAltitude;
 uniform vec3 cameraViewDir;
 uniform float sunZenithAngle;
 uniform vec3 moonPositionRelativeToSunAzimuth;
+layout(rgba32f) uniform image2D outputTexImage;
 
 void main()
 {
@@ -88,4 +91,5 @@ void main()
     CONST vec4 xmittance=transmittance(cameraViewDir.z, cameraAltitude, dist, viewRayIntersectsGround);
     partialRadiance = scDensity*xmittance*dl;
 
+    imageStore(outputTexImage, ivec2(directionIndex, radialDistIndex), partialRadiance);
 }
