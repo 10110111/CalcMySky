@@ -8,13 +8,18 @@
 
 #include <QFile>
 #include <QOpenGLShaderProgram>
+#include <QOpenGLFunctions_4_2_Core>
 
 #include "const.hpp"
-#include "TextureAverageComputer.hpp"
 #include "fourier-interpolation.hpp"
 #include "spline-interpolation.hpp"
 #include "timing.hpp"
 #include "util.hpp"
+
+// macOS doesn't define these, which breaks compilation
+#ifndef GL_VERSION_4_2
+# define GL_SHADER_IMAGE_ACCESS_BARRIER_BIT 0x00000020
+#endif
 
 using namespace glm;
 using std::sin;
@@ -23,14 +28,6 @@ using std::sqrt;
 using std::asin;
 using std::exp;
 using std::log;
-
-static glm::vec4 sumTexels(TextureAverageComputer& averager, const GLuint textureToRead,
-                           const float texW, const float texH, const GLuint unusedTextureUnitNum)
-{
-    const auto average = averager.getTextureAverage(textureToRead, unusedTextureUnitNum);
-    // We need the sum instead of the average
-    return texW*texH * average;
-}
 
 float EclipsedDoubleScatteringPrecomputer::cosZenithAngleOfHorizon(const float altitude) const
 {
@@ -158,12 +155,17 @@ EclipsedDoubleScatteringPrecomputer::~EclipsedDoubleScatteringPrecomputer()
 }
 
 void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLShaderProgram& program,
-                                                                      const GLuint intermediateTextureName,
+                                                                      std::vector<std::unique_ptr<QOpenGLTexture>> const& dataTextures,
                                                                       const GLuint intermediateTextureTexUnitNum,
                                                                       const double cameraAltitude, const double sunZenithAngle,
                                                                       const double moonZenithAngle, const double moonAzimuthRelativeToSun,
                                                                       const double earthMoonDistance)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+    const auto gl42 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_2_Core>(QOpenGLContext::currentContext());
+#else
+    const auto gl42 = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_2_Core>();
+#endif
     const auto nAzimuthPairsToSample=atmo.eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
 
     const dvec3 sunDir(sin(sunZenithAngle), 0, cos(sunZenithAngle));
@@ -200,24 +202,58 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
     assert(elevationsBelowHorizon.size()==2*atmo.eclipsedDoubleScatteringNumberOfElevationPairsToSample);
     assert(azimuths.size()==nAzimuthPairsToSample);
 
-    TextureAverageComputer averager(gl, texW, texH, GL_RGBA32F, intermediateTextureTexUnitNum);
-
     const auto elevCount=elevationsAboveHorizon.size(); // for each direction: above and below horizon
-    for(unsigned azimIndex=0; azimIndex<azimuths.size(); ++azimIndex)
+    // First fill all the data textures
+    for(unsigned azimIndex=0, dataTexIdx = 0; azimIndex<azimuths.size(); ++azimIndex)
     {
         for(const bool aboveHorizon : {true, false})
         {
             const auto& elevs = aboveHorizon ? elevationsAboveHorizon : elevationsBelowHorizon;
             const auto azimuth=azimuths[azimIndex];
-            for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex)
+            for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex, ++dataTexIdx)
             {
                 const auto elev=elevs[elevIndex];
                 const auto viewDir=mat3(rotate(azimuth,vec3(0,0,1)))*vec3(cos(elev),0,sin(elev));
                 program.setUniformValue("cameraViewDir", toQVector(viewDir));
+                gl42->glBindImageTexture(0, dataTextures[dataTexIdx]->textureId(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+                program.setUniformValue("outputTexImage", 0);
                 gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+    }
+    gl42->glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    // Now compute all the mipmaps
+    for(unsigned azimIndex=0, dataTexIdx = 0; azimIndex<azimuths.size(); ++azimIndex)
+    {
+        for(const bool aboveHorizon : {true, false})
+        {
+            Q_UNUSED(aboveHorizon);
+            for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex, ++dataTexIdx)
+            {
+                dataTextures[dataTexIdx]->bind(intermediateTextureTexUnitNum);
+                gl.glGenerateMipmap(GL_TEXTURE_2D);
+            }
+        }
+    }
+    const float dataTexWidth  = dataTextures[0]->width();
+    const float dataTexHeight = dataTextures[0]->height();
+    const auto deepestLevel = dataTextures[0]->mipMaxLevel();
+    // Finally, get the deepest mipmap levels to compute the integrals
+    for(unsigned azimIndex=0, dataTexIdx = 0; azimIndex<azimuths.size(); ++azimIndex)
+    {
+        for(const bool aboveHorizon : {true, false})
+        {
+            const auto& elevs = aboveHorizon ? elevationsAboveHorizon : elevationsBelowHorizon;
+            for(unsigned elevIndex=0; elevIndex<elevCount; ++elevIndex, ++dataTexIdx)
+            {
+                const auto elev=elevs[elevIndex];
+                dataTextures[dataTexIdx]->bind(intermediateTextureTexUnitNum);
 
                 // Extracting the pixel containing the sum - the integral over the view direction and scattering directions
-                const auto integral=sumTexels(averager, intermediateTextureName, texW, texH, intermediateTextureTexUnitNum);
+                glm::vec4 pixel;
+                gl.glGetTexImage(GL_TEXTURE_2D, deepestLevel, GL_RGBA, GL_FLOAT, &pixel[0]);
+                // We need the sum instead of the average
+                const auto integral = pixel * (dataTexWidth * dataTexHeight);
                 auto*const samples = aboveHorizon ? samplesAboveHorizon : samplesBelowHorizon;
                 for(unsigned i=0; i<VEC_ELEM_COUNT; ++i)
                     samples[i][azimIndex*elevCount+elevIndex]=vec2(elev, integral[i]);
@@ -434,4 +470,10 @@ void EclipsedDoubleScatteringPrecomputer::loadCoarseGridSamples(const double cam
         else
             elevIndex=0;
     }
+}
+
+unsigned EclipsedDoubleScatteringPrecomputer::numDataTextures() const
+{
+    return std::size(samplesAboveHorizon) * samplesAboveHorizon[0].size() +
+           std::size(samplesBelowHorizon) * samplesBelowHorizon[0].size();
 }

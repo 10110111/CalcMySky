@@ -103,6 +103,7 @@ private: // variables
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringTextures_;
     std::map<ScattererName,std::vector<TexturePtr>> eclipsedSingleScatteringPrecomputationTextures_;
     TexturePtr eclipsedDoubleScatteringPrecomputationScratchTexture_;
+    std::vector<TexturePtr> eclipsedDoubleScatteringPrecomputationDataTextures_;
     std::vector<TexturePtr> eclipsedDoubleScatteringPrecomputationTargetTextures_;
     QOpenGLTexture luminanceRenderTargetTexture_;
     QSize viewportSize_;
