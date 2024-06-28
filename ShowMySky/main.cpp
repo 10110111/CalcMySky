@@ -113,7 +113,7 @@ int main(int argc, char** argv)
     app.setWindowIcon(QIcon(":icon.png"));
 
     QSurfaceFormat format;
-    format.setVersion(3,3);
+    format.setVersion(4,3);
     format.setProfile(QSurfaceFormat::CoreProfile);
     QSurfaceFormat::setDefaultFormat(format);
 
