@@ -216,7 +216,6 @@ void EclipsedDoubleScatteringPrecomputer::computeWorkGroupSizes()
         return;
     }
     const int totalPointsToSum = atmo.radialIntegrationPoints *
-                                 atmo.radialIntegrationPoints *
                                  atmo.eclipseAngularIntegrationPoints;
     const int totalWGs = (totalPointsToSum + maxInvocations - 1) / maxInvocations;
     // FIXME: this is not an optimal choice, just a quick-and-dirty way to have things up and running

@@ -11,8 +11,7 @@
 #include "single-scattering-eclipsed.h.glsl"
 #include "total-scattering-coefficient.h.glsl"
 
-vec4 computeDoubleScatteringEclipsedDensitySample(const uint directionIndex, const uint depthIndex,
-                                                  const vec3 cameraViewDir, const vec3 scatterer,
+vec4 computeDoubleScatteringEclipsedDensitySample(const int directionIndex, const vec3 cameraViewDir, const vec3 scatterer,
                                                   const vec3 sunDir, const vec3 moonPos)
 {
     const vec3 zenith=vec3(0,0,1);
@@ -28,7 +27,7 @@ vec4 computeDoubleScatteringEclipsedDensitySample(const uint directionIndex, con
 
     const float dSolidAngle = sphereIntegrationSolidAngleDifferential(eclipseAngularIntegrationPoints);
     // Direction to the source of incident ray
-    const vec3 incDir = sphereIntegrationSampleDir(int(directionIndex), eclipseAngularIntegrationPoints);
+    const vec3 incDir = sphereIntegrationSampleDir(directionIndex, eclipseAngularIntegrationPoints);
 
     // NOTE: we don't recalculate sunDir as we do in computeScatteringDensity(), because it would also require
     // at least recalculating the position of the Moon. Instead we take into account scatterer's position to
@@ -53,14 +52,10 @@ vec4 computeDoubleScatteringEclipsedDensitySample(const uint directionIndex, con
         const vec4 groundIrradiance = calcEclipsedDirectGroundIrradiance(pointOnGround, sunDir, moonPos);
         // Radiation scattered by the ground
         const float groundBRDF = 1/PI; // Assuming Lambertian BRDF, which is constant
-        // We sum this for each of depthIndex values, so need to scale down, since this should only
-        // be added once. FIXME: it would be better to simply separate this computation to avoid so
-        // many repeated computations of the same value.
-        const float scale = 1./radialIntegrationPoints;
-        incidentRadiance += transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF*scale;
+        incidentRadiance += transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF;
     }
     // Radiation scattered by the atmosphere
-    incidentRadiance+=computeSingleScatteringEclipsedSample(int(depthIndex),scatterer,incDir,sunDir,moonPos,incRayIntersectsGround);
+    incidentRadiance+=computeSingleScatteringEclipsed(scatterer,incDir,sunDir,moonPos,incRayIntersectsGround);
 
     const float dotViewInc = dot(cameraViewDir, incDir);
     return dSolidAngle * incidentRadiance * totalScatteringCoefficient(altitude, dotViewInc);
@@ -99,12 +94,8 @@ void main()
     const uint directionIndex = partialIndex % eclipseAngularIntegrationPoints;
     partialIndex /= eclipseAngularIntegrationPoints;
 
-    const uint radialDistFromCamIndex = partialIndex % radialIntegrationPoints;
-    partialIndex /= radialIntegrationPoints;
-
-    const uint radialDistFromScattererIndex = partialIndex;
-
-    const bool indicesOK = radialDistFromScattererIndex < radialIntegrationPoints;
+    const uint radialDistFromCamIndex = partialIndex;
+    const bool indicesOK = radialDistFromCamIndex < radialIntegrationPoints;
     vec4 partialRadiance = vec4(0);
     if(indicesOK)
     {
@@ -118,8 +109,7 @@ void main()
         // Using midpoint rule for quadrature
         const float dl=radialIntegrInterval/radialIntegrationPoints;
         const float dist=(float(radialDistFromCamIndex)+0.5)*dl;
-        const vec4 scDensity=computeDoubleScatteringEclipsedDensitySample(directionIndex, radialDistFromScattererIndex,
-                                                                          cameraViewDir, cameraPos+cameraViewDir*dist,
+        const vec4 scDensity=computeDoubleScatteringEclipsedDensitySample(int(directionIndex), cameraViewDir, cameraPos+cameraViewDir*dist,
                                                                           sunDir, moonPositionRelativeToSunAzimuth);
         const vec4 xmittance=transmittance(cameraViewDir.z, cameraAltitude, dist, viewRayIntersectsGround);
         partialRadiance = scDensity*xmittance*dl;
