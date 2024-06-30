@@ -216,6 +216,7 @@ void EclipsedDoubleScatteringPrecomputer::computeRadianceOnCoarseGrid(QOpenGLSha
             }
         }
     }
+    gl42->glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     // Now compute all the mipmaps
     for(unsigned azimIndex=0, dataTexIdx = 0; azimIndex<azimuths.size(); ++azimIndex)
     {
