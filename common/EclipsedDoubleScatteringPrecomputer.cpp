@@ -16,6 +16,11 @@
 #include "timing.hpp"
 #include "util.hpp"
 
+// macOS doesn't define these, which breaks compilation
+#ifndef GL_VERSION_4_2
+# define GL_SHADER_IMAGE_ACCESS_BARRIER_BIT 0x00000020
+#endif
+
 using namespace glm;
 using std::sin;
 using std::cos;
