@@ -17,7 +17,6 @@
 #include "util.hpp"
 #include "../common/const.hpp"
 #include "../common/util.hpp"
-#include "../common/TextureAverageComputer.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
 #include "api/ShowMySky/Settings.hpp"
 
@@ -2105,14 +2104,8 @@ void AtmosphereRenderer::setupRenderTarget()
     gl.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, origFBO);
 
     // Prepare the EDS precomputation data textures, filling them with zeros
-    int edsTexWidth = params_.eclipseAngularIntegrationPoints;
-    int edsTexHeight = params_.radialIntegrationPoints;
-    TextureAverageComputer{gl, edsTexWidth,edsTexHeight, GL_RGBA32F, 0};
-    if(!TextureAverageComputer::npotTexturesWorkWell())
-    {
-        edsTexWidth = roundUpToClosestPowerOfTwo(edsTexWidth);
-        edsTexHeight = roundUpToClosestPowerOfTwo(edsTexHeight);
-    }
+    const int edsTexWidth = roundUpToClosestPowerOfTwo(params_.eclipseAngularIntegrationPoints);
+    const int edsTexHeight = roundUpToClosestPowerOfTwo(params_.radialIntegrationPoints);
     std::vector<glm::vec4> precompDataTexData(edsTexWidth * edsTexHeight);
     EclipsedDoubleScatteringPrecomputer precomputer(gl, params_,
                                                     params_.eclipsedDoubleScatteringTextureSize[0],

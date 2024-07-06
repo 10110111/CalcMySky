@@ -22,7 +22,6 @@ class TextureAverageComputer
     glm::vec4 getTextureAverageSimple(GLuint texture, int width, int height, GLuint unusedTextureUnitNum);
     glm::vec4 getTextureAverageWithWorkaround(GLuint texture, GLuint unusedTextureUnitNum);
 public:
-    static bool npotTexturesWorkWell() { return !workaroundNeeded; }
     glm::vec4 getTextureAverage(GLuint texture, GLuint unusedTextureUnitNum);
     TextureAverageComputer(QOpenGLFunctions_3_3_Core&, int texW, int texH,
                            GLenum internalFormat, GLuint unusedTextureUnitNum);
