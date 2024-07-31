@@ -83,6 +83,13 @@ public:
     virtual bool multipleScatteringEnabled() = 0;
 
     /**
+     * \brief Whether to render airglow.
+     *
+     * If this method returns \c true, airglow layer is rendered by AtmosphereRenderer::draw, otherwise it's skipped.
+     */
+    virtual bool airglowEnabled() = 0;
+
+    /**
      * \brief Ground luminance for light pollution.
      *
      * \return Ground luminance in \f$\mathrm{cd/m^2}\f$. Should normally be zero during daytime and nonzero from evening to morning.

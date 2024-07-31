@@ -63,6 +63,10 @@ float clampAltitude(const float altitude)
 {
     return clamp(altitude, 0., atmosphereHeight);
 }
+float clampAltitudeForAirglow(const float altitude)
+{
+    return clamp(altitude, 0., atmosphereHeightForAirglow);
+}
 
 // Fixup for possible rounding errors resulting in distance being outside of theoretical bounds
 float clampDistance(const float d)
@@ -84,6 +88,14 @@ float distanceToAtmosphereBorder(const float cosZenithAngle, const float observe
 {
     CONST float Robs=earthRadius+observerAltitude;
     CONST float Ratm=earthRadius+atmosphereHeight;
+    CONST float discriminant=sqr(Ratm)-sqr(Robs)*(1-sqr(cosZenithAngle));
+    return clampDistance(safeSqrt(discriminant)-Robs*cosZenithAngle);
+}
+
+float distanceToAtmosphereBorderForAirglow(const float cosZenithAngle, const float observerAltitude)
+{
+    CONST float Robs=earthRadius+observerAltitude;
+    CONST float Ratm=earthRadius+atmosphereHeightForAirglow;
     CONST float discriminant=sqr(Ratm)-sqr(Robs)*(1-sqr(cosZenithAngle));
     return clampDistance(safeSqrt(discriminant)-Robs*cosZenithAngle);
 }
@@ -112,6 +124,13 @@ float distanceToNearestAtmosphereBoundary(const float cosZenithAngle, const floa
 {
     return viewRayIntersectsGround ? distanceToGround(cosZenithAngle, observerAltitude)
                                    : distanceToAtmosphereBorder(cosZenithAngle, observerAltitude);
+}
+
+float distanceToNearestAtmosphereBoundaryForAirglow(const float cosZenithAngle, const float observerAltitude,
+                                                    const bool viewRayIntersectsGround)
+{
+    return viewRayIntersectsGround ? distanceToGround(cosZenithAngle, observerAltitude)
+                                   : distanceToAtmosphereBorderForAirglow(cosZenithAngle, observerAltitude);
 }
 
 float sunVisibility(const float cosSunZenithAngle, float altitude)

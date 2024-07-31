@@ -3,6 +3,9 @@
 float distanceToAtmosphereBorder(const float cosZenithAngle, const float observerAltitude);
 float distanceToNearestAtmosphereBoundary(const float cosZenithAngle, const float observerAltitude,
                                           const bool viewRayIntersectsGround);
+float distanceToNearestAtmosphereBoundaryForAirglow(const float cosZenithAngle,
+                                                    const float observerAltitude,
+                                                    const bool viewRayIntersectsGround);
 float distanceToGround(const float cosZenithAngle, const float observerAltitude);
 float cosZenithAngleOfHorizon(const float altitude);
 bool rayIntersectsGround(const float cosViewZenithAngle, const float observerAltitude);
@@ -11,6 +14,7 @@ float safeAtan(const float y, const float x);
 float clampCosine(const float x);
 float clampDistance(const float x);
 float clampAltitude(const float altitude);
+float clampAltitudeForAirglow(const float altitude);
 vec3 normalToEarth(vec3 point);
 float pointAltitude(vec3 point);
 vec4 rayleighPhaseFunction(float dotViewSun);

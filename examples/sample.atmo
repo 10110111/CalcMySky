@@ -24,8 +24,12 @@ light pollution texture size for VZA: 128
 light pollution texture size for altitude: 64
 light pollution angular integration points: 200
 
+airglow texture size for vza: 1024
+airglow texture size for altitude: 128
+
 transmittance integration points: 500
 radial integration points: 50
+radial integration points for airglow: 5000
 angular integration points: 512
 angular integration points for eclipse: 512
 scattering orders: 4
@@ -34,6 +38,7 @@ Earth-Sun distance: 1.01208 AU # on 2017-08-21 at 12:12:12 UTC
 Earth-Moon distance: 371925 km # on 2017-08-21 at 12:12:12 UTC
 Earth radius: 6371 km # FIXME: at R=6371km and h=120km highest altitude layer appears to have some artifacts in first scattering from near horizon
 atmosphere height: 120 km
+atmosphere height for airglow: 500 km
 
 wavelengths: min=360nm,max=830nm,count=16
 # Data for solar irradiance were taken from
@@ -110,4 +115,38 @@ Absorber "ozone":
     # http://www.iup.uni-bremen.de/gruppen/molspec/databases/referencespectra/o3spectra2011/index.html
     # Data are for 233K. Values are in m^2/molecule.
     cross section: 1.394e-26,6.052e-28,4.923e-27,2.434e-26,7.361e-26,1.831e-25,3.264e-25,4.514e-25,4.544e-25,2.861e-25,1.571e-25,7.902e-26,4.452e-26,2.781e-26,1.764e-26,5.369e-27
+}
+Airglow emitter "Na_D_line":
+{
+    altitude profile:
+    ```
+    CONST float v = altitude < 92*km ? exp(-sqr(92. - altitude/km)/36.)
+                                     : exp(-0.1015315*pow(altitude/km - 92., 1.1));
+    // FIXME: what units?!
+    return 0.45e-8*v;
+
+    ```
+    spectrum: 0, 0, 0, 0, 0, 0, 0, 0.678, 0.322, 0, 0, 0, 0, 0, 0, 0
+}
+Airglow emitter "OI_557_7_nm":
+{
+    altitude profile:
+    ```
+    CONST float v = altitude < 106.4*km ? exp(-0.048927*pow(106.4 - altitude/km, 1.7))
+                                        : exp(-0.163934*(altitude/km - 106.4));
+    // FIXME: what units?!
+    return 0.4e-8*v;
+    ```
+    spectrum: 0, 0, 0, 0, 0, 0, 0.664, 0.336, 0, 0, 0, 0, 0, 0, 0, 0
+}
+Airglow emitter "OI_630_nm":
+{
+    altitude profile:
+    ```
+    CONST float v = altitude < 273*km ? exp(-0.00483668*pow(273 - altitude/km, 1.6))
+                                      : exp(-0.00395285*pow(altitude/km - 273, 1.5));
+    // FIXME: what units?!
+    return 0.058e-8*v;
+    ```
+    spectrum: 0, 0, 0, 0, 0, 0, 0, 0, 0.408, 0.592, 0, 0, 0, 0, 0, 0
 }

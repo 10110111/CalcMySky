@@ -22,6 +22,7 @@ void initConstHeader(glm::vec4 const& wavelengths)
 #define INCLUDE_ONCE_2B59AE86_E78B_4D75_ACDF_5DA644F8E9A3
 const float earthRadius=)"+QString::number(atmo.earthRadius)+"; // must be in meters\n"
                          "const float atmosphereHeight="+QString::number(atmo.atmosphereHeight)+"; // must be in meters\n"
+                         "const float atmosphereHeightForAirglow="+QString::number(atmo.atmosphereHeightForAirglow)+"; // must be in meters\n"
                          R"(
 const vec3 earthCenter=vec3(0,0,-earthRadius);
 
@@ -37,7 +38,9 @@ const vec2 irradianceTextureSize=)" + toString(glm::vec2(atmo.irradianceTexW, at
 const vec2 transmittanceTextureSize=)" + toString(glm::vec2(atmo.transmittanceTexW,atmo.transmittanceTexH)) + R"(;
 const vec2 eclipsedSingleScatteringTextureSize=)" + toString(glm::vec2(atmo.eclipsedSingleScatteringTextureSize)) +R"(;
 const vec2 lightPollutionTextureSize=)" + toString(glm::vec2(atmo.lightPollutionTextureSize)) +R"(;
+const vec2 airglowTextureSize=)" + toString(glm::vec2(atmo.airglowTextureSize)) +R"(;
 const int radialIntegrationPoints=)" + toString(atmo.radialIntegrationPoints) + R"(;
+const int radialIntegrationPointsForAirglow=)" + toString(atmo.radialIntegrationPointsForAirglow) + R"(;
 const int angularIntegrationPoints=)" + toString(atmo.angularIntegrationPoints) + R"(;
 const int lightPollutionAngularIntegrationPoints=)" + toString(atmo.lightPollutionAngularIntegrationPoints) + R"(;
 const int eclipseAngularIntegrationPoints=)" + toString(atmo.eclipseAngularIntegrationPoints) + R"(;
@@ -82,6 +85,35 @@ QString makeDensitiesFunctions()
 
     virtualHeaderFiles[DENSITIES_HEADER_FILENAME]=header;
 
+    return src;
+}
+
+QString makeAirglowProfileFunction(const unsigned wlSetIndex)
+{
+    QString header;
+    QString src;
+    for(auto const& emitter : atmo.airglowEmitters)
+    {
+        src += "float airglowProfile_"+emitter.name+"(float altitude)\n"
+               "{\n"
+               +emitter.altitudeProfile+
+               "}\n";
+        header += "float airglowProfile_"+emitter.name+"(float altitude);\n";
+    }
+
+    src += "vec4 airglowProfile(float altitude)\n"
+           "{\n"
+           "    return\n";
+    for(auto const& emitter : atmo.airglowEmitters)
+    {
+        src += "        + " + toString(emitter.spectrum[wlSetIndex]) +
+               " * airglowProfile_" + emitter.name + "(altitude)\n";
+    }
+    src += "    ;\n}\n";
+
+    header += "vec4 airglowProfile(float altitude);\n";
+
+    virtualHeaderFiles[AIRGLOW_HEADER_FILENAME]=header;
     return src;
 }
 
@@ -139,6 +171,16 @@ vec4 computeTransmittanceToAtmosphereBorder(float cosZenithAngle, float altitude
 }
 )";
     return head+makeDensitiesFunctions()+opticalDepthFunctions+computeFunction;
+}
+
+QString makeAirglowProfileSrc(const unsigned wlSetIndex)
+{
+    const QString head=1+R"(
+#version 330
+#include "version.h.glsl"
+#include "const.h.glsl"
+)";
+    return head+makeAirglowProfileFunction(wlSetIndex);
 }
 
 QString makeScattererDensityFunctionsSrc()

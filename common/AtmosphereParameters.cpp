@@ -421,6 +421,51 @@ AtmosphereParameters::Absorber parseAbsorber(AtmosphereParameters const& atmo, c
     return description;
 }
 
+AtmosphereParameters::AirglowEmitter parseAirglowEmitter(AtmosphereParameters const& atmo, const AtmosphereParameters::SkipSpectra skipSpectrum,
+                                                         QTextStream& stream, QString const& name, QString const& filename, int& lineNumber)
+{
+    AtmosphereParameters::AirglowEmitter description(name, atmo);
+
+    bool begun=false;
+    for(auto line=stream.readLine(); !line.isNull(); line=stream.readLine(), ++lineNumber)
+    {
+        const auto codeAndComment=line.split('#');
+        assert(codeAndComment.size());
+        if(codeAndComment[0].trimmed().isEmpty())
+            continue;
+        const auto keyValue=codeAndComment[0].split(':');
+
+        if(!begun)
+        {
+            if(keyValue.size()!=1 || keyValue[0] != "{")
+                throw ParsingError{filename,lineNumber,"airglow emitter description must begin with a '{'"};
+            begun=true;
+            continue;
+        }
+        if(keyValue.size()==1 && keyValue[0]=="}")
+            break;
+
+        if(keyValue.size()!=2)
+            throw ParsingError{filename,lineNumber,"error: not a key:value pair"};
+        const auto key=keyValue[0].simplified().toLower();
+        const auto value=keyValue[1].trimmed();
+
+        if(key=="altitude profile")
+            description.altitudeProfile = readGLSLFunctionBody(stream,filename,++lineNumber);
+        else if(key=="spectrum")
+        {
+            if(!skipSpectrum)
+                getSpectrum(atmo.allWavelengths,value,0,10,filename,lineNumber, description.spectrum);
+        }
+    }
+    if(!description.valid(skipSpectrum))
+    {
+        throw ParsingError{filename,lineNumber,QString("Description of airglow emitter \"%1\" is incomplete").arg(name)};
+    }
+
+    return description;
+}
+
 }
 
 void AtmosphereParameters::Scatterer::finalizeLoading()
@@ -553,10 +598,18 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             eclipsedDoubleScatteringNumberOfAzimuthPairsToSample=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="eclipsed double scattering number of elevation pairs to sample")
             eclipsedDoubleScatteringNumberOfElevationPairsToSample=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="airglow texture size for vza")
+            airglowTextureSize[0]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="airglow texture size for altitude")
+            airglowTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="radial integration points for airglow")
+            radialIntegrationPointsForAirglow=getUInt(value,1,INT_MAX, atmoDescrFileName, lineNumber);
         else if(key=="earth radius")
             earthRadius=getQuantity(value,1e-3,1e10,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="atmosphere height")
             atmosphereHeight=getQuantity(value,1,1e6,LengthQuantity{},atmoDescrFileName,lineNumber);
+        else if(key=="atmosphere height for airglow")
+            atmosphereHeightForAirglow=getQuantity(value,1,1e6,LengthQuantity{},atmoDescrFileName,lineNumber);
         else if(key=="earth-sun distance")
         {
             earthSunDistance=getQuantity(value,0.5*AU,1e20*AU,LengthQuantity{},atmoDescrFileName,lineNumber);
@@ -596,6 +649,10 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
         else if(const auto match=QRegularExpression("^absorber \"([^\"]+)\"$").match(key); match.hasMatch())
         {
             absorbers.emplace_back(parseAbsorber(*this, skipSpectra, stream, match.captured(1), atmoDescrFileName,++lineNumber));
+        }
+        else if(const auto match=QRegularExpression("^airglow emitter \"([^\"]+)\"$").match(key); match.hasMatch())
+        {
+            airglowEmitters.emplace_back(parseAirglowEmitter(*this, skipSpectra, stream, match.captured(1), atmoDescrFileName,++lineNumber));
         }
         else if(key=="scattering orders")
             scatteringOrdersToCompute=getQuantity(value,1,INT_MAX, DimensionlessQuantity{},atmoDescrFileName,lineNumber);

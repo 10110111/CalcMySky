@@ -5,11 +5,13 @@
 #include "../common/const.hpp"
 
 constexpr char DENSITIES_SHADER_FILENAME[]="densities.frag";
+constexpr char AIRGLOW_SHADER_FILENAME[]="airglow.frag";
 constexpr char PHASE_FUNCTIONS_SHADER_FILENAME[]="phase-functions.frag";
 constexpr char TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME[]="total-scattering-coefficient.frag";
 constexpr char COMPUTE_TRANSMITTANCE_SHADER_FILENAME[]="compute-transmittance-functions.frag";
 constexpr char CONSTANTS_HEADER_FILENAME[]="const.h.glsl";
 constexpr char DENSITIES_HEADER_FILENAME[]="densities.h.glsl";
+constexpr char AIRGLOW_HEADER_FILENAME[]="airglow.h.glsl";
 constexpr char GLSL_EXTENSIONS_HEADER_FILENAME[]="version.h.glsl";
 constexpr char RADIANCE_TO_LUMINANCE_HEADER_FILENAME[]="radiance-to-luminance.h.glsl";
 constexpr char PHASE_FUNCTIONS_HEADER_FILENAME[]="phase-functions.h.glsl";

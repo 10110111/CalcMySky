@@ -95,6 +95,7 @@ private: // variables
     std::vector<TexturePtr> transmittanceTextures_;
     std::vector<TexturePtr> irradianceTextures_;
     std::vector<TexturePtr> lightPollutionTextures_;
+    std::vector<TexturePtr> airglowTextures_;
     std::vector<GLuint> radianceRenderBuffers_;
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringInterpolationGuidesTextures01_; // VZA-dotViewSun dimensions
     std::map<ScattererName,std::vector<TexturePtr>> singleScatteringInterpolationGuidesTextures02_; // VZA-SZA dimensions
@@ -109,6 +110,7 @@ private: // variables
     double altCoordToLoad_=0; //!< Used to load textures for a single altitude slice, even if input altitude changes during the load
 
     std::vector<ShaderProgPtr> lightPollutionPrograms_;
+    std::vector<ShaderProgPtr> airglowPrograms_;
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> eclipsedZeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> multipleScatteringPrograms_;
@@ -170,6 +172,7 @@ private: // methods
     void renderSingleScattering();
     void renderMultipleScattering();
     void renderLightPollution();
+    void renderAirglow();
     void prepareRadianceFrames(bool clear);
 };
 

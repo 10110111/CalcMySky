@@ -43,6 +43,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     QCheckBox* zeroOrderScatteringEnabled_=nullptr;
     QCheckBox* singleScatteringEnabled_=nullptr;
     QCheckBox* multipleScatteringEnabled_=nullptr;
+    QCheckBox* airglowEnabled_=nullptr;
     QCheckBox* textureFilteringEnabled_=nullptr;
     QCheckBox* usingEclipseShader_=nullptr;
     QCheckBox* pseudoMirrorEnabled_=nullptr;
@@ -72,6 +73,7 @@ public:
     bool zeroOrderScatteringEnabled() override { return zeroOrderScatteringEnabled_->isChecked(); }
     bool singleScatteringEnabled() override { return singleScatteringEnabled_->isChecked(); }
     bool multipleScatteringEnabled() override { return multipleScatteringEnabled_->isChecked(); }
+    bool airglowEnabled() override { return airglowEnabled_->isChecked(); }
     bool textureFilteringEnabled() override { return textureFilteringEnabled_->isChecked(); }
     bool usingEclipseShader() override { return usingEclipseShader_->isChecked(); }
     bool pseudoMirrorEnabled() override { return pseudoMirrorEnabled_->isChecked(); }

@@ -65,4 +65,18 @@ struct LightPollutionTexVars
 LightPollutionTexVars scatteringTexIndicesToLightPollutionTexVars(const vec2 texIndices);
 vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround);
 
+struct Airglow2DCoords
+{
+    float cosViewZenithAngle;
+    float altitude;
+};
+struct AirglowTexVars
+{
+    float altitude;
+    float cosViewZenithAngle;
+    bool viewRayIntersectsGround;
+};
+AirglowTexVars scatteringTexIndicesToAirglowTexVars(const vec2 texIndices);
+vec2 airglowTexVarsToTexCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround);
+
 #endif

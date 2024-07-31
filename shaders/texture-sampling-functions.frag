@@ -12,6 +12,7 @@ uniform sampler3D firstScatteringTexture;
 uniform sampler3D multipleScatteringTexture;
 
 uniform sampler2D lightPollutionScatteringTexture;
+uniform sampler2D airglowTexture;
 
 vec4 irradiance(const float cosSunZenithAngle, const float altitude)
 {
@@ -83,4 +84,10 @@ vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAng
 {
     CONST vec2 coords = lightPollutionTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
     return texture(lightPollutionScatteringTexture, coords);
+}
+
+vec4 airglow(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
+{
+    CONST vec2 coords = airglowTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    return texture(airglowTexture, coords);
 }

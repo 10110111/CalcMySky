@@ -8,4 +8,5 @@ vec4 scattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
                 const float dotViewSun, const float altitude, const bool viewRayIntersectsGround,
                 const int scatteringOrder);
 vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround);
+vec4 airglow(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround);
 #endif

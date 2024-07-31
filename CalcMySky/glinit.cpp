@@ -57,6 +57,8 @@ void initTexturesAndFramebuffers()
     setupTexture(TEX_LIGHT_POLLUTION_DELTA_SCATTERING     , atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
     setupTexture(TEX_LIGHT_POLLUTION_SCATTERING_PREV_ORDER, atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
 
+    setupTexture(TEX_AIRGLOW, atmo.airglowTextureSize[0], atmo.airglowTextureSize[1]);
+
     gl.glGenFramebuffers(FBO_COUNT,fbos);
 }
 

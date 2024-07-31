@@ -5,6 +5,7 @@
 #include "common-functions.h.glsl"
 
 const float LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA=sqrt(atmosphereHeight*(atmosphereHeight+2*earthRadius));
+const float LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA_FOR_AIRGLOW=sqrt(atmosphereHeightForAirglow*(atmosphereHeightForAirglow+2*earthRadius));
 
 uniform sampler2D transmittanceTexture;
 uniform vec3 eclipsedDoubleScatteringTextureSize;
@@ -658,6 +659,93 @@ vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZ
 {
     CONST LightPollution2DCoords coords = lightPollutionTexVarsTo2DCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
     CONST vec2 texSize = lightPollutionTextureSize;
+    CONST float cosVZAtc = viewRayIntersectsGround ?
+                            // Coordinate is in ~[0,0.5]
+                            0.5-0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, texSize[0]/2) :
+                            // Coordinate is in ~[0.5,1]
+                            0.5+0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, texSize[0]/2);
+    CONST float altitudeTC = unitRangeToTexCoord(coords.altitude, texSize[1]);
+    return vec2(cosVZAtc, altitudeTC);
+}
+
+AirglowTexVars scatteringTexIndicesToAirglowTexVars(const vec2 texIndices)
+{
+    CONST vec2 indexMax=airglowTextureSize-vec2(1);
+
+    CONST float altitudeURCoord = texIndices[1] / indexMax[1];
+    CONST float distToHorizon = altitudeURCoord*LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA_FOR_AIRGLOW;
+    // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
+    CONST float altitude=clampAltitudeForAirglow(sqrt(sqr(distToHorizon)+sqr(earthRadius))-earthRadius);
+
+    CONST bool viewRayIntersectsGround = texIndices[0] < airglowTextureSize[0]/2;
+    CONST float cosViewZenithAngleCoord = viewRayIntersectsGround ?
+                                   1-2*texIndices[0]/(indexMax[0]-1) :
+                                   2*(texIndices[0]-1)/(indexMax[0]-1)-1;
+    // ------------------------------------
+    float cosViewZenithAngle;
+    if(viewRayIntersectsGround)
+    {
+        CONST float distMin=altitude;
+        CONST float distMax=distToHorizon;
+        CONST float distToGround=cosViewZenithAngleCoord*(distMax-distMin)+distMin;
+        cosViewZenithAngle = distToGround==0 ? -1 :
+            clampCosine(-(sqr(distToHorizon)+sqr(distToGround)) / (2*distToGround*(altitude+earthRadius)));
+    }
+    else
+    {
+        CONST float distMin=atmosphereHeightForAirglow-altitude;
+        CONST float distMax=distToHorizon+LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA_FOR_AIRGLOW;
+        CONST float distToTopAtmoBorder=cosViewZenithAngleCoord*(distMax-distMin)+distMin;
+        cosViewZenithAngle = distToTopAtmoBorder==0 ? 1 :
+            clampCosine((sqr(LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA_FOR_AIRGLOW)-sqr(distToHorizon)-sqr(distToTopAtmoBorder)) /
+                        (2*distToTopAtmoBorder*(altitude+earthRadius)));
+    }
+
+    return AirglowTexVars(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+}
+
+Airglow2DCoords airglowTexVarsTo2DCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
+{
+    CONST float r=earthRadius+altitude;
+
+    CONST float distToHorizon = sqrt(sqr(altitude)+2*altitude*earthRadius);
+
+    // ------------------------------------
+    float cosVZACoord; // Coordinate for cos(viewZenithAngle)
+    CONST float rCvza=r*cosViewZenithAngle;
+    // Discriminant of the quadratic equation for the intersections of the ray (altitiude, cosViewZenithAngle) with the ground.
+    CONST float discriminant=sqr(rCvza)-sqr(r)+sqr(earthRadius);
+    if(viewRayIntersectsGround)
+    {
+        // Distance from camera to the ground along the view ray (altitude, cosViewZenithAngle)
+        CONST float distToGround = -rCvza-safeSqrt(discriminant);
+        // Minimum possible value of distToGround
+        CONST float distMin = altitude;
+        // Maximum possible value of distToGround
+        CONST float distMax = distToHorizon;
+        cosVZACoord = distMax==distMin ? 0. : (distToGround-distMin)/(distMax-distMin);
+    }
+    else
+    {
+        // Distance from camera to the atmosphere border along the view ray (altitude, cosViewZenithAngle)
+        // sqr(LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA_FOR_AIRGLOW) added to sqr(earthRadius) term in discriminant changes
+        // sqr(earthRadius) to sqr(earthRadius+atmosphereHeight), so that we target the top atmosphere boundary instead of bottom.
+        CONST float distToTopAtmoBorder = -rCvza+safeSqrt(discriminant+sqr(LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA_FOR_AIRGLOW));
+        CONST float distMin = atmosphereHeightForAirglow-altitude;
+        CONST float distMax = distToHorizon+LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA_FOR_AIRGLOW;
+        cosVZACoord = distMax==distMin ? 0. : (distToTopAtmoBorder-distMin)/(distMax-distMin);
+    }
+
+    // ------------------------------------
+    CONST float altCoord = distToHorizon / LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA_FOR_AIRGLOW;
+
+    return Airglow2DCoords(cosVZACoord, altCoord);
+}
+
+vec2 airglowTexVarsToTexCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)
+{
+    CONST Airglow2DCoords coords = airglowTexVarsTo2DCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    CONST vec2 texSize = airglowTextureSize;
     CONST float cosVZAtc = viewRayIntersectsGround ?
                             // Coordinate is in ~[0,0.5]
                             0.5-0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, texSize[0]/2) :

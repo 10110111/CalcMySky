@@ -77,6 +77,30 @@ struct AtmosphereParameters
             return absorptionCrossSection[i];
         }
     };
+    struct AirglowEmitter
+    {
+        QString name;
+        QString altitudeProfile;
+        std::vector<glm::vec4> spectrum;
+
+        AtmosphereParameters const& atmo;
+
+        AirglowEmitter(QString const& name, AtmosphereParameters const& atmo)
+            : name(name)
+            , atmo(atmo)
+        {}
+        bool valid(const SkipSpectra spectrumSkipped) const
+        {
+            return !altitudeProfile.isEmpty() &&
+                   (spectrumSkipped || spectrum.size()==atmo.allWavelengths.size()) &&
+                   !name.isEmpty();
+        }
+        glm::vec4 spectrumForWLs(glm::vec4 const wavelengths) const
+        {
+            const auto i=atmo.wavelengthsIndex(wavelengths);
+            return spectrum[i];
+        }
+    };
 
     QString descriptionFileText;
     std::vector<glm::vec4> allWavelengths;
@@ -89,16 +113,19 @@ struct AtmosphereParameters
     glm::ivec2 eclipsedSingleScatteringTextureSize;
     glm::ivec4 eclipsedDoubleScatteringTextureSize;
     glm::ivec2 lightPollutionTextureSize;
+    glm::ivec2 airglowTextureSize = {0,0};
     unsigned eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
     unsigned eclipsedDoubleScatteringNumberOfElevationPairsToSample;
     unsigned scatteringOrdersToCompute;
     GLint numTransmittanceIntegrationPoints;
     GLint radialIntegrationPoints;
+    GLint radialIntegrationPointsForAirglow = 0;
     GLint angularIntegrationPoints;
     GLint eclipseAngularIntegrationPoints;
     GLint lightPollutionAngularIntegrationPoints;
     GLfloat earthRadius;
     GLfloat atmosphereHeight;
+    GLfloat atmosphereHeightForAirglow = 0;
     double earthSunDistance;
     double earthMoonDistance;
     GLfloat sunAngularRadius; // calculated from earthSunDistance
@@ -107,6 +134,7 @@ struct AtmosphereParameters
     std::vector<glm::vec4> groundAlbedo;
     std::vector<Scatterer> scatterers;
     std::vector<Absorber> absorbers;
+    std::vector<AirglowEmitter> airglowEmitters;
     bool allTexturesAreRadiance=false;
     bool noEclipsedDoubleScatteringTextures=false;
     static constexpr unsigned pointsPerWavelengthItem=4;

@@ -15,6 +15,7 @@ std::unique_ptr<QOpenGLShaderProgram> compileShaderProgram(QString const& mainSr
                                                            std::vector<std::pair<QString, QString>>* sourcesToSave=nullptr);
 void initConstHeader(glm::vec4 const& wavelengths);
 QString makeScattererDensityFunctionsSrc();
+QString makeAirglowProfileSrc(unsigned wlSetIndex);
 QString makeTransmittanceComputeFunctionsSrc(glm::vec4 const& wavelengths);
 QString makeTotalScatteringCoefSrc();
 QString makePhaseFunctionsSrc();

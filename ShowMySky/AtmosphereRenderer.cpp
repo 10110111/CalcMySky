@@ -756,6 +756,54 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
             ++loadingStepsDone_; return;
         }
     }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+    {
+        airglowTextures_.clear();
+        ++loadingStepsDone_; return;
+    }
+    if(const auto filename=pathToData_+"/airglow-xyzw.f32"; QFile::exists(filename))
+    {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo_;
+        }
+        else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+        {
+            auto& tex=*airglowTextures_.emplace_back(newTex(QOpenGLTexture::Target2D));
+            tex.setMinificationFilter(texFilter);
+            tex.setMagnificationFilter(texFilter);
+            tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+            tex.bind();
+            loadTexture2D(filename);
+            ++loadingStepsDone_; return;
+        }
+    }
+    else
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+                continue;
+            }
+            if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
+                continue;
+
+            auto& tex=*airglowTextures_.emplace_back(newTex(QOpenGLTexture::Target2D));
+            tex.setMinificationFilter(texFilter);
+            tex.setMagnificationFilter(texFilter);
+            tex.setWrapMode(QOpenGLTexture::ClampToEdge);
+            tex.bind();
+            loadTexture2D(QString("%1/airglow-wlset%2.f32").arg(pathToData_).arg(wlSetIndex));
+            ++loadingStepsDone_; return;
+        }
+    }
 }
 
 void AtmosphereRenderer::loadShaders(const CountStepsOnly countStepsOnly)
@@ -1304,6 +1352,62 @@ void main()
             for(const auto& b : viewDirBindAttribLocations_)
                 program.bindAttributeLocation(b.first.c_str(), b.second);
             link(program, QObject::tr("light pollution shader program"));
+            ++loadingStepsDone_; return;
+        }
+    }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+    {
+        airglowPrograms_.clear();
+        ++loadingStepsDone_; return;
+    }
+    if(QFile::exists(pathToData_+"/shaders/airglow/0/"))
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+                continue;
+            }
+            if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
+                continue;
+
+            auto& program=*airglowPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+            const auto wlDir=QString("%1/shaders/airglow/%2").arg(pathToData_).arg(wlSetIndex);
+            qDebug().nospace() << "Loading shaders from " << wlDir << "...";
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+                addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+            program.addShader(viewDirFragShader_.get());
+            program.addShader(viewDirVertShader_.get());
+            for(const auto& b : viewDirBindAttribLocations_)
+                program.bindAttributeLocation(b.first.c_str(), b.second);
+            link(program, QObject::tr("airglow shader program"));
+            ++loadingStepsDone_; return;
+        }
+    }
+    else
+    {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo_;
+        }
+        else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+        {
+            auto& program=*airglowPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+            const auto wlDir=pathToData_+"/shaders/airglow/";
+            qDebug().nospace() << "Loading shaders from " << wlDir << "...";
+            for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+                addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+            program.addShader(viewDirFragShader_.get());
+            program.addShader(viewDirVertShader_.get());
+            for(const auto& b : viewDirBindAttribLocations_)
+                program.bindAttributeLocation(b.first.c_str(), b.second);
+            link(program, QObject::tr("airglow shader program"));
             ++loadingStepsDone_; return;
         }
     }
@@ -1933,6 +2037,35 @@ void AtmosphereRenderer::renderLightPollution()
     }
 }
 
+void AtmosphereRenderer::renderAirglow()
+{
+    OGL_TRACE();
+
+    const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
+
+    for(unsigned wlSetIndex = 0; wlSetIndex < airglowPrograms_.size(); ++wlSetIndex)
+    {
+        if(!radianceRenderBuffers_.empty())
+            gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
+
+        auto& prog=*airglowPrograms_[wlSetIndex];
+        prog.bind();
+        prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+        prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+        prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
+        prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
+        if(!solarIrradianceFixup_.empty())
+            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+
+        auto& tex=*airglowTextures_[wlSetIndex];
+        tex.setMinificationFilter(texFilter);
+        tex.setMagnificationFilter(texFilter);
+        tex.bind(0);
+        prog.setUniformValue("airglowTexture", 0);
+        drawSurface(prog);
+    }
+}
+
 int AtmosphereRenderer::initPreparationToDraw()
 {
     OGL_TRACE();
@@ -2025,6 +2158,8 @@ void AtmosphereRenderer::draw(const double brightness, const bool clear)
                 renderMultipleScattering();
             if(tools_->lightPollutionGroundLuminance())
                 renderLightPollution();
+            if(tools_->airglowEnabled())
+                renderAirglow();
         }
         gl.glDisablei(GL_BLEND, 0);
 

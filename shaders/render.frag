@@ -1,6 +1,6 @@
 #version 330
 
-#definitions (RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING, RENDERING_ANY_LIGHT_POLLUTION, RENDERING_ANY_NORMAL_SINGLE_SCATTERING, RENDERING_ANY_SINGLE_SCATTERING, RENDERING_ANY_ZERO_SCATTERING, RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_LUMINANCE, RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE, RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY, RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE, RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE, RENDERING_ECLIPSED_ZERO_SCATTERING, RENDERING_LIGHT_POLLUTION_LUMINANCE, RENDERING_LIGHT_POLLUTION_RADIANCE, RENDERING_MULTIPLE_SCATTERING_LUMINANCE, RENDERING_MULTIPLE_SCATTERING_RADIANCE, RENDERING_SINGLE_SCATTERING_ON_THE_FLY, RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE, RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE, RENDERING_ZERO_SCATTERING)
+#definitions (RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING, RENDERING_ANY_LIGHT_POLLUTION, RENDERING_ANY_NORMAL_SINGLE_SCATTERING, RENDERING_ANY_SINGLE_SCATTERING, RENDERING_ANY_ZERO_SCATTERING, RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_LUMINANCE, RENDERING_ECLIPSED_DOUBLE_SCATTERING_PRECOMPUTED_RADIANCE, RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY, RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE, RENDERING_ECLIPSED_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE, RENDERING_ECLIPSED_ZERO_SCATTERING, RENDERING_LIGHT_POLLUTION_LUMINANCE, RENDERING_LIGHT_POLLUTION_RADIANCE, RENDERING_MULTIPLE_SCATTERING_LUMINANCE, RENDERING_MULTIPLE_SCATTERING_RADIANCE, RENDERING_SINGLE_SCATTERING_ON_THE_FLY, RENDERING_SINGLE_SCATTERING_PRECOMPUTED_LUMINANCE, RENDERING_SINGLE_SCATTERING_PRECOMPUTED_RADIANCE, RENDERING_ZERO_SCATTERING, RENDERING_AIRGLOW_RADIANCE, RENDERING_AIRGLOW_LUMINANCE, RENDERING_ANY_AIRGLOW)
 
 #include "version.h.glsl"
 #include "const.h.glsl"
@@ -14,6 +14,7 @@
 #include_if(RENDERING_ANY_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
 #include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
 #include_if(RENDERING_ANY_LIGHT_POLLUTION) "texture-sampling-functions.h.glsl"
+#include_if(RENDERING_ANY_AIRGLOW) "texture-sampling-functions.h.glsl"
 
 uniform sampler3D scatteringTextureInterpolationGuides01;
 uniform sampler3D scatteringTextureInterpolationGuides02;
@@ -52,17 +53,22 @@ void main()
     vec3 cameraPosition=vec3(oldCamPos.xy, altitude);
 
     bool lookingIntoAtmosphere=true;
-    if(altitude>atmosphereHeight)
+#if RENDERING_ANY_AIRGLOW
+    CONST float atmoHeight = atmosphereHeightForAirglow;
+#else
+    CONST float atmoHeight = atmosphereHeight;
+#endif
+    if(altitude>atmoHeight)
     {
         CONST vec3 p = cameraPosition - earthCenter;
         CONST float p_dot_v = dot(p, viewDir);
         CONST float p_dot_p = dot(p, p);
         CONST float squaredDistBetweenViewRayAndEarthCenter = p_dot_p - sqr(p_dot_v);
-        CONST float distanceToTOA = -p_dot_v - sqrt(sqr(earthRadius+atmosphereHeight) - squaredDistBetweenViewRayAndEarthCenter);
+        CONST float distanceToTOA = -p_dot_v - sqrt(sqr(earthRadius+atmoHeight) - squaredDistBetweenViewRayAndEarthCenter);
         if(distanceToTOA>=0)
         {
             cameraPosition += viewDir*distanceToTOA;
-            altitude = atmosphereHeight;
+            altitude = atmoHeight;
         }
         else
         {
@@ -297,6 +303,12 @@ void main()
     radianceOutput=radiance;
 #elif RENDERING_LIGHT_POLLUTION_LUMINANCE
     luminance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+#elif RENDERING_AIRGLOW_RADIANCE
+    vec4 radiance=airglow(altitude, cosViewZenithAngle, viewRayIntersectsGround);
+    luminance=radianceToLuminance*radiance;
+    radianceOutput=radiance;
+#elif RENDERING_AIRGLOW_LUMINANCE
+    luminance=airglow(altitude, cosViewZenithAngle, viewRayIntersectsGround);
 #else
 #error What to render?
 #endif

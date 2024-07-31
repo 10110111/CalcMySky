@@ -1135,6 +1135,129 @@ void accumulateLightPollutionLuminanceTexture(const unsigned texIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
+void computeAirglow(const unsigned texIndex)
+{
+    if(!atmo.airglowTextureSize[0] || !atmo.airglowTextureSize[1])
+    {
+        std::cerr << indentOutput() << "Airglow texture size not specified, will not compute airglow\n";
+        return;
+    }
+    if(!atmo.atmosphereHeightForAirglow)
+    {
+        std::cerr << indentOutput() << "Atmosphere height for airglow not specified, will not compute airglow\n";
+        return;
+    }
+    if(!atmo.radialIntegrationPointsForAirglow)
+    {
+        std::cerr << indentOutput() << "Radial integration point count for airglow not specified, "
+                                       "will not compute airglow\n";
+        return;
+    }
+    if(atmo.airglowEmitters.empty())
+    {
+        std::cerr << indentOutput() << "No airglow emitters specified, will not compute airglow\n";
+        return;
+    }
+
+    std::cerr << indentOutput() << "Computing airglow... ";
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_AIRGLOW]);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[TEX_AIRGLOW],0);
+    checkFramebufferStatus("framebuffer for airglow");
+    setDrawBuffers({GL_COLOR_ATTACHMENT0});
+
+    gl.glViewport(0, 0, atmo.airglowTextureSize[0], atmo.airglowTextureSize[1]);
+
+    virtualSourceFiles[AIRGLOW_SHADER_FILENAME] = makeAirglowProfileSrc(texIndex);
+    const auto program=compileShaderProgram("compute-airglow.frag",
+                                            "shader program to compute airglow");
+    program->bind();
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,0,"transmittanceTexture");
+    renderQuad();
+
+    gl.glFinish();
+    std::cerr << "done\n";
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void accumulateAirglowLuminanceTexture(const unsigned texIndex)
+{
+    const auto tex = TEX_AIRGLOW_LUMINANCE;
+    if(texIndex==0)
+    {
+        setupTexture(tex, atmo.airglowTextureSize[0], atmo.airglowTextureSize[1]);
+    }
+    else
+    {
+        gl.glBlendFunc(GL_ONE, GL_ONE);
+        gl.glEnable(GL_BLEND);
+    }
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_AIRGLOW]);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, textures[tex],0);
+    checkFramebufferStatus("framebuffer for accumulation of airglow luminance");
+    setDrawBuffers({GL_COLOR_ATTACHMENT0});
+
+    const auto program=compileShaderProgram("copy-scattering-texture-2d.frag",
+                                            "airglow texture copy-blend shader program",
+                                            UseGeomShader{});
+    program->bind();
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_AIRGLOW,0,"tex");
+    program->setUniformValue("radianceToLuminance", toQMatrix(radianceToLuminance(texIndex, atmo.allWavelengths)));
+    renderQuad();
+
+    if(texIndex+1==atmo.allWavelengths.size())
+    {
+        saveTexture(GL_TEXTURE_2D,textures[TEX_AIRGLOW_LUMINANCE],"airglow texture",
+                    atmo.textureOutputDir+"/airglow-xyzw.f32",
+                    {atmo.airglowTextureSize[0], atmo.airglowTextureSize[1]});
+    }
+
+    gl.glDisable(GL_BLEND);
+    gl.glBindFramebuffer(GL_FRAMEBUFFER,0);
+}
+
+void saveAirglowRenderingShader(const unsigned texIndex)
+{
+    if(!opts.saveResultAsRadiance && texIndex!=0)
+    {
+        // There's only one luminance shader, so don't re-save it for each texIndex
+        return;
+    }
+
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
+    const QString macroToReplace = opts.saveResultAsRadiance ? "RENDERING_AIRGLOW_RADIANCE" : "RENDERING_AIRGLOW_LUMINANCE";
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+                                                .replace(QRegularExpression("\\b("+macroToReplace+")\\b"), "1 /*\\1*/")
+                                                .replace(QRegularExpression("\\b(RENDERING_ANY_AIRGLOW)\\b"), "1/*\\1*/");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "airglow rendering shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& [filename, src] : sourcesToSave)
+    {
+        if(filename==viewDirFuncFileName) continue;
+
+        const auto filePath = opts.saveResultAsRadiance ? QString("%1/shaders/airglow/%2/%3").arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename)
+                                                        : QString("%1/shaders/airglow/%2").arg(atmo.textureOutputDir.c_str()).arg(filename);
+        std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
+        QFile file(filePath);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
 int main(int argc, char** argv)
 {
     [[maybe_unused]] UTF8Console utf8console;
@@ -1206,6 +1329,11 @@ int main(int argc, char** argv)
             for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
                 createDirs(atmo.textureOutputDir+"/shaders/light-pollution/"+std::to_string(texIndex));
 
+        createDirs(atmo.textureOutputDir+"/shaders/airglow/");
+        if(opts.saveResultAsRadiance)
+            for(unsigned texIndex=0; texIndex<atmo.allWavelengths.size(); ++texIndex)
+                createDirs(atmo.textureOutputDir+"/shaders/airglow/"+std::to_string(texIndex));
+
         {
             std::cerr << "Writing parameters to output description file...";
             const auto target=atmo.textureOutputDir+"/params.atmo";
@@ -1272,6 +1400,20 @@ int main(int argc, char** argv)
                 // sky color. Irradiance will also be needed when we want to draw the ground itself.
                 computeDirectGroundIrradiance(texIndex);
             }
+
+            // XXX: maybe move this to the end (or just after transmittance)
+            computeAirglow(texIndex);
+            if(opts.saveResultAsRadiance)
+            {
+                saveTexture(GL_TEXTURE_2D,textures[TEX_AIRGLOW],"airglow texture",
+                            atmo.textureOutputDir+"/airglow-wlset"+std::to_string(texIndex)+".f32",
+                            {atmo.airglowTextureSize[0], atmo.airglowTextureSize[1]});
+            }
+            else
+            {
+                accumulateAirglowLuminanceTexture(texIndex);
+            }
+            saveAirglowRenderingShader(texIndex);
 
             computeLightPollutionSingleScattering(texIndex);
             computeLightPollutionMultipleScattering(texIndex);
