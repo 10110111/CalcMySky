@@ -584,12 +584,12 @@ LightPollutionTexVars scatteringTexIndicesToLightPollutionTexVars(const vec2 tex
 {
     CONST vec2 indexMax=lightPollutionTextureSize-vec2(1);
 
-    CONST float altitudeURCoord = texIndices[1] / (indexMax[1]-1);
+    CONST float altitudeURCoord = texIndices[1] / indexMax[1];
     CONST float distToHorizon = altitudeURCoord*LENGTH_OF_HORIZ_RAY_FROM_GROUND_TO_TOA;
     // Rounding errors can result in altitude>max, breaking the code after this calculation, so we have to clamp.
     CONST float altitude=clampAltitude(sqrt(sqr(distToHorizon)+sqr(earthRadius))-earthRadius);
 
-    CONST bool viewRayIntersectsGround = texIndices[0] < indexMax[0]/2;
+    CONST bool viewRayIntersectsGround = texIndices[0] < lightPollutionTextureSize[0]/2;
     CONST float cosViewZenithAngleCoord = viewRayIntersectsGround ?
                                    1-2*texIndices[0]/(indexMax[0]-1) :
                                    2*(texIndices[0]-1)/(indexMax[0]-1)-1;
