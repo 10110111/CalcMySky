@@ -122,11 +122,10 @@ Airglow emitter "Na_D_line":
     ```
     CONST float v = altitude < 92*km ? exp(-sqr(92. - altitude/km)/36.)
                                      : exp(-0.1015315*pow(altitude/km - 92., 1.1));
-    // FIXME: what units?!
-    return 0.45e-8*v;
+    return 6.04e-12*v;
 
     ```
-    spectrum: 0, 0, 0, 0, 0, 0, 0, 0.678, 0.322, 0, 0, 0, 0, 0, 0, 0
+    spectrum: 0, 0, 0, 0, 0, 0, 0, 0.0216, 0.0103, 0, 0, 0, 0, 0, 0, 0
 }
 Airglow emitter "OI_557_7_nm":
 {
@@ -134,10 +133,9 @@ Airglow emitter "OI_557_7_nm":
     ```
     CONST float v = altitude < 106.4*km ? exp(-0.048927*pow(106.4 - altitude/km, 1.7))
                                         : exp(-0.163934*(altitude/km - 106.4));
-    // FIXME: what units?!
-    return 0.4e-8*v;
+    return 5.67e-12*v;
     ```
-    spectrum: 0, 0, 0, 0, 0, 0, 0.664, 0.336, 0, 0, 0, 0, 0, 0, 0, 0
+    spectrum: 0, 0, 0, 0, 0, 0, 0.0212, 0.0107, 0, 0, 0, 0, 0, 0, 0, 0
 }
 Airglow emitter "OI_630_nm":
 {
@@ -145,8 +143,7 @@ Airglow emitter "OI_630_nm":
     ```
     CONST float v = altitude < 273*km ? exp(-0.00483668*pow(273 - altitude/km, 1.6))
                                       : exp(-0.00395285*pow(altitude/km - 273, 1.5));
-    // FIXME: what units?!
-    return 0.058e-8*v;
+    return 7.28e-13*v;
     ```
-    spectrum: 0, 0, 0, 0, 0, 0, 0, 0, 0.408, 0.592, 0, 0, 0, 0, 0, 0
+    spectrum: 0, 0, 0, 0, 0, 0, 0, 0, 0.013, 0.0189, 0, 0, 0, 0, 0, 0
 }
