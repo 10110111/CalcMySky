@@ -2,6 +2,7 @@
 #define INCLUDE_ONCE_5DB905D2_61C0_44DB_8F35_67B31BD78315
 
 #include <cmath>
+#include <tuple>
 #include <array>
 #include <deque>
 #include <memory>
@@ -156,6 +157,7 @@ private: // methods
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
     glm::ivec2 loadTexture2D(QString const& path);
+    std::tuple<glm::ivec2, std::unique_ptr<GLfloat[]>> loadTexture2DData(QString const& path);
     enum class Texture4DType
     {
         ScatteringTexture,

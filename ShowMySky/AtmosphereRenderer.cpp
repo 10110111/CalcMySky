@@ -261,16 +261,8 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     log << "done";
 }
 
-glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
+std::tuple<glm::ivec2, std::unique_ptr<GLfloat[]>> AtmosphereRenderer::loadTexture2DData(QString const& path)
 {
-    auto log=qDebug().nospace();
-
-    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
-    {
-        throw DataLoadError{QObject::tr("GL error on entry to loadTexture2D(\"%1\"): %2")
-                            .arg(path).arg(openglErrorString(err).c_str())};
-    }
-    log << "Loading texture from " << path << "... ";
     QFile file(path);
     if(!file.open(QFile::ReadOnly))
         throw DataLoadError{QObject::tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
@@ -285,7 +277,6 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
         }
     }
     const auto subpixelCount = 4*uint64_t(sizes[0])*sizes[1];
-    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "... ";
 
     if(const qint64 expectedFileSize = subpixelCount*sizeof(GLfloat)+file.pos();
        expectedFileSize != file.size())
@@ -294,7 +285,7 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
                             .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(expectedFileSize)};
     }
 
-    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
+    std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
     {
         const qint64 sizeToRead=subpixelCount*sizeof subpixels[0];
         const auto actuallyRead=file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead);
@@ -305,6 +296,22 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
             throw DataLoadError{error};
         }
     }
+    return std::make_tuple(glm::ivec2(sizes[0], sizes[1]), std::move(subpixels));
+}
+
+glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
+{
+    auto log=qDebug().nospace();
+
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error on entry to loadTexture2D(\"%1\"): %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+    log << "Loading texture from " << path << "... ";
+    const auto [sizes, subpixels] = loadTexture2DData(path);
+    log << "dimensions: " << sizes[0] << "×" << sizes[1] << "... ";
+
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,sizes[0],sizes[1],0,GL_RGBA,GL_FLOAT,subpixels.get());
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
