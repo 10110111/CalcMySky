@@ -39,7 +39,14 @@ void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
     if(scatteringOrder==atmo.scatteringOrdersToCompute)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
-                    atmo.textureOutputDir+"/irradiance-wlset"+std::to_string(texIndex)+".f32",
+                    atmo.textureOutputDir+"/irradiance-indirect-wlset"+std::to_string(texIndex)+".f32",
+                    {atmo.irradianceTexW, atmo.irradianceTexH});
+    }
+
+    if(scatteringOrder==1)
+    {
+        saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
+                    atmo.textureOutputDir+"/irradiance-direct-wlset"+std::to_string(texIndex)+".f32",
                     {atmo.irradianceTexW, atmo.irradianceTexH});
     }
 
@@ -686,10 +693,9 @@ void computeIndirectIrradianceOrder1(const unsigned scattererIndex)
     gl.glBindFramebuffer(GL_FRAMEBUFFER,fbos[FBO_IRRADIANCE]);
     gl.glBlendFunc(GL_ONE, GL_ONE);
     if(scattererIndex==0)
-        gl.glDisablei(GL_BLEND, 0); // First scatterer overwrites delta-irradiance-texture
+        gl.glDisable(GL_BLEND); // First scatterer overwrites delta-irradiance-texture and direct-irradiance-texture
     else
-        gl.glEnablei(GL_BLEND, 0); // Second and subsequent scatterers blend into delta-irradiance-texture
-    gl.glEnablei(GL_BLEND, 1); // Total irradiance is always accumulated
+        gl.glEnable(GL_BLEND); // Second and subsequent scatterers blend into delta-irradiance-texture and indirect-irradiance-texture
 
     const auto& scatterer=atmo.scatterers[scattererIndex];
 

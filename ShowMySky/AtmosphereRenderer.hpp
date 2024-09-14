@@ -109,6 +109,9 @@ private: // variables
     QSize viewportSize_;
     double altCoordToLoad_=0; //!< Used to load textures for a single altitude slice, even if input altitude changes during the load
 
+    std::vector<std::unique_ptr<glm::vec4[]>> directIrradianceData_;
+    std::vector<std::unique_ptr<glm::vec4[]>> indirectIrradianceData_;
+
     std::vector<ShaderProgPtr> lightPollutionPrograms_;
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> eclipsedZeroOrderScatteringPrograms_;
@@ -156,8 +159,9 @@ private: // methods
     glm::dvec3 moonPosition() const;
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
+    void loadIrradianceTexture(unsigned wlSetIndex);
     glm::ivec2 loadTexture2D(QString const& path);
-    std::tuple<glm::ivec2, std::unique_ptr<GLfloat[]>> loadTexture2DData(QString const& path);
+    std::tuple<glm::ivec2, std::unique_ptr<glm::vec4[]>> loadTexture2DData(QString const& path);
     enum class Texture4DType
     {
         ScatteringTexture,

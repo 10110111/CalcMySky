@@ -261,7 +261,7 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     log << "done";
 }
 
-std::tuple<glm::ivec2, std::unique_ptr<GLfloat[]>> AtmosphereRenderer::loadTexture2DData(QString const& path)
+std::tuple<glm::ivec2, std::unique_ptr<glm::vec4[]>> AtmosphereRenderer::loadTexture2DData(QString const& path)
 {
     QFile file(path);
     if(!file.open(QFile::ReadOnly))
@@ -276,19 +276,19 @@ std::tuple<glm::ivec2, std::unique_ptr<GLfloat[]>> AtmosphereRenderer::loadTextu
                                 .arg(path).arg(file.errorString())};
         }
     }
-    const auto subpixelCount = 4*uint64_t(sizes[0])*sizes[1];
+    const auto pixelCount = uint64_t(sizes[0])*sizes[1];
 
-    if(const qint64 expectedFileSize = subpixelCount*sizeof(GLfloat)+file.pos();
+    if(const qint64 expectedFileSize = pixelCount*sizeof(glm::vec4)+file.pos();
        expectedFileSize != file.size())
     {
         throw DataLoadError{QObject::tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4 from file header.\nThe expected size is %5 bytes.")
                             .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(expectedFileSize)};
     }
 
-    std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
+    std::unique_ptr<glm::vec4[]> pixels(new glm::vec4[pixelCount]);
     {
-        const qint64 sizeToRead=subpixelCount*sizeof subpixels[0];
-        const auto actuallyRead=file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead);
+        const qint64 sizeToRead=pixelCount*sizeof pixels[0];
+        const auto actuallyRead=file.read(reinterpret_cast<char*>(pixels.get()), sizeToRead);
         if(actuallyRead != sizeToRead)
         {
             const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
@@ -296,7 +296,7 @@ std::tuple<glm::ivec2, std::unique_ptr<GLfloat[]>> AtmosphereRenderer::loadTextu
             throw DataLoadError{error};
         }
     }
-    return std::make_tuple(glm::ivec2(sizes[0], sizes[1]), std::move(subpixels));
+    return std::make_tuple(glm::ivec2(sizes[0], sizes[1]), std::move(pixels));
 }
 
 glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
@@ -309,10 +309,10 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
     log << "Loading texture from " << path << "... ";
-    const auto [sizes, subpixels] = loadTexture2DData(path);
+    const auto [sizes, pixels] = loadTexture2DData(path);
     log << "dimensions: " << sizes[0] << "×" << sizes[1] << "... ";
 
-    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,sizes[0],sizes[1],0,GL_RGBA,GL_FLOAT,subpixels.get());
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,sizes[0],sizes[1],0,GL_RGBA,GL_FLOAT,pixels.get());
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         throw DataLoadError{QObject::tr("GL error in loadTexture2D(\"%1\") after glTexImage2D() call: %2")
@@ -320,6 +320,52 @@ glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
     }
     log << "done";
     return {sizes[0], sizes[1]};
+}
+
+void AtmosphereRenderer::loadIrradianceTexture(const unsigned wlSetIndex)
+{
+    auto qdebug=qDebug().nospace();
+    const auto directIrrPath = QString("%1/irradiance-direct-wlset%2.f32").arg(pathToData_).arg(wlSetIndex);
+    const auto indirectIrrPath = QString("%1/irradiance-indirect-wlset%2.f32").arg(pathToData_).arg(wlSetIndex);
+
+    if(wlSetIndex == 0)
+    {
+        directIrradianceData_.clear();
+        indirectIrradianceData_.clear();
+    }
+
+    qdebug << "Loading texture data from " << directIrrPath << "... ";
+    glm::ivec2 directIrradianceSizes;
+    directIrradianceData_.push_back({});
+    std::tie(directIrradianceSizes, directIrradianceData_[wlSetIndex]) = loadTexture2DData(directIrrPath);
+    qdebug << "\nLoading texture data from " << indirectIrrPath << "... ";
+    glm::ivec2 indirectIrradianceSizes;
+    indirectIrradianceData_.push_back({});
+    std::tie(indirectIrradianceSizes, indirectIrradianceData_[wlSetIndex]) = loadTexture2DData(indirectIrrPath);
+
+    if(directIrradianceSizes != glm::ivec2(params_.irradianceTexW, params_.irradianceTexH))
+        throw DataLoadError{QObject::tr(u8"Direct irradiance texture size %1×%2 at wavelength set %3 is wrong (must be %4×%5)")
+                                        .arg(directIrradianceSizes[0]).arg(directIrradianceSizes[1]).arg(wlSetIndex)
+                                        .arg(params_.irradianceTexW).arg(params_.irradianceTexH)};
+    if(indirectIrradianceSizes != glm::ivec2(params_.irradianceTexW, params_.irradianceTexH))
+        throw DataLoadError{QObject::tr(u8"Indirect irradiance texture size %1×%2 at wavelength set %3 is wrong (must be %4×%5)")
+                                        .arg(indirectIrradianceSizes[0]).arg(indirectIrradianceSizes[1]).arg(wlSetIndex)
+                                        .arg(params_.irradianceTexW).arg(params_.irradianceTexH)};
+    qdebug << "dimensions: " << directIrradianceSizes[0] << "×" << directIrradianceSizes[1] << "... ";
+
+    const auto pixelCount = uint64_t(params_.irradianceTexW)*params_.irradianceTexH;
+    std::vector totalIrradiance(directIrradianceData_[wlSetIndex].get(),
+                                directIrradianceData_[wlSetIndex].get() + pixelCount);
+    for(unsigned i = 0; i < totalIrradiance.size(); ++i)
+        totalIrradiance[i] += indirectIrradianceData_[wlSetIndex][i];
+
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,params_.irradianceTexW,params_.irradianceTexH,0,GL_RGBA,GL_FLOAT,totalIrradiance.data());
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error %1 after loading irradiance texture (wavelength set %2)")
+            .arg(openglErrorString(err).c_str()).arg(wlSetIndex)};
+    }
+    qdebug << "done";
 }
 
 void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
@@ -363,7 +409,8 @@ void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
         tex.setMinificationFilter(QOpenGLTexture::Linear);
         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
         tex.bind();
-        loadTexture2D(QString("%1/irradiance-wlset%2.f32").arg(pathToData_).arg(wlSetIndex));
+        loadIrradianceTexture(wlSetIndex);
+
         ++loadingStepsDone_; return;
     }
 
