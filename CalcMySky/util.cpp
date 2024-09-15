@@ -58,7 +58,7 @@ void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString c
 
 std::vector<glm::vec4> saveTexture(const GLenum target, const GLuint texture, const std::string_view name,
                                    const std::string_view path, std::vector<int> const& sizes,
-                                   const ReturnTextureData returnTexData)
+                                   const ReturnTextureData returnTexData, const ConvertToLogScale logScale)
 {
     if(opts.dbgNoSaveTextures)
     {
@@ -118,6 +118,12 @@ std::vector<glm::vec4> saveTexture(const GLenum target, const GLuint texture, co
         if(std::isnan(subpixels[i]))
         {
             ++nanCount;
+        }
+        else
+        {
+            constexpr float AVOID_INFINITY = 1e-37;
+            if(logScale)
+                subpixels[i] = std::log(subpixels[i] + AVOID_INFINITY);
         }
     }
     std::vector<glm::vec4> dataToReturn;

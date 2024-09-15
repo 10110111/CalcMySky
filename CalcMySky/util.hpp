@@ -52,9 +52,16 @@ inline void setDrawBuffers(std::vector<GLenum> const& bufs)
 void renderQuad();
 inline void checkFramebufferStatus(const char*const fboDescription) { return checkFramebufferStatus(gl, fboDescription); }
 void qtMessageHandler(const QtMsgType type, QMessageLogContext const&, QString const& message);
+
 DEFINE_EXPLICIT_BOOL(ReturnTextureData);
+DEFINE_EXPLICIT_BOOL(ConvertToLogScale);
 std::vector<glm::vec4> saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,
-                                   std::vector<int> const& sizes, ReturnTextureData=ReturnTextureData{false});
+                                   std::vector<int> const& sizes, ReturnTextureData=ReturnTextureData{false},
+                                   ConvertToLogScale=ConvertToLogScale{false});
+inline std::vector<glm::vec4> saveTexture(GLenum target, GLuint texture, std::string_view name, std::string_view path,
+                                          std::vector<int> const& sizes, ConvertToLogScale logScale)
+{ return saveTexture(target, texture, name, path, sizes, ReturnTextureData{false}, logScale); }
+
 void createDirs(std::string const& path);
 
 class OutputIndentIncrease

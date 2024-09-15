@@ -34,6 +34,10 @@ void main()
     CONST vec2 texCoord=0.5*position.xy+vec2(0.5);
     CONST IrradianceTexVars vars=irradianceTexCoordToTexVars(texCoord);
     CONST vec4 color=computeIndirectGroundIrradiance(vars.cosSunZenithAngle, vars.altitude, SCATTERING_ORDER);
-    deltaIrradianceOutput=color;
+    const vec4 AVOID_INFINITY = vec4(1e-37);
+    // Delta gets the log value for subsequent sampling in next order scattering computation,
+    // while the full texture will accumulate radiance, so it needs to be addable by blending,
+    // which log scale doesn't allow for. This log conversion will be done on saving instead.
+    deltaIrradianceOutput=log(color + AVOID_INFINITY);
     irradianceOutput=color;
 }

@@ -40,25 +40,25 @@ void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                     atmo.textureOutputDir+"/irradiance-indirect-wlset"+std::to_string(texIndex)+".f32",
-                    {atmo.irradianceTexW, atmo.irradianceTexH});
+                    {atmo.irradianceTexW, atmo.irradianceTexH}, ConvertToLogScale{true});
     }
 
     if(scatteringOrder==1)
     {
         saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture",
                     atmo.textureOutputDir+"/irradiance-direct-wlset"+std::to_string(texIndex)+".f32",
-                    {atmo.irradianceTexW, atmo.irradianceTexH});
+                    {atmo.irradianceTexW, atmo.irradianceTexH}, ConvertToLogScale{true});
     }
 
     if(!opts.dbgSaveGroundIrradiance) return;
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_DELTA_IRRADIANCE],"delta irradiance texture",
                 atmo.textureOutputDir+"/irradiance-delta-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
-                {atmo.irradianceTexW, atmo.irradianceTexH});
+                {atmo.irradianceTexW, atmo.irradianceTexH}, ConvertToLogScale{false/*this is in log scale from the shader already*/});
 
     saveTexture(GL_TEXTURE_2D,textures[TEX_IRRADIANCE],"irradiance texture accumulated to order "+std::to_string(scatteringOrder-1),
                 atmo.textureOutputDir+"/irradiance-accum-order"+std::to_string(scatteringOrder-1)+"-wlset"+std::to_string(texIndex)+".f32",
-                {atmo.irradianceTexW, atmo.irradianceTexH});
+                {atmo.irradianceTexW, atmo.irradianceTexH}, ConvertToLogScale{true});
 }
 
 void saveScatteringDensity(const unsigned scatteringOrder, const unsigned texIndex)

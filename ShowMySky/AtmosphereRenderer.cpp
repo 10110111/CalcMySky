@@ -354,10 +354,9 @@ void AtmosphereRenderer::loadIrradianceTexture(const unsigned wlSetIndex)
     qdebug << "dimensions: " << directIrradianceSizes[0] << "×" << directIrradianceSizes[1] << "... ";
 
     const auto pixelCount = uint64_t(params_.irradianceTexW)*params_.irradianceTexH;
-    std::vector totalIrradiance(directIrradianceData_[wlSetIndex].get(),
-                                directIrradianceData_[wlSetIndex].get() + pixelCount);
+    std::vector<glm::vec4> totalIrradiance(pixelCount);
     for(unsigned i = 0; i < totalIrradiance.size(); ++i)
-        totalIrradiance[i] += indirectIrradianceData_[wlSetIndex][i];
+        totalIrradiance[i] = log(exp(directIrradianceData_[wlSetIndex][i]) + exp(indirectIrradianceData_[wlSetIndex][i]));
 
     gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,params_.irradianceTexW,params_.irradianceTexH,0,GL_RGBA,GL_FLOAT,totalIrradiance.data());
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
