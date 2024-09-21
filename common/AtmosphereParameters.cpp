@@ -619,7 +619,7 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
     {
         throw DataLoadError{"Wavelengths aren't specified in atmosphere description"};
     }
-    if(solarIrradianceAtTOA.empty() && !skipSpectra)
+    if(solarIrradianceAtTOA.empty())
     {
         throw DataLoadError{"Solar irradiance at TOA isn't specified in atmosphere description"};
     }
