@@ -208,6 +208,12 @@ public:
      */
     virtual QVector4D getPixelLuminance(QPoint const& pixelPos) = 0;
     /**
+     * \brief Get luminance of the Sun when it's at elevation \p elevation.
+     *
+     * \param elevation Elevation of the Sun over mathematical horizon in radians.
+     */
+    virtual QVector4D getSunLuminance(double elevation) const = 0;
+    /**
      * \brief Get spectral radiance of a pixel.
      *
      * This method obtains spectral radiance of the pixel specified by \p pixelPos.
@@ -216,6 +222,12 @@ public:
      * \return Spectral radiance of the pixel specified.
      */
     virtual SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) = 0;
+    /**
+     * \brief Get spectral radiance of the Sun when it's at elevation \p elevation.
+     *
+     * \param elevation Elevation of the Sun over mathematical horizon in radians.
+     */
+    virtual SpectralRadiance getSunSpectralRadiance(double elevation) const = 0;
     /**
      * \brief Get the wavelengths used in computations.
      * \returns All the wavelengths used in computations, in nanometers.
@@ -299,7 +311,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
  *
  * If the value of the symbol doesn't match the value of this constant, the library loaded is incompatible with the header against which the binary was compiled. Mixing incompatible header and library leads to undefined behavior.
  */
-#define ShowMySky_ABI_version 15
+#define ShowMySky_ABI_version 16
 
 /**
  * \brief Name of library to be dlopen()-ed

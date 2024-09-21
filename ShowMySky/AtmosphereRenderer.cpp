@@ -24,6 +24,48 @@ namespace fs=std::filesystem;
 namespace
 {
 
+// XXX: keep in sync with the same function in texture-coordinates.frag
+template<typename T> T safeSqrt(const T x)
+{
+    using namespace std;
+    return sqrt(max(x,T(0)));
+}
+
+// XXX: keep in sync with the same function in texture-coordinates.frag
+template<typename T> T clampDistance(const T d)
+{
+    using namespace std;
+    return max(d, T(0));
+}
+
+// XXX: keep in sync with the same function in texture-coordinates.frag
+float distanceToAtmosphereBorder(const float cosZenithAngle, const float observerAltitude,
+                                 const AtmosphereParameters& params)
+{
+    const float Robs=params.earthRadius+observerAltitude;
+    const float Ratm=params.earthRadius+params.atmosphereHeight;
+    const float discriminant=sqr(Ratm)-sqr(Robs)*(1-sqr(cosZenithAngle));
+    return clampDistance(safeSqrt(discriminant)-Robs*cosZenithAngle);
+}
+
+// XXX: keep in sync with transmittanceTexVarsToTexCoord (up to unitRangeToTexCoord()) in texture-coordinates.frag
+glm::vec2 transmittanceTexVarsToTexIndices(const float cosVZA, float altitude,
+                                           const AtmosphereParameters& params)
+{
+    using namespace std;
+
+    if(altitude<0)
+        altitude=0;
+
+    const float distToHorizon=sqrt(sqr(altitude)+2*altitude*params.earthRadius);
+    const float t = clamp(distToHorizon / params.lengthOfHorizRayFromGroundToBorderOfAtmo, 0.f, 1.f) * (params.transmittanceTexH - 1);
+    const float dMin=params.atmosphereHeight-altitude; // distance to zenith
+    const float dMax=params.lengthOfHorizRayFromGroundToBorderOfAtmo+distToHorizon;
+    const float d=distanceToAtmosphereBorder(cosVZA,altitude,params);
+    const float s = clamp((d-dMin)/(dMax-dMin), 0.f, 1.f) * (params.transmittanceTexW - 1);
+    return glm::vec2(s,t);
+}
+
 auto newTex(QOpenGLTexture::Target target)
 {
     return std::make_unique<QOpenGLTexture>(target);
@@ -367,6 +409,43 @@ void AtmosphereRenderer::loadIrradianceTexture(const unsigned wlSetIndex)
     qdebug << "done";
 }
 
+void AtmosphereRenderer::loadTransmittanceTexture(const unsigned wlSetIndex)
+{
+    auto log=qDebug().nospace();
+    const auto path = QString("%1/transmittance-wlset%2.f32").arg(pathToData_).arg(wlSetIndex);
+
+    if(wlSetIndex == 0)
+        transmittanceData_.clear();
+
+    log << "Loading texture data from " << path << "... ";
+    glm::ivec2 dim;
+    transmittanceData_.push_back({});
+    std::tie(dim, transmittanceData_[wlSetIndex]) = loadTexture2DData(path);
+    log << "dimensions: " << dim[0] << "×" << dim[1] << "... ";
+
+    gl.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,dim[0],dim[1],0,GL_RGBA,GL_FLOAT,transmittanceData_[wlSetIndex].get());
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error %1 after loading transmittance texture (wavelength set %2)")
+            .arg(openglErrorString(err).c_str()).arg(wlSetIndex)};
+    }
+
+    if(wlSetIndex == 0)
+    {
+        sunLuminances_.clear();
+        sunLuminances_.resize(dim[0]*dim[1]);
+    }
+
+    const auto rad2lum = radianceToLuminance(wlSetIndex, params_.allWavelengths);
+    for(unsigned n = 0; n < sunLuminances_.size(); ++n)
+    {
+        const auto radiance = transmittanceData_[wlSetIndex][n] * params_.solarIrradianceAtTOA[wlSetIndex];
+        sunLuminances_[n] += rad2lum * radiance;
+    }
+
+    log << "done";
+}
+
 void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
 {
     OGL_TRACE();
@@ -390,7 +469,7 @@ void AtmosphereRenderer::loadTextures(const CountStepsOnly countStepsOnly)
         tex.setMinificationFilter(QOpenGLTexture::Linear);
         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
         tex.bind();
-        loadTexture2D(QString("%1/transmittance-wlset%2.f32").arg(pathToData_).arg(wlSetIndex));
+        loadTransmittanceTexture(wlSetIndex);
         ++loadingStepsDone_; return;
     }
 
@@ -1463,6 +1542,49 @@ auto AtmosphereRenderer::getPixelSpectralRadiance(QPoint const& pixelPos) -> Spe
     output.azimuth=dir.azimuth;
     output.elevation=dir.elevation;
 
+    return output;
+}
+
+glm::vec4 AtmosphereRenderer::sampleTransmittanceLikeTexture(const glm::vec4*const texels, const glm::vec2& texIndices) const
+{
+    const int indexLeft = std::floor(texIndices.s);
+    const int indexRight = indexLeft+1;
+    const int indexBottom = std::floor(texIndices.t);
+    const int indexTop = indexBottom+1;
+    const float alphaHor = texIndices.s - indexLeft;
+    const float alphaVer = texIndices.t - indexBottom;
+    const auto dataBL = texels[indexBottom * params_.transmittanceTexW + indexLeft];
+    const auto dataBR = texels[indexBottom * params_.transmittanceTexW + indexRight];
+    const auto dataTL = texels[indexTop * params_.transmittanceTexW + indexLeft];
+    const auto dataTR = texels[indexTop * params_.transmittanceTexW + indexRight];
+    return (dataBL * (1-alphaHor) + dataBR * alphaHor) * (1-alphaVer) +
+           (dataTL * (1-alphaHor) + dataTR * alphaHor) * alphaVer;
+}
+
+QVector4D AtmosphereRenderer::getSunLuminance(const double elevation) const
+{
+    const auto indices = transmittanceTexVarsToTexIndices(std::sin(elevation), tools_->altitude(), params_);
+    const auto data = sampleTransmittanceLikeTexture(sunLuminances_.data(), indices);
+    return toQVector(data);
+}
+
+auto AtmosphereRenderer::getSunSpectralRadiance(const double elevation) const -> SpectralRadiance
+{
+    const auto indices = transmittanceTexVarsToTexIndices(std::sin(elevation), tools_->altitude(), params_);
+    constexpr unsigned wavelengthsPerPixel=4;
+    SpectralRadiance output;
+    for(const auto wlSet : params_.allWavelengths)
+        for(unsigned i=0; i<wavelengthsPerPixel; ++i)
+            output.wavelengths.emplace_back(wlSet[i]);
+    for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+    {
+        const auto xmittance = sampleTransmittanceLikeTexture(transmittanceData_[wlSetIndex].get(), indices);
+        const auto radiance = xmittance * params_.solarIrradianceAtTOA[wlSetIndex];
+        for(unsigned i=0; i<wavelengthsPerPixel; ++i)
+            output.radiances.emplace_back(radiance[i]);
+    }
+    output.azimuth = tools_->sunAzimuth();
+    output.elevation = elevation;
     return output;
 }
 

@@ -65,7 +65,9 @@ public:
     void draw(double brightness, bool clear) override;
     void resizeEvent(int width, int height) override;
     QVector4D getPixelLuminance(QPoint const& pixelPos) override;
+    QVector4D getSunLuminance(double elevation) const override;
     SpectralRadiance getPixelSpectralRadiance(QPoint const& pixelPos) override;
+    SpectralRadiance getSunSpectralRadiance(double elevation) const override;
     std::vector<float> getWavelengths() override;
     void setSolarSpectrum(std::vector<float> const& solarIrradianceAtTOA) override;
     void resetSolarSpectrum() override;
@@ -111,6 +113,8 @@ private: // variables
 
     std::vector<std::unique_ptr<glm::vec4[]>> directIrradianceData_;
     std::vector<std::unique_ptr<glm::vec4[]>> indirectIrradianceData_;
+    std::vector<std::unique_ptr<glm::vec4[]>> transmittanceData_;
+    std::vector<glm::vec4> sunLuminances_;
 
     std::vector<ShaderProgPtr> lightPollutionPrograms_;
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
@@ -160,6 +164,7 @@ private: // methods
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
     void loadIrradianceTexture(unsigned wlSetIndex);
+    void loadTransmittanceTexture(unsigned wlSetIndex);
     glm::ivec2 loadTexture2D(QString const& path);
     std::tuple<glm::ivec2, std::unique_ptr<glm::vec4[]>> loadTexture2DData(QString const& path);
     enum class Texture4DType
@@ -169,6 +174,7 @@ private: // methods
     };
     void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
     void loadEclipsedDoubleScatteringTexture(QString const& path, float altitudeCoord);
+    glm::vec4 sampleTransmittanceLikeTexture(const glm::vec4* texels, const glm::vec2& texIndices) const;
 
     void precomputeEclipsedSingleScattering();
     void precomputeEclipsedDoubleScattering();
