@@ -1438,7 +1438,9 @@ void AtmosphereRenderer::setSolarSpectrum(std::vector<float> const& solarIrradia
 void AtmosphereRenderer::resetSolarSpectrum()
 {
     // Simple clear() won't work because we want to reset the uniform in the programs where it's been already altered
-    std::fill(solarIrradianceFixup_.begin(), solarIrradianceFixup_.end(), QVector4D(1,1,1,1));
+    const float*const begin = &params_.solarIrradianceAtTOA[0][0];
+    const float*const end   = &params_.solarIrradianceAtTOA.back()[0]+4;
+    setSolarSpectrum(std::vector<float>(begin, end));
 }
 
 auto AtmosphereRenderer::getViewDirection(QPoint const& pixelPos) -> Direction
@@ -1505,8 +1507,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("transmittanceTexture", 0);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-            if(!solarIrradianceFixup_.empty())
-                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
             drawSurface(prog);
         }
         else
@@ -1522,8 +1523,7 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("irradianceTexture",1);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-            if(!solarIrradianceFixup_.empty())
-                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
             drawSurface(prog);
         }
     }
@@ -1552,8 +1552,7 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
             prog.setUniformValue("sunZenithAngle", float(tools_->sunZenithAngle()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
-            if(!solarIrradianceFixup_.empty())
-                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
             auto& tex = needBlending ? *textures.front() : *textures[wlSetIndex];
             gl.glBindFramebuffer(GL_FRAMEBUFFER, eclipseSingleScatteringPrecomputationFBO_);
@@ -1602,8 +1601,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-                    if(!solarIrradianceFixup_.empty())
-                        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+                    prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                     drawSurface(prog);
                 }
@@ -1623,8 +1621,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-                    if(!solarIrradianceFixup_.empty())
-                        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+                    prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                     drawSurface(prog);
                 }
@@ -1652,8 +1649,7 @@ void AtmosphereRenderer::renderSingleScattering()
                         prog.setUniformValue("eclipsedScatteringTexture", 0);
                     }
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-                    if(!solarIrradianceFixup_.empty())
-                        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+                    prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                     drawSurface(prog);
                 }
@@ -1702,8 +1698,7 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("useInterpolationGuides", guides01Loaded && guides02Loaded);
 
                     prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-                    if(!solarIrradianceFixup_.empty())
-                        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+                    prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
                     drawSurface(prog);
                 }
@@ -1787,8 +1782,7 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
         int unusedTextureUnitNum=0;
         transmittanceTextures_[wlSetIndex]->bind(unusedTextureUnitNum);
         prog.setUniformValue("transmittanceTexture", unusedTextureUnitNum++);
-        if(!solarIrradianceFixup_.empty())
-            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
         prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
 
         auto precomputer = std::make_unique<EclipsedDoubleScatteringPrecomputer>(gl,
@@ -1848,8 +1842,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-            if(!solarIrradianceFixup_.empty())
-                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
             if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
             {
@@ -1890,8 +1883,7 @@ void AtmosphereRenderer::renderMultipleScattering()
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-            if(!solarIrradianceFixup_.empty())
-                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
             auto& tex=*multipleScatteringTextures_[wlSetIndex];
             tex.setMinificationFilter(texFilter);
@@ -1920,8 +1912,7 @@ void AtmosphereRenderer::renderLightPollution()
         prog.setUniformValue("sunDirection", toQVector(sunDirection()));
         prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
         prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-        if(!solarIrradianceFixup_.empty())
-            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+        prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
         auto& tex=*lightPollutionTextures_[wlSetIndex];
         tex.setMinificationFilter(texFilter);
@@ -2111,6 +2102,7 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     , luminanceRenderTargetTexture_(QOpenGLTexture::Target2D)
 {
     params_.parse(pathToData + "/params.atmo", AtmosphereParameters::ForceNoEDSTextures{false}, AtmosphereParameters::SkipSpectra{true});
+    resetSolarSpectrum();
 }
 
 void AtmosphereRenderer::setDrawSurfaceCallback(std::function<void(QOpenGLShaderProgram& shprog)> const& drawSurface)
