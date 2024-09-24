@@ -1,6 +1,7 @@
 #ifndef INCLUDE_ONCE_3A48838B_2D1A_4326_9585_2E19F9D300D1
 #define INCLUDE_ONCE_3A48838B_2D1A_4326_9585_2E19F9D300D1
 
+#include <cassert>
 #include <algorithm>
 #include <unsupported/Eigen/FFT>
 
