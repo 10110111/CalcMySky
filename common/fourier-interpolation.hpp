@@ -2,6 +2,7 @@
 #define INCLUDE_ONCE_3A48838B_2D1A_4326_9585_2E19F9D300D1
 
 #include <algorithm>
+#include <cassert>
 #include <unsupported/Eigen/FFT>
 
 void fourierInterpolate(float const*const points, const std::size_t inPointCount,

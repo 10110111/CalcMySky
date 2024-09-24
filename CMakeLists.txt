@@ -104,6 +104,7 @@ else()
     set(installLibDir "${CMAKE_INSTALL_LIBDIR}")
     set(installConfDir "${CMAKE_INSTALL_LIBDIR}")
     set(installIncDir "${CMAKE_INSTALL_INCLUDEDIR}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")
