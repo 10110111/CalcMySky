@@ -135,6 +135,9 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         colorMode_->addItem(tr("sRGBl chromaticity (smooth)"));
         colorMode_->addItem(tr("sRGBl chromaticity (bright)"));
         colorMode_->addItem(tr("Hue"));
+        colorMode_->addItem(tr("sRGB red"));
+        colorMode_->addItem(tr("sRGB green"));
+        colorMode_->addItem(tr("sRGB blue"));
 
         colorMode_->setCurrentIndex(static_cast<int>(GLWidget::ColorMode::sRGB));
         connect(colorMode_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](const int index)

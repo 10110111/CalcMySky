@@ -28,6 +28,9 @@ public:
         XYZChromaticity,
         sRGBlChromaticity,
         sRGBlChromaticityToMax,
+        sRGB_Red,
+        sRGB_Green,
+        sRGB_Blue,
     };
 
 private:
