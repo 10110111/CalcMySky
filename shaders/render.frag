@@ -25,6 +25,7 @@ uniform vec3 sunDirection;
 uniform vec3 moonPosition;
 uniform float lightPollutionGroundLuminance;
 uniform vec4 solarIrradianceFixup=vec4(1); // Used when we want to alter solar irradiance post-precomputation
+uniform int superSampleCount=1;
 uniform bool pseudoMirrorSkyBelowHorizon = false;
 uniform bool useInterpolationGuides=false;
 in vec3 position;
@@ -46,12 +47,8 @@ float calcDistToAltitudeLayer(const vec3 cameraPosition, const vec3 viewDir, con
     return -p_dot_v - sqrt(sqr(earthRadius+layerAltitude) - squaredDistBetweenViewRayAndEarthCenter);
 }
 
-void main()
+void compute(vec3 viewDir)
 {
-    vec3 viewDir=calcViewDir();
-    if(length(viewDir) == 0)
-        discard;
-
     // NOTE: we simply clamp negative altitudes to zero (otherwise the model will break down). This is not
     // quite correct physically: there are places with negative elevation above sea level. But the error of
     // this approximation has the same order of magnitude as the assumption that the Earth and its atmosphere
@@ -92,6 +89,7 @@ void main()
 
 #if RENDERING_ANY_ZERO_SCATTERING
     CONST vec3 geometricFinalViewDir = lookingIntoAtmosphere ? apparentDirToGeometric(cameraPosition, viewDir) : viewDir;
+    CONST float geometricFinalCosViewZenithAngle = dot(geometricFinalViewDir, zenith);
     CONST float geometricSinViewSunAngle=length(cross(geometricFinalViewDir, sunDirection));
     CONST float geometricDotViewSun=dot(geometricFinalViewDir, sunDirection);
 #endif
@@ -115,14 +113,27 @@ void main()
         }
         else
         {
-            // Remove original zenith-directed component
-            viewDir -= zenith*cosViewZenithAngle;
-            // Update cos(VZA). This change will affect all the subsequent code in this function.
-            cosViewZenithAngle = sin(newViewElev);
-            // Adjust the remaining (horizontal) components so that the final viewDir is normalized
-            viewDir *= safeSqrt(1-sqr(cosViewZenithAngle))/viewDirXYnorm;
-            // Add the new zenith-directed component
-            viewDir += zenith*cosViewZenithAngle;
+            CONST float horizonCZA = cosZenithAngleOfHorizon(altitude);
+            CONST float viewElev  = asin(clampCosine(cosViewZenithAngle));
+            CONST float horizElev = asin(clampCosine(horizonCZA));
+            CONST float newViewElev = 2*horizElev - viewElev;
+            CONST float viewDirXYnorm = length(viewDir-zenith*cosViewZenithAngle);
+            if(viewDirXYnorm == 0)
+            {
+                viewDir = zenith;
+            }
+            else
+            {
+                // Remove original zenith-directed component
+                viewDir -= zenith*cosViewZenithAngle;
+                // Update cos(VZA). This change will affect all the subsequent code in this function.
+                cosViewZenithAngle = sin(newViewElev);
+                // Adjust the remaining (horizontal) components so that the final viewDir is normalized
+                viewDir *= safeSqrt(1-sqr(cosViewZenithAngle))/viewDirXYnorm;
+                // Add the new zenith-directed component
+                viewDir += zenith*cosViewZenithAngle;
+            }
+            viewRayIntersectsGround = false;
         }
         viewRayIntersectsGround = false;
         viewingPseudoMirror = true;
@@ -155,7 +166,7 @@ void main()
     CONST float azimuthRelativeToSun=safeAtan(dot(cross(sunXY, viewXY), zenith), dot(sunXY, viewXY));
 
 #if RENDERING_ZERO_SCATTERING
-    vec4 radiance;
+    vec4 radiance=vec4(0);
     if(viewRayIntersectsGround)
     {
         // XXX: keep in sync with the same code in computeScatteringDensity(), but don't forget about
@@ -176,14 +187,10 @@ void main()
         else
             radiance=solarRadiance();
     }
-    else
-    {
-        discard;
-    }
-    luminance=radianceToLuminance*radiance;
-    radianceOutput=radiance;
+    luminance+=radianceToLuminance*radiance/superSampleCount;
+    radianceOutput+=radiance/superSampleCount;
 #elif RENDERING_ECLIPSED_ZERO_SCATTERING
-    vec4 radiance;
+    vec4 radiance=vec4(0);
     CONST float geometricSinViewMoonAngle=length(cross(geometricFinalViewDir,normalize(moonPosition-cameraPosition)));
     CONST float geometricDotViewMoon=dot(geometricFinalViewDir,normalize(moonPosition-cameraPosition));
     if(viewRayIntersectsGround)
@@ -210,12 +217,8 @@ void main()
         else
             radiance=solarRadiance();
     }
-    else
-    {
-        discard;
-    }
-    luminance=radianceToLuminance*radiance;
-    radianceOutput=radiance;
+    luminance+=radianceToLuminance*radiance/superSampleCount;
+    radianceOutput+=radiance/superSampleCount;
 #elif RENDERING_ECLIPSED_SINGLE_SCATTERING_ON_THE_FLY
     CONST vec4 scattering=computeSingleScatteringEclipsed(cameraPosition,viewDir,sunDirection,moonPosition,
                                                           viewRayIntersectsGround);
@@ -309,4 +312,30 @@ void main()
 #else
 #error What to render?
 #endif
+}
+
+void main()
+{
+    // Initialize, these variables will be incremented instead of assignment in some branches
+    luminance=vec4(0);
+    radianceOutput=vec4(0);
+
+#if RENDERING_ANY_ZERO_SCATTERING
+    CONST vec3 centralViewDir=calcViewDir();
+    CONST vec3 deltaViewDirX=dFdx(centralViewDir);
+    CONST vec3 deltaViewDirY=dFdy(centralViewDir);
+    CONST vec3 initialZenith=normalize(cameraPosition-earthCenter);
+    CONST vec3 samplingDir = abs(dot(deltaViewDirX, initialZenith)) > abs(dot(deltaViewDirY, initialZenith)) ?
+                                deltaViewDirX : deltaViewDirY;
+    for(int sampleNum=0; sampleNum<superSampleCount; ++sampleNum)
+    {
+        vec3 viewDir = normalize(centralViewDir+samplingDir*((sampleNum+0.5)/superSampleCount-0.5));
+#else
+    vec3 viewDir=calcViewDir();
+    if(length(viewDir) == 0)
+        discard;
+    {
+#endif
+        compute(viewDir);
+    }
 }
