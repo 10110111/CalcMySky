@@ -163,7 +163,7 @@ void main()
         radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
-    else if(sinViewSunAngle<sin(sunAngularRadius))
+    else if(sinViewSunAngle<sin(sunAngularRadius) && dotViewSun > 0)
     {
         if(lookingIntoAtmosphere)
             radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
@@ -179,6 +179,7 @@ void main()
 #elif RENDERING_ECLIPSED_ZERO_SCATTERING
     vec4 radiance;
     CONST float sinViewMoonAngle=length(cross(viewDir,normalize(moonPosition-cameraPosition)));
+    CONST float dotViewMoon=dot(viewDir,normalize(moonPosition-cameraPosition));
     if(viewRayIntersectsGround)
     {
         // XXX: keep in sync with the similar code in non-eclipsed zero scattering rendering.
@@ -195,7 +196,8 @@ void main()
         radiance = transmittanceToGround*groundAlbedo*groundIrradiance*solarIrradianceFixup*groundBRDF
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
-    else if(sinViewSunAngle<sin(sunAngularRadius) && sinViewMoonAngle>sin(moonAngularRadius(cameraPosition,moonPosition)))
+    else if(sinViewSunAngle<sin(sunAngularRadius) && dotViewSun > 0 &&
+            sinViewMoonAngle>sin(moonAngularRadius(cameraPosition,moonPosition)) && dotViewMoon > 0)
     {
         if(lookingIntoAtmosphere)
             radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
