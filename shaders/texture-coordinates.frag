@@ -390,7 +390,7 @@ vec4 sample3DTextureGuided(const sampler3D tex,
     indicesCurrRow[2] =     currRow;
     indicesNextRow[2] = min(currRow+1, scatteringTextureSize[2]-1);
 
-    // The caller will handle the internal interpolation guides: the ones between rows in each 2D "picture".
+    // The callee will handle the internal interpolation guides: the ones between rows in each 2D "picture".
     CONST vec4 logValCurrRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, indicesCurrRow);
     CONST vec4 logValNextRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, indicesNextRow);
     return exp((logValNextRow-logValCurrRow) * posBetweenRows + logValCurrRow);
