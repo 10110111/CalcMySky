@@ -89,6 +89,14 @@ float calcAzimuthRelativeToSun(const vec3 sunDir, const vec3 viewDir, const vec3
     return safeAtan(dot(cross(sunXY, viewXY), zenith), dot(sunXY, viewXY));
 }
 
+float calcDotViewSun(const float azimuthRelativeToSun, const float cosSZA, const float cosVZA)
+{
+    CONST float azimuth = azimuthRelativeToSun;
+    CONST float sinSZA = safeSqrt(1-sqr(cosSZA));
+    CONST float sinVZA = safeSqrt(1-sqr(cosVZA));
+    return cosSZA*cosVZA + sinSZA*sinVZA*cos(azimuth);
+}
+
 float distanceToAtmosphereBorder(const float cosZenithAngle, const float observerAltitude)
 {
     CONST float Robs=earthRadius+observerAltitude;

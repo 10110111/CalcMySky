@@ -11,7 +11,8 @@ layout(location=0) out vec4 scatteringDensity;
 void main()
 {
     CONST ScatteringTexVars vars=scatteringTexIndicesToTexVars(vec3(gl_FragCoord.xy-vec2(0.5),layer));
-    scatteringDensity=computeScatteringDensity(vars.cosSunZenithAngle,vars.cosViewZenithAngle,vars.dotViewSun,
-                                               vars.altitude,SCATTERING_ORDER,RADIATION_IS_FROM_GROUND_ONLY);
+    scatteringDensity=computeScatteringDensity(vars.cosSunZenithAngle, vars.cosViewZenithAngle,
+                                               vars.azimuthRelativeToSun, vars.altitude,
+                                               SCATTERING_ORDER, RADIATION_IS_FROM_GROUND_ONLY);
     if(debugDataPresent()) scatteringDensity=debugData();
 }

@@ -60,23 +60,25 @@ vec4 transmittance(const float cosViewZenithAngle, const float altitude, const f
 }
 
 vec4 calcFirstScattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
-                         const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
+                         const float dotViewSun, const float azimuthRelativeToSun,
+                         const float altitude, const bool viewRayIntersectsGround)
 {
     CONST vec4 scattering = sample4DTexture(firstScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
-                                          dotViewSun, altitude, viewRayIntersectsGround);
+                                            azimuthRelativeToSun, altitude, viewRayIntersectsGround);
     return scattering*currentPhaseFunction(dotViewSun);
 }
 
 vec4 scattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
-                const float dotViewSun, const float altitude, const bool viewRayIntersectsGround,
+                const float dotViewSun, const float azimuthRelativeToSun,
+                const float altitude, const bool viewRayIntersectsGround,
                 const int scatteringOrder)
 {
     if(scatteringOrder==1)
-        return calcFirstScattering(cosSunZenithAngle, cosViewZenithAngle,
-                                   dotViewSun, altitude, viewRayIntersectsGround);
+        return calcFirstScattering(cosSunZenithAngle, cosViewZenithAngle, dotViewSun,
+                                   azimuthRelativeToSun, altitude, viewRayIntersectsGround);
     else
         return sample4DTexture(multipleScatteringTexture, cosSunZenithAngle, cosViewZenithAngle,
-                               dotViewSun, altitude, viewRayIntersectsGround);
+                               azimuthRelativeToSun, altitude, viewRayIntersectsGround);
 }
 
 vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround)

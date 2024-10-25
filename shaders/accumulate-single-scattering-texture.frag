@@ -1,6 +1,7 @@
 #version 330
 #include "version.h.glsl"
 #include "phase-functions.h.glsl"
+#include "common-functions.h.glsl"
 #include "texture-coordinates.h.glsl"
 
 uniform int layer;
@@ -17,6 +18,9 @@ void main()
     if(embedPhaseFunction)
     {
         CONST ScatteringTexVars vars=scatteringTexIndicesToTexVars(vec3(gl_FragCoord.xy-vec2(0.5),layer));
-        scatteringTextureOutput *= currentPhaseFunction(vars.dotViewSun);
+        CONST float dotViewSun = calcDotViewSun(vars.azimuthRelativeToSun,
+                                                vars.cosSunZenithAngle,
+                                                vars.cosViewZenithAngle);
+        scatteringTextureOutput *= currentPhaseFunction(dotViewSun);
     }
 }

@@ -12,6 +12,7 @@ layout(location=1) out vec4 irradianceOutput;
 vec4 computeIndirectGroundIrradiance(const float cosSunZenithAngle, const float altitude, const int scatteringOrder)
 {
     CONST float dSolidAngle = sphereIntegrationSolidAngleDifferential(angularIntegrationPoints);
+    CONST vec3 zenith=vec3(0,0,1);
     CONST vec3 sunDir = vec3(safeSqrt(1-sqr(cosSunZenithAngle)), 0, cosSunZenithAngle);
     vec4 radiance=vec4(0);
     // Our Fibonacci grid spiral goes from zenith to nadir monotonically. Halfway to the nadir it's (almost) on the horizon.
@@ -23,8 +24,10 @@ vec4 computeIndirectGroundIrradiance(const float cosSunZenithAngle, const float 
 
         CONST float lambertianFactor=cosIncZenithAngle;
         CONST float dotIncSun = dot(sunDir, incDir);
+        CONST float azimuthRelativeToSun = calcAzimuthRelativeToSun(sunDir, incDir, zenith);
         radiance += dSolidAngle * lambertianFactor * scattering(cosSunZenithAngle, incDir.z, dotIncSun,
-                                                                    altitude, false, scatteringOrder);
+                                                                azimuthRelativeToSun, altitude, false,
+                                                                scatteringOrder);
     }
     return radiance;
 }

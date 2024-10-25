@@ -13,7 +13,7 @@ struct Scattering4DCoords
 {
     float cosSunZenithAngle;
     float cosViewZenithAngle;
-    float dotViewSun;
+    float azimuthRelativeToSun;
     float altitude;
     bool viewRayIntersectsGround;
 };
@@ -152,9 +152,8 @@ float unitRangeTexCoordToCosSZA(const float texCoord)
                     (2*earthRadius*distFromGroundToTopAtmoBorder));
 }
 
-// dotViewSun: dot(viewDir,sunDir)
 Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, const float cosViewZenithAngle,
-                                               const float dotViewSun, const float altitude,
+                                               const float azimuthRelativeToSun, const float altitude,
                                                const bool viewRayIntersectsGround)
 {
     CONST float r=earthRadius+altitude;
@@ -189,12 +188,12 @@ Scattering4DCoords scatteringTexVarsTo4DCoords(const float cosSunZenithAngle, co
     }
 
     // ------------------------------------
-    CONST float dotVSCoord=(dotViewSun+1)/2;
+    CONST float azimuthCoord=abs(azimuthRelativeToSun)/PI;
 
     // ------------------------------------
     CONST float cosSZACoord=cosSZAToUnitRangeTexCoord(cosSunZenithAngle);
 
-    return Scattering4DCoords(cosSZACoord, cosVZACoord, dotVSCoord, altCoord, viewRayIntersectsGround);
+    return Scattering4DCoords(cosSZACoord, cosVZACoord, azimuthCoord, altCoord, viewRayIntersectsGround);
 }
 
 TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords)
@@ -210,8 +209,8 @@ TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords)
     CONST float texW = scatteringTextureSize[1];
     CONST float texH = scatteringTextureSize[2];
     CONST float cosSZAIndex=coords.cosSunZenithAngle*(texH-1);
-    CONST vec2 combiCoordUnitRange=vec2(floor(cosSZAIndex)*texW+coords.dotViewSun*(texW-1),
-                                        ceil (cosSZAIndex)*texW+coords.dotViewSun*(texW-1)) / (texW*texH-1);
+    CONST vec2 combiCoordUnitRange=vec2(floor(cosSZAIndex)*texW+coords.azimuthRelativeToSun*(texW-1),
+                                        ceil (cosSZAIndex)*texW+coords.azimuthRelativeToSun*(texW-1)) / (texW*texH-1);
     CONST vec2 combinedCoord=unitRangeToTexCoord(combiCoordUnitRange, texW*texH);
 
     CONST float altitude = unitRangeToTexCoord(coords.altitude, scatteringTextureSize[3]);
@@ -222,10 +221,11 @@ TexCoordPair scattering4DCoordsToTexCoords(const Scattering4DCoords coords)
 }
 
 vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
-                     const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
+                     const float azimuthRelativeToSun, const float altitude, const bool viewRayIntersectsGround)
 {
     CONST Scattering4DCoords coords4d = scatteringTexVarsTo4DCoords(cosSunZenithAngle,cosViewZenithAngle,
-                                                                    dotViewSun,altitude,viewRayIntersectsGround);
+                                                                    azimuthRelativeToSun,altitude,
+                                                                    viewRayIntersectsGround);
     CONST TexCoordPair texCoords=scattering4DCoordsToTexCoords(coords4d);
     return texture(tex, texCoords.lower) * texCoords.alphaLower +
            texture(tex, texCoords.upper) * texCoords.alphaUpper;
@@ -241,7 +241,7 @@ vec3 scattering4DCoordsToTex3DCoords(const Scattering4DCoords coords)
                             0.5+0.5*unitRangeToTexCoord(coords.cosViewZenithAngle, scatteringTextureSize[0]/2);
 
     CONST float dvsSize = scatteringTextureSize[1];
-    CONST float dotVStc = unitRangeToTexCoord(coords.dotViewSun, dvsSize);
+    CONST float dotVStc = unitRangeToTexCoord(coords.azimuthRelativeToSun, dvsSize);
 
     CONST float cszaSize = scatteringTextureSize[2];
     CONST float cosSZAtc = unitRangeToTexCoord(coords.cosSunZenithAngle, cszaSize);
@@ -257,7 +257,7 @@ float sampleGuide(const sampler3D guides, const vec3 coords)
 float findGuide01Angle(const sampler3D guides, const vec3 indices)
 {
     // Row is the line along VZA coordinate.
-    // Position between rows means the position along dotViewSun coordinate.
+    // Position between rows means the position along azimuthRelativeToSun coordinate.
 
     CONST float texCoordVerbatim = indexToTexCoord(indices[2], scatteringTextureSize[2]);
     CONST float rowLen = scatteringTextureSize[0];
@@ -368,11 +368,13 @@ float findGuide02Angle(const sampler3D guides, const vec3 indices)
 vec4 sample3DTextureGuided(const sampler3D tex,
                            const sampler3D interpolationGuides01Tex, const sampler3D interpolationGuides02Tex,
                            const float cosSunZenithAngle, const float cosViewZenithAngle,
-                           const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
+                           const float azimuthRelativeToSun, const float altitude,
+                           const bool viewRayIntersectsGround)
 {
     CONST Scattering4DCoords coords4d = scatteringTexVarsTo4DCoords(cosSunZenithAngle, cosViewZenithAngle,
-                                                                    dotViewSun, altitude, viewRayIntersectsGround);
-    // Handle the external interpolation guides: the guides between a pair of VZA-dotViewSun 2D "pictures".
+                                                                    azimuthRelativeToSun, altitude,
+                                                                    viewRayIntersectsGround);
+    // Handle the external interpolation guides: the guides between a pair of VZA-azimuthRelativeToSun 2D "pictures".
     CONST vec3 tc = scattering4DCoordsToTex3DCoords(coords4d);
     CONST vec3 indices = texCoordsToIndices(tc, scatteringTextureSize.stp);
     CONST float interpAngle = findGuide02Angle(interpolationGuides02Tex, indices);
@@ -397,10 +399,11 @@ vec4 sample3DTextureGuided(const sampler3D tex,
 }
 
 vec4 sample3DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
-                     const float dotViewSun, const float altitude, const bool viewRayIntersectsGround)
+                     const float azimuthRelativeToSun, const float altitude, const bool viewRayIntersectsGround)
 {
     CONST Scattering4DCoords coords4d = scatteringTexVarsTo4DCoords(cosSunZenithAngle,cosViewZenithAngle,
-                                                                    dotViewSun,altitude,viewRayIntersectsGround);
+                                                                    azimuthRelativeToSun,altitude,
+                                                                    viewRayIntersectsGround);
     CONST vec3 texCoords=scattering4DCoordsToTex3DCoords(coords4d);
     return texture(tex, texCoords);
 }
@@ -432,12 +435,13 @@ ScatteringTexVars scatteringTex4DCoordsToTexVars(const Scattering4DCoords coords
     }
 
     // ------------------------------------
-    CONST float dotViewSun=coords.dotViewSun*2-1;
+    CONST float azimuthRelativeToSun=coords.azimuthRelativeToSun*PI;
 
     // ------------------------------------
     CONST float cosSunZenithAngle=unitRangeTexCoordToCosSZA(coords.cosSunZenithAngle);
 
-    return ScatteringTexVars(cosSunZenithAngle, cosViewZenithAngle, dotViewSun, altitude, coords.viewRayIntersectsGround);
+    return ScatteringTexVars(cosSunZenithAngle, cosViewZenithAngle, azimuthRelativeToSun,
+                             altitude, coords.viewRayIntersectsGround);
 }
 
 Scattering4DCoords scatteringTexIndicesTo4DCoords(const vec3 texIndices)
@@ -460,7 +464,7 @@ Scattering4DCoords scatteringTexIndicesTo4DCoords(const vec3 texIndices)
     // the texture indices we combine into a single sampler3D coordinate.
     CONST float texW=scatteringTextureSize[1], texH=scatteringTextureSize[2];
     CONST float combinedIndex=texIndices[1];
-    coords4d.dotViewSun=mod(combinedIndex,texW)/(texW-1);
+    coords4d.azimuthRelativeToSun=mod(combinedIndex,texW)/(texW-1);
     coords4d.cosSunZenithAngle=floor(combinedIndex/texW)/(texH-1);
 
     // NOTE: Third texture coordinate must correspond to only one 4D coordinate, because GL_MAX_3D_TEXTURE_SIZE is
@@ -475,13 +479,6 @@ ScatteringTexVars scatteringTexIndicesToTexVars(const vec3 texIndices)
 {
     CONST Scattering4DCoords coords4d=scatteringTexIndicesTo4DCoords(texIndices);
     ScatteringTexVars vars=scatteringTex4DCoordsToTexVars(coords4d);
-    // Clamp dotViewSun to its valid range of values, given cosViewZenithAngle and cosSunZenithAngle. This is
-    // needed to prevent NaNs when computing the scattering texture.
-    CONST float cosVZA=vars.cosViewZenithAngle,
-                cosSZA=vars.cosSunZenithAngle;
-    vars.dotViewSun=clamp(vars.dotViewSun,
-                          cosVZA*cosSZA-safeSqrt((1-sqr(cosVZA))*(1-sqr(cosSZA))),
-                          cosVZA*cosSZA+safeSqrt((1-sqr(cosVZA))*(1-sqr(cosSZA))));
     return vars;
 }
 

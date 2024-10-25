@@ -22,19 +22,19 @@ struct ScatteringTexVars
 {
     float cosSunZenithAngle;
     float cosViewZenithAngle;
-    float dotViewSun;
+    float azimuthRelativeToSun;
     float altitude;
     bool viewRayIntersectsGround;
 };
 ScatteringTexVars scatteringTexIndicesToTexVars(const vec3 texIndices);
 vec4 sample4DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
-                     const float dotViewSun, const float altitude, const bool viewRayIntersectsGround);
+                     const float azimuthRelativeToSun, const float altitude, const bool viewRayIntersectsGround);
 vec4 sample3DTexture(const sampler3D tex, const float cosSunZenithAngle, const float cosViewZenithAngle,
-                     const float dotViewSun, const float altitude, const bool viewRayIntersectsGround);
+                     const float azimuthRelativeToSun, const float altitude, const bool viewRayIntersectsGround);
 vec4 sample3DTextureGuided(const sampler3D tex,
                            const sampler3D interpolationGuides01Tex, const sampler3D interpolationGuides02Tex,
                            const float cosSunZenithAngle, const float cosViewZenithAngle,
-                           const float dotViewSun, const float altitude, const bool viewRayIntersectsGround);
+                           const float azimuthRelativeToSun, const float altitude, const bool viewRayIntersectsGround);
 
 struct EclipseScatteringTexVars
 {

@@ -8,14 +8,16 @@
 
 uniform sampler3D scatteringDensityTexture;
 
-vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosViewZenithAngle, const float dotViewSun,
-                              const float altitude, const int scatteringOrder, const bool radiationIsFromGroundOnly)
+vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                              const float azimuthRelativeToSun, const float altitude,
+                              const int scatteringOrder, const bool radiationIsFromGroundOnly)
 {
     CONST vec3 zenith=vec3(0,0,1);
     CONST vec3 viewDir=vec3(sqrt(1-sqr(cosViewZenithAngle)), 0, cosViewZenithAngle);
+    CONST float sinSunZenithAngle = safeSqrt(1-sqr(cosSunZenithAngle));
     CONST float sunDirZ = cosSunZenithAngle;
-    CONST float sunDirX = viewDir.x==0 ? 0 : (dotViewSun - cosViewZenithAngle*cosSunZenithAngle)/viewDir.x;
-    CONST float sunDirY = sqrt(max(1-sqr(sunDirX)-sqr(cosSunZenithAngle), 0));
+    CONST float sunDirX = cos(azimuthRelativeToSun) * sinSunZenithAngle;
+    CONST float sunDirY = sin(azimuthRelativeToSun) * sinSunZenithAngle;
     CONST vec3 sunDir=vec3(sunDirX, sunDirY, sunDirZ);
 
     // XXX: Might be a good idea to increase sampling density near horizon and decrease near zenith&nadir.
@@ -62,9 +64,11 @@ vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosView
         if(!radiationIsFromGroundOnly)
         {
             CONST float dotIncSun = dot(incDir,sunDir);
+            CONST float azimuthRelativeToSun = calcAzimuthRelativeToSun(sunDir, incDir, zenith);
             // Radiation scattered by the atmosphere
-            incidentRadiance += scattering(cosSunZenithAngle, incDir.z, dotIncSun, altitude,
-                                          incRayIntersectsGround, scatteringOrder-1);
+            incidentRadiance += scattering(cosSunZenithAngle, incDir.z, dotIncSun,
+                                           azimuthRelativeToSun, altitude,
+                                           incRayIntersectsGround, scatteringOrder-1);
         }
 
         CONST float dotViewInc = dot(viewDir, incDir);
@@ -73,7 +77,8 @@ vec4 computeScatteringDensity(const float cosSunZenithAngle, const float cosView
     return scatteringDensity;
 }
 
-vec4 computeMultipleScattering(const float cosSunZenithAngle, const float cosViewZenithAngle, const float dotViewSun,
+vec4 computeMultipleScattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
+                               const float dotViewSun, const float azimuthRelativeToSun,
                                const float altitude, const bool viewRayIntersectsGround)
 {
     CONST float r=earthRadius+altitude;
@@ -91,7 +96,7 @@ vec4 computeMultipleScattering(const float cosSunZenithAngle, const float cosVie
         CONST float cosSZAatDist=clampCosine((r*cosSunZenithAngle+dist*dotViewSun)/(earthRadius+altAtDist));
 
         CONST vec4 scDensity=sample4DTexture(scatteringDensityTexture, cosSZAatDist, cosVZAatDist,
-                                             dotViewSun, altAtDist, viewRayIntersectsGround);
+                                             azimuthRelativeToSun, altAtDist, viewRayIntersectsGround);
         CONST vec4 xmittance=transmittance(cosViewZenithAngle, altitude, dist, viewRayIntersectsGround);
         radiance += scDensity*xmittance*dl;
     }
