@@ -13,6 +13,7 @@ float clampDistance(const float x);
 float clampAltitude(const float altitude);
 vec3 normalToEarth(vec3 point);
 float pointAltitude(vec3 point);
+float calcAzimuthRelativeToSun(const vec3 sunDir, const vec3 viewDir, const vec3 zenith);
 vec4 rayleighPhaseFunction(float dotViewSun);
 float sunVisibility(const float cosSunZenithAngle, float altitude);
 float moonAngularRadius(const vec3 cameraPosition, const vec3 moonPosition);

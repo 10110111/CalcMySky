@@ -142,11 +142,7 @@ void main()
     }
 #endif
 
-    CONST vec3 sunXYunnorm=sunDirection-dot(sunDirection,zenith)*zenith;
-    CONST vec3 viewXYunnorm=viewDir-dot(viewDir,zenith)*zenith;
-    CONST vec3 sunXY = sunXYunnorm.x!=0 || sunXYunnorm.y!=0 || sunXYunnorm.z!=0 ? normalize(sunXYunnorm) : vec3(0);
-    CONST vec3 viewXY = viewXYunnorm.x!=0 || viewXYunnorm.y!=0 || viewXYunnorm.z!=0 ? normalize(viewXYunnorm) : vec3(0);
-    CONST float azimuthRelativeToSun=safeAtan(dot(cross(sunXY, viewXY), zenith), dot(sunXY, viewXY));
+    CONST float azimuthRelativeToSun=calcAzimuthRelativeToSun(sunDirection, viewDir, zenith);
 
 #if RENDERING_ZERO_SCATTERING
     vec4 radiance;

@@ -80,6 +80,15 @@ float pointAltitude(vec3 point)
     return length(point-earthCenter)-earthRadius;
 }
 
+float calcAzimuthRelativeToSun(const vec3 sunDir, const vec3 viewDir, const vec3 zenith)
+{
+    CONST vec3 sunXYunnorm=sunDir-dot(sunDir,zenith)*zenith;
+    CONST vec3 viewXYunnorm=viewDir-dot(viewDir,zenith)*zenith;
+    CONST vec3 sunXY = sunXYunnorm.x!=0 || sunXYunnorm.y!=0 || sunXYunnorm.z!=0 ? normalize(sunXYunnorm) : vec3(0);
+    CONST vec3 viewXY = viewXYunnorm.x!=0 || viewXYunnorm.y!=0 || viewXYunnorm.z!=0 ? normalize(viewXYunnorm) : vec3(0);
+    return safeAtan(dot(cross(sunXY, viewXY), zenith), dot(sunXY, viewXY));
+}
+
 float distanceToAtmosphereBorder(const float cosZenithAngle, const float observerAltitude)
 {
     CONST float Robs=earthRadius+observerAltitude;
