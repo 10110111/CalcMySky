@@ -279,7 +279,7 @@ float findGuide01Angle(const sampler3D guides, const vec3 indices)
     {
         swap(posInRow_A, posInRow_B);
     }
-    for(int n=0; n<8; ++n)
+    for(int n=0; n<12; ++n)
     {
         CONST float currPosInRow = (posInRow_A + posInRow_B)/2;
         CONST float currAngle = PI/2*sampleGuide(guides, vec3(indexToTexCoord(currPosInRow, rowLen),
@@ -349,7 +349,7 @@ float findGuide02Angle(const sampler3D guides, const vec3 indices)
     {
         swap(posInRow_A, posInRow_B);
     }
-    for(int n=0; n<8; ++n)
+    for(int n=0; n<12; ++n)
     {
         CONST float currPosInRow = (posInRow_A + posInRow_B)/2;
         CONST float currAngle = PI/2*sampleGuide(guides, vec3(indexToTexCoord(currPosInRow, rowLen),
