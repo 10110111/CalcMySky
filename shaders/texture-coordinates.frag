@@ -250,65 +250,74 @@ vec3 scattering4DCoordsToTex3DCoords(const Scattering4DCoords coords)
 }
 
 // Sample interpolation guides texture at the given coordinate
-float sampleGuide(const sampler3D guides, const vec3 coords)
+vec2 sampleGuide(const sampler3D guides, const vec3 coords)
 {
-    return texture(guides, coords).r;
+    return texture(guides, coords).xy;
 }
-float findGuide01Angle(const sampler3D guides, const vec3 indices)
+
+float getGuide01TanAngle(const sampler3D guides, const vec3 guidesIndices, const float vzaIndex)
 {
     // Row is the line along VZA coordinate.
     // Position between rows means the position along dotViewSun coordinate.
 
-    CONST float texCoordVerbatim = indexToTexCoord(indices[2], scatteringTextureSize[2]);
+    // Guides indices represent the outermost 3 dimensions of the scattering
+    // texture, the innermost one (VZA) is replaced with the guide data.
+    CONST float texCoordVerbatimAlt = indexToTexCoord(guidesIndices[2], scatteringTextureSize[3]);
+    CONST float texCoordVerbatimSZA = indexToTexCoord(guidesIndices[1], scatteringTextureSize[2]);
+
     CONST float rowLen = scatteringTextureSize[0];
     CONST float numRows = scatteringTextureSize[1];
-    CONST float posOfRow = indices[1];
-    CONST float posInRow = indices[0];
-    CONST float currRow = floor(posOfRow);
-    CONST float posBetweenRows = posOfRow - currRow;
+    // Only the case of view ray above the horizon is guided. Also, we ignore
+    // the zenith part of the texture, otherwise we get artifacts. All skipped
+    // positions get zero guiding angle.
+    CONST float positionsSkipped = rowLen/2 + 1;
+    if(vzaIndex < positionsSkipped) return 0;
+    CONST float posAlongRow = vzaIndex - positionsSkipped;
 
-    // A & B are the endpoints of binary search inside the row
-    float posInRow_A = 0;
-    float posInRow_B = rowLen-1;
+    CONST float posAlongRowMin = 0;
+    CONST float posAlongRowMax = rowLen-positionsSkipped-1;
+    CONST float posOfRow = guidesIndices[0];
+    CONST float intPosOfRow = floor(posOfRow);
 
-    CONST float angle_A = PI/2*sampleGuide(guides, vec3(indexToTexCoord(posInRow_A, rowLen),
-                                                        indexToTexCoord(currRow, numRows-1),
-                                                        texCoordVerbatim));
-    CONST float posInRowAtPosBetweenRows_A = posInRow_A + (posBetweenRows-0.5) * tan(angle_A);
-    if(posInRowAtPosBetweenRows_A > posInRow)
+    // Range is [-0.5, 0.5) - relative to the middle between two texture rows
+    CONST float shiftFromMiddle = posOfRow - intPosOfRow - 0.5;
+
+    vec2 guide = sampleGuide(guides, vec3(indexToTexCoord(intPosOfRow, numRows-1),
+                                          texCoordVerbatimSZA, texCoordVerbatimAlt));
+
+    // The following solves this equation for posAlongRowAtZeroShift:
+    // (guide[0]*posAlongRowAtZeroShift + guide[1])*shiftFromMiddle + posAlongRowAtZeroShift == posAlongRow
+    CONST float posAlongRowAtZeroShift = (posAlongRow-guide[1]*shiftFromMiddle)
+                                                             /
+                                              (guide[0]*shiftFromMiddle + 1);
+
+    CONST float leftVal = posAlongRowAtZeroShift + (-0.5)*(guide[0]*posAlongRowAtZeroShift + guide[1]);
+    CONST float rightVal = posAlongRowAtZeroShift + (+0.5)*(guide[0]*posAlongRowAtZeroShift + guide[1]);
+    if(leftVal < posAlongRowMin)
     {
-        swap(posInRow_A, posInRow_B);
+        // The guide must cross (shiftFromMiddle,posAlongRow) and (-0.5,posAlongRowMin)
+        CONST float denom = shiftFromMiddle + 0.5;
+        return denom == 0 ? 0 : (posAlongRow - posAlongRowMin) / denom;
     }
-    for(int n=0; n<12; ++n)
-    {
-        CONST float currPosInRow = (posInRow_A + posInRow_B)/2;
-        CONST float currAngle = PI/2*sampleGuide(guides, vec3(indexToTexCoord(currPosInRow, rowLen),
-                                                              indexToTexCoord(currRow, numRows-1),
-                                                              texCoordVerbatim));
-        CONST float currPosInRowAtPosBetweenRows = currPosInRow + (posBetweenRows-0.5) * tan(currAngle);
-        if(currPosInRowAtPosBetweenRows < posInRow)
-            posInRow_A = currPosInRow;
-        else
-            posInRow_B = currPosInRow;
-    }
-    CONST float finalPosInRow = (posInRow_A + posInRow_B)/2;
-    return PI/2*sampleGuide(guides, vec3(indexToTexCoord(finalPosInRow, rowLen),
-                                         indexToTexCoord(currRow, numRows-1),
-                                         texCoordVerbatim));
+
+    return guide[0]*posAlongRowAtZeroShift + guide[1];
 }
+
 vec4 sample3DTextureGuided01_log(const sampler3D tex, const sampler3D interpolationGuides01Tex,
-                                 const vec3 indices)
+                                 const vec3 texIndices, const vec3 guidesIndices)
 {
-    CONST float interpAngle = findGuide01Angle(interpolationGuides01Tex, indices);
 
-    CONST float cosVZAIndex = indices[0];
-    CONST float dotVSIndex = indices[1];
+    CONST float interpTanAngle = getGuide01TanAngle(interpolationGuides01Tex, guidesIndices, texIndices[0]);
+
+    CONST float cosVZAIndex = texIndices[0];
+    CONST float dotVSIndex = texIndices[1];
     CONST float currRow = floor(dotVSIndex);
-    CONST float posBetweenRows = dotVSIndex - currRow;
-    CONST float cvzaPosInCurrRow = cosVZAIndex - posBetweenRows*tan(interpAngle);
-    CONST float cvzaPosInNextRow = cosVZAIndex + (1-posBetweenRows)*tan(interpAngle);
+    CONST float posBetweenRows = dotVSIndex - currRow; // range [0,1)
+    CONST float shiftFromMiddle = posBetweenRows-0.5;
+    CONST float cvzaPosInCurrRow = cosVZAIndex - shiftFromMiddle*interpTanAngle - 0.5*interpTanAngle;
+    CONST float cvzaPosInNextRow = cosVZAIndex - shiftFromMiddle*interpTanAngle + 0.5*interpTanAngle;
 
-    vec3 indicesCurrRow = indices, indicesNextRow = indices;
+    vec3 indicesCurrRow = texIndices, indicesNextRow = texIndices;
     indicesCurrRow[0] = clamp(cvzaPosInCurrRow, 0., scatteringTextureSize[0]-1.);
     indicesNextRow[0] = clamp(cvzaPosInNextRow, 0., scatteringTextureSize[0]-1.);
     indicesCurrRow[1] =     currRow;
@@ -325,44 +334,53 @@ vec4 sample3DTextureGuided01_log(const sampler3D tex, const sampler3D interpolat
     return (logValNextRow-logValCurrRow) * posBetweenRows + logValCurrRow;
 }
 
-float findGuide02Angle(const sampler3D guides, const vec3 indices)
+float getGuide02TanAngle(const sampler3D guides, const vec3 guidesIndices, const float vzaIndex)
 {
     // Row is the line along VZA coordinate.
     // Position between rows means the position along SZA coordinate.
 
-    CONST float texCoordVerbatim = indexToTexCoord(indices[1], scatteringTextureSize[1]);
+    // Guides indices represent the outermost 3 dimensions of the scattering
+    // texture, the innermost one (VZA) is replaced with the guide data.
+    CONST float texCoordVerbatimAlt = indexToTexCoord(guidesIndices[2], scatteringTextureSize[3]);
+    CONST float texCoordVerbatimDVS = indexToTexCoord(guidesIndices[0], scatteringTextureSize[1]);
+
     CONST float rowLen = scatteringTextureSize[0];
     CONST float numRows = scatteringTextureSize[2];
-    CONST float posOfRow = indices[2];
-    CONST float posInRow = indices[0];
-    CONST float currRow = floor(posOfRow);
-    CONST float posBetweenRows = posOfRow - currRow;
+    // Only the case of view ray above the horizon is guided. Also, we ignore
+    // the zenith part of the texture, otherwise we get artifacts. All skipped
+    // positions get zero guiding angle.
+    CONST float positionsSkipped = rowLen/2 + 1;
+    if(vzaIndex < positionsSkipped) return 0;
+    CONST float posAlongRow = vzaIndex - positionsSkipped;
 
-    // A & B are the endpoints of binary search inside the row
-    float posInRow_A = 0;
-    float posInRow_B = rowLen-1;
+    CONST float posAlongRowMin = 0;
+    CONST float posAlongRowMax = rowLen-positionsSkipped-1;
+    CONST float posOfRow = guidesIndices[1];
+    CONST float intPosOfRow = floor(posOfRow);
 
-    CONST float angle_A = PI/2*sampleGuide(guides, vec3(indexToTexCoord(posInRow_A, rowLen),
-                                                        texCoordVerbatim, indexToTexCoord(currRow, numRows-1)));
-    CONST float posInRowAtPosBetweenRows_A = posInRow_A + (posBetweenRows-0.5) * tan(angle_A);
-    if(posInRowAtPosBetweenRows_A > posInRow)
+    // Range is [-0.5, 0.5) - relative to the middle between two texture rows
+    CONST float shiftFromMiddle = posOfRow - intPosOfRow - 0.5;
+
+    vec2 guide = sampleGuide(guides, vec3(texCoordVerbatimDVS,
+                                          indexToTexCoord(intPosOfRow, numRows-1),
+                                          texCoordVerbatimAlt));
+
+    // The following solves this equation for posAlongRowAtZeroShift:
+    // (guide[0]*posAlongRowAtZeroShift + guide[1])*shiftFromMiddle + posAlongRowAtZeroShift == posAlongRow
+    CONST float posAlongRowAtZeroShift = (posAlongRow-guide[1]*shiftFromMiddle)
+                                                             /
+                                              (guide[0]*shiftFromMiddle + 1);
+
+    CONST float leftVal = posAlongRowAtZeroShift + (-0.5)*(guide[0]*posAlongRowAtZeroShift + guide[1]);
+    CONST float rightVal = posAlongRowAtZeroShift + (+0.5)*(guide[0]*posAlongRowAtZeroShift + guide[1]);
+    if(leftVal < posAlongRowMin)
     {
-        swap(posInRow_A, posInRow_B);
+        // The guide must cross (shiftFromMiddle,posAlongRow) and (-0.5,posAlongRowMin)
+        CONST float denom = shiftFromMiddle + 0.5;
+        return denom == 0 ? 0 : (posAlongRow - posAlongRowMin) / denom;
     }
-    for(int n=0; n<12; ++n)
-    {
-        CONST float currPosInRow = (posInRow_A + posInRow_B)/2;
-        CONST float currAngle = PI/2*sampleGuide(guides, vec3(indexToTexCoord(currPosInRow, rowLen),
-                                                              texCoordVerbatim, indexToTexCoord(currRow, numRows-1)));
-        CONST float currPosInRowAtPosBetweenRows = currPosInRow + (posBetweenRows-0.5) * tan(currAngle);
-        if(currPosInRowAtPosBetweenRows < posInRow)
-            posInRow_A = currPosInRow;
-        else
-            posInRow_B = currPosInRow;
-    }
-    CONST float finalPosInRow = (posInRow_A + posInRow_B)/2;
-    return PI/2*sampleGuide(guides, vec3(indexToTexCoord(finalPosInRow, rowLen),
-                                         texCoordVerbatim, indexToTexCoord(currRow, numRows-1)));
+
+    return guide[0]*posAlongRowAtZeroShift + guide[1];
 }
 
 vec4 sample3DTextureGuided(const sampler3D tex,
@@ -374,25 +392,32 @@ vec4 sample3DTextureGuided(const sampler3D tex,
                                                                     dotViewSun, altitude, viewRayIntersectsGround);
     // Handle the external interpolation guides: the guides between a pair of VZA-dotViewSun 2D "pictures".
     CONST vec3 tc = scattering4DCoordsToTex3DCoords(coords4d);
-    CONST vec3 indices = texCoordsToIndices(tc, scatteringTextureSize.stp);
-    CONST float interpAngle = findGuide02Angle(interpolationGuides02Tex, indices);
+    CONST vec3 texIndices = texCoordsToIndices(tc, scatteringTextureSize.stp);
+    CONST float altTC = unitRangeToTexCoord(coords4d.altitude, scatteringTextureSize[3]);
+    CONST float altIdx = texCoordToIndex(altTC, scatteringTextureSize[3]);
+    CONST vec3 guidesIndices = vec3(texIndices.tp, altIdx);
+    CONST float interpTanAngle = getGuide02TanAngle(interpolationGuides02Tex, guidesIndices, texIndices[0]);
 
-    CONST float cvzaIndex = indices[0];
-    CONST float cszaIndex = indices[2];
+    CONST float cvzaIndex = texIndices[0];
+    CONST float cszaIndex = texIndices[2];
     CONST float currRow = floor(cszaIndex);
     CONST float posBetweenRows = cszaIndex - currRow;
-    CONST float cvzaPosInCurrRow = cvzaIndex - posBetweenRows*tan(interpAngle);
-    CONST float cvzaPosInNextRow = cvzaIndex + (1-posBetweenRows)*tan(interpAngle);
+    CONST float shiftFromMiddle = posBetweenRows-0.5;
+    CONST float cvzaPosInCurrRow = cvzaIndex - shiftFromMiddle*interpTanAngle - 0.5*interpTanAngle;
+    CONST float cvzaPosInNextRow = cvzaIndex - shiftFromMiddle*interpTanAngle + 0.5*interpTanAngle;
 
-    vec3 indicesCurrRow = indices, indicesNextRow = indices;
+    vec3 indicesCurrRow = texIndices, indicesNextRow = texIndices;
     indicesCurrRow[0] = clamp(cvzaPosInCurrRow, 0., scatteringTextureSize[0]-1.);
     indicesNextRow[0] = clamp(cvzaPosInNextRow, 0., scatteringTextureSize[0]-1.);
     indicesCurrRow[2] =     currRow;
     indicesNextRow[2] = min(currRow+1, scatteringTextureSize[2]-1);
 
+    CONST vec3 guidesIndicesCurrRow = vec3(indicesCurrRow.tp, altIdx);
+    CONST vec3 guidesIndicesNextRow = vec3(indicesNextRow.tp, altIdx);
+
     // The callee will handle the internal interpolation guides: the ones between rows in each 2D "picture".
-    CONST vec4 logValCurrRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, indicesCurrRow);
-    CONST vec4 logValNextRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, indicesNextRow);
+    CONST vec4 logValCurrRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, indicesCurrRow, guidesIndicesCurrRow);
+    CONST vec4 logValNextRow = sample3DTextureGuided01_log(tex, interpolationGuides01Tex, indicesNextRow, guidesIndicesNextRow);
     return exp((logValNextRow-logValCurrRow) * posBetweenRows + logValCurrRow);
 }
 

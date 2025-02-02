@@ -156,12 +156,8 @@ private: // methods
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
     glm::ivec2 loadTexture2D(QString const& path);
-    enum class Texture4DType
-    {
-        ScatteringTexture,
-        InterpolationGuides,
-    };
-    void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
+    void loadTexture4D(QString const& path, float altitudeCoord);
+    void loadInterpolationGuides(QString const& path);
     void loadEclipsedDoubleScatteringTexture(QString const& path, float altitudeCoord);
 
     void precomputeEclipsedSingleScattering();

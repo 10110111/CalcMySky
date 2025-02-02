@@ -164,7 +164,7 @@ void AtmosphereRenderer::loadEclipsedDoubleScatteringTexture(QString const& path
     log << "done";
 }
 
-void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord, Texture4DType texType)
+void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord)
 {
     auto log=qDebug().nospace();
 
@@ -189,8 +189,8 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     }
     log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
 
-    const size_t subpixelsPerPixel = texType==Texture4DType::InterpolationGuides ? 1 : 4;
-    const size_t subpixelSize = texType==Texture4DType::InterpolationGuides ? sizeof(GLshort) : sizeof(GLfloat);
+    const size_t subpixelsPerPixel = 4;
+    const size_t subpixelSize = sizeof(GLfloat);
     const size_t pixelSize = subpixelsPerPixel*subpixelSize;
     const qint64 expectedFileSize = file.pos() + pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
     if(expectedFileSize != file.size())
@@ -226,35 +226,76 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
     }
 
     const auto altSliceSize = size_t(sizes[0])*sizes[1]*sizes[2];
-    if(texType == Texture4DType::InterpolationGuides)
+    std::unique_ptr<glm::vec4[]> texData(new glm::vec4[altSliceSize]);
+    for(size_t n = 0; n < altSliceSize; ++n)
     {
-        std::unique_ptr<int16_t[]> texData(new int16_t[altSliceSize]);
-        for(size_t n = 0; n < altSliceSize; ++n)
-        {
-            int16_t lower, upper;
-            assert(sizeof lower == pixelSize);
-            std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
-            std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
-            texData[n] = lower + fractAltIndex*(upper-lower);
-        }
-        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_R16_SNORM, sizes[0], sizes[1], sizes[2], 0, GL_RED, GL_SHORT, texData.get());
+        glm::vec4 lower, upper;
+        assert(sizeof lower == pixelSize);
+        std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
+        std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
+        texData[n] = lower + fractAltIndex*(upper-lower);
     }
-    else
-    {
-        std::unique_ptr<glm::vec4[]> texData(new glm::vec4[altSliceSize]);
-        for(size_t n = 0; n < altSliceSize; ++n)
-        {
-            glm::vec4 lower, upper;
-            assert(sizeof lower == pixelSize);
-            std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
-            std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
-            texData[n] = lower + fractAltIndex*(upper-lower);
-        }
-        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, sizes[0], sizes[1], sizes[2], 0, GL_RGBA, GL_FLOAT, texData.get());
-    }
+    gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, sizes[0], sizes[1], sizes[2], 0, GL_RGBA, GL_FLOAT, texData.get());
+
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
         throw DataLoadError{QObject::tr("GL error in loadTexture4D(\"%1\") after glTexImage3D() call: %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+
+    log << "done";
+}
+
+void AtmosphereRenderer::loadInterpolationGuides(QString const& path)
+{
+    auto log=qDebug().nospace();
+
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error on entry to loadInterpolationGuides(\"%1\"): %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+    log << "Loading interpolation guides from " << path << "... ";
+    QFile file(path);
+    if(!file.open(QFile::ReadOnly))
+        throw DataLoadError{QObject::tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
+
+    uint16_t sizes[3];
+    {
+        const qint64 sizeToRead=sizeof sizes;
+        if(file.read(reinterpret_cast<char*>(sizes), sizeToRead) != sizeToRead)
+        {
+            throw DataLoadError{QObject::tr("Failed to read header from file \"%1\": %2")
+                                .arg(path).arg(file.errorString())};
+        }
+    }
+    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "... ";
+
+    const size_t subpixelsPerPixel = 2;
+    const size_t subpixelSize = sizeof(GLfloat);
+    const size_t pixelSize = subpixelsPerPixel*subpixelSize;
+    const qint64 expectedFileSize = file.pos() + pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2];
+    if(expectedFileSize != file.size())
+    {
+        throw DataLoadError{QObject::tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4×%5 from file header.\nThe expected size is %7 bytes.")
+                            .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(sizes[2]).arg(expectedFileSize)};
+    }
+
+    const qint64 sizeToRead = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2];
+    const std::unique_ptr<char[]> data(new char[sizeToRead]);
+    const auto actuallyRead=file.read(data.get(), sizeToRead);
+    if(actuallyRead != sizeToRead)
+    {
+        const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
+                                            : QObject::tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
+        throw DataLoadError{error};
+    }
+
+    gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32F, sizes[0], sizes[1], sizes[2], 0, GL_RG, GL_FLOAT, data.get());
+
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error in loadInterpolationGuides(\"%1\") after glTexImage3D() call: %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
 
@@ -475,7 +516,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
             }
             for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
             {
-                const auto filename=QString("%1/single-scattering/%2/%3-dims01.guides2d").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name);
+                const auto filename=QString("%1/single-scattering/%2/%3-dims01.guides2dv2").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name);
                 if(QFile::exists(filename))
                 {
                     if(countStepsOnly)
@@ -490,14 +531,14 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                         tex.setMagnificationFilter(QOpenGLTexture::Linear);
                         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
                         tex.bind();
-                        loadTexture4D(filename, altCoord, Texture4DType::InterpolationGuides);
+                        loadInterpolationGuides(filename);
                         ++loadingStepsDone_; return;
                     }
                 }
             }
             for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
             {
-                const auto filename=QString("%1/single-scattering/%2/%3-dims02.guides2d").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name);
+                const auto filename=QString("%1/single-scattering/%2/%3-dims02.guides2dv2").arg(pathToData_).arg(wlSetIndex).arg(scatterer.name);
                 if(QFile::exists(filename))
                 {
                     if(countStepsOnly)
@@ -512,7 +553,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                         tex.setMagnificationFilter(QOpenGLTexture::Linear);
                         tex.setWrapMode(QOpenGLTexture::ClampToEdge);
                         tex.bind();
-                        loadTexture4D(filename, altCoord, Texture4DType::InterpolationGuides);
+                        loadInterpolationGuides(filename);
                         ++loadingStepsDone_; return;
                     }
                 }
@@ -553,7 +594,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                 ++loadingStepsDone_; return;
             }
 
-            const auto guidesFilename01 = QString("%1/single-scattering/%2-xyzw-dims01.guides2d").arg(pathToData_).arg(scatterer.name);
+            const auto guidesFilename01 = QString("%1/single-scattering/%2-xyzw-dims01.guides2dv2").arg(pathToData_).arg(scatterer.name);
             if(QFile::exists(guidesFilename01))
             {
                 if(countStepsOnly)
@@ -568,11 +609,11 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                     texture.setMagnificationFilter(QOpenGLTexture::Linear);
                     texture.setWrapMode(QOpenGLTexture::ClampToEdge);
                     texture.bind();
-                    loadTexture4D(guidesFilename01, altCoord, Texture4DType::InterpolationGuides);
+                    loadInterpolationGuides(guidesFilename01);
                     ++loadingStepsDone_; return;
                 }
             }
-            const auto guidesFilename02 = QString("%1/single-scattering/%2-xyzw-dims02.guides2d").arg(pathToData_).arg(scatterer.name);
+            const auto guidesFilename02 = QString("%1/single-scattering/%2-xyzw-dims02.guides2dv2").arg(pathToData_).arg(scatterer.name);
             if(QFile::exists(guidesFilename02))
             {
                 if(countStepsOnly)
@@ -587,7 +628,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
                     texture.setMagnificationFilter(QOpenGLTexture::Linear);
                     texture.setWrapMode(QOpenGLTexture::ClampToEdge);
                     texture.bind();
-                    loadTexture4D(guidesFilename02, altCoord, Texture4DType::InterpolationGuides);
+                    loadInterpolationGuides(guidesFilename02);
                     ++loadingStepsDone_; return;
                 }
             }
