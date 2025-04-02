@@ -22,7 +22,7 @@ if(GLM_WORKS)
 	add_library(glm::glm IMPORTED INTERFACE)
 else()
 	CPMAddPackage(NAME glm
-		URL https://github.com/g-truc/glm/releases/download/0.9.9.8/glm-0.9.9.8.7z
-		URL_HASH SHA256=46d3ec588aaf270dab3ee0a2c70eb67aae7e6d245e067c412c1ef32070ad9299
+		URL https://github.com/g-truc/glm/archive/refs/tags/1.0.1.tar.gz
+		URL_HASH SHA256=9f3174561fd26904b23f0db5e560971cbf9b3cbda0b280f04d5c379d03bf234c
 		EXCLUDE_FROM_ALL yes)
 endif()
