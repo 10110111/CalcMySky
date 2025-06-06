@@ -34,6 +34,8 @@ using glm::vec2;
 using glm::vec4;
 std::vector<glm::vec4> eclipsedDoubleScatteringAccumulatorTexture;
 
+static const QString currentPhaseFunctionStub = "vec4 currentPhaseFunction(float dotViewSun) { return vec4(3.4028235e38); }\n";
+
 void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
 {
     if(scatteringOrder==atmo.scatteringOrdersToCompute)
@@ -570,8 +572,7 @@ void computeScatteringOrder1AndScatteringDensityOrder2(const unsigned texIndex)
     std::unique_ptr<QOpenGLShaderProgram> program;
     {
         // Make a stub for current phase function. It's not used for ground radiance, but we need it to avoid linking errors.
-        virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
-            "vec4 currentPhaseFunction(float dotViewSun) { return vec4(3.4028235e38); }\n";
+        virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+currentPhaseFunctionStub;
 
         // Doing replacements instead of using uniforms is meant to
         //  1) Improve performance by statically avoiding branching
@@ -1255,7 +1256,7 @@ int main(int argc, char** argv)
             initConstHeader(atmo.allWavelengths[texIndex]);
             virtualSourceFiles[COMPUTE_TRANSMITTANCE_SHADER_FILENAME]=
                 makeTransmittanceComputeFunctionsSrc(atmo.allWavelengths[texIndex]);
-            virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc();
+            virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+currentPhaseFunctionStub;
             virtualSourceFiles[TOTAL_SCATTERING_COEFFICIENT_SHADER_FILENAME]=makeTotalScatteringCoefSrc();
             virtualHeaderFiles[RADIANCE_TO_LUMINANCE_HEADER_FILENAME]="const mat4 radianceToLuminance=" +
                                                   toString(radianceToLuminance(texIndex, atmo.allWavelengths)) + ";\n";
