@@ -54,7 +54,7 @@ private:
         Sun,
         Camera,
     } dragMode_=DragMode::None;
-    int prevMouseX_, prevMouseY_;
+    double prevMouseX_, prevMouseY_;
 
 public:
     enum class DitheringMode
@@ -86,6 +86,8 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
 
 private:
+    int width() const;
+    int height() const;
     void setupBuffers();
     void reloadShaders();
     void stepDataLoading();
@@ -95,7 +97,7 @@ private:
     void makeGlareRenderTarget();
     void makeDitherPatternTexture();
     void updateSpectralRadiance(QPoint const& pixelPos);
-    void setDragMode(DragMode mode, int x=0, int y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
+    void setDragMode(DragMode mode, double x=0, double y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
     void setFlatSolarSpectrum();
     void resetSolarSpectrum();
     void setBlackBodySolarSpectrum(double temperature);

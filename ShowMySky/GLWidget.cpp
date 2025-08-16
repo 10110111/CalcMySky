@@ -15,12 +15,12 @@
 #include "GLSLCosineQualityChecker.hpp"
 #include "BlueNoiseTriangleRemapped.hpp"
 
-static QPoint position(QMouseEvent* event)
+static QPointF position(QMouseEvent* event, double scale)
 {
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
-    return event->pos();
+    return QPointF(event->pos()) * scale;
 #else
-    return event->position().toPoint();
+    return event->position().toPoint() * scale;
 #endif
 }
 
@@ -643,10 +643,10 @@ void GLWidget::paintGL()
         updateSpectralRadiance(lastRadianceCapturePosition);
 }
 
-void GLWidget::resizeGL(int w, int h)
+void GLWidget::resizeGL(int, int)
 {
     if(!renderer) return;
-    renderer->resizeEvent(w,h);
+    renderer->resizeEvent(width(),height());
     makeGlareRenderTarget();
 }
 
@@ -710,7 +710,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
-    const auto pos = position(event);
+    const auto pos = position(event, devicePixelRatioF());
     switch(dragMode_)
     {
     case DragMode::Sun:
@@ -787,7 +787,7 @@ void GLWidget::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    const auto pos = position(event);
+    const auto pos = position(event, devicePixelRatioF());
     if(event->modifiers() & Qt::ControlModifier)
         setDragMode(DragMode::Sun, pos.x(), pos.y());
     else
@@ -839,6 +839,16 @@ void GLWidget::saveScreenshot()
         QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to write to destination file: %1").arg(file.errorString()));
         return;
     }
+}
+
+int GLWidget::width() const
+{
+    return QWidget::width() * devicePixelRatioF();
+}
+
+int GLWidget::height() const
+{
+    return QWidget::height() * devicePixelRatioF();
 }
 
 void GLWidget::setupBuffers()
