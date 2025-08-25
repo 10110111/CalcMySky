@@ -11,6 +11,9 @@
 #   include <sys/ioctl.h>
 #   include <unistd.h>
 #   include <stdio.h>
+#   ifdef __sun
+#       include <termios.h>
+#   endif
 #elif defined Q_OS_WIN
 #   include <windows.h>
 #endif
