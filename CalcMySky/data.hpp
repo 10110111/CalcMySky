@@ -53,6 +53,7 @@ inline std::map<QString/*scatterer name*/, GLuint> accumulatedSingleScatteringTe
 struct Options
 {
     unsigned textureSavePrecision = 0; // 0 means not reduced
+    bool compressTextures=false;
     bool openglDebug=false;
     bool openglDebugFull=false;
     bool printOpenGLInfoAndQuit=false;

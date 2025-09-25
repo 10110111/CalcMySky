@@ -59,6 +59,15 @@ public:
     QString what() const override { return message; }
 };
 
+class DataSaveError : public ShowMySky::Error
+{
+    QString message;
+public:
+    DataSaveError(QString const& message) : message(message) {}
+    QString errorType() const override { return QObject::tr("Error saving data"); }
+    QString what() const override { return message; }
+};
+
 class BadCommandLine : public ShowMySky::Error
 {
     QString message;

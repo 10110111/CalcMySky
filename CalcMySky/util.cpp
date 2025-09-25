@@ -7,6 +7,7 @@
 #include <QFile>
 
 #include "data.hpp"
+#include "../common/TextureCompression.hpp"
 
 void createDirs(std::string const& path)
 {
@@ -127,17 +128,28 @@ std::vector<glm::vec4> saveTexture(const GLenum target, const GLuint texture, co
         dataToReturn.assign(reinterpret_cast<const glm::vec4*>(subpixels.get()),
                             reinterpret_cast<const glm::vec4*>(subpixels.get()+subpixelCount));
     }
-    if(target==GL_TEXTURE_3D && opts.textureSavePrecision)
+
+    auto filePath = QByteArray::fromRawData(path.data(), path.size());
+    if(sizes.size() == 4 && opts.compressTextures)
     {
-        roundTexData(subpixels.get(), subpixelCount, opts.textureSavePrecision);
+        assert(target == GL_TEXTURE_3D);
+        filePath += "fpz";
+        saveTexture4DCompressed(reinterpret_cast<const glm::vec4*>(subpixels.get()),
+                                sizes, opts.textureSavePrecision, filePath);
+        std::cerr << "done\n";
+        return dataToReturn;
     }
 
-    QFile out(QByteArray::fromRawData(path.data(), path.size()));
+    QFile out(filePath);
     if(!out.open(QFile::WriteOnly))
     {
         std::cerr << "failed to open file: " << out.errorString().toStdString() << "\n";
         throw MustQuit{};
     }
+
+    if(target==GL_TEXTURE_3D && opts.textureSavePrecision)
+        roundTexData(subpixels.get(), subpixelCount, opts.textureSavePrecision);
+
     for(const uint16_t s : sizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
     out.write(reinterpret_cast<const char*>(subpixels.get()), subpixelCount*sizeof subpixels[0]);

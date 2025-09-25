@@ -107,6 +107,30 @@ else()
     set(installIncDir "${CMAKE_INSTALL_INCLUDEDIR}")
 endif()
 
+if(WIN32)
+    # fpzip sets minimum version to 3.4 on Windows, but CMake 4.0+ has
+    # removed compatibility with versions < 3.5.
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+else()
+    # fpzip doesn't use explicit visibility attributes, while we do. So we must
+    # override it to default for fpzip, otherwise its exports will be hidden.
+    set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default")
+endif()
+CPMFindPackage(NAME fpzip
+    URL https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz
+    URL_HASH SHA256=248df7d84259e3feaa4c4797956b2a77c3fcd734e8f8fdc51ce171dcf4f0136c
+    EXCLUDE_FROM_ALL yes
+    OPTIONS "BUILD_SHARED_LIBS yes" "BUILD_TESTING no" "BUILD_UTILITIES no")
+if(fpzip_ADDED)
+    install(TARGETS fpzip DESTINATION ${installLibDir})
+endif()
+if(WIN32)
+    unset(CMAKE_POLICY_VERSION_MINIMUM)
+else()
+    set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")
+endif()
+
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")
 
 # The first command is a dummy, it doesn't actually create its output: it's
@@ -126,11 +150,12 @@ add_library(common STATIC
              common/EclipsedDoubleScatteringPrecomputer.cpp
              common/TextureAverageComputer.cpp
              common/AtmosphereParameters.cpp
+             common/TextureCompression.cpp
              common/Spectrum.cpp
              common/util.cpp)
 target_link_libraries(common PUBLIC Qt${QT_VERSION}::Core
 	Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE glm::glm
-	Eigen3::Eigen)
+	Eigen3::Eigen fpzip::fpzip)
 
 configure_file(config.h.in config.h)
 add_subdirectory(CalcMySky)

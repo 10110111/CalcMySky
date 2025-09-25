@@ -96,7 +96,7 @@ for:
   before_build:
     - cd ~/projects/ && mkdir build && cd build
     - export PATH="$QT_BASEDIR/bin:$PATH"
-    - cmake -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" ../calcmysky -DCMAKE_CXX_COMPILER=g++-9 -DQT_VERSION=$QT_VERSION_MAJOR -DCPM_LOCAL_PACKAGES_ONLY=true
+    - cmake -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" ../calcmysky -DCMAKE_CXX_COMPILER=g++-9 -DQT_VERSION=$QT_VERSION_MAJOR
   build_script:
     - cmake --build .
   test_script:

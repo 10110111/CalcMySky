@@ -175,6 +175,7 @@ void handleCmdLine()
     const QCommandLineOption textureOutputDirOpt("out-dir","Directory for the textures computed","output directory",".");
     const QCommandLineOption saveResultAsRadianceOpt("radiance","Save result as radiance instead of XYZW components");
     const QCommandLineOption textureSavePrecisionOpt("texture-save-precision","Number of bits of precision when saving 3D textures, from 1 to 24. Smaller number improves compressibility. Too small destroys fidelity.","bits");
+    const QCommandLineOption compressTexturesOpt("compress-textures","Compress 4D textures on saving");
     const QCommandLineOption dbgNoSaveTexturesOpt("no-save-tex","Don't save textures, only save shaders and other fast-to-compute data; don't run the long 4D "
                                                                 "textures computations (for debugging)");
     const QCommandLineOption dbgNoEDSTexturesOpt("no-eds-tex","Don't compute/save eclipsed double scattering textures (for debugging)");
@@ -189,6 +190,7 @@ void handleCmdLine()
                         versionOpt,
                         textureOutputDirOpt,
                         saveResultAsRadianceOpt,
+                        compressTexturesOpt,
                         textureSavePrecisionOpt,
                         dbgNoEDSTexturesOpt,
                         dbgNoSaveTexturesOpt,
@@ -247,6 +249,8 @@ void handleCmdLine()
         opts.openglDebugFull=true;
     if(parser.isSet(printOpenGLInfoAndQuit))
         opts.printOpenGLInfoAndQuit=true;
+    if(parser.isSet(compressTexturesOpt))
+        opts.compressTextures=true;
     if(parser.isSet(textureSavePrecisionOpt))
     {
         bool ok=false;

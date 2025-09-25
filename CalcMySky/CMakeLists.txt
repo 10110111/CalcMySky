@@ -9,6 +9,6 @@ add_executable(calcmysky
 target_compile_definitions(calcmysky PRIVATE -DSHOWMYSKY_COMPILING_CALCMYSKY)
 target_link_libraries(calcmysky PUBLIC Qt${QT_VERSION}::Core
 	Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE version common
-	glm::glm)
+	glm::glm fpzip::fpzip)
 
 install(TARGETS calcmysky DESTINATION "${installBinDir}")

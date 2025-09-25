@@ -16,6 +16,7 @@
 #include "util.hpp"
 #include "../common/const.hpp"
 #include "../common/util.hpp"
+#include "../common/TextureCompression.hpp"
 #include "../common/EclipsedDoubleScatteringPrecomputer.hpp"
 #include "api/ShowMySky/Settings.hpp"
 
@@ -23,6 +24,17 @@ namespace fs=std::filesystem;
 
 namespace
 {
+
+QString compressedTextureNameFor(QString const& path)
+{
+    assert(path.endsWith(".f32"));
+    return path + "fpz";
+}
+
+bool textureExists(QString const& path)
+{
+    return QFile::exists(path) || QFile::exists(compressedTextureNameFor(path));
+}
 
 auto newTex(QOpenGLTexture::Target target)
 {
@@ -173,84 +185,101 @@ void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitude
         throw DataLoadError{QObject::tr("GL error on entry to loadTexture4D(\"%1\"): %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
     }
-    log << "Loading texture from " << path << "... ";
-    QFile file(path);
-    if(!file.open(QFile::ReadOnly))
-        throw DataLoadError{QObject::tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
 
-    uint16_t sizes[4];
+    const auto comprTexPath = compressedTextureNameFor(path);
+    if(!QFile::exists(path) && QFile::exists(comprTexPath) &&
+       texType == Texture4DType::ScatteringTexture)
     {
-        const qint64 sizeToRead=sizeof sizes;
-        if(file.read(reinterpret_cast<char*>(sizes), sizeToRead) != sizeToRead)
-        {
-            throw DataLoadError{QObject::tr("Failed to read header from file \"%1\": %2")
-                                .arg(path).arg(file.errorString())};
-        }
-    }
-    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
-
-    const size_t subpixelsPerPixel = texType==Texture4DType::InterpolationGuides ? 1 : 4;
-    const size_t subpixelSize = texType==Texture4DType::InterpolationGuides ? sizeof(GLshort) : sizeof(GLfloat);
-    const size_t pixelSize = subpixelsPerPixel*subpixelSize;
-    const qint64 expectedFileSize = file.pos() + pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
-    if(expectedFileSize != file.size())
-    {
-        throw DataLoadError{QObject::tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4×%5×%6 from file header.\nThe expected size is %7 bytes.")
-                            .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(sizes[2]).arg(sizes[3]).arg(expectedFileSize)};
-    }
-
-    numAltIntervalsIn4DTexture_ = sizes[3]-1;
-    const auto altTexIndex = altitudeCoord==1 ? numAltIntervalsIn4DTexture_-1 : altitudeCoord*numAltIntervalsIn4DTexture_;
-    const auto floorAltIndex = std::floor(altTexIndex);
-    const auto fractAltIndex = altTexIndex-floorAltIndex;
-
-    const auto readOffset = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(floorAltIndex);
-    sizes[3]=2;
-    const qint64 sizeToRead = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
-
-    const std::unique_ptr<char[]> data(new char[sizeToRead]);
-
-    const qint64 absoluteOffset=file.pos()+readOffset;
-    log << "skipping to offset " << absoluteOffset << "... ";
-    if(!file.seek(absoluteOffset))
-    {
-        throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
-                            .arg(absoluteOffset).arg(path).arg(file.errorString())};
-    }
-    const auto actuallyRead=file.read(data.get(), sizeToRead);
-    if(actuallyRead != sizeToRead)
-    {
-        const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
-                                            : QObject::tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
-        throw DataLoadError{error};
-    }
-
-    const auto altSliceSize = size_t(sizes[0])*sizes[1]*sizes[2];
-    if(texType == Texture4DType::InterpolationGuides)
-    {
-        std::unique_ptr<int16_t[]> texData(new int16_t[altSliceSize]);
-        for(size_t n = 0; n < altSliceSize; ++n)
-        {
-            int16_t lower, upper;
-            assert(sizeof lower == pixelSize);
-            std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
-            std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
-            texData[n] = lower + fractAltIndex*(upper-lower);
-        }
-        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_R16_SNORM, sizes[0], sizes[1], sizes[2], 0, GL_RED, GL_SHORT, texData.get());
+        log << "Loading texture from " << comprTexPath << "... ";
+        const auto data = loadCompressedTexture4D(comprTexPath, altitudeCoord);
+        numAltIntervalsIn4DTexture_ = data.numAltLayers - 1;
+        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, data.sizes3d[0], data.sizes3d[1], data.sizes3d[2],
+                        0, GL_RGBA, GL_FLOAT, data.data.get());
     }
     else
     {
-        std::unique_ptr<glm::vec4[]> texData(new glm::vec4[altSliceSize]);
-        for(size_t n = 0; n < altSliceSize; ++n)
+        log << "Loading texture from " << path << "... ";
+        QFile file(path);
+        if(!file.open(QFile::ReadOnly))
+            throw DataLoadError{QObject::tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
+
+        uint16_t sizes[4];
         {
-            glm::vec4 lower, upper;
-            assert(sizeof lower == pixelSize);
-            std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
-            std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
-            texData[n] = lower + fractAltIndex*(upper-lower);
+            const qint64 sizeToRead=sizeof sizes;
+            if(file.read(reinterpret_cast<char*>(sizes), sizeToRead) != sizeToRead)
+            {
+                throw DataLoadError{QObject::tr("Failed to read header from file \"%1\": %2")
+                                    .arg(path).arg(file.errorString())};
+            }
         }
-        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, sizes[0], sizes[1], sizes[2], 0, GL_RGBA, GL_FLOAT, texData.get());
+        log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
+
+        const size_t subpixelsPerPixel = texType==Texture4DType::InterpolationGuides ? 1 : 4;
+        const size_t subpixelSize = texType==Texture4DType::InterpolationGuides ? sizeof(GLshort) : sizeof(GLfloat);
+        const size_t pixelSize = subpixelsPerPixel*subpixelSize;
+        const qint64 expectedFileSize = file.pos() + pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+        if(expectedFileSize != file.size())
+        {
+            throw DataLoadError{QObject::tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4×%5×%6"
+                                            " from file header.\nThe expected size is %7 bytes.")
+                                    .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1])
+                                    .arg(sizes[2]).arg(sizes[3]).arg(expectedFileSize)};
+        }
+
+        numAltIntervalsIn4DTexture_ = sizes[3]-1;
+        const auto altTexIndex = altitudeCoord==1 ? numAltIntervalsIn4DTexture_-1 : altitudeCoord*numAltIntervalsIn4DTexture_;
+        const auto floorAltIndex = std::floor(altTexIndex);
+        const auto fractAltIndex = altTexIndex-floorAltIndex;
+
+        const auto readOffset = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*uint64_t(floorAltIndex);
+        sizes[3]=2;
+        const qint64 sizeToRead = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+
+        const std::unique_ptr<char[]> data(new char[sizeToRead]);
+
+        const qint64 absoluteOffset=file.pos()+readOffset;
+        log << "skipping to offset " << absoluteOffset << "... ";
+        if(!file.seek(absoluteOffset))
+        {
+            throw DataLoadError{QObject::tr("Failed to seek to offset %1 in file \"%2\": %3")
+                                .arg(absoluteOffset).arg(path).arg(file.errorString())};
+        }
+        const auto actuallyRead=file.read(data.get(), sizeToRead);
+        if(actuallyRead != sizeToRead)
+        {
+            const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
+                                                : QObject::tr("Failed to read texture data from file \"%1\":"
+                                                              " requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
+            throw DataLoadError{error};
+        }
+
+        const auto altSliceSize = size_t(sizes[0])*sizes[1]*sizes[2];
+        if(texType == Texture4DType::InterpolationGuides)
+        {
+            std::unique_ptr<int16_t[]> texData(new int16_t[altSliceSize]);
+            for(size_t n = 0; n < altSliceSize; ++n)
+            {
+                int16_t lower, upper;
+                assert(sizeof lower == pixelSize);
+                std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
+                std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
+                texData[n] = lower + fractAltIndex*(upper-lower);
+            }
+            gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_R16_SNORM, sizes[0], sizes[1], sizes[2], 0, GL_RED, GL_SHORT, texData.get());
+        }
+        else
+        {
+            std::unique_ptr<glm::vec4[]> texData(new glm::vec4[altSliceSize]);
+            for(size_t n = 0; n < altSliceSize; ++n)
+            {
+                glm::vec4 lower, upper;
+                assert(sizeof lower == pixelSize);
+                std::memcpy(&lower, data.get() + n * pixelSize, pixelSize);
+                std::memcpy(&upper, data.get() + (n+altSliceSize) * pixelSize, pixelSize);
+                texData[n] = lower + fractAltIndex*(upper-lower);
+            }
+            gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, sizes[0], sizes[1], sizes[2], 0, GL_RGBA, GL_FLOAT, texData.get());
+        }
     }
     if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
     {
@@ -388,7 +417,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
         multipleScatteringTextures_.clear();
         ++loadingStepsDone_; return;
     }
-    if(const auto filename=pathToData_+"/multiple-scattering-xyzw.f32"; QFile::exists(filename))
+    if(const auto filename=pathToData_+"/multiple-scattering-xyzw.f32"; textureExists(filename))
     {
         if(countStepsOnly)
         {
