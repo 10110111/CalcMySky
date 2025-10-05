@@ -61,7 +61,7 @@ for:
     - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
   test_script:
-    - set PATH=%PATH%;%QT_BASEDIR%\bin
+    - ps: $env:Path = "$env:Path;c:/projects/install/$env:tarballBaseName"
     - ctest -C %configuration% || ctest -C %configuration% --verbose
 
   after_build:
