@@ -62,7 +62,7 @@ for:
 
   test_script:
     - set PATH=%PATH%;%QT_BASEDIR%\bin
-    - ctest -C %configuration%
+    - ctest -C %configuration% || ctest -C %configuration% --verbose
 
   after_build:
     - if Release == %configuration%  cmake --build . --config %configuration% --target install
