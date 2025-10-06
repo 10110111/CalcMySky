@@ -27,8 +27,10 @@ namespace
 
 QString compressedTextureNameFor(QString const& path)
 {
-    assert(path.endsWith(".f32"));
-    return path + "fpz";
+    if(path.endsWith(".f32"))
+        return path + "fpz";
+    else
+        return {};
 }
 
 bool textureExists(QString const& path)
