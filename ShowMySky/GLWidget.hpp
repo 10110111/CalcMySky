@@ -38,6 +38,7 @@ public:
         Equirectangular,
         Perspective,
         Fisheye,
+        Cubemap,
     };
     enum class ColorMode
     {
