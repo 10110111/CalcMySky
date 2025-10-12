@@ -468,6 +468,7 @@ uniform int projection;
 #define PROJ_EQUIRECTANGULAR 0
 #define PROJ_PERSPECTIVE 1
 #define PROJ_FISHEYE 2
+#define PROJ_CUBEMAP 3
 
 const float PI=3.1415926535897932;
 
@@ -512,6 +513,67 @@ vec3 calcViewDir()
         return cameraRotation*vec3(cos(phi)*sin(theta),
                                    sin(phi)*sin(theta),
                                             cos(theta));
+    }
+    else if(projection==PROJ_CUBEMAP)
+    {
+        if(position.y > 1 || position.y < -1) return vec3(0);
+
+        const mat2 rot45 = mat2(1,1, -1,1) / sqrt(2);
+
+        if(position.y > 1./3.)
+        {
+            // Top cap
+            if(position.x < -0.5)
+            {
+                float x = 3 * position.y - 2;
+                float y = -4 * (position.x + 0.75);
+                float z = 1;
+                return cameraRotation*normalize(vec3(rot45*vec2(x,y),z));
+            }
+        }
+        else if(position.y < -1./3.)
+        {
+            // Bottom cap
+            if(position.x < -0.5)
+            {
+                float x = -3 * position.y - 2;
+                float y = -4 * (position.x + 0.75);
+                float z = -1;
+                return cameraRotation*normalize(vec3(rot45*vec2(x,y),z));
+            }
+        }
+        else if(position.x < -0.5)
+        {
+            // longitude = -180°..-90°
+            float x = -1;
+            float y = -4 * (position.x + 0.75);
+            float z = 3 * position.y;
+            return cameraRotation*normalize(vec3(rot45*vec2(x,y),z));
+        }
+        else if(position.x < 0)
+        {
+            // longitude = -90°..-0°
+            float x = 4 * (position.x + 0.25);
+            float y = -1;
+            float z = 3 * position.y;
+            return cameraRotation*normalize(vec3(rot45*vec2(x,y),z));
+        }
+        else if(position.x < 0.5)
+        {
+            // longitude = 0°..90°
+            float x = 1;
+            float y = 4 * (position.x - 0.25);
+            float z = 3 * position.y;
+            return cameraRotation*normalize(vec3(rot45*vec2(x,y),z));
+        }
+        else
+        {
+            // longitude = 90°..180°
+            float x = -4 * (position.x - 0.75);
+            float y = 1;
+            float z = 3 * position.y;
+            return cameraRotation*normalize(vec3(rot45*vec2(x,y),z));
+        }
     }
 
     return vec3(0);
@@ -739,6 +801,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
         switch(currentProjection())
         {
         case Projection::Equirectangular:
+        case Projection::Cubemap:
             tools->setSunZenithAngle(std::clamp(oldZA - mouseDeltaY*M_PI/height()/tools->zoomFactor(), 0., M_PI));
             tools->setSunAzimuth(std::remainder(oldAz + mouseDeltaX*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
             break;
