@@ -101,6 +101,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         projection_->addItem(tr("Equirectangular"));
         projection_->addItem(tr("Perspective"));
         projection_->addItem(tr("Fisheye"));
+        projection_->addItem(tr("Cubemap"));
         projection_->setCurrentIndex(static_cast<int>(GLWidget::Projection::Equirectangular));
         connect(projection_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](const int index)
                 { emit projectionChanged(static_cast<GLWidget::Projection>(index)); });
