@@ -44,6 +44,7 @@ enum FBOId
     FBO_SINGLE_SCATTERING,
     FBO_MULTIPLE_SCATTERING,
     FBO_ECLIPSED_DOUBLE_SCATTERING,
+    FBO_ECLIPSED_ATMO_MAP,
     FBO_LIGHT_POLLUTION,
 
     FBO_COUNT
@@ -58,6 +59,7 @@ enum TextureId
     TEX_MULTIPLE_SCATTERING,
     TEX_DELTA_SCATTERING_DENSITY,
     TEX_ECLIPSED_DOUBLE_SCATTERING,
+    TEX_ECLIPSED_ATMO_MAP,
     TEX_LIGHT_POLLUTION_SCATTERING,
     TEX_LIGHT_POLLUTION_DELTA_SCATTERING,
     TEX_LIGHT_POLLUTION_SCATTERING_LUMINANCE,
@@ -78,6 +80,7 @@ struct Options
     bool saveResultAsRadiance=false;
     bool dbgNoSaveTextures=false;
     bool dbgNoEDSTextures=false;
+    bool dbgNoEMSMap=false;
     bool dbgSaveGroundIrradiance=false;
     bool dbgSaveScatDensityOrder2FromGround=false;
     bool dbgSaveScatDensity=false;

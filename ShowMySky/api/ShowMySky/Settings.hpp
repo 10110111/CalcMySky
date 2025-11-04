@@ -126,6 +126,11 @@ public:
     virtual bool onTheFlyPrecompDoubleScatteringEnabled() = 0;
 
     /**
+     * \brief Whether to use the full multiple scattering simulation for eclipse instead of the older implementation limited to double scattering.
+     */
+    virtual bool useEclipseMultipleScattering() = 0;
+
+    /**
      * \brief Whether to enable texture filtering.
      *
      * This is a debugging option that lets one toggle linear interpolation between texels in the model textures. If \c true, filtering is enabled, otherwise disabled. It should normally be enabled.

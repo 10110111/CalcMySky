@@ -214,6 +214,12 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
     onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
     onTheFlyPrecompDoubleScatteringEnabled_=addCheckBox(layout, this, tr("Precompute double(-only) scattering on the fly"), true);
+    useEclipseMultipleScattering_=addCheckBox(layout, this, tr("Use full multiple scattering for eclipse"), true);
+    connect(useEclipseMultipleScattering_, &QCheckBox::stateChanged, this, [this](const int state)
+            {
+                 const bool msEnabled = state==Qt::Checked;
+                 onTheFlyPrecompDoubleScatteringEnabled_->setDisabled(msEnabled || noEclipsedDoubleScatteringTextures_);
+            });
 
     usingEclipseShader_=addCheckBox(layout, this, tr("Use e&clipse-mode shaders"), false);
     connect(usingEclipseShader_, &QCheckBox::stateChanged, this, [this](const int state)
@@ -344,6 +350,8 @@ void ToolsWidget::setSunZenithAngle(const double zenithAngle)
 
 void ToolsWidget::updateParameters(AtmosphereParameters const& params)
 {
+    noEclipsedDoubleScatteringTextures_ = params.noEclipsedDoubleScatteringTextures;
+
     if(params.atmosphereHeight > initialMaxAltitude)
         altitude_->setMax(params.atmosphereHeight);
 
@@ -366,6 +374,11 @@ void ToolsWidget::updateParameters(AtmosphereParameters const& params)
     {
         onTheFlyPrecompDoubleScatteringEnabled_->setChecked(true);
         onTheFlyPrecompDoubleScatteringEnabled_->setDisabled(true);
+    }
+    if(params.noEclipsedMultipleScatteringMap)
+    {
+        useEclipseMultipleScattering_->setChecked(false);
+        useEclipseMultipleScattering_->setDisabled(true);
     }
 
     sunAngularRadius_->setValue(params.sunAngularRadius / degree);
@@ -396,4 +409,10 @@ void ToolsWidget::onSolarSpectrumChanged()
 void ToolsWidget::setWindowDecorationEnabled(const bool enabled)
 {
     windowDecorationEnabled_->setChecked(enabled);
+}
+
+bool ToolsWidget::onTheFlyPrecompDoubleScatteringEnabled()
+{
+    if(useEclipseMultipleScattering()) return false;
+    return onTheFlyPrecompDoubleScatteringEnabled_->isChecked();
 }

@@ -320,7 +320,7 @@ void saveSingleScatteringRenderingShader(const unsigned texIndex, AtmospherePara
 
 void saveEclipsedSingleScatteringRenderingShader(const unsigned texIndex, AtmosphereParameters::Scatterer const& scatterer, const SingleScatteringRenderMode renderMode)
 {
-    virtualSourceFiles.erase(SINGLE_SCATTERING_ECLIPSED_FILENAME); // Need to refresh it after computeEclipsedDoubleScattering()
+    virtualSourceFiles.erase(SINGLE_SCATTERING_ECLIPSED_FILENAME); // Need to refresh it after computeEclipsedAtmosphere()/computeEclipsedDoubleScattering()
     virtualSourceFiles[PHASE_FUNCTIONS_SHADER_FILENAME]=makePhaseFunctionsSrc()+
         "vec4 currentPhaseFunction(float dotViewSun) { return phaseFunction_"+scatterer.name+"(dotViewSun); }\n";
 
@@ -1022,6 +1022,196 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
     }
 }
 
+void computeEclipsedSingleScatteringMap(const unsigned texIndex)
+{
+    std::cerr << indentOutput() << "Computing eclipsed single scattering map...\n";
+
+    virtualSourceFiles[SINGLE_SCATTERING_ECLIPSED_FILENAME]=getShaderSrc(SINGLE_SCATTERING_ECLIPSED_FILENAME,IgnoreCache{})
+                                       .replace(QRegularExpression("\\b(ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION)\\b"), "1 /*\\1*/");
+    const auto program=compileShaderProgram(COMPUTE_ECLIPSED_SINGLE_SCATTERING_MAP_FILENAME,
+                                            "eclipsed single scattering map computation shader program",
+                                            UseGeomShader{false});
+
+    const auto time0=std::chrono::steady_clock::now();
+
+    using namespace glm;
+    using std::cos;
+    using std::sqrt;
+
+    gl.glBindFramebuffer(GL_FRAMEBUFFER, fbos[FBO_ECLIPSED_ATMO_MAP]);
+    gl.glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,textures[TEX_ECLIPSED_ATMO_MAP],0);
+    checkFramebufferStatus("framebuffer for eclipsed atmosphere map");
+    program->bind();
+    const unsigned cubeSideLength = atmo.eclipsedCubeMapSide;
+    assert(cubeSideLength % 2 == 0);
+    program->setUniformValue("cubeSideLength", GLint(cubeSideLength));
+    program->setUniformValue("eclipsedAtmoMapAltitudeLayerCount", GLint(atmo.eclipsedAtmoMapAltitudeLayerCount));
+    int unusedTextureUnitNum=0;
+    setUniformTexture(*program,GL_TEXTURE_2D,TEX_TRANSMITTANCE,unusedTextureUnitNum++,"transmittanceTexture");
+    const unsigned textureSizes[4] = {atmo.eclipsedCubeMapSide*3,
+                                      atmo.eclipsedCubeMapSide,
+                                      atmo.eclipsedAtmoMapAltitudeLayerCount,
+                                      atmo.eclipsedAtmoMapPhaseCount};
+    gl.glViewport(0, 0, textureSizes[0], textureSizes[1] * textureSizes[2]);
+    gl.glBlendFunc(GL_ONE, GL_ONE);
+
+    const size_t pixelCount = textureSizes[0] * textureSizes[1] * textureSizes[2];
+    const std::unique_ptr<glm::vec4[]> pixels(new glm::vec4[pixelCount]);
+    unsigned nanCount = 0, totalSubpixelCount = 0;
+
+    const auto path = atmo.textureOutputDir+"/eclipsed-single-scattering-map-wlset"+std::to_string(texIndex)+".f32";
+    QFile out(QByteArray::fromRawData(path.data(), path.size()));
+    if(!out.open(QFile::WriteOnly))
+    {
+        std::cerr << "failed to open file: " << out.errorString().toStdString() << "\n";
+        throw MustQuit{};
+    }
+    for(const uint16_t s : textureSizes)
+        out.write(reinterpret_cast<const char*>(&s), sizeof s);
+
+    // For later getting its image
+    gl.glActiveTexture(GL_TEXTURE0 + unusedTextureUnitNum);
+    gl.glBindTexture(GL_TEXTURE_2D, textures[TEX_ECLIPSED_ATMO_MAP]);
+
+    for(unsigned phasePoint = 0; phasePoint < atmo.eclipsedAtmoMapPhaseCount; ++phasePoint)
+    {
+        OutputIndentIncrease incr;
+        std::cerr << indentOutput() << "Computing eclipse phase layer " << phasePoint+1
+                                    << " of " << atmo.eclipsedAtmoMapPhaseCount << " ... ";
+        const auto time0=std::chrono::steady_clock::now();
+        // This is relative to the Earth's center
+        const auto subsolarPointToMoonAngle = atmo.getSubsolarPointToMoonAngle(phasePoint);
+        if(std::isnan(subsolarPointToMoonAngle))
+        {
+            std::cerr << "Internal error: Failed to compute the angle between Earth-Moon vector and the Earth-subsolar point direction\n";
+            throw MustQuit{};
+        }
+        // Moon position relative to the subsolar point on the ground
+        const QVector3D moonPos(atmo.earthMoonDistance * sin(subsolarPointToMoonAngle),
+                                0,
+                                atmo.earthMoonDistance * cos(subsolarPointToMoonAngle) - atmo.earthRadius);
+
+        program->setUniformValue("moonPos", moonPos);
+        const float lunarShadowAngleFromSubsolarPoint = atmo.getLunarShadowAngleFromSubsolarPoint(subsolarPointToMoonAngle);
+        program->setUniformValue("lunarShadowAngleFromSubsolarPoint", float(lunarShadowAngleFromSubsolarPoint));
+        gl.glDisable(GL_BLEND);
+
+        constexpr int statusUpdatePeriod = 10;
+        bool wantStatusUpdate = true;
+        int prevStatusWidth = 0;
+        for(int i = 0; i < atmo.eclipseAngularIntegrationPoints; ++i)
+        {
+            std::ostringstream ss;
+            if(wantStatusUpdate)
+            {
+                ss << i << " of " << atmo.eclipseAngularIntegrationPoints << " direction layers done ";
+                std::cerr << ss.str();
+                prevStatusWidth = ss.tellp();
+            }
+
+            const auto incidenceDir = sphereIntegrationSampleDir(i, atmo.eclipseAngularIntegrationPoints);
+            program->setUniformValue("incidenceDir", toQVector(incidenceDir));
+            renderQuad();
+
+            wantStatusUpdate = (i+1) % statusUpdatePeriod == 0 || i+1 == atmo.eclipseAngularIntegrationPoints;
+            if(i == 0)
+                gl.glEnable(GL_BLEND); // starting from the next step
+
+            if(wantStatusUpdate)
+            {
+                gl.glFinish();
+                // Clear previous status and reset cursor position
+                std::cerr << std::string(prevStatusWidth, '\b') << std::string(prevStatusWidth, ' ')
+                          << std::string(prevStatusWidth, '\b');
+            }
+        }
+
+        {
+            constexpr char savingMsg[] = "saving...";
+            std::cerr << savingMsg << std::string(sizeof savingMsg - 1, '\b');
+        }
+        gl.glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.get());
+        if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+        {
+            std::cerr << "GL error in saveTexture() after glGetTexImage() call: " << openglErrorString(err) << "\n";
+            throw MustQuit{};
+        }
+        for(size_t i = 0; i < pixelCount; ++i)
+        {
+            for(int k = 0; k < 4; ++k)
+            {
+                if(std::isnan(pixels[i][k]))
+                    ++nanCount;
+                ++totalSubpixelCount;
+            }
+        }
+        for(size_t i = 0; i < pixelCount; ++i)
+        {
+            for(int k = 0; k < 4; ++k)
+            {
+                pixels[i][k] = std::log(pixels[i][k] + 1e-35f);
+            }
+        }
+        out.write(reinterpret_cast<const char*>(pixels.get()), pixelCount*sizeof pixels[0]);
+
+        const auto time1=std::chrono::steady_clock::now();
+        std::cerr << "done in " << formatDeltaTime(time0, time1) << "\n";
+    }
+    out.close();
+
+    if(nanCount)
+    {
+        std::cerr << nanCount << " NaN entries out of " << totalSubpixelCount << " detected while saving eclipsed single scattering map\n";
+        std::cerr << "The texture was saved for diagnostics, further computation is useless.\n";
+        throw MustQuit{};
+    }
+    gl.glDisable(GL_BLEND);
+    const auto time1=std::chrono::steady_clock::now();
+    std::cerr << "All eclipse phases done in " << formatDeltaTime(time0, time1) << "\n";
+}
+
+void computeEclipsedAtmosphere(const unsigned texIndex)
+{
+    if(opts.dbgNoEMSMap || opts.dbgNoSaveTextures) return;
+
+    std::cerr << indentOutput() << "Computing eclipsed atmosphere...\n";
+    OutputIndentIncrease incr;
+    computeEclipsedSingleScatteringMap(texIndex);
+}
+
+void saveEclipsedMultipleScatteringRenderingShader(const unsigned texIndex)
+{
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+                                                .replace(QRegularExpression("\\b(RENDERING_ECLIPSED_MULTIPLE_SCATTERING)\\b"), "1 /*\\1*/");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "eclipsed multiple scattering map integration shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& [filename, src] : sourcesToSave)
+    {
+        if(filename==viewDirFuncFileName) continue;
+
+        const auto filePath = QString("%1/shaders/eclipsed-multiple-scattering-map-integration/%2/%3")
+                                    .arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename);
+        std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
+        QFile file(filePath);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
 void computeLightPollutionSingleScattering(const unsigned texIndex)
 {
     std::cerr << indentOutput() << "Computing light pollution single scattering... ";
@@ -1204,6 +1394,7 @@ int main(int argc, char** argv)
             if(opts.saveResultAsRadiance)
                 createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputed/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputation/"+std::to_string(texIndex));
+            createDirs(atmo.textureOutputDir+"/shaders/eclipsed-multiple-scattering-map-integration/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
         }
         createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/");
@@ -1302,9 +1493,9 @@ int main(int argc, char** argv)
                 saveMultipleScatteringRenderingShader(texIndex);
                 saveEclipsedDoubleScatteringRenderingShader(texIndex);
             }
-
             computeEclipsedDoubleScattering(texIndex);
-
+            saveEclipsedMultipleScatteringRenderingShader(texIndex);
+            computeEclipsedAtmosphere(texIndex);
         }
         if(!opts.saveResultAsRadiance)
         {

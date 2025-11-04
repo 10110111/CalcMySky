@@ -29,6 +29,7 @@
 struct AtmosphereParameters
 {
     DEFINE_EXPLICIT_BOOL(ForceNoEDSTextures);
+    DEFINE_EXPLICIT_BOOL(ForceNoEMSMap);
     // We don't copy external spectra into output directory, so the renderer needs to skip loading them
     DEFINE_EXPLICIT_BOOL(SkipSpectra);
 
@@ -96,6 +97,9 @@ struct AtmosphereParameters
             return absorptionCrossSection[i];
         }
     };
+    double getSubsolarPointToMoonAngle(int phasePoint) const;
+    double getEclipsePhaseIndex(double subsolarPointToMoonAngle) const;
+    double getLunarShadowAngleFromSubsolarPoint(double subsolarPointToMoonAngle) const;
 
     QString descriptionFileText;
     std::vector<glm::vec4> allWavelengths;
@@ -107,6 +111,9 @@ struct AtmosphereParameters
     glm::ivec4 scatteringTextureSize;
     glm::ivec2 eclipsedSingleScatteringTextureSize;
     glm::ivec4 eclipsedDoubleScatteringTextureSize;
+    unsigned eclipsedAtmoMapAltitudeLayerCount;
+    unsigned eclipsedAtmoMapPhaseCount;
+    unsigned eclipsedCubeMapSide;
     glm::ivec2 lightPollutionTextureSize;
     unsigned eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
     unsigned eclipsedDoubleScatteringNumberOfElevationPairsToSample;
@@ -128,15 +135,18 @@ struct AtmosphereParameters
     std::vector<Absorber> absorbers;
     bool allTexturesAreRadiance=false;
     bool noEclipsedDoubleScatteringTextures=false;
+    bool noEclipsedMultipleScatteringMap=false;
     static constexpr unsigned pointsPerWavelengthItem=4;
     static constexpr unsigned FORMAT_VERSION = 6;
     static constexpr char ALL_TEXTURES_ARE_RADIANCES_DIRECTIVE[]="all textures are radiances";
     static constexpr char NO_ECLIPSED_DOUBLE_SCATTERING_TEXTURES_DIRECTIVE[]="no eclipsed double scattering textures";
+    static constexpr char NO_ECLIPSED_MULTILE_SCATTERING_MAP_DIRECTIVE[]="no eclipsed multiple scattering map";
     static constexpr char SOLAR_IRRADIANCE_AT_TOA_KEY[]="solar irradiance at toa";
     static constexpr char WAVELENGTHS_KEY[]="wavelengths";
 
     void parse(QString const& atmoDescrFileName,
                ForceNoEDSTextures forceNoEDSTextures=ForceNoEDSTextures{false},
+               ForceNoEMSMap forceNoEMSMap=ForceNoEMSMap{false},
                SkipSpectra skipSpectra=SkipSpectra{false});
     // XXX: keep in sync with those in previewer and renderer
     auto scatTexWidth()  const { return GLsizei(scatteringTextureSize[0]); }

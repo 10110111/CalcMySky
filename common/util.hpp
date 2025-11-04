@@ -173,4 +173,6 @@ inline bool isPowerOfTwo(const unsigned value)
     return (value & -value) == value;
 }
 
+glm::vec3 sphereIntegrationSampleDir(int index, int pointCountOnSphere);
+
 #endif
