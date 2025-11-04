@@ -562,6 +562,12 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             eclipsedDoubleScatteringTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="eclipsed double scattering texture size for sza")
             eclipsedDoubleScatteringTextureSize[2]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed atmosphere map altitude layers")
+            eclipsedAtmoMapAltitudeLayerCount=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed atmosphere map eclipse phase layers")
+            eclipsedAtmoMapPhaseCount=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed atmosphere map cubemap side")
+            eclipsedCubeMapSide=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="light pollution texture size for vza")
             lightPollutionTextureSize[0]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="light pollution texture size for altitude")
@@ -627,6 +633,11 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             qWarning() << "Unknown key:" << key;
     }
     eclipsedDoubleScatteringTextureSize[3]=scatteringTextureSize[3];
+    if(!(eclipsedAtmoMapAltitudeLayerCount && eclipsedCubeMapSide && eclipsedAtmoMapPhaseCount) && !noEclipsedDoubleScatteringTextures)
+    {
+        qWarning() << "Eclipsed atmosphere map parameters not defined, will skip creation of the map";
+        noEclipsedDoubleScatteringTextures=true;
+    }
 
     lengthOfHorizRayFromGroundToBorderOfAtmo=std::sqrt(atmosphereHeight*(atmosphereHeight+2*earthRadius));
 
