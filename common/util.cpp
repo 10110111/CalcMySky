@@ -18,6 +18,7 @@
  */
 
 #include "util.hpp"
+#include <cmath>
 #include <cstring>
 #include <qopengl.h>
 #include "../common/cie-xyzw-functions.hpp"
@@ -121,4 +122,18 @@ void roundTexData(GLfloat*const data, const size_t size, const int bitsOfPrecisi
         x &= mask;
         std::memcpy(&data[i], &x, sizeof x);
     }
+}
+
+glm::vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere)
+{
+    using namespace std;
+    const double goldenRatio=1.618033988749895;
+    // The range of n is 0.5, 1.5, ..., pointCountOnSphere-0.5
+    const double n=index+0.5;
+    // Explanation of the Fibonacci grid generation can be seen at https://stackoverflow.com/a/44164075/673852
+    const double zenithAngle=acos(clamp(1-(2.*n)/pointCountOnSphere, -1.,1.));
+    const double azimuth=n*(2*M_PI*goldenRatio);
+    return glm::vec3(cos(azimuth)*sin(zenithAngle),
+                     sin(azimuth)*sin(zenithAngle),
+                     cos(zenithAngle));
 }

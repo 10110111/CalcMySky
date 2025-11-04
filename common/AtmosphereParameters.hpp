@@ -107,6 +107,9 @@ struct AtmosphereParameters
     glm::ivec4 scatteringTextureSize;
     glm::ivec2 eclipsedSingleScatteringTextureSize;
     glm::ivec4 eclipsedDoubleScatteringTextureSize;
+    unsigned eclipsedAtmoMapAltitudeLayerCount;
+    unsigned eclipsedAtmoMapPhaseCount;
+    unsigned eclipsedCubeMapSide;
     glm::ivec2 lightPollutionTextureSize;
     unsigned eclipsedDoubleScatteringNumberOfAzimuthPairsToSample;
     unsigned eclipsedDoubleScatteringNumberOfElevationPairsToSample;
