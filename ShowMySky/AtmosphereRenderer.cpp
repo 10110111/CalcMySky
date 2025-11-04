@@ -43,6 +43,13 @@ namespace fs=std::filesystem;
 namespace
 {
 
+QString errorString(QFile const& file)
+{
+    if(file.error() == QFile::NoError && file.atEnd())
+        return QObject::tr("Unexpected end of file");
+    return file.errorString();
+}
+
 auto newTex(QOpenGLTexture::Target target)
 {
     return std::make_unique<QOpenGLTexture>(target);
@@ -178,6 +185,81 @@ void AtmosphereRenderer::loadEclipsedDoubleScatteringTexture(QString const& path
     {
         throw DataLoadError{QObject::tr("GL error in loadEclipsedDoubleScatteringTexture(\"%1\") after glTexImage3D() call: %2")
                             .arg(path).arg(openglErrorString(err).c_str())};
+    }
+
+    log << "done";
+}
+
+void AtmosphereRenderer::loadEclipsedMultipleScatteringMap(QString const& path, const unsigned wlSetIndex,
+                                                           const QOpenGLTexture::Filter texFilter)
+{
+    auto log=qDebug().nospace();
+
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error on entry to loadEclipsedMultipleScatteringMap(\"%1\"): %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+    log << "Loading texture from " << path << "... ";
+    QFile file(path);
+    if(!file.open(QFile::ReadOnly))
+        throw DataLoadError{QObject::tr("Failed to open file \"%1\": %2").arg(path).arg(errorString(file))};
+
+    uint16_t sizes[4];
+    {
+        const qint64 sizeToRead=sizeof sizes;
+        if(file.read(reinterpret_cast<char*>(sizes), sizeToRead) != sizeToRead)
+        {
+            throw DataLoadError{QObject::tr("Failed to read header from file \"%1\": %2")
+                                .arg(path).arg(errorString(file))};
+        }
+    }
+    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
+
+    const size_t pixelSize = sizeof(glm::vec4);
+    const qint64 expectedFileSize = file.pos() + pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+    if(expectedFileSize != file.size())
+    {
+        throw DataLoadError{QObject::tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4×%5×%6 from file header.\nThe expected size is %7 bytes.")
+                            .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(sizes[2]).arg(sizes[3]).arg(expectedFileSize)};
+    }
+
+    const qint64 sizeToRead = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+    const std::unique_ptr<char[]> data(new char[sizeToRead]);
+    const auto actuallyRead=file.read(data.get(), sizeToRead);
+    if(actuallyRead != sizeToRead)
+    {
+        const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(errorString(file))
+                                            : QObject::tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
+        throw DataLoadError{error};
+    }
+
+    if(eclipsedMultipleScatteringMaps_.size() <= wlSetIndex)
+        eclipsedMultipleScatteringMaps_.resize(wlSetIndex + 1);
+    auto& textures = eclipsedMultipleScatteringMaps_[wlSetIndex];
+    textures.clear();
+    const int width = sizes[0];
+    const int height = sizes[1];
+    const int depth = sizes[2];
+    const int maxEclipsePhaseIndex = sizes[3];
+    const auto textureSize = size_t(width) * height * depth * pixelSize;
+    for(int eclipsePhaseIndex = 0; eclipsePhaseIndex < maxEclipsePhaseIndex; ++eclipsePhaseIndex)
+    {
+        auto& texture=*textures.emplace_back(newTex(QOpenGLTexture::Target3D));
+        texture.setMinificationFilter(texFilter);
+        texture.setMagnificationFilter(texFilter);
+        texture.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
+        texture.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+        texture.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+        texture.bind();
+
+        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, width, height, depth,
+                        0, GL_RGBA, GL_FLOAT, data.get() + textureSize * eclipsePhaseIndex);
+        if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+        {
+            throw DataLoadError{QObject::tr("GL error in loadTexture4D(\"%1\") after glTexImage3D() call: %2")
+                                .arg(path).arg(openglErrorString(err).c_str())};
+        }
     }
 
     log << "done";
@@ -730,6 +812,26 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
         ++loadingStepsDone_; return;
     }
 
+    if(!params_.noEclipsedMultipleScatteringMap)
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+                continue;
+            }
+            if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
+                continue;
+
+            // FIXME: this file should be renamed single->multiple after we implement Nth scattering maps
+            loadEclipsedMultipleScatteringMap(QString("%1/eclipsed-single-scattering-map-wlset%2.f32")
+                                               .arg(pathToData_).arg(wlSetIndex), wlSetIndex, texFilter);
+
+            ++loadingStepsDone_; return;
+        }
+    }
+
     if(countStepsOnly)
     {
         ++totalLoadingStepsToDo_;
@@ -1251,6 +1353,38 @@ void main()
     }
     else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
     {
+        eclipsedMultipleScatteringPrograms_.clear();
+        ++loadingStepsDone_; return;
+    }
+    for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+    {
+        if(countStepsOnly)
+        {
+            ++totalLoadingStepsToDo_;
+            continue;
+        }
+        if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
+            continue;
+
+        auto& program=*eclipsedMultipleScatteringPrograms_.emplace_back(std::make_unique<QOpenGLShaderProgram>());
+        const auto wlDir=QString("%1/shaders/eclipsed-multiple-scattering-map-integration/%2").arg(pathToData_).arg(wlSetIndex);
+        qDebug().nospace() << "Loading shaders from " << wlDir << "...";
+        for(const auto& shaderFile : fs::directory_iterator(fs::u8path(wlDir.toStdString())))
+            addShaderFile(program, QOpenGLShader::Fragment, shaderFile.path());
+        program.addShader(viewDirFragShader_.get());
+        program.addShader(viewDirVertShader_.get());
+        for(const auto& b : viewDirBindAttribLocations_)
+            program.bindAttributeLocation(b.first.c_str(), b.second);
+        link(program, QObject::tr("eclipsed multiple scattering shader program"));
+        ++loadingStepsDone_; return;
+    }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else if(++currentLoadingIterationStepCounter_ > loadingStepsDone_)
+    {
         viewDirectionGetterProgram_=std::make_unique<QOpenGLShaderProgram>();
         auto& program=*viewDirectionGetterProgram_;
         program.addShader(viewDirFragShader_.get());
@@ -1351,6 +1485,12 @@ void AtmosphereRenderer::setupBuffers()
     gl.glVertexAttribPointer(attribIndex, coordsPerVertex, GL_FLOAT, false, 0, 0);
     gl.glEnableVertexAttribArray(attribIndex);
     gl.glBindVertexArray(0);
+}
+
+glm::dvec3 AtmosphereRenderer::earthCenter() const
+{
+    // XXX: keep in sync with earthCenter in initConstHeader()
+    return {0, 0, -params_.earthRadius};
 }
 
 glm::dvec3 AtmosphereRenderer::cameraPosition() const
@@ -1850,45 +1990,116 @@ void AtmosphereRenderer::renderMultipleScattering()
     const auto texFilter = tools_->textureFilteringEnabled() ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest;
     if(tools_->usingEclipseShader())
     {
-        if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
-            precomputeEclipsedDoubleScattering();
-        for(unsigned wlSetIndex=0; wlSetIndex < eclipsedDoubleScatteringPrecomputedPrograms_.size(); ++wlSetIndex)
+        if(tools_->useEclipseMultipleScattering())
         {
-            if(!radianceRenderBuffers_.empty())
-                gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
+            assert(!params_.noEclipsedMultipleScatteringMap);
+            using namespace glm;
+            // These directions are with respect to Earth center
+            const dvec3 sunDir = sunDirection();
+            dvec3 moonDir = normalize(moonPosition() - earthCenter());
+            dvec3 crossSM = cross(sunDir, moonDir);
+            double sinSM = length(crossSM), cosSM = dot(sunDir, moonDir);
+            const double sunMoonAngle = std::atan2(sinSM, cosSM);
+            // Eclipse phase index must be computed before we alter sinSM and cosSM below
+            const float eclipsePhaseIndex = params_.getEclipsePhaseIndex(sunMoonAngle);
 
-            auto& prog=*eclipsedDoubleScatteringPrecomputedPrograms_[wlSetIndex];
-            prog.bind();
-            prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
-            prog.setUniformValue("sunDirection", toQVector(sunDirection()));
-            prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
-            prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
-            prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+            // Normally we must place sunDir in (0,0,1) and earthCenter-sunDir-moonDir triangle in the XZ plane.
+            // But if Sun and Moon are almost in the same direction, we only must place sunDir in (0,0,1), the
+            // rest is "don't care" due to symmetry. We don't want to get division-by-almost-zero issues, so in
+            // this case we fake the Moon direction by adding some value to the minimum of the Sun direction
+            // components (and normalizing).
+            constexpr double epsilon = 1e-10;
+            if(sinSM < epsilon)
+            {
+                const auto asd = abs(sunDir);
+                const double asdMin = std::min({asd[0], asd[1], asd[2]});
+                const dvec3 addition = asdMin == asd[0] ? dvec3(2,0,0) :
+                    asdMin == asd[1] ? dvec3(0,2,0) :
+                    dvec3(0,0,2) ;
+                moonDir = normalize(sunDir + addition);
+                crossSM = cross(sunDir, moonDir);
+                sinSM = length(crossSM);
+                assert(sinSM > epsilon);
+                cosSM = dot(sunDir, moonDir);
+            }
+            const auto worldToMap = mat3(dmat3(dvec3(0,0,1), dvec3(sinSM,0,cosSM), dvec3(0,1,0))
+                                                               *
+                                      inverse(dmat3(sunDir, moonDir, crossSM / sinSM)));
 
+            for(unsigned wlSetIndex=0; wlSetIndex < eclipsedMultipleScatteringPrograms_.size(); ++wlSetIndex)
+            {
+                if(!radianceRenderBuffers_.empty())
+                    gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
+
+                auto& prog=*eclipsedMultipleScatteringPrograms_[wlSetIndex];
+                prog.bind();
+
+                const auto& map0 = eclipsedMultipleScatteringMaps_[wlSetIndex][int(eclipsePhaseIndex)];
+                const auto& map1 = eclipsedMultipleScatteringMaps_[wlSetIndex][int(std::ceil(eclipsePhaseIndex))];
+                const float lunarShadowAngleFromSubsolarPoint = params_.getLunarShadowAngleFromSubsolarPoint(sunMoonAngle);
+                int unusedTextureUnitNum=0;
+                map0->bind(unusedTextureUnitNum);
+                prog.setUniformValue("eclipseMultipleScatteringMap0", unusedTextureUnitNum++);
+                map1->bind(unusedTextureUnitNum);
+                prog.setUniformValue("eclipseMultipleScatteringMap1", unusedTextureUnitNum++);
+                prog.setUniformValue("eclipseMultipleScatteringMapInterpolationFactor", eclipsePhaseIndex - std::floor(eclipsePhaseIndex));
+                transmittanceTextures_[wlSetIndex]->bind(unusedTextureUnitNum);
+                prog.setUniformValue("transmittanceTexture", unusedTextureUnitNum++);
+                prog.setUniformValue("worldToMap", toQMatrix(worldToMap));
+                prog.setUniformValue("cubeSideLength", GLint(params_.eclipsedCubeMapSide));
+                prog.setUniformValue("eclipsedAtmoMapAltitudeLayerCount", GLint(params_.eclipsedAtmoMapAltitudeLayerCount));
+                prog.setUniformValue("lunarShadowAngleFromSubsolarPoint", lunarShadowAngleFromSubsolarPoint);
+                prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
+                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
+                prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
+                prog.setUniformValue("useInterpolationGuides", false);
+
+                drawSurface(prog);
+            }
+        }
+        else
+        {
             if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
+                precomputeEclipsedDoubleScattering();
+            for(unsigned wlSetIndex=0; wlSetIndex < eclipsedDoubleScatteringPrecomputedPrograms_.size(); ++wlSetIndex)
             {
-                // The same texture is used for upper and lower slices
-                auto& tex=*eclipsedDoubleScatteringPrecomputationTargetTextures_[wlSetIndex];
-                tex.setMinificationFilter(texFilter);
-                tex.setMagnificationFilter(texFilter);
-                tex.bind(0);
-                prog.setUniformValue("eclipsedDoubleScatteringTexture", 0);
-                prog.setUniformValue("eclipsedDoubleScatteringTextureSize", QVector3D(params_.eclipsedDoubleScatteringTextureSize[0],
-                                                                                      params_.eclipsedDoubleScatteringTextureSize[1], 1));
-            }
-            else
-            {
-                assert(!params_.noEclipsedDoubleScatteringTextures);
+                if(!radianceRenderBuffers_.empty())
+                    gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
 
-                auto& texture=*eclipsedDoubleScatteringTextures_[wlSetIndex];
-                texture.setMinificationFilter(texFilter);
-                texture.setMagnificationFilter(texFilter);
-                texture.bind(0);
-                prog.setUniformValue("eclipsedDoubleScatteringTexture", 0);
+                auto& prog=*eclipsedDoubleScatteringPrecomputedPrograms_[wlSetIndex];
+                prog.bind();
+                prog.setUniformValue("cameraPosition", toQVector(cameraPosition()));
+                prog.setUniformValue("sunDirection", toQVector(sunDirection()));
+                prog.setUniformValue("sunAngularRadius", float(tools_->sunAngularRadius()));
+                prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
+                prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
-                prog.setUniformValue("eclipsedDoubleScatteringTextureSize", toQVector(glm::vec3(params_.eclipsedDoubleScatteringTextureSize)));
+                if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
+                {
+                    // The same texture is used for upper and lower slices
+                    auto& tex=*eclipsedDoubleScatteringPrecomputationTargetTextures_[wlSetIndex];
+                    tex.setMinificationFilter(texFilter);
+                    tex.setMagnificationFilter(texFilter);
+                    tex.bind(0);
+                    prog.setUniformValue("eclipsedDoubleScatteringTexture", 0);
+                    prog.setUniformValue("eclipsedDoubleScatteringTextureSize", QVector3D(params_.eclipsedDoubleScatteringTextureSize[0],
+                                                                                          params_.eclipsedDoubleScatteringTextureSize[1], 1));
+                }
+                else
+                {
+                    assert(!params_.noEclipsedDoubleScatteringTextures);
+
+                    auto& texture=*eclipsedDoubleScatteringTextures_[wlSetIndex];
+                    texture.setMinificationFilter(texFilter);
+                    texture.setMagnificationFilter(texFilter);
+                    texture.bind(0);
+                    prog.setUniformValue("eclipsedDoubleScatteringTexture", 0);
+
+                    prog.setUniformValue("eclipsedDoubleScatteringTextureSize", toQVector(glm::vec3(params_.eclipsedDoubleScatteringTextureSize)));
+                }
+                drawSurface(prog);
             }
-            drawSurface(prog);
         }
     }
     else
@@ -2122,7 +2333,10 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     , pathToData_(pathToData)
     , luminanceRenderTargetTexture_(QOpenGLTexture::Target2D)
 {
-    params_.parse(pathToData + "/params.atmo", AtmosphereParameters::ForceNoEDSTextures{false}, AtmosphereParameters::SkipSpectra{true});
+    params_.parse(pathToData + "/params.atmo",
+                  AtmosphereParameters::ForceNoEDSTextures{false},
+                  AtmosphereParameters::ForceNoEMSMap{false},
+                  AtmosphereParameters::SkipSpectra{true});
     resetSolarSpectrum();
 }
 

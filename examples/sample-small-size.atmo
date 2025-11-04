@@ -14,11 +14,16 @@ scattering texture size for altitude: 32
 eclipsed scattering texture size for relative azimuth: 32
 eclipsed scattering texture size for VZA: 128
 
+# XXX: these are obsolete, will be removed in a future version
 eclipsed double scattering texture size for relative azimuth: 16
 eclipsed double scattering texture size for VZA: 128
 eclipsed double scattering texture size for SZA: 16
+
 eclipsed double scattering number of azimuth pairs to sample: 2
 eclipsed double scattering number of elevation pairs to sample: 10
+eclipsed atmosphere map altitude layers: 50
+eclipsed atmosphere map cubemap side: 50
+eclipsed atmosphere map eclipse phase layers: 50
 
 light pollution texture size for VZA: 128
 light pollution texture size for altitude: 64

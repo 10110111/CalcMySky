@@ -26,6 +26,7 @@
 
 namespace
 {
+constexpr double ECLIPSE_EARTH_SWEEP_POINTS_FRACTION = 0.94;
 
 unsigned long long getUInt(QString const& value, const unsigned long long min, const unsigned long long max,
                            QString const& filename, int lineNumber)
@@ -467,7 +468,8 @@ void AtmosphereParameters::Scatterer::finalizeLoading()
     }
 }
 
-void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNoEDSTextures forceNoEDSTextures, const SkipSpectra skipSpectra)
+void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNoEDSTextures forceNoEDSTextures,
+                                 const ForceNoEMSMap forceNoEMSMap, const SkipSpectra skipSpectra)
 {
     QFile atmoDescr(atmoDescrFileName);
     if(!atmoDescr.open(QIODevice::ReadOnly))
@@ -495,10 +497,19 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             noEclipsedDoubleScatteringTextures=true;
             continue;
         }
+        if(codeAndComment[0]==NO_ECLIPSED_MULTILE_SCATTERING_MAP_DIRECTIVE)
+        {
+            noEclipsedMultipleScatteringMap=true;
+            continue;
+        }
 
         if(forceNoEDSTextures)
         {
             noEclipsedDoubleScatteringTextures=true;
+        }
+        if(forceNoEMSMap)
+        {
+            noEclipsedMultipleScatteringMap=true;
         }
 
         const auto keyValue=codeAndComment[0].split(':');
@@ -562,6 +573,12 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             eclipsedDoubleScatteringTextureSize[1]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="eclipsed double scattering texture size for sza")
             eclipsedDoubleScatteringTextureSize[2]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed atmosphere map altitude layers")
+            eclipsedAtmoMapAltitudeLayerCount=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed atmosphere map eclipse phase layers")
+            eclipsedAtmoMapPhaseCount=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
+        else if(key=="eclipsed atmosphere map cubemap side")
+            eclipsedCubeMapSide=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="light pollution texture size for vza")
             lightPollutionTextureSize[0]=getUInt(value,1,GLSIZEI_MAX, atmoDescrFileName, lineNumber);
         else if(key=="light pollution texture size for altitude")
@@ -627,6 +644,11 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             qWarning() << "Unknown key:" << key;
     }
     eclipsedDoubleScatteringTextureSize[3]=scatteringTextureSize[3];
+    if(!(eclipsedAtmoMapAltitudeLayerCount && eclipsedCubeMapSide && eclipsedAtmoMapPhaseCount) && !noEclipsedDoubleScatteringTextures)
+    {
+        qWarning() << "Eclipsed atmosphere map parameters not defined, will skip creation of the map";
+        noEclipsedDoubleScatteringTextures=true;
+    }
 
     lengthOfHorizRayFromGroundToBorderOfAtmo=std::sqrt(atmosphereHeight*(atmosphereHeight+2*earthRadius));
 
@@ -669,4 +691,122 @@ QString AtmosphereParameters::spectrumToString(std::vector<glm::vec4> const& spe
     if(!out.isEmpty())
         out.resize(out.size()-1); // Remove trailing comma
     return out;
+}
+
+double AtmosphereParameters::getSubsolarPointToMoonAngle(const int phasePointIn) const
+{
+    const double Rs = sunRadius;
+    const double Rm = moonRadius;
+    const double Re = earthRadius;
+    const double H  = atmosphereHeight;
+    const double dES = earthSunDistance;
+    const double dEM = earthMoonDistance;
+    using namespace std;
+    // This is the angle when the center of the lunar shadow axis is touching the ground.
+    const auto shadowTouchAngle = acos(Re/dES) - acos(Re/dEM);
+    // This is the angle when lunar penumbra is at its first/last contact with the (spherical) Earth's TOA.
+    const auto maxAngle = M_PI/2 + asin((Rs-(Re+H)) / dES) - acos((Rm+(Re+H)) / dEM);
+
+    // Take 1-ECLIPSE_EARTH_SWEEP_POINTS_FRACTION part of all the points to represent
+    // the states between the situations when the shadow center touches the
+    // ground and when the penumbra edge touches the TOA. The rest of the
+    // points will represent the shadow center sweeping the Earth, with uniform
+    // spacing in shadow-subsolarPoint angle.
+    const int numPointsInsideEarth = std::lround(eclipsedAtmoMapPhaseCount * ECLIPSE_EARTH_SWEEP_POINTS_FRACTION);
+    double phasePoint = phasePointIn;
+    if(phasePoint < numPointsInsideEarth)
+    {
+        // Compensate for increased sample density near shadowTouchAngle
+        const double numInputPointsWithIncreasedDensity = max(1u, 1*eclipsedAtmoMapPhaseCount/50);
+        const double numOutputPointsAtEnd = max(1u, 5*eclipsedAtmoMapPhaseCount/50);
+        const double slopeSwitchPoint = numPointsInsideEarth - 1 - numOutputPointsAtEnd;
+        if(phasePoint < slopeSwitchPoint)
+        {
+            phasePoint *= (1 + numInputPointsWithIncreasedDensity - numPointsInsideEarth) / (1 + numOutputPointsAtEnd - numPointsInsideEarth);
+        }
+        else
+        {
+            phasePoint = numPointsInsideEarth-1 - numInputPointsWithIncreasedDensity * sqr((numPointsInsideEarth-1 - phasePoint) / numOutputPointsAtEnd);
+        }
+
+        return shadowTouchAngle * phasePoint / (numPointsInsideEarth - 1);
+    }
+    else
+    {
+        // The case when the shadow touches the ground was handled in the other branch, so here we omit it.
+        const auto dAngle = maxAngle - shadowTouchAngle;
+        const double numPointsOutsideEarth = eclipsedAtmoMapPhaseCount - numPointsInsideEarth;
+        return shadowTouchAngle + dAngle * (phasePoint - numPointsInsideEarth + 1) / numPointsOutsideEarth;
+    }
+}
+
+// This is an inverse of getSubsolarPointToMoonAngle()
+double AtmosphereParameters::getEclipsePhaseIndex(const double subsolarPointToMoonAngle) const
+{
+    const double Rs = sunRadius;
+    const double Rm = moonRadius;
+    const double Re = earthRadius;
+    const double H  = atmosphereHeight;
+    const double dES = earthSunDistance;
+    const double dEM = earthMoonDistance;
+    using namespace std;
+    // This is the angle when the center of the lunar shadow axis is touching the ground.
+    const auto shadowTouchAngle = acos(Re/dES) - acos(Re/dEM);
+    // This is the angle when lunar penumbra is at its first/last contact with the (spherical) Earth's TOA.
+    const auto maxAngle = M_PI/2 + asin((Rs-(Re+H)) / dES) - acos((Rm+(Re+H)) / dEM);
+
+    // Take 1-ECLIPSE_EARTH_SWEEP_POINTS_FRACTION part of all the points to represent
+    // the states between the situations when the shadow center touches the
+    // ground and when the penumbra edge touches the TOA. The rest of the
+    // points will represent the shadow center sweeping the Earth, with uniform
+    // spacing in shadow-subsolarPoint angle.
+    const int numPointsInsideEarth = std::lround(eclipsedAtmoMapPhaseCount * ECLIPSE_EARTH_SWEEP_POINTS_FRACTION);
+    double phasePoint = subsolarPointToMoonAngle * (numPointsInsideEarth - 1) / shadowTouchAngle;
+    if(phasePoint > numPointsInsideEarth - 1)
+    {
+        // The case when the shadow touches the ground was handled in the other branch, so here we omit it.
+        const auto dAngle = maxAngle - shadowTouchAngle;
+        const double numPointsOutsideEarth = eclipsedAtmoMapPhaseCount - numPointsInsideEarth;
+        phasePoint = (subsolarPointToMoonAngle - shadowTouchAngle) * numPointsOutsideEarth / dAngle + numPointsInsideEarth - 1;
+        if(phasePoint > eclipsedAtmoMapPhaseCount - 1)
+            phasePoint = eclipsedAtmoMapPhaseCount - 1;
+    }
+    else
+    {
+        // Increase sample density near shadowTouchAngle, otherwise the warping of texture coordinates results in terminator jump
+        const double numInputPointsWithIncreasedDensity = max(1u, 1*eclipsedAtmoMapPhaseCount/50);
+        const double numOutputPointsAtEnd = max(1u, 5*eclipsedAtmoMapPhaseCount/50);
+        const double slopeSwitchPoint = numPointsInsideEarth - 1 - numInputPointsWithIncreasedDensity;
+        if(phasePoint < slopeSwitchPoint)
+        {
+            phasePoint *= (1 + numOutputPointsAtEnd - numPointsInsideEarth) / (1 + numInputPointsWithIncreasedDensity - numPointsInsideEarth);
+        }
+        else
+        {
+            phasePoint = numPointsInsideEarth-1 - numOutputPointsAtEnd * sqrt((numPointsInsideEarth-1 - phasePoint) / numInputPointsWithIncreasedDensity);
+        }
+    }
+    return phasePoint;
+}
+
+double AtmosphereParameters::getLunarShadowAngleFromSubsolarPoint(const double subsolarPointToMoonAngle) const
+{
+    using namespace std;
+    const double Re = earthRadius;
+    const double dES = earthSunDistance;
+    const double dEM = earthMoonDistance;
+
+    const auto cosSSM = cos(subsolarPointToMoonAngle);
+    const auto sinSSM = sin(subsolarPointToMoonAngle);
+
+    // Tangent of the angle between Earth and Moon from Sun's perspective
+    const auto tanEarthToMoonAngleForSun = dEM * sinSSM / (dES - dEM * cosSSM);
+
+    const auto cosEMS = 1 / sqrt(1 + sqr(tanEarthToMoonAngleForSun));
+    const auto sinEMS = cosEMS * tanEarthToMoonAngleForSun;
+
+    const auto discrim = (sqr(Re) - sqr(dES * sinEMS)) * sqr(sinEMS);
+    const auto sinAngle = (dES * cosEMS * sinEMS - sqrt(max(0., discrim))) / Re;
+    const auto angle = asin(min(1., sinAngle));
+    return angle;
 }

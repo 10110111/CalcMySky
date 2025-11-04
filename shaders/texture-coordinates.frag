@@ -666,3 +666,200 @@ vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZ
     CONST float altitudeTC = unitRangeToTexCoord(coords.altitude, texSize[1]);
     return vec2(cosVZAtc, altitudeTC);
 }
+
+vec3 computeEclipsedMultipleScatteringMapPoint(const int cubeSideLength, const int eclipsedAtmoMapAltitudeLayerCount,
+                                               const ivec2 pixelIndex, const float lunarShadowAngleFromSubsolarPoint,
+                                               out vec3 zenith, out float altitude)
+{
+    /* Each altitude layer of the map is organized as follows (x marks theoretically present values
+       that aren't stored due to the symmetry; o marks the subsolar point; number at the beginning
+       indicates offset of the subtexture in the horizontal line of textures):
+
+      azimuth=0° (with respect to the Moon)
+           |
+           v_____
+      xxxxx|     |
+      xxxxx|  0  |            azimuth=180°
+      xxxxxo Sub-|azimuth=90°     |
+      xxxxx|solar|    |           |
+      xxxxx|_____|____v_____ _____v
+      xxxxx|     |          |     |xxxxx
+      xxxxx|  1  |    3     |  4  |xxxxx
+      xxxxx|     |          |     |xxxxx
+      xxxxx|     |          |     |xxxxx
+      xxxxx|_____|__________|_____|xxxxx
+      xxxxx|  2  |
+      xxxxx|Anti-|
+      xxxxx|sub- |
+      xxxxx|solar|
+      xxxxx|_____|
+
+      I.e. we get the following layout:
+       __________________________________
+      |     |     |     |          |     |
+      |  0  |  1  |  2  |    3     |  4  |
+      | Zen-|     | Nad-|          |     |
+      | ith |     | ir  |          |     |
+      |_____|_____|_____|__________|_____|
+
+       So for a cubemap with cube side of W×H = 50px × 50px we'll have a texture layer 150px × 50px.
+       These layers are then stacked vertically in N altitude rows to yield a texture of size W × (H*N).
+       So for e.g. 50 altitude layers N = 50px, and we'll get a texture 150px × 2500px.
+
+     */
+    CONST int x = pixelIndex.x;
+    CONST int y = pixelIndex.y;
+    CONST int halfCubeSide = cubeSideLength / 2;
+    CONST int altitudeLayerIndex = y / cubeSideLength;
+    // yInAltLayer \in [-1, 1]
+    CONST float yInAltLayer = y % cubeSideLength / float(cubeSideLength - 1) * 2 - 1;
+    int cubeSector = x / halfCubeSide;
+    float xInCubeSide;
+    switch(cubeSector)
+    {
+    case 3:
+    case 4:
+        cubeSector = 3;
+        // xInCubeSide \in [-1, 1]
+        xInCubeSide = (x - 3 * halfCubeSide) / float(cubeSideLength - 1) * 2 - 1;
+        break;
+    case 5:
+        cubeSector = 4;
+        // xInCubeSide \in [-1, 0]
+        xInCubeSide = (x - (6 * halfCubeSide - 1)) / float(halfCubeSide - 1);
+        break;
+    default:
+        // xInCubeSide \in [0, 1]
+        xInCubeSide = (x - cubeSector * halfCubeSide) / float(halfCubeSide - 1);
+        break;
+    }
+
+    zenith = vec3(0);
+    switch(cubeSector)
+    {
+    case 0:
+        zenith = normalize(vec3(-yInAltLayer,
+                                xInCubeSide,
+                                1));
+        break;
+    case 1:
+        zenith = normalize(vec3(1,
+                                xInCubeSide,
+                                yInAltLayer));
+        break;
+    case 2:
+        zenith = normalize(vec3(yInAltLayer,
+                                xInCubeSide,
+                                -1));
+        break;
+    case 3:
+        zenith = normalize(vec3(-xInCubeSide,
+                                1,
+                                yInAltLayer));
+        break;
+    case 4:
+        zenith = normalize(vec3(-1,
+                                -xInCubeSide,
+                                yInAltLayer));
+        break;
+    }
+
+    {
+        // Warping the coordinates to concentrate samples near the lunar shadow
+        CONST mat3 rot = rotationMatrixY(PI - lunarShadowAngleFromSubsolarPoint);
+        CONST vec3 xyzWithShadowInAntisolarPoint = rot * zenith;
+        CONST float r = length(xyzWithShadowInAntisolarPoint);
+        CONST float theta = asin(clampCosine(xyzWithShadowInAntisolarPoint.z / r));
+        CONST float phi = safeAtan(xyzWithShadowInAntisolarPoint.y, xyzWithShadowInAntisolarPoint.x);
+        CONST float warpedTheta = -0.5*(3+2*sqrt(2))*PI + 0.5*(1+sqrt(2)) * safeSqrt(5*PI*PI + 4*PI*theta + 4*theta*theta);
+        CONST vec3 warpedXYZWithShadowInAntisolarPoint = vec3(cos(phi)*cos(warpedTheta), sin(phi)*cos(warpedTheta), sin(warpedTheta));
+        zenith = transpose(rot) * warpedXYZWithShadowInAntisolarPoint;
+    }
+
+    altitude = sqr(float(altitudeLayerIndex) / (eclipsedAtmoMapAltitudeLayerCount - 1)) * atmosphereHeight;
+    // All points are now computed relative to the subsolar point
+    CONST vec3 mapPoint = zenith * (earthRadius + altitude) + earthCenter;
+    return mapPoint;
+}
+
+vec3 computeEclipsedMultipleScatteringMapTexCoords(const int cubeSideLength,
+                                                   const int eclipsedAtmoMapAltitudeLayerCount,
+                                                   const float lunarShadowAngleFromSubsolarPoint,
+                                                   vec3 zenith, const float altitude)
+{
+    {
+        // Warping the coordinates back to compensate the concentrated samples near the lunar shadow
+        CONST mat3 rot = rotationMatrixY(PI - lunarShadowAngleFromSubsolarPoint);
+        CONST vec3 xyzWithShadowInAntisolarPoint = rot * zenith;
+        CONST float r = length(xyzWithShadowInAntisolarPoint);
+        CONST float theta = asin(clampCosine(xyzWithShadowInAntisolarPoint.z / r));
+        CONST float phi = safeAtan(xyzWithShadowInAntisolarPoint.y, xyzWithShadowInAntisolarPoint.x);
+        CONST float warpedTheta = 0.5 * (-PI + sqrt((PI + 2 * theta) * ((2*sqrt(2)-1)*PI + 6 * theta - 4 * sqrt(2) * theta)));
+        CONST vec3 warpedXYZWithShadowInAntisolarPoint = vec3(cos(phi)*cos(warpedTheta), sin(phi)*cos(warpedTheta), sin(warpedTheta));
+        zenith = transpose(rot) * warpedXYZWithShadowInAntisolarPoint;
+    }
+
+    CONST int halfCubeSide = cubeSideLength / 2;
+    CONST vec3 azen = abs(zenith);
+    float iInCubeSide, yInAltLayer;
+    float iOffsetInTex;
+    if(azen.x >= azen.y && azen.x >= azen.z)
+    {
+        // max is along the x axis
+        if(zenith.x > 0)
+        {
+            // sector 1
+            iInCubeSide = abs(zenith.y / zenith.x) * (halfCubeSide - 1);
+            yInAltLayer = zenith.z / zenith.x;
+            iOffsetInTex = halfCubeSide;
+        }
+        else
+        {
+            // sector 4
+            iInCubeSide = -abs(zenith.y / zenith.x) * (halfCubeSide - 1);
+            yInAltLayer = zenith.z / -zenith.x;
+            iOffsetInTex = halfCubeSide * 6 - 1;
+        }
+    }
+    else if(azen.y >= azen.z && azen.y >= azen.x)
+    {
+        // max is along the y axis
+        if(zenith.y > 0)
+        {
+            // sector 3
+            iInCubeSide = (-zenith.x / zenith.y + 1.) / 2. * (cubeSideLength - 1);
+            yInAltLayer = zenith.z / zenith.y;
+            iOffsetInTex = halfCubeSide * 3;
+        }
+        else
+        {
+            // sector 3 but mirrored in the horizontal direction
+            iInCubeSide = (zenith.x / zenith.y + 1.) / 2. * (cubeSideLength - 1);
+            yInAltLayer = zenith.z / -zenith.y;
+            iOffsetInTex = halfCubeSide * 3;
+        }
+    }
+    else
+    {
+        // max is along the z axis
+        if(zenith.z > 0)
+        {
+            // sector 0
+            iInCubeSide = abs(zenith.y / zenith.z) * (halfCubeSide - 1);
+            yInAltLayer = -zenith.x / zenith.z;
+            iOffsetInTex = 0;
+        }
+        else
+        {
+            // sector 2
+            iInCubeSide = abs(zenith.y / -zenith.z) * (halfCubeSide - 1);
+            yInAltLayer = zenith.x / -zenith.z;
+            iOffsetInTex = cubeSideLength;
+        }
+    }
+
+    CONST float s = (iOffsetInTex + iInCubeSide + 0.5) / (3. * cubeSideLength);
+    CONST float t = unitRangeToTexCoord((yInAltLayer + 1.) / 2., cubeSideLength);
+    CONST float p = unitRangeToTexCoord(sqrt(altitude / atmosphereHeight), eclipsedAtmoMapAltitudeLayerCount);
+    return vec3(s,t,p);
+}

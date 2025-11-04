@@ -40,6 +40,33 @@ void swap(inout float x, inout float y)
     y = t;
 }
 
+mat3 rotationMatrixX(const float angle)
+{
+    CONST float cosa = cos(angle);
+    CONST float sina = sin(angle);
+    return mat3(1,   0,     0,
+                0,  cosa, sina,
+                0, -sina, cosa);
+}
+
+mat3 rotationMatrixY(const float angle)
+{
+    CONST float cosa = cos(angle);
+    CONST float sina = sin(angle);
+    return mat3(cosa, 0, -sina,
+                0,    1,   0,
+                sina, 0,  cosa);
+}
+
+mat3 rotationMatrixZ(const float angle)
+{
+    CONST float cosa = cos(angle);
+    CONST float sina = sin(angle);
+    return mat3(cosa, sina, 0,
+               -sina, cosa, 0,
+                0,     0,   1);
+}
+
 // Assumes that if its argument is negative, it's due to rounding errors and
 // should instead be zero.
 float safeSqrt(const float x)
