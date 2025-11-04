@@ -59,6 +59,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     Manipulator* lightPollutionGroundLuminance_=nullptr;
     QCheckBox* onTheFlySingleScatteringEnabled_=nullptr;
     QCheckBox* onTheFlyPrecompDoubleScatteringEnabled_=nullptr;
+    QCheckBox* useEclipseMultipleScattering_=nullptr;
     QCheckBox* zeroOrderScatteringEnabled_=nullptr;
     QCheckBox* singleScatteringEnabled_=nullptr;
     QCheckBox* multipleScatteringEnabled_=nullptr;
@@ -72,6 +73,7 @@ class ToolsWidget : public QDockWidget, public ShowMySky::Settings
     RadiancePlot* radiancePlot_=nullptr;
     QCheckBox* windowDecorationEnabled_=nullptr;
     QVector<QCheckBox*> scatterers;
+    bool noEclipsedDoubleScatteringTextures_ = false;
 public:
     ToolsWidget(QWidget* parent=nullptr);
 
@@ -87,7 +89,8 @@ public:
     float cameraPitch() const { return degree*cameraPitch_->value(); }
     double lightPollutionGroundLuminance() override { return lightPollutionGroundLuminance_->value(); }
     bool onTheFlySingleScatteringEnabled() override { return onTheFlySingleScatteringEnabled_->isChecked(); }
-    bool onTheFlyPrecompDoubleScatteringEnabled() override { return onTheFlyPrecompDoubleScatteringEnabled_->isChecked(); }
+    bool onTheFlyPrecompDoubleScatteringEnabled() override;
+    bool useEclipseMultipleScattering() override { return useEclipseMultipleScattering_->isChecked(); }
     bool zeroOrderScatteringEnabled() override { return zeroOrderScatteringEnabled_->isChecked(); }
     bool singleScatteringEnabled() override { return singleScatteringEnabled_->isChecked(); }
     bool multipleScatteringEnabled() override { return multipleScatteringEnabled_->isChecked(); }

@@ -197,6 +197,7 @@ void handleCmdLine()
     const QCommandLineOption dbgNoSaveTexturesOpt("no-save-tex","Don't save textures, only save shaders and other fast-to-compute data; don't run the long 4D "
                                                                 "textures computations (for debugging)");
     const QCommandLineOption dbgNoEDSTexturesOpt("no-eds-tex","Don't compute/save eclipsed double scattering textures (for debugging)");
+    const QCommandLineOption dbgNoEMSMapOpt("no-ems-map","Don't compute/save eclipsed multiple scattering map (for debugging)");
     const QCommandLineOption dbgSaveGroundIrradianceOpt("save-irradiance","Save intermediate ground irradiance textures (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOrder2FromGroundOpt("save-scat-density2-from-ground","Save order 2 scattering density from ground (for debugging)");
     const QCommandLineOption dbgSaveScatDensityOpt("save-scat-density","Save scattering density textures (for debugging)");
@@ -210,6 +211,7 @@ void handleCmdLine()
                         saveResultAsRadianceOpt,
                         textureSavePrecisionOpt,
                         dbgNoEDSTexturesOpt,
+                        dbgNoEMSMapOpt,
                         dbgNoSaveTexturesOpt,
                         printOpenGLInfoAndQuit,
                         openglDebug,
@@ -246,6 +248,8 @@ void handleCmdLine()
         opts.dbgNoSaveTextures=true;
     if(parser.isSet(dbgNoEDSTexturesOpt))
         opts.dbgNoEDSTextures=true;
+    if(parser.isSet(dbgNoEMSMapOpt))
+        opts.dbgNoEMSMap=true;
     if(parser.isSet(saveResultAsRadianceOpt))
         opts.saveResultAsRadiance=true;
     if(parser.isSet(dbgSaveGroundIrradianceOpt))
@@ -291,7 +295,8 @@ void handleCmdLine()
     if(!posArgs.isEmpty())
     {
         const auto atmoDescrFileName=posArgs[0];
-        atmo.parse(atmoDescrFileName, AtmosphereParameters::ForceNoEDSTextures{opts.dbgNoEDSTextures});
+        atmo.parse(atmoDescrFileName, AtmosphereParameters::ForceNoEDSTextures{opts.dbgNoEDSTextures},
+                   AtmosphereParameters::ForceNoEMSMap{opts.dbgNoEMSMap});
     }
     else if(!opts.printOpenGLInfoAndQuit)
     {

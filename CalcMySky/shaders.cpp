@@ -212,8 +212,22 @@ vec4 totalScatteringCoefficient(float altitude, float dotViewInc)
                " * phaseFunction_"+scatterer.name+"(dotViewInc)\n";
     }
     src += "        ;\n}\n";
+    src += R"(
+// This function computes the scattering coefficient integrated
+// over the whole solid angle of scattering directions.
+vec4 totalScatteringCoefficientIsotropic(float altitude)
+{
+    return
+)";
+    for(auto const& scatterer : atmo.scatterers)
+    {
+        src += "        + scatteringCrossSection_"+scatterer.name+
+               " * scattererNumberDensity_"+scatterer.name+"(altitude)\n";
+    }
+    src += "        ;\n}\n";
     virtualHeaderFiles[TOTAL_SCATTERING_COEFFICIENT_HEADER_FILENAME]=
-        "vec4 totalScatteringCoefficient(float altitude, float dotViewInc);\n";
+        "vec4 totalScatteringCoefficient(float altitude, float dotViewInc);\n"
+        "vec4 totalScatteringCoefficientIsotropic(float altitude);\n";
     return src;
 }
 
