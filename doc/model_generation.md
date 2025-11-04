@@ -217,7 +217,7 @@ Due to the symmetry of the uniformly-glowing-globe approximation, light pollutio
 
 ### `Earth-Sun distance`, `Earth-Moon distance`, `Earth radius`
 
-These entries are [dimensionful](#dimensionful-quantities). They define the physical constants used in the model. Earth-Sun distance can be from \f$0.5\,\mathrm{AU}\f$ to \f$10^{20}\,\mathrm{AU},\f$ Earth-Moon distance can be from \f$10^{-4}\,\mathrm{AU}\f$ to \f$10^{20}\,\mathrm{AU},\f$ and Earth radius can be from 100&nbsp;km to 10&nbsp;Gm.
+These entries are [dimensionful](#dimensionful-quantities). They define the physical constants used in the model: the distances between the centers of corresponding bodies. Earth-Sun distance can be from \f$0.5\,\mathrm{AU}\f$ to \f$10^{20}\,\mathrm{AU},\f$ Earth-Moon distance can be from \f$10^{-4}\,\mathrm{AU}\f$ to \f$10^{20}\,\mathrm{AU},\f$ and Earth radius can be from 100&nbsp;km to 10&nbsp;Gm.
 
 Earth-Moon distance is used only for precomputation of eclipsed double scattering.
 
