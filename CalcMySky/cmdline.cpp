@@ -295,7 +295,8 @@ void handleCmdLine()
     if(!posArgs.isEmpty())
     {
         const auto atmoDescrFileName=posArgs[0];
-        atmo.parse(atmoDescrFileName, AtmosphereParameters::ForceNoEDSTextures{opts.dbgNoEDSTextures});
+        atmo.parse(atmoDescrFileName, AtmosphereParameters::ForceNoEDSTextures{opts.dbgNoEDSTextures},
+                   AtmosphereParameters::ForceNoEMSMap{opts.dbgNoEMSMap});
     }
     else if(!opts.printOpenGLInfoAndQuit)
     {

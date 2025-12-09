@@ -467,7 +467,8 @@ void AtmosphereParameters::Scatterer::finalizeLoading()
     }
 }
 
-void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNoEDSTextures forceNoEDSTextures, const SkipSpectra skipSpectra)
+void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNoEDSTextures forceNoEDSTextures,
+                                 const ForceNoEMSMap forceNoEMSMap, const SkipSpectra skipSpectra)
 {
     QFile atmoDescr(atmoDescrFileName);
     if(!atmoDescr.open(QIODevice::ReadOnly))
@@ -495,10 +496,19 @@ void AtmosphereParameters::parse(QString const& atmoDescrFileName, const ForceNo
             noEclipsedDoubleScatteringTextures=true;
             continue;
         }
+        if(codeAndComment[0]==NO_ECLIPSED_MULTILE_SCATTERING_MAP_DIRECTIVE)
+        {
+            noEclipsedMultipleScatteringMap=true;
+            continue;
+        }
 
         if(forceNoEDSTextures)
         {
             noEclipsedDoubleScatteringTextures=true;
+        }
+        if(forceNoEMSMap)
+        {
+            noEclipsedMultipleScatteringMap=true;
         }
 
         const auto keyValue=codeAndComment[0].split(':');

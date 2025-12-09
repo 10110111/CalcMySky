@@ -1215,6 +1215,39 @@ void computeEclipsedAtmosphere(const unsigned texIndex)
     computeEclipsedSingleScatteringMap(texIndex);
 }
 
+void saveEclipsedMultipleScatteringRenderingShader(const unsigned texIndex)
+{
+    std::vector<std::pair<QString, QString>> sourcesToSave;
+    virtualSourceFiles[viewDirFuncFileName]=viewDirStubFunc;
+    virtualSourceFiles[renderShaderFileName]=getShaderSrc(renderShaderFileName,IgnoreCache{})
+                                                .replace(QRegularExpression("\\b(RENDERING_ECLIPSED_MULTIPLE_SCATTERING)\\b"), "1 /*\\1*/");
+    const auto program=compileShaderProgram(renderShaderFileName,
+                                            "eclipsed multiple scattering map integration shader program",
+                                            UseGeomShader{false}, &sourcesToSave);
+    for(const auto& [filename, src] : sourcesToSave)
+    {
+        if(filename==viewDirFuncFileName) continue;
+
+        const auto filePath = QString("%1/shaders/eclipsed-multiple-scattering-map-integration/%2/%3")
+                                    .arg(atmo.textureOutputDir.c_str()).arg(texIndex).arg(filename);
+        std::cerr << indentOutput() << "Saving shader \"" << filePath << "\"...";
+        QFile file(filePath);
+        if(!file.open(QFile::WriteOnly))
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        file.write(src.toUtf8());
+        file.flush();
+        if(file.error())
+        {
+            std::cerr << " failed: " << file.errorString().toStdString() << "\"\n";
+            throw MustQuit{};
+        }
+        std::cerr << "done\n";
+    }
+}
+
 void computeLightPollutionSingleScattering(const unsigned texIndex)
 {
     std::cerr << indentOutput() << "Computing light pollution single scattering... ";
@@ -1397,6 +1430,7 @@ int main(int argc, char** argv)
             if(opts.saveResultAsRadiance)
                 createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputed/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/shaders/double-scattering-eclipsed/precomputation/"+std::to_string(texIndex));
+            createDirs(atmo.textureOutputDir+"/shaders/eclipsed-multiple-scattering-map-integration/"+std::to_string(texIndex));
             createDirs(atmo.textureOutputDir+"/single-scattering/"+std::to_string(texIndex));
         }
         createDirs(atmo.textureOutputDir+"/shaders/multiple-scattering/");
@@ -1496,6 +1530,7 @@ int main(int argc, char** argv)
                 saveEclipsedDoubleScatteringRenderingShader(texIndex);
             }
             computeEclipsedDoubleScattering(texIndex);
+            saveEclipsedMultipleScatteringRenderingShader(texIndex);
             computeEclipsedAtmosphere(texIndex);
         }
         if(!opts.saveResultAsRadiance)

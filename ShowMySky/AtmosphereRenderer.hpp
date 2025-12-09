@@ -110,6 +110,7 @@ private: // variables
     GLuint eclipseDoubleScatteringPrecomputationFBO_=0;
     // Lower and upper altitude slices from the 4D texture
     std::vector<TexturePtr> eclipsedDoubleScatteringTextures_;
+    std::vector<std::vector<TexturePtr>> eclipsedMultipleScatteringMaps_; // [wlSetIndex][eclipsePhaseIndex]
     std::vector<TexturePtr> multipleScatteringTextures_;
     std::vector<TexturePtr> transmittanceTextures_;
     std::vector<TexturePtr> irradianceTextures_;
@@ -131,6 +132,7 @@ private: // variables
     std::vector<ShaderProgPtr> zeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> eclipsedZeroOrderScatteringPrograms_;
     std::vector<ShaderProgPtr> multipleScatteringPrograms_;
+    std::vector<ShaderProgPtr> eclipsedMultipleScatteringPrograms_;
     // Indexed as singleScatteringPrograms_[renderMode][scattererName][wavelengthSetIndex]
     using ScatteringProgramsMap=std::map<ScattererName,std::vector<ShaderProgPtr>>;
     std::vector<std::unique_ptr<ScatteringProgramsMap>> singleScatteringPrograms_;
@@ -170,6 +172,7 @@ private: // methods
 
     double altitudeUnitRangeTexCoord() const;
     double cameraMoonDistance() const;
+    glm::dvec3 earthCenter() const;
     glm::dvec3 sunDirection() const;
     glm::dvec3 moonPosition() const;
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
@@ -182,6 +185,7 @@ private: // methods
     };
     void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
     void loadEclipsedDoubleScatteringTexture(QString const& path, float altitudeCoord);
+    void loadEclipsedMultipleScatteringMap(QString const& path, unsigned wlSetIndex, QOpenGLTexture::Filter texFilter);
 
     void precomputeEclipsedSingleScattering();
     void precomputeEclipsedDoubleScattering();
