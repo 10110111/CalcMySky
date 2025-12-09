@@ -110,6 +110,7 @@ private: // variables
     GLuint eclipseDoubleScatteringPrecomputationFBO_=0;
     // Lower and upper altitude slices from the 4D texture
     std::vector<TexturePtr> eclipsedDoubleScatteringTextures_;
+    std::vector<std::vector<TexturePtr>> eclipsedMultipleScatteringMaps_; // [wlSetIndex][eclipsePhaseIndex]
     std::vector<TexturePtr> multipleScatteringTextures_;
     std::vector<TexturePtr> transmittanceTextures_;
     std::vector<TexturePtr> irradianceTextures_;
@@ -182,6 +183,7 @@ private: // methods
     };
     void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
     void loadEclipsedDoubleScatteringTexture(QString const& path, float altitudeCoord);
+    void loadEclipsedMultipleScatteringMap(QString const& path, unsigned wlSetIndex);
 
     void precomputeEclipsedSingleScattering();
     void precomputeEclipsedDoubleScattering();

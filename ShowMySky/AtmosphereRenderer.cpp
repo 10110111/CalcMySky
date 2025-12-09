@@ -183,6 +183,82 @@ void AtmosphereRenderer::loadEclipsedDoubleScatteringTexture(QString const& path
     log << "done";
 }
 
+void AtmosphereRenderer::loadEclipsedMultipleScatteringMap(QString const& path, const unsigned wlSetIndex)
+{
+    auto log=qDebug().nospace();
+
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{QObject::tr("GL error on entry to loadEclipsedMultipleScatteringMap(\"%1\"): %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+    log << "Loading texture from " << path << "... ";
+    QFile file(path);
+    if(!file.open(QFile::ReadOnly))
+        throw DataLoadError{QObject::tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
+
+    uint16_t sizes[4];
+    {
+        const qint64 sizeToRead=sizeof sizes;
+        if(file.read(reinterpret_cast<char*>(sizes), sizeToRead) != sizeToRead)
+        {
+            throw DataLoadError{QObject::tr("Failed to read header from file \"%1\": %2")
+                                .arg(path).arg(file.errorString())};
+        }
+    }
+    log << "dimensions from header: " << sizes[0] << "×" << sizes[1] << "×" << sizes[2] << "×" << sizes[3] << "... ";
+
+    const size_t subpixelsPerPixel = 4;
+    const size_t subpixelSize = sizeof(GLfloat);
+    const size_t pixelSize = subpixelsPerPixel*subpixelSize;
+    const qint64 expectedFileSize = file.pos() + pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+    if(expectedFileSize != file.size())
+    {
+        throw DataLoadError{QObject::tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3×%4×%5×%6 from file header.\nThe expected size is %7 bytes.")
+                            .arg(path).arg(file.size()).arg(sizes[0]).arg(sizes[1]).arg(sizes[2]).arg(sizes[3]).arg(expectedFileSize)};
+    }
+
+    const qint64 sizeToRead = pixelSize*uint64_t(sizes[0])*sizes[1]*sizes[2]*sizes[3];
+    const std::unique_ptr<char[]> data(new char[sizeToRead]);
+    const auto actuallyRead=file.read(data.get(), sizeToRead);
+    if(actuallyRead != sizeToRead)
+    {
+        const auto error = actuallyRead==-1 ? QObject::tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
+                                            : QObject::tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
+        throw DataLoadError{error};
+    }
+
+    if(eclipsedMultipleScatteringMaps_.size() <= wlSetIndex)
+        eclipsedMultipleScatteringMaps_.resize(wlSetIndex + 1);
+    auto& textures = eclipsedMultipleScatteringMaps_[wlSetIndex];
+    textures.clear();
+    const int width = sizes[0];
+    const int height = sizes[1];
+    const int depth = sizes[2];
+    const int maxEclipsePhaseIndex = sizes[3];
+    const auto textureSize = size_t(width) * height * depth * sizeof(glm::vec4);
+    for(int eclipsePhaseIndex = 0; eclipsePhaseIndex < maxEclipsePhaseIndex; ++eclipsePhaseIndex)
+    {
+        auto& texture=*textures.emplace_back(newTex(QOpenGLTexture::Target3D));
+        texture.setMinificationFilter(texFilter);
+        texture.setMagnificationFilter(texFilter);
+        texture.setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
+        texture.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
+        texture.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::ClampToEdge);
+        texture.bind();
+
+        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, width, height, depth,
+                        0, GL_RGBA, GL_FLOAT, data.get() + textureSize);
+        if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+        {
+            throw DataLoadError{QObject::tr("GL error in loadTexture4D(\"%1\") after glTexImage3D() call: %2")
+                                .arg(path).arg(openglErrorString(err).c_str())};
+        }
+    }
+
+    log << "done";
+}
+
 void AtmosphereRenderer::loadTexture4D(QString const& path, const float altitudeCoord, Texture4DType texType)
 {
     auto log=qDebug().nospace();
@@ -726,6 +802,26 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
         tex.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
         // dummy dimension
         tex.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::Repeat);
+    }
+
+    if(!params_.noEclipsedMultipleScatteringMap)
+    {
+        for(unsigned wlSetIndex=0; wlSetIndex<params_.allWavelengths.size(); ++wlSetIndex)
+        {
+            if(countStepsOnly)
+            {
+                ++totalLoadingStepsToDo_;
+                continue;
+            }
+            if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
+                continue;
+
+            // FIXME: this file should be renamed single->multiple after we implement Nth scattering maps
+            loadEclipsedMultipleScatteringMap(QString("%1/eclipsed-single-scattering-map-wlset%2.f32")
+                                               .arg(pathToData_).arg(wlSetIndex));
+
+            ++loadingStepsDone_; return;
+        }
     }
 
     if(countStepsOnly)
