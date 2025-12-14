@@ -132,7 +132,7 @@ target_link_libraries(common PUBLIC Qt${QT_VERSION}::Core
 	Qt${QT_VERSION}::OpenGL Qt${QT_VERSION}::Widgets PRIVATE glm::glm
 	Eigen3::Eigen)
 
-add_definitions(-D_USE_MATH_DEFINES)
+add_definitions(-D_USE_MATH_DEFINES -DGLM_ENABLE_EXPERIMENTAL)
 
 configure_file(config.h.in config.h)
 add_subdirectory(CalcMySky)
