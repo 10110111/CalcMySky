@@ -1,4 +1,3 @@
-#define _USE_MATH_DEFINES // for MSVC to define M_PI etc.
 #include "interpolation-guides.hpp"
 #include <cmath>
 #include <vector>

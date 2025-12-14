@@ -2,7 +2,6 @@ if(WIN32)
     set(extraSrc win32res.rc)
 endif()
 
-add_definitions(-D_USE_MATH_DEFINES)
 add_library(ShowMySky SHARED
              api/AtmosphereRenderer.cpp
              AtmosphereRenderer.cpp
