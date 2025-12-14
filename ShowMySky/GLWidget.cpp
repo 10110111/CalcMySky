@@ -5,7 +5,6 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSurfaceFormat>
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 #include "../common/util.hpp"
 #include "../common/const.hpp"
