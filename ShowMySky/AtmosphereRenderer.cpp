@@ -183,7 +183,8 @@ void AtmosphereRenderer::loadEclipsedDoubleScatteringTexture(QString const& path
     log << "done";
 }
 
-void AtmosphereRenderer::loadEclipsedMultipleScatteringMap(QString const& path, const unsigned wlSetIndex)
+void AtmosphereRenderer::loadEclipsedMultipleScatteringMap(QString const& path, const unsigned wlSetIndex,
+                                                           const QOpenGLTexture::Filter texFilter)
 {
     auto log=qDebug().nospace();
 
@@ -818,7 +819,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
 
             // FIXME: this file should be renamed single->multiple after we implement Nth scattering maps
             loadEclipsedMultipleScatteringMap(QString("%1/eclipsed-single-scattering-map-wlset%2.f32")
-                                               .arg(pathToData_).arg(wlSetIndex));
+                                               .arg(pathToData_).arg(wlSetIndex), wlSetIndex, texFilter);
 
             ++loadingStepsDone_; return;
         }
@@ -2216,7 +2217,10 @@ AtmosphereRenderer::AtmosphereRenderer(QOpenGLFunctions_3_3_Core& gl, QString co
     , pathToData_(pathToData)
     , luminanceRenderTargetTexture_(QOpenGLTexture::Target2D)
 {
-    params_.parse(pathToData + "/params.atmo", AtmosphereParameters::ForceNoEDSTextures{false}, AtmosphereParameters::SkipSpectra{true});
+    params_.parse(pathToData + "/params.atmo",
+                  AtmosphereParameters::ForceNoEDSTextures{false},
+                  AtmosphereParameters::ForceNoEMSMap{false},
+                  AtmosphereParameters::SkipSpectra{true});
     resetSolarSpectrum();
 }
 

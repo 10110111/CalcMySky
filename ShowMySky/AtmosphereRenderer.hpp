@@ -183,7 +183,7 @@ private: // methods
     };
     void loadTexture4D(QString const& path, float altitudeCoord, Texture4DType texType = Texture4DType::ScatteringTexture);
     void loadEclipsedDoubleScatteringTexture(QString const& path, float altitudeCoord);
-    void loadEclipsedMultipleScatteringMap(QString const& path, unsigned wlSetIndex);
+    void loadEclipsedMultipleScatteringMap(QString const& path, unsigned wlSetIndex, QOpenGLTexture::Filter texFilter);
 
     void precomputeEclipsedSingleScattering();
     void precomputeEclipsedDoubleScattering();
