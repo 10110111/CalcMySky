@@ -66,7 +66,7 @@ for:
     - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR% %CMAKE_ARGS% -DCMAKE_MAKE_PROGRAM=%MAKE_PROGRAM% -DCMAKE_CXX_COMPILER=%CXX_COMPILER%
 
   build_script:
-    - cmake --build . --config %configuration%
+    - cmake --build . --config %configuration% --verbose
 #    - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
   test_script:
