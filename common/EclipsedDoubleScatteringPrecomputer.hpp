@@ -24,7 +24,6 @@
 #include <utility>
 #include <complex>
 #include <glm/glm.hpp>
-#include <filesystem>
 #include <QtOpenGL>
 #include "AtmosphereParameters.hpp"
 
