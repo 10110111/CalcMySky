@@ -2,41 +2,47 @@ version: "{build}"
 
 environment:
   matrix:
-    - BUILD_NAME: Win32 Qt5
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      CMAKE_GENERATOR: Visual Studio 15 2017
-      QT_BASEDIR: C:/Qt/5.12/msvc2017
-      QT_VERSION_MAJOR: 5
-      BITS: 32
-    - BUILD_NAME: Win64 Qt5
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      CMAKE_GENERATOR: Visual Studio 15 2017
-      QT_BASEDIR: C:/Qt/5.12/msvc2017_64
-      QT_VERSION_MAJOR: 5
-      BITS: 64
-      CMAKE_ARGS: -A x64
-    - BUILD_NAME: Win64 Qt6
+    - BUILD_NAME: Win64 Qt5 MinGW
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      CMAKE_GENERATOR: Visual Studio 16 2019
-      QT_BASEDIR: C:/Qt/6.5/msvc2019_64
+      CMAKE_GENERATOR: MinGW Makefiles
+      QT_BASEDIR: C:/Qt/6.5/mingw_64
       QT_VERSION_MAJOR: 6
       BITS: 64
-    - BUILD_NAME: Ubuntu amd64 Qt5
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-      QT_BASEDIR: /usr
-      QT_VERSION_MAJOR: 5
-    - BUILD_NAME: Ubuntu amd64 Qt6
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-      QT_BASEDIR: /home/appveyor/Qt/6.5/gcc_64
-      QT_VERSION_MAJOR: 6
-    - BUILD_NAME: macOS amd64 Qt5
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-      QT_BASEDIR: /Users/appveyor/Qt/5.15/clang_64
-      QT_VERSION_MAJOR: 5
-    - BUILD_NAME: macOS amd64 Qt6
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-      QT_BASEDIR: /Users/appveyor/Qt/6.2/macos
-      QT_VERSION_MAJOR: 6
+#    - BUILD_NAME: Win32 Qt5
+#      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+#      CMAKE_GENERATOR: Visual Studio 15 2017
+#      QT_BASEDIR: C:/Qt/5.12/msvc2017
+#      QT_VERSION_MAJOR: 5
+#      BITS: 32
+#    - BUILD_NAME: Win64 Qt5
+#      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+#      CMAKE_GENERATOR: Visual Studio 15 2017
+#      QT_BASEDIR: C:/Qt/5.12/msvc2017_64
+#      QT_VERSION_MAJOR: 5
+#      BITS: 64
+#      CMAKE_ARGS: -A x64
+#    - BUILD_NAME: Win64 Qt6
+#      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+#      CMAKE_GENERATOR: Visual Studio 16 2019
+#      QT_BASEDIR: C:/Qt/6.5/msvc2019_64
+#      QT_VERSION_MAJOR: 6
+#      BITS: 64
+#    - BUILD_NAME: Ubuntu amd64 Qt5
+#      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+#      QT_BASEDIR: /usr
+#      QT_VERSION_MAJOR: 5
+#    - BUILD_NAME: Ubuntu amd64 Qt6
+#      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+#      QT_BASEDIR: /home/appveyor/Qt/6.5/gcc_64
+#      QT_VERSION_MAJOR: 6
+#    - BUILD_NAME: macOS amd64 Qt5
+#      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+#      QT_BASEDIR: /Users/appveyor/Qt/5.15/clang_64
+#      QT_VERSION_MAJOR: 5
+#    - BUILD_NAME: macOS amd64 Qt6
+#      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+#      QT_BASEDIR: /Users/appveyor/Qt/6.2/macos
+#      QT_VERSION_MAJOR: 6
 
 configuration:
   - Release
