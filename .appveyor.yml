@@ -61,6 +61,7 @@ for:
 
   before_build:
     - dir C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+    - dir C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
     - cd C:/projects && mkdir build && mkdir install && cd build
     - set PATH=%QT_BASEDIR%\bin;%PATH%
     - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR% %CMAKE_ARGS% -DCMAKE_MAKE_PROGRAM=%MAKE_PROGRAM%
