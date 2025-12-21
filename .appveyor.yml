@@ -7,8 +7,8 @@ environment:
       CMAKE_GENERATOR: MSYS Makefiles
       QT_BASEDIR: C:/Qt/6.5/mingw_64
       QT_VERSION_MAJOR: 6
-      MAKE_PROGRAM: C:/mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/make
-      CXX_COMPILER: C:/mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/g++
+      MAKE_PROGRAM: C:/mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/mingw32-make.exe
+      CXX_COMPILER: C:/mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/g++.exe
       BITS: 64
 #    - BUILD_NAME: Win32 Qt5
 #      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
