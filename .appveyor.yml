@@ -8,7 +8,7 @@ environment:
       QT_BASEDIR: C:/Qt/6.5/mingw_64
       QT_VERSION_MAJOR: 6
       MAKE_PROGRAM: C:/msys64/mingw64/bin/mingw32-make.exe
-      CXX_COMPILER: C:/msys64/mingw64/bin/x86_64-w64-mingw32-g++.exe
+      CXX_COMPILER: C:/msys64/clang64.exe
       BITS: 64
 #    - BUILD_NAME: Win32 Qt5
 #      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
