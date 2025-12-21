@@ -8,6 +8,7 @@ environment:
       QT_BASEDIR: C:/Qt/6.5/mingw_64
       QT_VERSION_MAJOR: 6
       MAKE_PROGRAM: C:/mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/make
+      CXX_COMPILER: C:/mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/g++
       BITS: 64
 #    - BUILD_NAME: Win32 Qt5
 #      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
@@ -64,7 +65,7 @@ for:
     - dir C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
     - cd C:/projects && mkdir build && mkdir install && cd build
     - set PATH=%QT_BASEDIR%\bin;%PATH%
-    - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR% %CMAKE_ARGS% -DCMAKE_MAKE_PROGRAM=%MAKE_PROGRAM%
+    - cmake -G "%CMAKE_GENERATOR%" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky -DQT_VERSION=%QT_VERSION_MAJOR% %CMAKE_ARGS% -DCMAKE_MAKE_PROGRAM=%MAKE_PROGRAM% -DCMAKE_CXX_COMPILER=%CXX_COMPILER%
 
   build_script:
     - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
