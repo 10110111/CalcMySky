@@ -4,7 +4,7 @@ environment:
   matrix:
     - BUILD_NAME: Win64 Qt5 MinGW
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      CMAKE_GENERATOR: MinGW Makefiles
+      CMAKE_GENERATOR: MSYS Makefiles
       QT_BASEDIR: C:/Qt/6.5/mingw_64
       QT_VERSION_MAJOR: 6
       BITS: 64
