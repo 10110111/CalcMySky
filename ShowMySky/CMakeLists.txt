@@ -57,7 +57,7 @@ install(TARGETS ${showmyskyTarget} DESTINATION "${installBinDir}")
 install(TARGETS ShowMySky
         EXPORT ShowMySky-Qt${QT_VERSION}Config
         LIBRARY DESTINATION "${installLibDir}"
-        RUNTIME DESTINATION "${installLibDir}"
+        RUNTIME DESTINATION "${installRuntimeDir}"
         ARCHIVE DESTINATION "${installLibDir}"
         INCLUDES DESTINATION "${installIncDir}"
         )
