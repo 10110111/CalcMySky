@@ -42,6 +42,11 @@
 #endif
 /** \endcond */
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+# define SHOWMYSKY_LIB_NAME_PREFIX "lib"
+#else
+# define SHOWMYSKY_LIB_NAME_PREFIX
+#endif
 
 class QString;
 class QOpenGLShaderProgram;
@@ -325,7 +330,7 @@ SHOWMYSKY_DLL_PUBLIC ShowMySky::AtmosphereRenderer*
  *
  * This is the name that should be passed to dlopen-like functions. Use this macro for portability instead of hard-coding a string.
  */
-#define SHOWMYSKY_LIB_NAME (QT_VERSION_MAJOR==5 ? "ShowMySky-Qt5" : "ShowMySky-Qt6")
+#define SHOWMYSKY_LIB_NAME (QT_VERSION_MAJOR==5 ? SHOWMYSKY_LIB_NAME_PREFIX"ShowMySky-Qt5" : SHOWMYSKY_LIB_NAME_PREFIX"ShowMySky-Qt6")
 }
 
 #endif
