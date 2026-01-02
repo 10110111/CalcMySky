@@ -1960,7 +1960,12 @@ void AtmosphereRenderer::renderMultipleScattering()
             prog.setUniformValue("pseudoMirrorSkyBelowHorizon", tools_->pseudoMirrorEnabled());
             prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
-            if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
+            if(tools_->useEclipseMultipleScattering())
+            {
+                assert(!params_.noEclipsedMultipleScatteringMap);
+                // TODO: implement
+            }
+            else if(tools_->onTheFlyPrecompDoubleScatteringEnabled())
             {
                 // The same texture is used for upper and lower slices
                 auto& tex=*eclipsedDoubleScatteringPrecomputationTargetTextures_[wlSetIndex];

@@ -1225,6 +1225,11 @@ void computeEclipsedAtmosphere(const unsigned texIndex)
     computeEclipsedSingleScatteringMap(texIndex);
 }
 
+void saveEclipsedMultipleScatteringRenderingShader(const unsigned texIndex)
+{
+    // TODO: implement
+}
+
 void computeLightPollutionSingleScattering(const unsigned texIndex)
 {
     std::cerr << indentOutput() << "Computing light pollution single scattering... ";
@@ -1507,6 +1512,7 @@ int main(int argc, char** argv)
             }
             computeEclipsedDoubleScattering(texIndex);
             computeEclipsedAtmosphere(texIndex);
+            saveEclipsedMultipleScatteringRenderingShader(texIndex);
         }
         if(!opts.saveResultAsRadiance)
         {

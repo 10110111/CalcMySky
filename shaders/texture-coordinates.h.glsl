@@ -65,4 +65,7 @@ struct LightPollutionTexVars
 LightPollutionTexVars scatteringTexIndicesToLightPollutionTexVars(const vec2 texIndices);
 vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround);
 
+vec3 computeEclipsedMultipleScatteringMapPoint(const int cubeSideLength, const int eclipsedAtmoMapAltitudeLayerCount,
+                                               const ivec2 pixelIndex, out vec3 zenith, out float altitude);
+
 #endif
