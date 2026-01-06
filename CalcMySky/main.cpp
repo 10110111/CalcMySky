@@ -876,17 +876,7 @@ float unitRangeTexCoordToCosSZA(const float texCoord)
 
 std::unique_ptr<QOpenGLShaderProgram> saveEclipsedDoubleScatteringComputationShader(const unsigned texIndex)
 {
-    QString scatCoefDef="vec4 totalScatteringCoefficient=vec4(0);\n";
-    for(const auto& scatterer : atmo.scatterers)
-    {
-        scatCoefDef += "    totalScatteringCoefficient += "
-                         " scattererNumberDensity_" + scatterer.name + "(altAtDist)"
-                       " * scatteringCrossSection_" + scatterer.name +
-                       " * phaseFunction_" + scatterer.name + "(dotViewSun)"
-                       ";\n";
-    }
     virtualSourceFiles[SINGLE_SCATTERING_ECLIPSED_FILENAME]=getShaderSrc(SINGLE_SCATTERING_ECLIPSED_FILENAME,IgnoreCache{})
-                                       .replace(QRegularExpression("\\bCOMPUTE_TOTAL_SCATTERING_COEFFICIENT;"), scatCoefDef)
                                        .replace(QRegularExpression("\\b(ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION)\\b"), "1 /*\\1*/");
     std::vector<std::pair<QString, QString>> sourcesToSave;
     auto program=compileShaderProgram(COMPUTE_ECLIPSED_DOUBLE_SCATTERING_FILENAME,
