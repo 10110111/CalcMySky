@@ -726,6 +726,8 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
         tex.setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
         // dummy dimension
         tex.setWrapMode(QOpenGLTexture::DirectionR, QOpenGLTexture::Repeat);
+
+        ++loadingStepsDone_; return;
     }
 
     if(countStepsOnly)
