@@ -2022,7 +2022,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                 auto& prog=*eclipsedMultipleScatteringPrograms_[wlSetIndex];
                 prog.bind();
 
-                const int eclipsePhaseIndex = eclipsedMultipleScatteringMaps_[wlSetIndex].size() - 1; // FIXME: this must depend on Moon position relative to the Sun and Earth
+                const int eclipsePhaseIndex = std::round(params_.getEclipsePhaseIndex(std::atan2(sinMS, cosMS))); // FIXME: we should interpolate between ceil and floor of the index
                 const auto& map = eclipsedMultipleScatteringMaps_[wlSetIndex][eclipsePhaseIndex];
                 map->bind(0);
                 prog.setUniformValue("eclipseMultipleScatteringMap", 0);
