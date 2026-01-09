@@ -168,6 +168,6 @@ inline int roundDownToClosestPowerOfTwo(const int x)
     return 1<<(shift-1);
 }
 
-glm::vec3 sphereIntegrationSampleDir(const int index, const int pointCountOnSphere);
+glm::vec3 sphereIntegrationSampleDir(int index, int pointCountOnSphere);
 
 #endif
