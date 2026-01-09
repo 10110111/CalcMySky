@@ -97,6 +97,8 @@ struct AtmosphereParameters
             return absorptionCrossSection[i];
         }
     };
+    double getSubsolarPointToMoonAngle(int phasePoint);
+    double getEclipsePhaseIndex(double subsolarPointToMoonAngle);
 
     QString descriptionFileText;
     std::vector<glm::vec4> allWavelengths;

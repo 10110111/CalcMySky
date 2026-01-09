@@ -1022,40 +1022,6 @@ void computeEclipsedDoubleScattering(const unsigned texIndex)
     }
 }
 
-double getSubsolarPointToMoonAngle(const int phasePoint, const int numPhasePoints)
-{
-    const auto Rs = sunRadius;
-    const auto Rm = moonRadius;
-    const auto Re = atmo.earthRadius;
-    const auto H  = atmo.atmosphereHeight;
-    const auto dES = atmo.earthSunDistance;
-    const auto dEM = atmo.earthMoonDistance;
-    using namespace std;
-    // This is the angle when the center of the lunar shadow axis is touching the ground.
-    const auto shadowTouchAngle = acos(Re/dES) - acos(Re/dEM);
-    // This is the angle when lunar penumbra is at its first/last contact with the (spherical) Earth's TOA.
-    const auto maxAngle = M_PI/2 + asin((Rs-(Re+H)) / dES) - acos((Rm+(Re+H)) / dEM);
-
-    // Take 1-EARTH_SWEEP_POINTS_FRACTION part of all the points to represent
-    // the states between the situations when the shadow center touches the
-    // ground and when the penumbra edge touches the TOA. The rest of the
-    // points will represent the shadow center sweeping the Earth, with uniform
-    // spacing in shadow-subsolarPoint angle.
-    constexpr double EARTH_SWEEP_POINTS_FRACTION = 0.94;
-    const int numPointsInsideEarth = std::lround(numPhasePoints * EARTH_SWEEP_POINTS_FRACTION);
-    if(phasePoint < numPointsInsideEarth)
-    {
-        return shadowTouchAngle * phasePoint / (numPointsInsideEarth - 1);
-    }
-    else
-    {
-        // The case when the shadow touches the ground was handled in the other branch, so here we omit it.
-        const auto dAngle = maxAngle - shadowTouchAngle;
-        const double numPointsOutsideEarth = numPhasePoints - numPointsInsideEarth;
-        return shadowTouchAngle + dAngle * (phasePoint - numPointsInsideEarth + 1) / numPointsOutsideEarth;
-    }
-}
-
 void computeEclipsedSingleScatteringMap(const unsigned texIndex)
 {
     std::cerr << indentOutput() << "Computing eclipsed single scattering map...\n";
@@ -1123,7 +1089,7 @@ void computeEclipsedSingleScatteringMap(const unsigned texIndex)
         std::cerr << indentOutput() << "Computing eclipse phase layer " << phasePoint+1
                                     << " of " << atmo.eclipsedAtmoMapPhaseCount << " ... ";
         const auto time0=std::chrono::steady_clock::now();
-        const auto subsolarPointToMoonAngle = getSubsolarPointToMoonAngle(phasePoint, atmo.eclipsedAtmoMapPhaseCount);
+        const auto subsolarPointToMoonAngle = atmo.getSubsolarPointToMoonAngle(phasePoint);
         if(std::isnan(subsolarPointToMoonAngle))
         {
             std::cerr << "Internal error: Failed to compute the angle between Earth-Moon vector and the Earth-subsolar point direction\n";
