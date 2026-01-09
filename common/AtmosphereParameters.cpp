@@ -755,6 +755,8 @@ double AtmosphereParameters::getEclipsePhaseIndex(const double subsolarPointToMo
         const auto dAngle = maxAngle - shadowTouchAngle;
         const double numPointsOutsideEarth = eclipsedAtmoMapPhaseCount - numPointsInsideEarth;
         phasePoint = (subsolarPointToMoonAngle - shadowTouchAngle) * numPointsOutsideEarth / dAngle + numPointsInsideEarth - 1;
+        if(phasePoint >= eclipsedAtmoMapPhaseCount)
+            phasePoint = eclipsedAtmoMapPhaseCount - 1;
     }
     return phasePoint;
 }
