@@ -5,7 +5,9 @@
 #include "texture-coordinates.h.glsl"
 #include "texture-sampling-functions.h.glsl"
 
-uniform sampler3D eclipseMultipleScatteringMap;
+uniform sampler3D eclipseMultipleScatteringMap0;
+uniform sampler3D eclipseMultipleScatteringMap1;
+uniform float eclipseMultipleScatteringMapInterpolationFactor;
 uniform int cubeSideLength; // NOTE: must be even!
 uniform int eclipsedAtmoMapAltitudeLayerCount;
 uniform mat3 worldToMap;
@@ -23,7 +25,11 @@ vec4 sampleEclipseMultipleScatteringMap(const vec3 sunDir, const vec3 viewDir,
     // TODO: implement higher-order spherical harmonics for better results
     CONST float sphericalHarmonicY = 1 / (2 * sqrt(PI));
 
-    return sphericalHarmonicY * exp(texture(eclipseMultipleScatteringMap, tc));
+    CONST vec4 spect0 = texture(eclipseMultipleScatteringMap0, tc);
+    CONST vec4 spect1 = texture(eclipseMultipleScatteringMap1, tc);
+    CONST vec4 spectrum = mix(spect0, spect1, eclipseMultipleScatteringMapInterpolationFactor);
+
+    return sphericalHarmonicY * exp(spectrum);
 }
 
 vec4 integrateEclipsedMultipleScatteringMap(const vec3 camera, const vec3 sunDir, const vec3 viewDir,

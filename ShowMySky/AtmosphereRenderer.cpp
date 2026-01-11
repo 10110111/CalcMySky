@@ -2022,12 +2022,16 @@ void AtmosphereRenderer::renderMultipleScattering()
                 auto& prog=*eclipsedMultipleScatteringPrograms_[wlSetIndex];
                 prog.bind();
 
-                const int eclipsePhaseIndex = std::round(params_.getEclipsePhaseIndex(std::atan2(sinMS, cosMS))); // FIXME: we should interpolate between ceil and floor of the index
-                const auto& map = eclipsedMultipleScatteringMaps_[wlSetIndex][eclipsePhaseIndex];
-                map->bind(0);
-                prog.setUniformValue("eclipseMultipleScatteringMap", 0);
-                transmittanceTextures_[wlSetIndex]->bind(1);
-                prog.setUniformValue("transmittanceTexture", 1);
+                const float eclipsePhaseIndex = params_.getEclipsePhaseIndex(std::atan2(sinMS, cosMS));
+                const auto& map0 = eclipsedMultipleScatteringMaps_[wlSetIndex][int(eclipsePhaseIndex)];
+                const auto& map1 = eclipsedMultipleScatteringMaps_[wlSetIndex][int(std::ceil(eclipsePhaseIndex))];
+                map0->bind(0);
+                prog.setUniformValue("eclipseMultipleScatteringMap0", 0);
+                map1->bind(1);
+                prog.setUniformValue("eclipseMultipleScatteringMap1", 1);
+                prog.setUniformValue("eclipseMultipleScatteringMapInterpolationFactor", eclipsePhaseIndex - std::floor(eclipsePhaseIndex));
+                transmittanceTextures_[wlSetIndex]->bind(2);
+                prog.setUniformValue("transmittanceTexture", 2);
                 prog.setUniformValue("worldToMap", toQMatrix(worldToMap));
                 prog.setUniformValue("cubeSideLength", GLint(params_.eclipsedCubeMapSide));
                 prog.setUniformValue("eclipsedAtmoMapAltitudeLayerCount", GLint(params_.eclipsedAtmoMapAltitudeLayerCount));
