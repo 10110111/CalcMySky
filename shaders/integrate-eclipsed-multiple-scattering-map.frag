@@ -23,7 +23,7 @@ vec4 sampleEclipseMultipleScatteringMap(const vec3 sunDir, const vec3 viewDir,
     // TODO: implement higher-order spherical harmonics for better results
     CONST float sphericalHarmonicY = 1 / (2 * sqrt(PI));
 
-    return sphericalHarmonicY * texture(eclipseMultipleScatteringMap, tc);
+    return sphericalHarmonicY * exp(texture(eclipseMultipleScatteringMap, tc));
 }
 
 vec4 integrateEclipsedMultipleScatteringMap(const vec3 camera, const vec3 sunDir, const vec3 viewDir,

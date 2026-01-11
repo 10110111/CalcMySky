@@ -1154,6 +1154,13 @@ void computeEclipsedSingleScatteringMap(const unsigned texIndex)
                 ++totalSubpixelCount;
             }
         }
+        for(size_t i = 0; i < pixelCount; ++i)
+        {
+            for(int k = 0; k < 4; ++k)
+            {
+                pixels[i][k] = std::log(pixels[i][k] + 1e-35f);
+            }
+        }
         out.write(reinterpret_cast<const char*>(pixels.get()), pixelCount*sizeof pixels[0]);
 
         const auto time1=std::chrono::steady_clock::now();
