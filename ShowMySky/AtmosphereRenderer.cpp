@@ -2014,7 +2014,7 @@ void AtmosphereRenderer::renderMultipleScattering()
                                                        *
                               inverse(dmat3(sunDir, moonDir, crossSM / normCrossSM)));
 
-            for(unsigned wlSetIndex=0; wlSetIndex < eclipsedDoubleScatteringPrecomputedPrograms_.size(); ++wlSetIndex)
+            for(unsigned wlSetIndex=0; wlSetIndex < eclipsedMultipleScatteringPrograms_.size(); ++wlSetIndex)
             {
                 if(!radianceRenderBuffers_.empty())
                     gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, radianceRenderBuffers_[wlSetIndex]);
