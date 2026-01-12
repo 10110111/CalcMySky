@@ -1989,15 +1989,17 @@ void AtmosphereRenderer::renderMultipleScattering()
             const dvec3 sunDir = sunDirection();
             dvec3 moonDir = normalize(moonPosition() - earthCenter());
             dvec3 crossSM = cross(sunDir, moonDir);
-            double normCrossSM = length(crossSM);
-            mat3 worldToMap;
+            double sinSM = length(crossSM), cosSM = dot(sunDir, moonDir);
+            // Eclipse phase index must be computed before we alter sinSM and cosSM below
+            const float eclipsePhaseIndex = params_.getEclipsePhaseIndex(std::atan2(sinSM, cosSM));
+
             // Normally we must place sunDir in (0,0,1) and earthCenter-sunDir-moonDir triangle in the XZ plane.
             // But if Sun and Moon are almost in the same direction, we only must place sunDir in (0,0,1), the
             // rest is "don't care" due to symmetry. We don't want to get division-by-almost-zero issues, so in
             // this case we fake the Moon direction by adding some value to the minimum of the Sun direction
             // components (and normalizing).
             constexpr double epsilon = 1e-10;
-            if(normCrossSM < epsilon)
+            if(sinSM < epsilon)
             {
                 const auto asd = abs(sunDir);
                 const double asdMin = std::min({asd[0], asd[1], asd[2]});
@@ -2006,13 +2008,13 @@ void AtmosphereRenderer::renderMultipleScattering()
                     dvec3(0,0,2) ;
                 moonDir = normalize(sunDir + addition);
                 crossSM = cross(sunDir, moonDir);
-                normCrossSM = length(crossSM);
-                assert(normCrossSM > epsilon);
+                sinSM = length(crossSM);
+                assert(sinSM > epsilon);
+                cosSM = dot(sunDir, moonDir);
             }
-            const double sinMS = normCrossSM, cosMS = dot(sunDir, moonDir);
-            worldToMap = mat3(dmat3(dvec3(0,0,1), dvec3(sinMS,0,cosMS), dvec3(0,1,0))
-                                                       *
-                              inverse(dmat3(sunDir, moonDir, crossSM / normCrossSM)));
+            const auto worldToMap = mat3(dmat3(dvec3(0,0,1), dvec3(sinSM,0,cosSM), dvec3(0,1,0))
+                                                               *
+                                      inverse(dmat3(sunDir, moonDir, crossSM / sinSM)));
 
             for(unsigned wlSetIndex=0; wlSetIndex < eclipsedMultipleScatteringPrograms_.size(); ++wlSetIndex)
             {
@@ -2022,7 +2024,6 @@ void AtmosphereRenderer::renderMultipleScattering()
                 auto& prog=*eclipsedMultipleScatteringPrograms_[wlSetIndex];
                 prog.bind();
 
-                const float eclipsePhaseIndex = params_.getEclipsePhaseIndex(std::atan2(sinMS, cosMS));
                 const auto& map0 = eclipsedMultipleScatteringMaps_[wlSetIndex][int(eclipsePhaseIndex)];
                 const auto& map1 = eclipsedMultipleScatteringMaps_[wlSetIndex][int(std::ceil(eclipsePhaseIndex))];
                 int unusedTextureUnitNum=0;
