@@ -7,6 +7,7 @@ add_library(ShowMySky SHARED
              AtmosphereRenderer.cpp
              util.cpp
              "${PROJECT_BINARY_DIR}/config.h")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS api/ShowMySky/AtmosphereRenderer.hpp)
 file(READ api/ShowMySky/AtmosphereRenderer.hpp rendererHeader)
 string(REGEX MATCH "#define ShowMySky_ABI_version [0-9]+\n" abiVersionLine "${rendererHeader}")
 string(REGEX REPLACE "#define ShowMySky_ABI_version ([0-9]+)\n" "\\1" abiVersion "${abiVersionLine}")
