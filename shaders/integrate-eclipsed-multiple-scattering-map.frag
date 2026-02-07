@@ -11,10 +11,8 @@ uniform float eclipseMultipleScatteringMapInterpolationFactor;
 uniform int cubeSideLength; // NOTE: must be even!
 uniform int eclipsedAtmoMapAltitudeLayerCount;
 uniform float lunarShadowAngleFromSubsolarPoint;
-uniform mat3 worldToMap;
 
-vec4 sampleEclipseMultipleScatteringMap(const vec3 sunDir, const vec3 viewDir,
-                                        const vec3 moonPos, const vec3 pointAtDist)
+vec4 sampleEclipseMultipleScatteringMap(const vec3 viewDir, const vec3 pointAtDist, const mat3 worldToMap)
 {
     // viewDir is not used here because our map currently only contains order-0 spherical harmonic of radiance
 
@@ -34,9 +32,11 @@ vec4 sampleEclipseMultipleScatteringMap(const vec3 sunDir, const vec3 viewDir,
     return sphericalHarmonicY * exp(spectrum);
 }
 
-vec4 integrateEclipsedMultipleScatteringMap(const vec3 camera, const vec3 sunDir, const vec3 viewDir,
-                                            const vec3 moonPos, const float cosViewZenithAngle,
-                                            const float cameraAltitude, const bool viewRayIntersectsGround)
+// sunDir is not used because worldToMap transforms it to (0,0,1)
+// moonPos is not used because we use uniforms describing shadow position WRT the subsolar point
+vec4 integrateEclipsedMultipleScatteringMap(const vec3 camera, const vec3 viewDir, const float cosViewZenithAngle,
+                                            const float cameraAltitude, const mat3 worldToMap,
+                                            const bool viewRayIntersectsGround)
 {
     CONST float integrInterval=distanceToNearestAtmosphereBoundary(cosViewZenithAngle, cameraAltitude,
                                                                    viewRayIntersectsGround);
@@ -46,7 +46,7 @@ vec4 integrateEclipsedMultipleScatteringMap(const vec3 camera, const vec3 sunDir
     for(int n=0; n<radialIntegrationPoints; ++n)
     {
         CONST float dist=(n+0.5)*dl;
-        spectrum += sampleEclipseMultipleScatteringMap(sunDir, viewDir, moonPos, camera+viewDir*dist)
+        spectrum += sampleEclipseMultipleScatteringMap(viewDir, camera+viewDir*dist, worldToMap)
                                                     *
                     transmittance(cosViewZenithAngle, cameraAltitude, dist, viewRayIntersectsGround);
     }

@@ -71,6 +71,13 @@ void initTexturesAndFramebuffers()
     setupTexture(TEX_MULTIPLE_SCATTERING,width,height,depth);
     // XXX: keep in sync with its use in GLSL computeDoubleScatteringEclipsedDensitySample() and EclipsedDoubleScatteringPrecomputer's constructor
     setupTexture(TEX_ECLIPSED_DOUBLE_SCATTERING, atmo.eclipseAngularIntegrationPoints, atmo.radialIntegrationPoints);
+
+    gl.glBindTexture(GL_TEXTURE_3D,textures[TEX_ECLIPSED_ATMO_MAP_INPUT]);
+    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
+    setupTexture(TEX_ECLIPSED_ATMO_MAP_INPUT, atmo.eclipsedCubeMapSide*3, atmo.eclipsedCubeMapSide, atmo.eclipsedAtmoMapAltitudeLayerCount);
     setupTexture(TEX_ECLIPSED_ATMO_MAP, atmo.eclipsedCubeMapSide*3, atmo.eclipsedAtmoMapAltitudeLayerCount * atmo.eclipsedCubeMapSide);
 
     setupTexture(TEX_LIGHT_POLLUTION_SCATTERING           , atmo.lightPollutionTextureSize[0], atmo.lightPollutionTextureSize[1]);
