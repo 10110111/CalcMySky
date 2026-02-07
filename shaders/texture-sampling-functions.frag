@@ -13,6 +13,10 @@ uniform sampler3D multipleScatteringTexture;
 
 uniform sampler2D lightPollutionScatteringTexture;
 
+uniform sampler3D eclipseMultipleScatteringMap0;
+uniform sampler3D eclipseMultipleScatteringMap1;
+uniform float eclipseMultipleScatteringMapInterpolationFactor;
+
 vec4 irradiance(const float cosSunZenithAngle, const float altitude)
 {
     CONST vec2 texCoords=irradianceTexVarsToTexCoord(cosSunZenithAngle, altitude);
@@ -83,4 +87,28 @@ vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAng
 {
     CONST vec2 coords = lightPollutionTexVarsToTexCoords(altitude, cosViewZenithAngle, viewRayIntersectsGround);
     return texture(lightPollutionScatteringTexture, coords);
+}
+
+vec4 sampleEclipseMultipleScatteringMap(const int cubeSideLength, const int eclipsedAtmoMapAltitudeLayerCount,
+                                        const float lunarShadowAngleFromSubsolarPoint,
+                                        const vec3 viewDir, const vec3 pointAtDist, const mat3 worldToMap,
+                                        const bool sampleGroundIrradianceInsteadOfAir)
+{
+    // viewDir is not used here because our map currently only contains order-0 spherical harmonic of radiance
+
+    CONST float altitudeAtDist = pointAltitude(pointAtDist);
+    CONST vec3 zenithAtDist = worldToMap * normalize(pointAtDist - earthCenter);
+    CONST vec3 tc = computeEclipsedMultipleScatteringMapTexCoords(cubeSideLength, eclipsedAtmoMapAltitudeLayerCount,
+                                                                  lunarShadowAngleFromSubsolarPoint,
+                                                                  zenithAtDist, altitudeAtDist,
+                                                                  sampleGroundIrradianceInsteadOfAir);
+
+    // TODO: implement higher-order spherical harmonics for better results
+    CONST float sphericalHarmonicY = 1 / (2 * sqrt(PI));
+
+    CONST vec4 spect0 = texture(eclipseMultipleScatteringMap0, tc);
+    CONST vec4 spect1 = texture(eclipseMultipleScatteringMap1, tc);
+    CONST vec4 spectrum = mix(spect0, spect1, eclipseMultipleScatteringMapInterpolationFactor);
+
+    return sphericalHarmonicY * exp(spectrum);
 }

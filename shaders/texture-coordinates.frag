@@ -669,7 +669,7 @@ vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZ
 
 vec3 computeEclipsedMultipleScatteringMapPoint(const int cubeSideLength, const int eclipsedAtmoMapAltitudeLayerCount,
                                                const ivec2 pixelIndex, const float lunarShadowAngleFromSubsolarPoint,
-                                               out vec3 zenith, out float altitude)
+                                               out vec3 zenith, out float altitude, out bool isGroundIrradianceLayer)
 {
     /* Each altitude layer of the map is organized as follows (x marks theoretically present values
        that aren't stored due to the symmetry; o marks the subsolar point; number at the beginning
@@ -776,7 +776,16 @@ vec3 computeEclipsedMultipleScatteringMapPoint(const int cubeSideLength, const i
         zenith = transpose(rot) * warpedXYZWithShadowInAntisolarPoint;
     }
 
-    altitude = sqr(float(altitudeLayerIndex) / (eclipsedAtmoMapAltitudeLayerCount - 1)) * atmosphereHeight;
+    if(altitudeLayerIndex == 0)
+    {
+        isGroundIrradianceLayer = true;
+        altitude = 0;
+    }
+    else
+    {
+        isGroundIrradianceLayer = false;
+        altitude = sqr(float(altitudeLayerIndex - 1) / (eclipsedAtmoMapAltitudeLayerCount - 2)) * atmosphereHeight;
+    }
     // All points are now computed relative to the subsolar point
     CONST vec3 mapPoint = zenith * (earthRadius + altitude) + earthCenter;
     return mapPoint;
@@ -785,7 +794,8 @@ vec3 computeEclipsedMultipleScatteringMapPoint(const int cubeSideLength, const i
 vec3 computeEclipsedMultipleScatteringMapTexCoords(const int cubeSideLength,
                                                    const int eclipsedAtmoMapAltitudeLayerCount,
                                                    const float lunarShadowAngleFromSubsolarPoint,
-                                                   vec3 zenith, const float altitude)
+                                                   vec3 zenith, const float altitude,
+                                                   const bool sampleGroundIrradianceInsteadOfAir)
 {
     {
         // Warping the coordinates back to compensate the concentrated samples near the lunar shadow
@@ -860,6 +870,18 @@ vec3 computeEclipsedMultipleScatteringMapTexCoords(const int cubeSideLength,
 
     CONST float s = (iOffsetInTex + iInCubeSide + 0.5) / (3. * cubeSideLength);
     CONST float t = unitRangeToTexCoord((yInAltLayer + 1.) / 2., cubeSideLength);
-    CONST float p = unitRangeToTexCoord(sqrt(altitude / atmosphereHeight), eclipsedAtmoMapAltitudeLayerCount);
+
+    CONST int altLayerCount = eclipsedAtmoMapAltitudeLayerCount;
+    float p;
+    if(sampleGroundIrradianceInsteadOfAir)
+    {
+        p = unitRangeToTexCoord(0, altLayerCount);
+    }
+    else
+    {
+        CONST float altLayerIndex = sqrt(altitude / atmosphereHeight)*(altLayerCount-2) + 1;
+        p = unitRangeToTexCoord(altLayerIndex / (altLayerCount-1), altLayerCount);
+    }
+
     return vec3(s,t,p);
 }

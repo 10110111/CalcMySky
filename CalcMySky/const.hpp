@@ -36,6 +36,7 @@ constexpr char TOTAL_SCATTERING_COEFFICIENT_HEADER_FILENAME[]="total-scattering-
 constexpr char COMPUTE_SCATTERING_DENSITY_FILENAME[]="compute-scattering-density.frag";
 constexpr char COMPUTE_ECLIPSED_DOUBLE_SCATTERING_FILENAME[]="compute-eclipsed-double-scattering.frag";
 constexpr char COMPUTE_ECLIPSED_SINGLE_SCATTERING_MAP_FILENAME[]="compute-single-scattering-eclipsed-map.frag";
+constexpr char COMPUTE_ECLIPSED_MULTIPLE_SCATTERING_MAP_FILENAME[]="compute-multiple-scattering-eclipsed-map.frag";
 constexpr char SINGLE_SCATTERING_ECLIPSED_FILENAME[]="single-scattering-eclipsed.frag";
 constexpr char DOUBLE_SCATTERING_ECLIPSED_FILENAME[]="double-scattering-eclipsed.frag";
 constexpr char COMPUTE_INDIRECT_IRRADIANCE_FILENAME[]="compute-indirect-irradiance.frag";
