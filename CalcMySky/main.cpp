@@ -1026,17 +1026,7 @@ void computeEclipsedSingleScatteringMap(const unsigned texIndex)
 {
     std::cerr << indentOutput() << "Computing eclipsed single scattering map...\n";
 
-    QString scatCoefDef="vec4 totalScatteringCoefficient=vec4(0);\n";
-    for(const auto& scatterer : atmo.scatterers)
-    {
-        scatCoefDef += "    totalScatteringCoefficient += "
-                         " scattererNumberDensity_" + scatterer.name + "(altAtDist)"
-                       " * scatteringCrossSection_" + scatterer.name +
-                       " * phaseFunction_" + scatterer.name + "(dotViewSun)"
-                       ";\n";
-    }
     virtualSourceFiles[SINGLE_SCATTERING_ECLIPSED_FILENAME]=getShaderSrc(SINGLE_SCATTERING_ECLIPSED_FILENAME,IgnoreCache{})
-                                       .replace(QRegularExpression("\\bCOMPUTE_TOTAL_SCATTERING_COEFFICIENT;"), scatCoefDef)
                                        .replace(QRegularExpression("\\b(ALL_SCATTERERS_AT_ONCE_WITH_PHASE_FUNCTION)\\b"), "1 /*\\1*/");
     const auto program=compileShaderProgram(COMPUTE_ECLIPSED_SINGLE_SCATTERING_MAP_FILENAME,
                                             "eclipsed single scattering map computation shader program",
