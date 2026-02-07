@@ -28,8 +28,9 @@ void main()
     const vec3 sunDir = vec3(0,0,1);
     CONST float cosIncZenithAngle = clampCosine(dot(zenith, incidenceDir));
     CONST bool incRayIntersectsGround=rayIntersectsGround(cosIncZenithAngle, altitude);
-    CONST vec4 incRadianceFromAtmo = computeSingleScatteringEclipsed(pointInMap, incidenceDir, sunDir, moonPos,
-                                                                     incRayIntersectsGround);
+    CONST vec4 incRadianceFromAtmo = integrateEclipsedMultipleScatteringMap(pointInMap, sunDir, incidenceDir, moonPos,
+                                                                            cosIncZenithAngle, altitude, incRayIntersectsGround);
+    // The following logic is the same as in single scattering computation
 
     float distToGround=0;
     vec4 transmittanceToGround=vec4(0);
