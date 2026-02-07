@@ -824,8 +824,7 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
             if(++currentLoadingIterationStepCounter_ <= loadingStepsDone_)
                 continue;
 
-            // FIXME: this file should be renamed single->multiple after we implement Nth scattering maps
-            loadEclipsedMultipleScatteringMap(QString("%1/eclipsed-single-scattering-map-wlset%2.f32")
+            loadEclipsedMultipleScatteringMap(QString("%1/eclipsed-multiple-scattering-map-wlset%2.f32")
                                                .arg(pathToData_).arg(wlSetIndex), wlSetIndex, texFilter);
 
             ++loadingStepsDone_; return;

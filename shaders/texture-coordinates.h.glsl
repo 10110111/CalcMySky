@@ -67,10 +67,11 @@ vec2 lightPollutionTexVarsToTexCoords(const float altitude, const float cosViewZ
 
 vec3 computeEclipsedMultipleScatteringMapPoint(const int cubeSideLength, const int eclipsedAtmoMapAltitudeLayerCount,
                                                const ivec2 pixelIndex, const float lunarShadowAngleFromSubsolarPoint,
-                                               out vec3 zenith, out float altitude);
+                                               out vec3 zenith, out float altitude, out bool isGroundIrradianceLayer);
 vec3 computeEclipsedMultipleScatteringMapTexCoords(const int cubeSideLength,
                                                    const int eclipsedAtmoMapAltitudeLayerCount,
                                                    const float lunarShadowAngleFromSubsolarPoint,
-                                                   vec3 zenith, const float altitude);
+                                                   vec3 zenith, const float altitude,
+                                                   const bool sampleGroundIrradianceInsteadOfAir);
 
 #endif

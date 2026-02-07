@@ -21,6 +21,7 @@ uniform sampler3D scatteringTextureInterpolationGuides02;
 uniform sampler3D scatteringTexture;
 uniform sampler2D eclipsedScatteringTexture;
 uniform sampler3D eclipsedDoubleScatteringTexture;
+uniform mat3 worldToMap;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
 uniform vec3 moonPosition;
@@ -302,8 +303,8 @@ void main()
 #elif RENDERING_LIGHT_POLLUTION_LUMINANCE
     luminance=lightPollutionGroundLuminance*lightPollutionScattering(altitude, cosViewZenithAngle, viewRayIntersectsGround);
 #elif RENDERING_ECLIPSED_MULTIPLE_SCATTERING
-    vec4 radiance=integrateEclipsedMultipleScatteringMap(cameraPosition, sunDirection, viewDir, moonPosition,
-                                                         cosViewZenithAngle, altitude, viewRayIntersectsGround);
+    vec4 radiance=integrateEclipsedMultipleScatteringMap(cameraPosition, viewDir, cosViewZenithAngle,
+                                                         altitude, worldToMap, viewRayIntersectsGround);
     radiance*=solarIrradianceFixup;
     luminance=radianceToLuminance*radiance;
     radianceOutput=radiance;

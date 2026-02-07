@@ -8,4 +8,8 @@ vec4 scattering(const float cosSunZenithAngle, const float cosViewZenithAngle,
                 const float dotViewSun, const float altitude, const bool viewRayIntersectsGround,
                 const int scatteringOrder);
 vec4 lightPollutionScattering(const float altitude, const float cosViewZenithAngle, const bool viewRayIntersectsGround);
+vec4 sampleEclipseMultipleScatteringMap(const int cubeSideLength, const int eclipsedAtmoMapAltitudeLayerCount,
+                                        const float lunarShadowAngleFromSubsolarPoint,
+                                        const vec3 viewDir, const vec3 pointAtDist, const mat3 worldToMap,
+                                        const bool sampleGroundIrradianceInsteadOfAir);
 #endif

@@ -212,6 +212,9 @@ float visibleSolidAngleOfSun(const vec3 camera, const vec3 sunDir, const vec3 mo
         visibleSolidAngle -= circlesIntersectionArea(Rm,Rs,dSM);
     }
 
+    if(visibleSolidAngle < 0) // Can happen due to rounding
+        visibleSolidAngle = 0;
+
     return visibleSolidAngle;
 }
 
