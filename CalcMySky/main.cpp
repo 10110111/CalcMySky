@@ -1409,10 +1409,10 @@ void computeEclipsedAtmosphere(const unsigned texIndex)
             sumData[i] = log(exp(sumData[i]) + exp(currentData[i]) + 1e-35f);
         if(!file.unmap(currentDataUChar))
             std::cerr << "WARNING: failed to unmap " << currentOrderPath << "\n";
+        std::cerr << "done\n";
     }
     if(!sum.unmap(sumDataUChar))
         std::cerr << "WARNING: failed to unmap " << sumPath << "\n";
-    std::cerr << "done\n";
 }
 
 void saveEclipsedMultipleScatteringRenderingShader(const unsigned texIndex)
