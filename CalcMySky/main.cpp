@@ -1175,7 +1175,7 @@ void computeEclipsedSingleScatteringMap(const unsigned texIndex)
     }
     gl.glDisable(GL_BLEND);
     const auto time1=std::chrono::steady_clock::now();
-    std::cerr << "All eclipse phases done in " << formatDeltaTime(time0, time1) << "\n";
+    std::cerr << indentOutput() << "All eclipse phases done in " << formatDeltaTime(time0, time1) << "\n";
 }
 
 void computeEclipsedMultipleScatteringMap(const unsigned texIndex, const unsigned scatteringOrder)
@@ -1358,7 +1358,7 @@ void computeEclipsedMultipleScatteringMap(const unsigned texIndex, const unsigne
     }
     gl.glDisable(GL_BLEND);
     const auto time1=std::chrono::steady_clock::now();
-    std::cerr << "All eclipse phases done in " << formatDeltaTime(time0, time1) << "\n";
+    std::cerr << indentOutput() << "All eclipse phases done in " << formatDeltaTime(time0, time1) << "\n";
 }
 
 void computeEclipsedAtmosphere(const unsigned texIndex)
@@ -1396,7 +1396,7 @@ void computeEclipsedAtmosphere(const unsigned texIndex)
     {
         computeEclipsedMultipleScatteringMap(texIndex, scatteringOrder);
 
-        std::cerr << "Accumulating eclipsed order-" << scatteringOrder << " scattering map... ";
+        std::cerr << indentOutput() << "Accumulating eclipsed order-" << scatteringOrder << " scattering map... ";
         const auto currentOrderPath = atmo.textureOutputDir+"/eclipsed-order-" +
             std::to_string(scatteringOrder) + "-scattering-map-wlset"+std::to_string(texIndex)+".f32";
         QFile file(toQString(currentOrderPath));
