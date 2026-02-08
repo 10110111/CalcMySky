@@ -52,6 +52,8 @@ using glm::vec2;
 using glm::vec4;
 std::vector<glm::vec4> eclipsedDoubleScatteringAccumulatorTexture;
 
+static QString toQString(std::string const& s) { return QString::fromStdString(s); }
+
 static const QString currentPhaseFunctionStub = "vec4 currentPhaseFunction(float dotViewSun) { return vec4(3.4028235e38); }\n";
 
 void saveIrradiance(const unsigned scatteringOrder, const unsigned texIndex)
@@ -1070,7 +1072,7 @@ void computeEclipsedSingleScatteringMap(const unsigned texIndex)
     unsigned nanCount = 0, totalSubpixelCount = 0;
 
     const auto path = atmo.textureOutputDir+"/eclipsed-order-1-scattering-map-wlset"+std::to_string(texIndex)+".f32";
-    QFile out(QByteArray::fromRawData(path.data(), path.size()));
+    QFile out(toQString(path));
     if(!out.open(QFile::WriteOnly))
     {
         std::cerr << "failed to open file: " << out.errorString().toStdString() << "\n";
@@ -1213,7 +1215,7 @@ void computeEclipsedMultipleScatteringMap(const unsigned texIndex, const unsigne
     const auto inputPath = atmo.textureOutputDir+"/eclipsed-order-" + std::to_string(scatteringOrder-1) + "-scattering-map-wlset"+std::to_string(texIndex)+".f32";
     const auto outputPath = atmo.textureOutputDir+"/eclipsed-order-" + std::to_string(scatteringOrder) + "-scattering-map-wlset"+std::to_string(texIndex)+".f32";
 
-    QFile in(QByteArray::fromRawData(inputPath.data(), inputPath.size()));
+    QFile in(toQString(inputPath));
     if(!in.open(QFile::ReadOnly))
     {
         std::cerr << "failed to open file " << inputPath << ": " << in.errorString().toStdString() << "\n";
@@ -1234,7 +1236,7 @@ void computeEclipsedMultipleScatteringMap(const unsigned texIndex, const unsigne
         }
     }
 
-    QFile out(QByteArray::fromRawData(outputPath.data(), outputPath.size()));
+    QFile out(toQString(outputPath));
     if(!out.open(QFile::WriteOnly))
     {
         std::cerr << "failed to open file " << outputPath << ": " << out.errorString().toStdString() << "\n";
@@ -1370,13 +1372,12 @@ void computeEclipsedAtmosphere(const unsigned texIndex)
 
     const auto firstOrderPath = atmo.textureOutputDir+"/eclipsed-order-1-scattering-map-wlset"+std::to_string(texIndex)+".f32";
     const auto sumPath = atmo.textureOutputDir+"/eclipsed-multiple-scattering-map-wlset"+std::to_string(texIndex)+".f32";
-    if(!QFile::copy(QByteArray::fromRawData(firstOrderPath.data(), firstOrderPath.size()),
-                    QByteArray::fromRawData(sumPath.data(), sumPath.size())))
+    if(!QFile::copy(toQString(firstOrderPath), toQString(sumPath)))
     {
         std::cerr << "failed to copy file " << firstOrderPath << " to " << sumPath << "\n";
         throw MustQuit{};
     }
-    QFile sum(QByteArray::fromRawData(sumPath.data(), sumPath.size()));
+    QFile sum(toQString(sumPath));
     if(!sum.open(QFile::ReadWrite))
     {
         std::cerr << "failed to open file " << sumPath << ": " << sum.errorString().toStdString() << "\n";
@@ -1397,7 +1398,7 @@ void computeEclipsedAtmosphere(const unsigned texIndex)
         std::cerr << "Accumulating eclipsed order-" << scatteringOrder << " scattering map... ";
         const auto currentOrderPath = atmo.textureOutputDir+"/eclipsed-order-" +
             std::to_string(scatteringOrder) + "-scattering-map-wlset"+std::to_string(texIndex)+".f32";
-        QFile file(QByteArray::fromRawData(currentOrderPath.data(), currentOrderPath.size()));
+        QFile file(toQString(currentOrderPath));
         if(!file.open(QFile::ReadOnly))
         {
             std::cerr << "failed to open file " << currentOrderPath << " for reading: " << file.errorString().toStdString() << "\n";
