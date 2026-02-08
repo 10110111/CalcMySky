@@ -1243,7 +1243,6 @@ void computeEclipsedMultipleScatteringMap(const unsigned texIndex, const unsigne
     for(const uint16_t s : textureSizes)
         out.write(reinterpret_cast<const char*>(&s), sizeof s);
 
-
     // For later getting its image
     const auto outTexUnitNum = unusedTextureUnitNum++;
     gl.glActiveTexture(GL_TEXTURE0 + outTexUnitNum);
@@ -1366,9 +1365,54 @@ void computeEclipsedAtmosphere(const unsigned texIndex)
 
     std::cerr << indentOutput() << "Computing eclipsed atmosphere...\n";
     OutputIndentIncrease incr;
+
     computeEclipsedSingleScatteringMap(texIndex);
+
+    const auto firstOrderPath = atmo.textureOutputDir+"/eclipsed-order-1-scattering-map-wlset"+std::to_string(texIndex)+".f32";
+    const auto sumPath = atmo.textureOutputDir+"/eclipsed-multiple-scattering-map-wlset"+std::to_string(texIndex)+".f32";
+    if(!QFile::copy(QByteArray::fromRawData(firstOrderPath.data(), firstOrderPath.size()),
+                    QByteArray::fromRawData(sumPath.data(), sumPath.size())))
+    {
+        std::cerr << "failed to copy file " << firstOrderPath << " to " << sumPath << "\n";
+        throw MustQuit{};
+    }
+    QFile sum(QByteArray::fromRawData(sumPath.data(), sumPath.size()));
+    if(!sum.open(QFile::ReadWrite))
+    {
+        std::cerr << "failed to open file " << sumPath << ": " << sum.errorString().toStdString() << "\n";
+        throw MustQuit{};
+    }
+    uint16_t sizes[4];
+    const qint64 headerSize = sizeof sizes;
+    sum.read(reinterpret_cast<char*>(&sizes), headerSize);
+    const qint64 pixelCount = qint64(sizes[0]) * sizes[1] * sizes[2] * sizes[3];
+    const qint64 sumDataSize = sizeof(vec4) * pixelCount;
+    const auto sumDataUChar = sum.map(headerSize, sumDataSize);
+    const auto sumData = reinterpret_cast<vec4*>(sumDataUChar);
+
     for(unsigned scatteringOrder = 2; scatteringOrder < atmo.scatteringOrdersToCompute; ++scatteringOrder)
+    {
         computeEclipsedMultipleScatteringMap(texIndex, scatteringOrder);
+
+        std::cerr << "Accumulating eclipsed order-" << scatteringOrder << " scattering map... ";
+        const auto currentOrderPath = atmo.textureOutputDir+"/eclipsed-order-" +
+            std::to_string(scatteringOrder) + "-scattering-map-wlset"+std::to_string(texIndex)+".f32";
+        QFile file(QByteArray::fromRawData(currentOrderPath.data(), currentOrderPath.size()));
+        if(!file.open(QFile::ReadOnly))
+        {
+            std::cerr << "failed to open file " << currentOrderPath << " for reading: " << file.errorString().toStdString() << "\n";
+            throw MustQuit{};
+        }
+        const auto currentDataUChar = file.map(headerSize, sumDataSize);
+        const auto currentData = reinterpret_cast<const vec4*>(currentDataUChar);
+        for(qint64 i = 0; i < pixelCount; ++i)
+            sumData[i] = log(exp(sumData[i]) + exp(currentData[i]) + 1e-35f);
+        if(!file.unmap(currentDataUChar))
+            std::cerr << "WARNING: failed to unmap " << currentOrderPath << "\n";
+    }
+    if(!sum.unmap(sumDataUChar))
+        std::cerr << "WARNING: failed to unmap " << sumPath << "\n";
+    std::cerr << "done\n";
 }
 
 void saveEclipsedMultipleScatteringRenderingShader(const unsigned texIndex)
