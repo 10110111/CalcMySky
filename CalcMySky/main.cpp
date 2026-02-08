@@ -1372,6 +1372,7 @@ void computeEclipsedAtmosphere(const unsigned texIndex)
 
     const auto firstOrderPath = atmo.textureOutputDir+"/eclipsed-order-1-scattering-map-wlset"+std::to_string(texIndex)+".f32";
     const auto sumPath = atmo.textureOutputDir+"/eclipsed-multiple-scattering-map-wlset"+std::to_string(texIndex)+".f32";
+    QFile::remove(toQString(sumPath));
     if(!QFile::copy(toQString(firstOrderPath), toQString(sumPath)))
     {
         std::cerr << "failed to copy file " << firstOrderPath << " to " << sumPath << "\n";
