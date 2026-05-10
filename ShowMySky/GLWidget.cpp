@@ -839,11 +839,13 @@ void GLWidget::saveScreenshot()
 #if QT_VERSION >= QT_VERSION_CHECK(6,2,0)
         "TIFF XYZW image (*.tiff *.tif)",
 #endif
+        "PNG image of the current display (*.png)",
     };
     enum
     {
         Format_F32,
         Format_TIFF_XYZW,
+        Format_display_PNG,
     };
     QString selectedFilter = filters[0];
     const auto path=QFileDialog::getSaveFileName(this, tr("Save screenshot"), {}, filters.join(";;"), &selectedFilter);
@@ -888,6 +890,17 @@ void GLWidget::saveScreenshot()
             return;
         }
 #endif
+        break;
+    }
+    case Format_display_PNG:
+    {
+        const auto img = grab().toImage();
+        QImageWriter writer(path, "PNG");
+        if(!writer.write(img))
+        {
+            QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to save image: %1").arg(writer.errorString()));
+            return;
+        }
         break;
     }
     }
