@@ -824,6 +824,7 @@ void GLWidget::keyPressEvent(QKeyEvent* event)
     case Qt::Key_S:
         if((event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier|Qt::AltModifier)) != Qt::ControlModifier)
             break;
+        if(!renderer->isReadyToRender()) return;
         saveScreenshot();
         break;
     default:
