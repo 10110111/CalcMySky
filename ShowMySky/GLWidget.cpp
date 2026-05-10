@@ -834,28 +834,62 @@ void GLWidget::keyPressEvent(QKeyEvent* event)
 
 void GLWidget::saveScreenshot()
 {
-    const auto path=QFileDialog::getSaveFileName(this, tr("Save screenshot"), {}, "float32 image files (*.f32)");
+    const QStringList filters{
+        "float32 image (*.f32)",
+#if QT_VERSION >= QT_VERSION_CHECK(6,2,0)
+        "TIFF XYZW image (*.tiff *.tif)",
+#endif
+    };
+    enum
+    {
+        Format_F32,
+        Format_TIFF_XYZW,
+    };
+    QString selectedFilter = filters[0];
+    const auto path=QFileDialog::getSaveFileName(this, tr("Save screenshot"), {}, filters.join(";;"), &selectedFilter);
     if(path.isNull())
         return;
+    const int filter = filters.indexOf(selectedFilter);
     makeCurrent();
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
     std::vector<float> data(width()*height()*4);
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, data.data());
-    QFile file(path);
-    if(!file.open(QFile::WriteOnly))
+    switch(filter)
     {
-        QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to open destination file: %1").arg(file.errorString()));
-        return;
+    case Format_F32:
+    {
+        QFile file(path);
+        if(!file.open(QFile::WriteOnly))
+        {
+            QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to open destination file: %1").arg(file.errorString()));
+            return;
+        }
+        const uint16_t width=this->width(), height=this->height();
+        file.write(reinterpret_cast<const char*>(&width), sizeof width);
+        file.write(reinterpret_cast<const char*>(&height), sizeof height);
+        file.write(reinterpret_cast<const char*>(data.data()), data.size()*sizeof data[0]);
+        if(!file.flush())
+        {
+            QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to write to destination file: %1").arg(file.errorString()));
+            return;
+        }
+        break;
     }
-    const uint16_t width=this->width(), height=this->height();
-    file.write(reinterpret_cast<const char*>(&width), sizeof width);
-    file.write(reinterpret_cast<const char*>(&height), sizeof height);
-    file.write(reinterpret_cast<const char*>(data.data()), data.size()*sizeof data[0]);
-    if(!file.flush())
+    case Format_TIFF_XYZW:
     {
-        QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to write to destination file: %1").arg(file.errorString()));
-        return;
+#if QT_VERSION >= QT_VERSION_CHECK(6,2,0)
+        QImageWriter writer(path, "TIFF");
+        QImage img(reinterpret_cast<const uchar*>(data.data()), width(), height(),
+                   4 * width() * sizeof data[0], QImage::Format_RGBA32FPx4);
+        if(!writer.write(img.mirrored()))
+        {
+            QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to save image: %1").arg(writer.errorString()));
+            return;
+        }
+#endif
+        break;
+    }
     }
 }
 
