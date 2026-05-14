@@ -19,6 +19,9 @@
 
 #include "GLWidget.hpp"
 #include <chrono>
+#include <cstring>
+#include <type_traits>
+#include <QFile>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QFileDialog>
@@ -32,6 +35,163 @@
 #include "AtmosphereRenderer.hpp"
 #include "GLSLCosineQualityChecker.hpp"
 #include "BlueNoiseTriangleRemapped.hpp"
+#include "Simplify.h"
+
+namespace
+{
+using glm::vec4;
+#ifdef Q_OS_WIN
+using ssize_t = std::make_signed_t<std::size_t>;
+#endif
+
+double calcInterLayerError(const vec4*const data, const ssize_t layerSize,
+                           const int currentLayerNum, const int targetLayerNum)
+{
+    const vec4& currentLayer = data[layerSize * currentLayerNum];
+    const vec4& targetLayer = data[layerSize * targetLayerNum];
+
+    double maxError = 0;
+    for(int layerNumToCheck = currentLayerNum + 1; layerNumToCheck <= targetLayerNum; ++layerNumToCheck)
+    {
+        const auto alpha = double(layerNumToCheck - currentLayerNum) / (targetLayerNum - currentLayerNum);
+        const double targetLayerVal = targetLayer.y;
+        const double currentLayerVal = currentLayer.y;
+        const double interLayerInterpolant = currentLayerVal + (targetLayerVal - currentLayerVal) * alpha;
+        const double refValue = data[layerSize * layerNumToCheck].y;
+        const double error = std::abs(interLayerInterpolant / refValue - 1);
+        if(error > maxError) maxError = error;
+    }
+    return maxError;
+}
+
+double/*error*/ findMaxErrorBetweenLayers(const vec4*const data, const ssize_t width, const ssize_t height,
+                                          const int currentLayerNum, const int targetLayerNum)
+{
+    const auto layerSize = width * height;
+    double maxError = 0;
+    for(ssize_t j = 0; j < height; ++j)
+    {
+        for(ssize_t i = 0; i < width; ++i)
+        {
+            const auto error = calcInterLayerError(data + i + width * j, layerSize, currentLayerNum, targetLayerNum);
+            if(error > maxError) maxError = error;
+        }
+    }
+
+    return maxError;
+}
+
+constexpr double corner1marker = -1e30f;
+constexpr double corner2marker = -2e30f;
+constexpr double corner3marker = -3e30f;
+constexpr double corner4marker = -4e30f;
+double corner1val = 0;
+double corner2val = 0;
+double corner3val = 0;
+double corner4val = 0;
+
+void createAndSimplifyMesh(const vec4*const inData, const ssize_t width, const ssize_t height)
+{
+    auto& vertices = *Simplify::vertices[0];
+    auto& triangles = *Simplify::triangles[0];
+
+    vertices.clear();
+    triangles.clear();
+
+    for (int y = 0; y < height; y++)
+    {
+        const auto*const inLine = inData + width * y;
+        for (int x = 0; x < width; x++)
+        {
+            Simplify::Vertex v{};
+            v.p.x = x;
+            v.p.y = y;
+            v.p.z = inLine[x].y;
+
+            if (x == 0 && y == 0)
+            {
+                corner1val = v.p.z;
+                v.p.z = corner1marker;
+            }
+            else if (x == 0 && y == height - 1)
+            {
+                corner2val = v.p.z;
+                v.p.z = corner2marker;
+            }
+            else if (x == width - 1 && y == 0)
+            {
+                corner3val = v.p.z;
+                v.p.z = corner3marker;
+            }
+            else if (x == width - 1 && y == height - 1)
+            {
+                corner4val = v.p.z;
+                v.p.z = corner4marker;
+            }
+
+            vertices.push_back(v);
+        }
+    }
+
+    for (int y = 0; y < height - 1; y++)
+    {
+        for (int x = 0; x < width - 1; x++)
+        {
+            Simplify::Triangle t1{};
+            t1.v[0] = width * (y + 1) + x;
+            t1.v[1] = width * y + x + 1;
+            t1.v[2] = width * y + x;
+
+            triangles.push_back(t1);
+
+            Simplify::Triangle t2{};
+            t2.v[0] = width * (y + 1) + x;
+            t2.v[1] = width * (y + 1) + x + 1;
+            t2.v[2] = width * y + x + 1;
+            triangles.push_back(t2);
+
+        }
+    }
+
+    const int target_count = 1000; // TODO: make it configurable
+
+    Simplify::simplify_mesh(target_count, 5, 0, width - 1, false, false, 0);
+
+    for(auto& v : vertices)
+    {
+        if(v.p.z == corner1marker) v.p.z = corner1val;
+        if(v.p.z == corner2marker) v.p.z = corner2val;
+        if(v.p.z == corner3marker) v.p.z = corner3val;
+        if(v.p.z == corner4marker) v.p.z = corner4val;
+    }
+
+    // Snap near-border vertices to the borders
+    for(auto& v : vertices)
+    {
+        constexpr double borderThreshold = 1.5;
+        if(v.p.x < borderThreshold) v.p.x = 0;
+        if(v.p.y < borderThreshold) v.p.y = 0;
+        if(v.p.x > width - 1 - borderThreshold) v.p.x = width - 1;
+        if(v.p.y > height - 1 - borderThreshold) v.p.y = height - 1;
+    }
+}
+
+glm::vec3 XYZ2xyY(glm::vec3 const& c)
+{
+    return {c.x / (c.x + c.y + c.z),
+            c.y / (c.x + c.y + c.z),
+            c.y};
+}
+
+glm::vec4 sampleLayer(const glm::vec4*const data, const ssize_t width, const ssize_t height, double x, double y)
+{
+    x = std::clamp(x, 0., width - 1.);
+    y = std::clamp(y, 0., height - 1.);
+    const ssize_t i = std::lround(x);
+    const ssize_t j = std::lround(y);
+    return data[j * width + i];
+}
+}
 
 static QPointF position(QMouseEvent* event, double scale)
 {
@@ -51,6 +211,7 @@ GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* paren
     installEventFilter(this);
     setFocusPolicy(Qt::StrongFocus);
     setUpdateBehavior(QOpenGLWidget::PartialUpdate);
+    setFixedSize(1000, 500);
 }
 
 GLWidget::~GLWidget()
@@ -468,6 +629,7 @@ uniform int projection;
 #define PROJ_EQUIRECTANGULAR 0
 #define PROJ_PERSPECTIVE 1
 #define PROJ_FISHEYE 2
+#define PROJ_EQUIRECT_TOP_RIGHT 3
 
 const float PI=3.1415926535897932;
 
@@ -490,6 +652,15 @@ vec3 calcViewDir()
     vec2 pos=position.xy/zoomFactor;
     if(projection==PROJ_EQUIRECTANGULAR)
     {
+        return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
+                                   sin(pos.x*PI)*cos(pos.y*(PI/2)),
+                                   sin(pos.y*(PI/2)));
+    }
+    else if(projection==PROJ_EQUIRECT_TOP_RIGHT)
+    {
+        pos.x = (pos.x + 1) / 2;
+        pos.y = (pos.y + 1) / 2;
+        pos.y *= pos.y;
         return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
                                    sin(pos.x*PI)*cos(pos.y*(PI/2)),
                                    sin(pos.y*(PI/2)));
@@ -742,6 +913,10 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
             tools->setSunZenithAngle(std::clamp(oldZA - mouseDeltaY*M_PI/height()/tools->zoomFactor(), 0., M_PI));
             tools->setSunAzimuth(std::remainder(oldAz + mouseDeltaX*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
             break;
+        case Projection::EquirectTopRight:
+            tools->setSunZenithAngle(std::clamp(oldZA - mouseDeltaY*2*M_PI/height()/tools->zoomFactor(), 0., M_PI));
+            tools->setSunAzimuth(std::remainder(oldAz + mouseDeltaX*4*M_PI/width()/tools->zoomFactor(), 2*M_PI));
+            break;
         case Projection::Perspective:
         {
             const auto scaleX = 0.35;
@@ -827,6 +1002,12 @@ void GLWidget::keyPressEvent(QKeyEvent* event)
         if(!renderer->isReadyToRender()) return;
         saveScreenshot();
         break;
+    case Qt::Key_D:
+        if((event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier|Qt::AltModifier)) != Qt::ControlModifier)
+            break;
+        if(!renderer->isReadyToRender()) return;
+        saveMesh();
+        break;
     default:
         QOpenGLWidget::keyPressEvent(event);
         break;
@@ -905,6 +1086,237 @@ void GLWidget::saveScreenshot()
         break;
     }
     }
+}
+
+void GLWidget::saveMesh()
+{
+    makeCurrent();
+    const auto origZenithAngle = tools->sunZenithAngle();
+
+    const double elevMin = -18 *M_PI/180;
+    const double elevMax = 90 *M_PI/180;
+    const double elevStep = 0.02 *M_PI/180;
+    const int numLayerSteps = std::lround((elevMax - elevMin) / elevStep);
+    const int numLayers = numLayerSteps + 1;
+    const int width=this->width(), height=this->height();
+    qDebug() << "Processing layers; width:" << width << ", height:" << height;
+
+    const double errorTolerance = 0.01;
+    const size_t layerSize = size_t(width)*height;
+    const char filePath[] = "/home/ruslan/Downloads/calcmysky-layers.bin";
+    QFile file(filePath);
+    if(!file.open(QFile::ReadWrite))
+        throw std::runtime_error("Failed to open data file for reading and writing");
+    std::vector<float> norms;
+    double maxForAllLayers = 0;
+
+    const ssize_t expectedFileSize = numLayers * (layerSize * sizeof(glm::vec4) + sizeof norms[0]) + sizeof maxForAllLayers;
+    if(file.size() != expectedFileSize)
+    {
+        // Generate the file. For this, first reopen it to truncate.
+        file.close();
+        if(!file.open(QFile::ReadWrite | QFile::Truncate))
+            throw std::runtime_error("Failed to open data file for reading and writing");
+
+        std::vector<glm::vec4> dataToWrite(layerSize);
+        for(int currentLayer = 0; currentLayer < numLayers; ++currentLayer)
+        {
+            const auto elevation = elevMin + (1 - double(currentLayer) / numLayerSteps) * (elevMax - elevMin);
+            tools->setSunZenithAngle(M_PI/2 - elevation);
+            renderer->draw(1, true);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, dataToWrite.data());
+            qDebug() << "Got frame for sun elevation" << 180/M_PI * elevation << "°";
+
+            const auto sum = std::accumulate(dataToWrite.begin(), dataToWrite.end(), glm::vec4(0));
+            const auto avg = sum.y / layerSize;
+            const auto norm = avg;
+            norms.push_back(norm);
+            for(auto& d : dataToWrite)
+                d /= norm;
+            const auto max = std::max_element(dataToWrite.begin(), dataToWrite.end(), [](auto& a, auto& b){ return a.y < b.y; })->y;
+            if(max > maxForAllLayers)
+                maxForAllLayers = max;
+            qDebug() << "Average for layer" << currentLayer << ":" << avg << ", max after normalization:" << max << ", global max so far:" << maxForAllLayers;
+
+            const ssize_t numBytesToWrite = sizeof dataToWrite[0] * dataToWrite.size();
+            if(file.write(reinterpret_cast<const char*>(dataToWrite.data()), numBytesToWrite) != numBytesToWrite)
+                throw std::runtime_error(("Failed to write data: "+file.errorString()).toStdString());
+            qDebug() << "Wrote layer" << currentLayer;
+        }
+
+        file.write(reinterpret_cast<const char*>(norms.data()), norms.size() * sizeof norms[0]);
+        file.write(reinterpret_cast<const char*>(&maxForAllLayers), sizeof maxForAllLayers);
+
+        file.flush();
+
+        std::cerr << "Layer norms:\n";
+        for(unsigned n = 0; n < norms.size(); ++n)
+            std::cerr << (n==0 ? "" : ", ") << norms[n];
+        std::cerr << "\n";
+    }
+
+    const void* mapped = file.map(0, expectedFileSize);
+    const auto data = static_cast<const glm::vec4*>(mapped);
+    if(!data) throw std::runtime_error("Failed to map file to memory");
+
+    std::memcpy(&maxForAllLayers, static_cast<const char*>(mapped) + numLayers * (layerSize * sizeof(glm::vec4) + sizeof norms[0]), sizeof maxForAllLayers);
+    norms.resize(numLayers);
+    const auto normsInFile = &data[numLayers * layerSize][0];
+    for(unsigned n = 0; n < numLayers; ++n)
+        norms[n] = normsInFile[n] * maxForAllLayers;
+
+    qDebug() << "Max value re-read:" << maxForAllLayers;
+
+    std::vector<float> elevationsToUse{float(elevMax)};
+    std::vector<int> layersToUse{0};
+    std::vector<float> normsToUse{norms[0]};
+    for(int currentLayer = 0; currentLayer < numLayers - 1; )
+    {
+        int targetLayerMin = currentLayer + 1, targetLayerMax = std::min(currentLayer + numLayers / 10, numLayerSteps + 1);
+        int finalTargetLayer = -1;
+        while(targetLayerMax != targetLayerMin)
+        {
+            const int targetLayer = (targetLayerMin + targetLayerMax) / 2;
+            if(targetLayer == numLayerSteps + 1)
+            {
+                finalTargetLayer = numLayerSteps;
+                break;
+            }
+
+            const auto maxError = findMaxErrorBetweenLayers(data, width, height, currentLayer, targetLayer);
+            qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
+            if(maxError > errorTolerance)
+            {
+                if(targetLayer == targetLayerMax)
+                {
+                    // Last average of min and max gave max due to rounding, and it doesn't satisfy error tolerance.
+                    finalTargetLayer = targetLayerMin;
+                    break;
+                }
+                targetLayerMax = targetLayer;
+            }
+            else
+            {
+                if(targetLayer == targetLayerMin)
+                {
+                    // Last average of min and max gave min due to rounding, and we know that max doesn't fit a priori,
+                    // since we only update it when tolerance is not satisfied, and initialize by an out of range value.
+                    finalTargetLayer = targetLayerMin;
+                    break;
+                }
+                targetLayerMin = targetLayer;
+            }
+        }
+        if(finalTargetLayer < 0)
+            finalTargetLayer = targetLayerMin;
+
+        if(finalTargetLayer == currentLayer)
+            throw std::runtime_error("ERROR: Failed to find a layer following layer "+std::to_string(currentLayer)+" within error tolerance");
+
+        const auto elevation = elevMin + (1 - double(finalTargetLayer) / numLayerSteps) * (elevMax - elevMin);
+        qDebug() << "Keeping elevation" << 180/M_PI*elevation;
+        elevationsToUse.push_back(elevation);
+        layersToUse.push_back(finalTargetLayer);
+        normsToUse.push_back(norms[finalTargetLayer]);
+
+        currentLayer = finalTargetLayer;
+    }
+    {
+        std::cerr << "Final elevations to connect:\n";
+        for(unsigned n = 0; n < elevationsToUse.size(); ++n)
+            std::cerr << (n==0?"":", ") << 180/M_PI*elevationsToUse[n];
+        std::cerr << "\n";
+    }
+
+    QFile out("/home/ruslan/Downloads/atmo-mesh.amsh");
+    if(!out.open(QFile::WriteOnly))
+    {
+        std::cerr << "Failed to open output file: " << out.errorString().toStdString() << "\n";
+        return;
+    }
+
+    /*
+     * Generate the mesh for each layer and store in the output file.
+     * The format is as follows (all entries are little-endian).
+     *
+     *  Format             Name     Content
+     *  string                      "AtmoMesh"
+     *  uint8                       Format version: '\1'
+     *  uint8                       Reserved: '\0'
+     *  uint16             nSZA     Number of solar elevation layers
+     *  float32[nSZA]               Solar elevations per layer, in radians
+     *  float32[nSZA]               Norms per layer
+     *  Layer[nSZA]:
+     *   uint16            nVERT    Number of vertices
+     *   uint16            nTRI     Number of triangles
+     *   Vertex[nVERT]:    VERTS
+     *    uint16                    Azimuth from the Sun, 0 = 0°, max = 180°
+     *    uint16                    Elevation, 0 = 0°, max = 90°
+     *    uint8                     Color x component, 0 = 0.0, max = 1.0
+     *    uint8                     Color y component, 0 = 0.0, max = 1.0
+     *    uint16                    Color Y component divided by layer norm
+     *   Index[nTRI*3]:
+     *    uint16                    Index in the VERTS array
+     */
+
+    const char sigVerRes[] = "AtmoMesh\1\0";
+    out.write(reinterpret_cast<const char*>(sigVerRes), sizeof sigVerRes - 1);
+    const uint16_t numLayersToWrite = layersToUse.size();
+    out.write(reinterpret_cast<const char*>(&numLayersToWrite), sizeof numLayersToWrite);
+    if(elevationsToUse.size() != numLayersToWrite)
+        throw std::logic_error("Number of elevations differs from the number of layers");
+    if(normsToUse.size() != numLayersToWrite)
+        throw std::logic_error("Number of layer norms differs from the number of layers");
+    static_assert(sizeof elevationsToUse[0] == sizeof(float));
+    out.write(reinterpret_cast<const char*>(elevationsToUse.data()), elevationsToUse.size() * sizeof elevationsToUse[0]);
+    static_assert(sizeof normsToUse[0] == sizeof(float));
+    out.write(reinterpret_cast<const char*>(normsToUse.data()), normsToUse.size() * sizeof normsToUse[0]);
+
+    Simplify::allocate(1);
+    for(const auto layer : layersToUse)
+    {
+        std::cerr << "Creating mesh for layer " << layer << "\n";
+        createAndSimplifyMesh(data + layer * layerSize, width, height);
+        const auto& vertices = *Simplify::vertices[0];
+        const auto& triangles = *Simplify::triangles[0];
+
+        if(vertices.size() > uint16_t(-1))
+            throw std::runtime_error("Too many vertices for uint16 size: "+std::to_string(vertices.size()));
+        if(triangles.size() > uint16_t(-1))
+            throw std::runtime_error("Too many triangles for uint16 size: "+std::to_string(vertices.size()));
+
+        const uint16_t numVertices = vertices.size();
+        out.write(reinterpret_cast<const char*>(&numVertices), sizeof numVertices);
+        const uint16_t numTriangles = triangles.size();
+        out.write(reinterpret_cast<const char*>(&numTriangles), sizeof numTriangles);
+        for(const auto& v : vertices)
+        {
+            const uint16_t azim = std::lround(std::clamp(v.p.x / (width - 1), 0., 1.) * uint16_t(-1));
+            out.write(reinterpret_cast<const char*>(&azim), sizeof azim);
+            const uint16_t elev = std::lround(std::clamp(v.p.y / (height - 1), 0., 1.) * uint16_t(-1));
+            out.write(reinterpret_cast<const char*>(&elev), sizeof elev);
+            const glm::vec3 xyY = XYZ2xyY(sampleLayer(data + layer * layerSize, width, height, v.p.x, v.p.y));
+            const uint8_t x = std::lround(xyY.x * uint8_t(-1));
+            out.write(reinterpret_cast<const char*>(&x), sizeof x);
+            const uint8_t y = std::lround(xyY.y * uint8_t(-1));
+            out.write(reinterpret_cast<const char*>(&y), sizeof y);
+            const uint16_t Y = std::lround(xyY.z / maxForAllLayers * uint16_t(-1));
+            out.write(reinterpret_cast<const char*>(&Y), sizeof Y);
+        }
+        for(const auto& t : triangles)
+        {
+            for(int i = 0; i < 3; ++i)
+            {
+                uint16_t idx = t.v[i];
+                out.write(reinterpret_cast<const char*>(&idx), sizeof idx);
+            }
+        }
+    }
+    std::cerr << "All done\n";
+
+    tools->setSunZenithAngle(origZenithAngle);
 }
 
 int GLWidget::width() const

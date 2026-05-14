@@ -88,7 +88,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     mainWidget->setLayout(layout);
     setWidget(scrollArea);
 
-    altitude_     = addManipulator(layout, this, tr("&Altitude"), 0, initialMaxAltitude, 50, 2, " m", true);
+    altitude_     = addManipulator(layout, this, tr("&Altitude"), 0, initialMaxAltitude, 0, 2, " m", true);
     exposure_     = addManipulator(layout, this, tr("log<sub>10</sub>(e&xposure)"), -5, 3, -4.2, 2);
     sunElevation_ = addManipulator(layout, this, tr("Sun e&levation"),  -90,  90, 45, 3, QChar(0x00b0));
     sunAzimuth_   = addManipulator(layout, this, tr("Sun az&imuth"),   -180, 180,  0, 3, QChar(0x00b0));
@@ -101,7 +101,8 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
         projection_->addItem(tr("Equirectangular"));
         projection_->addItem(tr("Perspective"));
         projection_->addItem(tr("Fisheye"));
-        projection_->setCurrentIndex(static_cast<int>(GLWidget::Projection::Equirectangular));
+        projection_->addItem(tr("Equirectangular top-right"));
+        projection_->setCurrentIndex(static_cast<int>(GLWidget::Projection::EquirectTopRight));
         connect(projection_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](const int index)
                 { emit projectionChanged(static_cast<GLWidget::Projection>(index)); });
         const auto hbox=new QHBoxLayout;
@@ -171,7 +172,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     }
     gradualClippingEnabled_ = addCheckBox(layout, this, tr("&Gradual color clipping"), true);
     glareEnabled_ = addCheckBox(layout, this, tr("Glare (visual only)"), false);
-    zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw zer&o-order scattering layer"), true);
+    zeroOrderScatteringEnabled_ = addCheckBox(layout, this, tr("Draw zer&o-order scattering layer"), false);
     singleScatteringEnabled_    = addCheckBox(layout, this, tr("Draw &single scattering layers"), true);
     {
         const auto frame=new QFrame;
@@ -211,7 +212,7 @@ ToolsWidget::ToolsWidget(QWidget*const parent)
     }
 
     textureFilteringEnabled_=addCheckBox(layout, this, tr("&Texture filtering"), true);
-    onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), false);
+    onTheFlySingleScatteringEnabled_=addCheckBox(layout, this, tr("Compute single scattering on the &fly"), true);
     onTheFlyPrecompDoubleScatteringEnabled_=addCheckBox(layout, this, tr("Precompute double(-only) scattering on the fly"), true);
 
     usingEclipseShader_=addCheckBox(layout, this, tr("Use e&clipse-mode shaders"), false);
