@@ -468,6 +468,7 @@ uniform int projection;
 #define PROJ_EQUIRECTANGULAR 0
 #define PROJ_PERSPECTIVE 1
 #define PROJ_FISHEYE 2
+#define PROJ_EQUIRECT_TOP_RIGHT 3
 
 const float PI=3.1415926535897932;
 
@@ -490,6 +491,15 @@ vec3 calcViewDir()
     vec2 pos=position.xy/zoomFactor;
     if(projection==PROJ_EQUIRECTANGULAR)
     {
+        return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
+                                   sin(pos.x*PI)*cos(pos.y*(PI/2)),
+                                   sin(pos.y*(PI/2)));
+    }
+    else if(projection==PROJ_EQUIRECT_TOP_RIGHT)
+    {
+        pos.x = (pos.x + 1) / 2;
+        pos.y = (pos.y + 1) / 2;
+        pos.y *= pos.y;
         return cameraRotation*vec3(cos(pos.x*PI)*cos(pos.y*(PI/2)),
                                    sin(pos.x*PI)*cos(pos.y*(PI/2)),
                                    sin(pos.y*(PI/2)));
@@ -742,6 +752,10 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
             tools->setSunZenithAngle(std::clamp(oldZA - mouseDeltaY*M_PI/height()/tools->zoomFactor(), 0., M_PI));
             tools->setSunAzimuth(std::remainder(oldAz + mouseDeltaX*2*M_PI/width()/tools->zoomFactor(), 2*M_PI));
             break;
+        case Projection::EquirectTopRight:
+            tools->setSunZenithAngle(std::clamp(oldZA - mouseDeltaY*2*M_PI/height()/tools->zoomFactor(), 0., M_PI));
+            tools->setSunAzimuth(std::remainder(oldAz + mouseDeltaX*4*M_PI/width()/tools->zoomFactor(), 2*M_PI));
+            break;
         case Projection::Perspective:
         {
             const auto scaleX = 0.35;
@@ -837,6 +851,7 @@ void GLWidget::saveScreenshot()
 {
     const QStringList filters{
         "float32 image (*.f32)",
+        "float32 sun elevation sequence (*.f32v)", /* "v" means "volume", as in a 3D texture */
 #if QT_VERSION >= QT_VERSION_CHECK(6,2,0)
         "TIFF XYZW image (*.tiff *.tif)",
 #endif
@@ -845,6 +860,7 @@ void GLWidget::saveScreenshot()
     enum
     {
         Format_F32,
+        Format_F32V,
         Format_TIFF_XYZW,
         Format_display_PNG,
     };
@@ -877,6 +893,47 @@ void GLWidget::saveScreenshot()
             QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to write to destination file: %1").arg(file.errorString()));
             return;
         }
+        break;
+    }
+    case Format_F32V:
+    {
+        const auto origZenithAngle = tools->sunZenithAngle();
+        const int nMax = 121;
+        const size_t frameSize = width()*height()*4;
+        data.resize(frameSize * nMax);
+        for(int n = 0; n < nMax; ++n)
+        {
+            const auto elevation = -6*M_PI/180 + double(n) / (nMax - 1) * (0 - -6)*M_PI/180;
+            tools->setSunZenithAngle(M_PI/2 - elevation);
+            renderer->draw(1, true);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, &data[n * frameSize]);
+            qDebug() << "Got frame for sun elevation" << 180/M_PI * elevation << "°";
+        }
+        tools->setSunZenithAngle(origZenithAngle);
+
+        qDebug() << "Saving f32 image...";
+        QFile file(path);
+        if(!file.open(QFile::WriteOnly))
+        {
+            QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to open destination file: %1").arg(file.errorString()));
+            qDebug() << "Saving failed.";
+            return;
+        }
+        const uint16_t width=this->width(), height=this->height(), depth = nMax;
+        file.write(reinterpret_cast<const char*>(&width), sizeof width);
+        file.write(reinterpret_cast<const char*>(&height), sizeof height);
+        file.write(reinterpret_cast<const char*>(&depth), sizeof depth);
+        file.write(reinterpret_cast<const char*>(data.data()), data.size()*sizeof data[0]);
+        if(!file.flush())
+        {
+            QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to write to destination file: %1").arg(file.errorString()));
+            qDebug() << "Saving failed.";
+            return;
+        }
+        qDebug() << "Image saved";
+
         break;
     }
     case Format_TIFF_XYZW:
