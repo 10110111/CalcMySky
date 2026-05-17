@@ -944,6 +944,12 @@ void GLWidget::keyPressEvent(QKeyEvent* event)
         if(!renderer->isReadyToRender()) return;
         saveScreenshot();
         break;
+    case Qt::Key_D:
+        if((event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier|Qt::AltModifier)) != Qt::ControlModifier)
+            break;
+        if(!renderer->isReadyToRender()) return;
+        saveMesh();
+        break;
     default:
         QOpenGLWidget::keyPressEvent(event);
         break;
@@ -954,7 +960,6 @@ void GLWidget::saveScreenshot()
 {
     const QStringList filters{
         "float32 image (*.f32)",
-        "float32 sun elevation sequence (*.f32v)", /* "v" means "volume", as in a 3D texture */
 #if QT_VERSION >= QT_VERSION_CHECK(6,2,0)
         "TIFF XYZW image (*.tiff *.tif)",
 #endif
@@ -963,7 +968,6 @@ void GLWidget::saveScreenshot()
     enum
     {
         Format_F32,
-        Format_F32V,
         Format_TIFF_XYZW,
         Format_display_PNG,
     };
@@ -998,66 +1002,6 @@ void GLWidget::saveScreenshot()
         }
         break;
     }
-    case Format_F32V:
-    {
-        const auto origZenithAngle = tools->sunZenithAngle();
-        const int nMax = 241;
-        const size_t frameSize = width()*height()*4;
-        data.resize(frameSize * nMax);
-        for(int n = 0; n < nMax; ++n)
-        {
-            const auto elevation = -6*M_PI/180 + double(n) / (nMax - 1) * (0 - -6)*M_PI/180;
-            tools->setSunZenithAngle(M_PI/2 - elevation);
-            renderer->draw(1, true);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
-            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, &data[n * frameSize]);
-            qDebug() << "Got frame for sun elevation" << 180/M_PI * elevation << "°";
-        }
-        tools->setSunZenithAngle(origZenithAngle);
-
-        qDebug() << "Saving f32 image...";
-        QFile file(path);
-        if(!file.open(QFile::WriteOnly))
-        {
-            QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to open destination file: %1").arg(file.errorString()));
-            qDebug() << "Saving failed.";
-            return;
-        }
-        const uint16_t width=this->width(), height=this->height(), depth = nMax;
-        file.write(reinterpret_cast<const char*>(&width), sizeof width);
-        file.write(reinterpret_cast<const char*>(&height), sizeof height);
-        file.write(reinterpret_cast<const char*>(&depth), sizeof depth);
-        file.write(reinterpret_cast<const char*>(data.data()), data.size()*sizeof data[0]);
-        if(!file.flush())
-        {
-            QMessageBox::critical(this, tr("Error saving screenshot"), tr("Failed to write to destination file: %1").arg(file.errorString()));
-            qDebug() << "Saving failed.";
-            return;
-        }
-        qDebug() << "Image saved";
-
-        qDebug() << "Processing all the layers...";
-        for(int n = 0; n < nMax; ++n)
-        {
-            const auto layerData = reinterpret_cast<glm::vec4*>(&data[n * frameSize]);
-            const auto layerDataEnd = layerData + frameSize/4;
-            const auto sum = std::accumulate(layerData, layerDataEnd, glm::vec4(0));
-            const auto avg = sum.y / (frameSize/4);
-            qDebug() << "Average for layer" << n << ":" << avg;
-            for(auto p = layerData; p != layerDataEnd; ++p)
-                *p /= avg;
-        }
-
-        const int currentLayer = 0; // TODO: loop over current layers
-        for(int targetLayer = currentLayer + 1; targetLayer < nMax; ++targetLayer)
-        {
-            const auto maxError = generateConnectionsBetweenLayers(reinterpret_cast<const glm::vec4*>(data.data()), width, height, currentLayer, targetLayer);
-            qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
-        }
-
-        break;
-    }
     case Format_TIFF_XYZW:
     {
 #if QT_VERSION >= QT_VERSION_CHECK(6,2,0)
@@ -1086,6 +1030,46 @@ void GLWidget::saveScreenshot()
     }
 }
 
+void GLWidget::saveMesh()
+{
+    makeCurrent();
+    const auto origZenithAngle = tools->sunZenithAngle();
+    const int nMax = 241;
+    const size_t frameSize = width()*height()*4;
+    std::vector<float> data(frameSize * nMax);
+    for(int n = 0; n < nMax; ++n)
+    {
+        const auto elevation = -6*M_PI/180 + double(n) / (nMax - 1) * (0 - -6)*M_PI/180;
+        tools->setSunZenithAngle(M_PI/2 - elevation);
+        renderer->draw(1, true);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, &data[n * frameSize]);
+        qDebug() << "Got frame for sun elevation" << 180/M_PI * elevation << "°";
+    }
+    tools->setSunZenithAngle(origZenithAngle);
+
+    const int width=this->width(), height=this->height();
+
+    qDebug() << "Processing layers...";
+    for(int n = 0; n < nMax; ++n)
+    {
+        const auto layerData = reinterpret_cast<glm::vec4*>(&data[n * frameSize]);
+        const auto layerDataEnd = layerData + frameSize/4;
+        const auto sum = std::accumulate(layerData, layerDataEnd, glm::vec4(0));
+        const auto avg = sum.y / (frameSize/4);
+        qDebug() << "Average for layer" << n << ":" << avg;
+        for(auto p = layerData; p != layerDataEnd; ++p)
+            *p /= avg;
+    }
+
+    const int currentLayer = 0; // TODO: loop over current layers
+    for(int targetLayer = currentLayer + 1; targetLayer < nMax; ++targetLayer)
+    {
+        const auto maxError = generateConnectionsBetweenLayers(reinterpret_cast<const glm::vec4*>(data.data()), width, height, currentLayer, targetLayer);
+        qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
+    }
+}
 int GLWidget::width() const
 {
     return QWidget::width() * devicePixelRatioF();

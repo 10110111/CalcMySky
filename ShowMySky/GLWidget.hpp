@@ -122,6 +122,7 @@ private:
     void resetSolarSpectrum();
     void setBlackBodySolarSpectrum(double temperature);
     void saveScreenshot();
+    void saveMesh();
     Projection currentProjection() const { return currentProjection_; }
     ColorMode  currentColorMode () const { return currentColorMode_; }
 
