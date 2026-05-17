@@ -1038,6 +1038,17 @@ void GLWidget::saveScreenshot()
         qDebug() << "Image saved";
 
         qDebug() << "Processing all the layers...";
+        for(int n = 0; n < nMax; ++n)
+        {
+            const auto layerData = reinterpret_cast<glm::vec4*>(&data[n * frameSize]);
+            const auto layerDataEnd = layerData + frameSize/4;
+            const auto sum = std::accumulate(layerData, layerDataEnd, glm::vec4(0));
+            const auto avg = sum.y / (frameSize/4);
+            qDebug() << "Average for layer" << n << ":" << avg;
+            for(auto p = layerData; p != layerDataEnd; ++p)
+                *p /= avg;
+        }
+
         const int currentLayer = 0; // TODO: loop over current layers
         for(int targetLayer = currentLayer + 1; targetLayer < nMax; ++targetLayer)
         {
