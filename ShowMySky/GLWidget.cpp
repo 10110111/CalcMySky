@@ -1001,7 +1001,7 @@ void GLWidget::saveScreenshot()
     case Format_F32V:
     {
         const auto origZenithAngle = tools->sunZenithAngle();
-        const int nMax = 121;
+        const int nMax = 241;
         const size_t frameSize = width()*height()*4;
         data.resize(frameSize * nMax);
         for(int n = 0; n < nMax; ++n)
