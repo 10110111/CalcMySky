@@ -33,6 +33,109 @@
 #include "GLSLCosineQualityChecker.hpp"
 #include "BlueNoiseTriangleRemapped.hpp"
 
+namespace
+{
+using glm::vec4;
+
+double interpolateY(const vec4*const data, const size_t stride, const size_t length, const double j)
+{
+    assert(j >= 0);
+    assert(std::ceil(j) < length);
+    const auto jLow = size_t(j);
+    const auto jHigh = std::min(jLow + 1, length - 1);
+    const auto alpha = j - jLow;
+    const auto valLow = data[jLow * stride].y;
+    const auto valHigh = data[jHigh * stride].y;
+    return valLow + alpha * (valHigh - valLow);
+}
+
+double calcInterLayerError(const vec4*const data, const ssize_t width, const ssize_t height,
+                           const int vPosInCurrentLayer, const int vPosInTargetLayer,
+                           const int currentLayerNum, const int targetLayerNum)
+{
+    assert(vPosInCurrentLayer < height);
+    assert(vPosInTargetLayer < height);
+
+    const ssize_t stride = width;
+    const ssize_t layerSize = width * height;
+    const vec4*const currentLayer = &data[layerSize*currentLayerNum];
+    const vec4*const targetLayer = &data[layerSize*targetLayerNum];
+
+    const double shift = vPosInTargetLayer - vPosInCurrentLayer;
+    double maxError = -INFINITY;
+    for(int layerNumToCheck = currentLayerNum + 1; layerNumToCheck <= targetLayerNum; ++layerNumToCheck)
+    {
+        const auto j = vPosInCurrentLayer + shift * double(layerNumToCheck - currentLayerNum) / (targetLayerNum - currentLayerNum);
+        const double targetLayerVal = targetLayer[stride * vPosInTargetLayer].y;
+        const double currentLayerVal = currentLayer[stride * vPosInCurrentLayer].y;
+        const double interLayerInterpolant = currentLayer[stride * vPosInCurrentLayer].y +
+            double(targetLayerVal - currentLayerVal) * (layerNumToCheck - currentLayerNum) / (targetLayerNum - currentLayerNum);
+        const auto*const layerToCheck = &data[layerSize * layerNumToCheck];
+        const double refValue = interpolateY(layerToCheck, width, height, j);
+        const double error = std::abs(interLayerInterpolant / refValue - 1);
+        if(error > maxError) maxError = error;
+    }
+    return maxError;
+}
+
+double/*error*/ generateConnectionsBetweenLayers(const vec4*const data, const ssize_t width, const ssize_t height,
+                                                 const int currentLayerNum, const int targetLayerNum)
+{
+    const auto layerLineLength = height;
+    std::vector<std::vector<int>> currentLayerPositions;
+    std::vector<std::vector<int>> targetLayerPositions;
+
+    double maxError = -INFINITY;
+    std::vector<int> currentLayerLinePositions;
+    std::vector<int> targetLayerLinePositions;
+    std::vector<double> inLayerErrors;
+    for(ssize_t i = 0; i < width; ++i)
+    {
+        currentLayerLinePositions.clear();
+        targetLayerLinePositions.clear();
+
+        currentLayerLinePositions.push_back(0);
+        targetLayerLinePositions.push_back(0);
+        while(currentLayerLinePositions.back() < layerLineLength-1 || targetLayerLinePositions.back() < layerLineLength-1)
+        {
+            const auto currLayerPos = currentLayerLinePositions.back();
+            const auto targLayerPos = targetLayerLinePositions.back();
+            if(currLayerPos == layerLineLength-1)
+            {
+                currentLayerLinePositions.push_back(currLayerPos);
+                targetLayerLinePositions.push_back(targLayerPos+1);
+                continue;
+            }
+            else if(targLayerPos == layerLineLength-1)
+            {
+                currentLayerLinePositions.push_back(currLayerPos+1);
+                targetLayerLinePositions.push_back(targLayerPos);
+                continue;
+            }
+            const int posParams[][2] =
+            {
+                {currLayerPos+1, targLayerPos+1},
+                {currLayerPos  , targLayerPos+1},
+                {currLayerPos+1, targLayerPos  },
+            };
+            inLayerErrors.clear();
+            for(const auto& p : posParams)
+                inLayerErrors.push_back(calcInterLayerError(data + i, width, height, p[0], p[1], currentLayerNum, targetLayerNum));
+            const auto minErrorPos = std::min_element(inLayerErrors.begin(), inLayerErrors.end()) - inLayerErrors.begin();
+            currentLayerLinePositions.push_back(posParams[minErrorPos][0]);
+            targetLayerLinePositions.push_back(posParams[minErrorPos][1]);
+            const auto error = inLayerErrors[minErrorPos];
+            if(error > maxError)
+                maxError = error;
+        }
+
+        currentLayerPositions.emplace_back(std::move(currentLayerLinePositions));
+        targetLayerPositions.emplace_back(std::move(targetLayerLinePositions));
+    }
+    return maxError;
+}
+}
+
 static QPointF position(QMouseEvent* event, double scale)
 {
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
@@ -933,6 +1036,14 @@ void GLWidget::saveScreenshot()
             return;
         }
         qDebug() << "Image saved";
+
+        qDebug() << "Processing all the layers...";
+        const int currentLayer = 0; // TODO: loop over current layers
+        for(int targetLayer = currentLayer + 1; targetLayer < nMax; ++targetLayer)
+        {
+            const auto maxError = generateConnectionsBetweenLayers(reinterpret_cast<const glm::vec4*>(data.data()), width, height, currentLayer, targetLayer);
+            qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
+        }
 
         break;
     }
