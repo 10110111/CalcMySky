@@ -1048,13 +1048,16 @@ void GLWidget::saveMesh()
 
     std::vector<double> elevationsToUse{elevMin};
     double prevConnectedLayerElevation = elevMin;
+    double prevElev = elevMin;
     for(int currentLayer = 0, targetLayer = 0; targetLayer <= numLayerSteps; ++targetLayer)
     {
         qDebug() << "Processing layers: current" << currentLayer << ", target" << targetLayer;
         const auto targetLayerDataIndex = targetLayer - currentLayer;
         const auto numLayersStored = targetLayerDataIndex + 1;
         data.resize(numLayersStored * frameSize);
+        const auto prevIterElev = prevElev;
         const auto elevation = elevMin + double(targetLayer) / numLayerSteps * (elevMax - elevMin);
+        prevElev = elevation;
         tools->setSunZenithAngle(M_PI/2 - elevation);
         renderer->draw(1, true);
         glActiveTexture(GL_TEXTURE0);
@@ -1080,11 +1083,11 @@ void GLWidget::saveMesh()
         {
             if(targetLayer-1 > currentLayer)
             {
-                qDebug() << "Good connections between elevations" << prevConnectedLayerElevation*180/M_PI << "° and" << elevation*180/M_PI << "°";
-                elevationsToUse.push_back(elevation);
-                currentLayer = targetLayer-1;
+                qDebug() << "Good connections between elevations" << prevConnectedLayerElevation*180/M_PI << "° and" << prevIterElev*180/M_PI << "°";
+                elevationsToUse.push_back(prevIterElev);
+                currentLayer = targetLayer-1; // restart from the previous layer
                 targetLayer = currentLayer-1; // will be incremented
-                prevConnectedLayerElevation = elevation;
+                prevConnectedLayerElevation = prevIterElev;
             }
             else
             {
