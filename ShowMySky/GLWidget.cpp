@@ -1035,12 +1035,12 @@ void GLWidget::saveMesh()
     makeCurrent();
     const auto origZenithAngle = tools->sunZenithAngle();
 
-    qDebug() << "Processing layers...";
     const double elevMin = -18 *M_PI/180;
     const double elevMax = 90 *M_PI/180;
     const double elevStep = 0.02 *M_PI/180;
     const int numLayerSteps = std::lround((elevMax - elevMin) / elevStep);
     const int width=this->width(), height=this->height();
+    qDebug() << "Processing layers; width:" << width << ", height:" << height;
 
     const double thresholdError = 0.01;
     const size_t frameSize = size_t(width)*height;
