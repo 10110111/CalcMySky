@@ -1097,7 +1097,7 @@ void GLWidget::saveMesh()
         auto dbg = qDebug();
         dbg << "Final elevations to connect:";
         for(const auto elev : elevationsToUse)
-            dbg << elev;
+            dbg << 180/M_PI*elev;
     }
 
     tools->setSunZenithAngle(origZenithAngle);
