@@ -65,11 +65,11 @@ double calcInterLayerError(const vec4*const data, const ssize_t width, const ssi
     double maxError = -INFINITY;
     for(int layerNumToCheck = currentLayerNum + 1; layerNumToCheck <= targetLayerNum; ++layerNumToCheck)
     {
-        const auto j = vPosInCurrentLayer + shift * double(layerNumToCheck - currentLayerNum) / (targetLayerNum - currentLayerNum);
+        const auto alpha = double(layerNumToCheck - currentLayerNum) / (targetLayerNum - currentLayerNum);
+        const auto j = vPosInCurrentLayer + shift * alpha;
         const double targetLayerVal = targetLayer[stride * vPosInTargetLayer].y;
         const double currentLayerVal = currentLayer[stride * vPosInCurrentLayer].y;
-        const double interLayerInterpolant = currentLayer[stride * vPosInCurrentLayer].y +
-            double(targetLayerVal - currentLayerVal) * (layerNumToCheck - currentLayerNum) / (targetLayerNum - currentLayerNum);
+        const double interLayerInterpolant = currentLayerVal + (targetLayerVal - currentLayerVal) * alpha;
         const auto*const layerToCheck = &data[layerSize * layerNumToCheck];
         const double refValue = interpolateY(layerToCheck, width, height, j);
         const double error = std::abs(interLayerInterpolant / refValue - 1);
