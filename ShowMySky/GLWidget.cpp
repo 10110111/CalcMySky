@@ -1034,41 +1034,73 @@ void GLWidget::saveMesh()
 {
     makeCurrent();
     const auto origZenithAngle = tools->sunZenithAngle();
-    const int nMax = 241;
-    const size_t frameSize = width()*height()*4;
-    std::vector<float> data(frameSize * nMax);
-    for(int n = 0; n < nMax; ++n)
+
+    qDebug() << "Processing layers...";
+    const double elevMin = -18 *M_PI/180;
+    const double elevMax = 90 *M_PI/180;
+    const double elevStep = 0.02 *M_PI/180;
+    const int numLayerSteps = std::lround((elevMax - elevMin) / elevStep);
+    const int width=this->width(), height=this->height();
+
+    const double thresholdError = 0.01;
+    const size_t frameSize = size_t(width)*height;
+    std::vector<glm::vec4> data(frameSize * 2);
+
+    std::vector<double> elevationsToUse{elevMin};
+    double prevConnectedLayerElevation = elevMin;
+    for(int currentLayer = 0, targetLayer = 0; targetLayer <= numLayerSteps; ++targetLayer)
     {
-        const auto elevation = -6*M_PI/180 + double(n) / (nMax - 1) * (0 - -6)*M_PI/180;
+        qDebug() << "Processing layers: current" << currentLayer << ", target" << targetLayer;
+        const auto targetLayerDataIndex = targetLayer - currentLayer;
+        const auto numLayersStored = targetLayerDataIndex + 1;
+        data.resize(numLayersStored * frameSize);
+        const auto elevation = elevMin + double(targetLayer) / numLayerSteps * (elevMax - elevMin);
         tools->setSunZenithAngle(M_PI/2 - elevation);
         renderer->draw(1, true);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, &data[n * frameSize]);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, &data[targetLayerDataIndex * frameSize]);
         qDebug() << "Got frame for sun elevation" << 180/M_PI * elevation << "°";
-    }
-    tools->setSunZenithAngle(origZenithAngle);
 
-    const int width=this->width(), height=this->height();
+        const auto layerDataBegin = data.data() + frameSize * targetLayerDataIndex;
+        const auto layerDataEnd = data.data() + frameSize * (targetLayerDataIndex+1);
+        const auto sum = std::accumulate(layerDataBegin, layerDataEnd, glm::vec4(0));
+        const auto avg = sum.y / frameSize;
+        const auto max = std::max_element(layerDataBegin, layerDataEnd, [](auto& a, auto& b){ return a.y < b.y; })->y;
+        qDebug() << "Average for layer" << targetLayer << ":" << avg << ", max:" << max;
+        const auto norm = avg;
+        for(auto p = layerDataBegin; p != layerDataEnd; ++p)
+            *p /= norm;
 
-    qDebug() << "Processing layers...";
-    for(int n = 0; n < nMax; ++n)
-    {
-        const auto layerData = reinterpret_cast<glm::vec4*>(&data[n * frameSize]);
-        const auto layerDataEnd = layerData + frameSize/4;
-        const auto sum = std::accumulate(layerData, layerDataEnd, glm::vec4(0));
-        const auto avg = sum.y / (frameSize/4);
-        qDebug() << "Average for layer" << n << ":" << avg;
-        for(auto p = layerData; p != layerDataEnd; ++p)
-            *p /= avg;
-    }
+        if(currentLayer == targetLayer) continue;
 
-    const int currentLayer = 0; // TODO: loop over current layers
-    for(int targetLayer = currentLayer + 1; targetLayer < nMax; ++targetLayer)
-    {
-        const auto maxError = generateConnectionsBetweenLayers(reinterpret_cast<const glm::vec4*>(data.data()), width, height, currentLayer, targetLayer);
+        const auto maxError = generateConnectionsBetweenLayers(data.data(), width, height, 0, targetLayerDataIndex);
         qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
+        if(maxError > thresholdError)
+        {
+            if(targetLayer-1 > currentLayer)
+            {
+                qDebug() << "Good connections between elevations" << prevConnectedLayerElevation*180/M_PI << "° and" << elevation*180/M_PI << "°";
+                elevationsToUse.push_back(elevation);
+                currentLayer = targetLayer-1;
+                targetLayer = currentLayer-1; // will be incremented
+                prevConnectedLayerElevation = elevation;
+            }
+            else
+            {
+                qDebug() << "Failed to find a good target layer. May need to split layers more";
+                break;
+            }
+        }
     }
+    {
+        auto dbg = qDebug();
+        dbg << "Final elevations to connect:";
+        for(const auto elev : elevationsToUse)
+            dbg << elev;
+    }
+
+    tools->setSunZenithAngle(origZenithAngle);
 }
 int GLWidget::width() const
 {
