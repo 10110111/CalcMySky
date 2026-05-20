@@ -79,7 +79,8 @@ double calcInterLayerError(const vec4*const data, const ssize_t width, const ssi
 }
 
 double/*error*/ generateConnectionsBetweenLayers(const vec4*const data, const ssize_t width, const ssize_t height,
-                                                 const int currentLayerNum, const int targetLayerNum)
+                                                 const int currentLayerNum, const int targetLayerNum,
+                                                 const double errorTolerance)
 {
     const auto layerLineLength = height;
     std::vector<std::vector<int>> currentLayerPositions;
@@ -121,7 +122,11 @@ double/*error*/ generateConnectionsBetweenLayers(const vec4*const data, const ss
             inLayerErrors.clear();
             for(const auto& p : posParams)
                 inLayerErrors.push_back(calcInterLayerError(data + i, width, height, p[0], p[1], currentLayerNum, targetLayerNum));
-            const auto minErrorPos = std::min_element(inLayerErrors.begin(), inLayerErrors.end()) - inLayerErrors.begin();
+            int minErrorPos;
+            if(inLayerErrors[0] < errorTolerance)
+                minErrorPos = 0;
+            else
+                minErrorPos = std::min_element(inLayerErrors.begin(), inLayerErrors.end()) - inLayerErrors.begin();
             currentLayerLinePositions.push_back(posParams[minErrorPos][0]);
             targetLayerLinePositions.push_back(posParams[minErrorPos][1]);
             const auto error = inLayerErrors[minErrorPos];
@@ -1042,7 +1047,7 @@ void GLWidget::saveMesh()
     const int width=this->width(), height=this->height();
     qDebug() << "Processing layers; width:" << width << ", height:" << height;
 
-    const double thresholdError = 0.01;
+    const double errorTolerance = 0.01;
     const size_t frameSize = size_t(width)*height;
     std::vector<glm::vec4> data(frameSize * 2);
 
@@ -1077,9 +1082,9 @@ void GLWidget::saveMesh()
 
         if(currentLayer == targetLayer) continue;
 
-        const auto maxError = generateConnectionsBetweenLayers(data.data(), width, height, 0, targetLayerDataIndex);
+        const auto maxError = generateConnectionsBetweenLayers(data.data(), width, height, 0, targetLayerDataIndex, errorTolerance);
         qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
-        if(maxError > thresholdError)
+        if(maxError > errorTolerance)
         {
             if(targetLayer-1 > currentLayer)
             {
