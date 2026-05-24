@@ -65,7 +65,7 @@ private:
     GLuint vao_=0, vbo_=0;
     QPoint lastRadianceCapturePosition{-1,-1};
     decltype(::ShowMySky_AtmosphereRenderer_create)* ShowMySky_AtmosphereRenderer_create=nullptr;
-    Projection currentProjection_ = Projection::Equirectangular;
+    Projection currentProjection_ = Projection::EquirectTopRight;
     ColorMode currentColorMode_ = ColorMode::sRGB;
 
     enum class DragMode
