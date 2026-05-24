@@ -37,106 +37,40 @@ namespace
 {
 using glm::vec4;
 
-double interpolateY(const vec4*const data, const size_t stride, const size_t length, const double j)
-{
-    assert(j >= 0);
-    assert(std::ceil(j) < length);
-    const auto jLow = size_t(j);
-    const auto jHigh = std::min(jLow + 1, length - 1);
-    const auto alpha = j - jLow;
-    const auto valLow = data[jLow * stride].y;
-    const auto valHigh = data[jHigh * stride].y;
-    return valLow + alpha * (valHigh - valLow);
-}
-
-double calcInterLayerError(const vec4*const data, const ssize_t width, const ssize_t height,
-                           const int vPosInCurrentLayer, const int vPosInTargetLayer,
+double calcInterLayerError(const vec4*const data, const ssize_t layerSize,
                            const int currentLayerNum, const int targetLayerNum)
 {
-    assert(vPosInCurrentLayer < height);
-    assert(vPosInTargetLayer < height);
+    const vec4& currentLayer = data[layerSize * currentLayerNum];
+    const vec4& targetLayer = data[layerSize * targetLayerNum];
 
-    const ssize_t stride = width;
-    const ssize_t layerSize = width * height;
-    const vec4*const currentLayer = &data[layerSize*currentLayerNum];
-    const vec4*const targetLayer = &data[layerSize*targetLayerNum];
-
-    const double shift = vPosInTargetLayer - vPosInCurrentLayer;
     double maxError = -INFINITY;
     for(int layerNumToCheck = currentLayerNum + 1; layerNumToCheck <= targetLayerNum; ++layerNumToCheck)
     {
         const auto alpha = double(layerNumToCheck - currentLayerNum) / (targetLayerNum - currentLayerNum);
-        const auto j = vPosInCurrentLayer + shift * alpha;
-        const double targetLayerVal = targetLayer[stride * vPosInTargetLayer].y;
-        const double currentLayerVal = currentLayer[stride * vPosInCurrentLayer].y;
+        const double targetLayerVal = targetLayer.y;
+        const double currentLayerVal = currentLayer.y;
         const double interLayerInterpolant = currentLayerVal + (targetLayerVal - currentLayerVal) * alpha;
-        const auto*const layerToCheck = &data[layerSize * layerNumToCheck];
-        const double refValue = interpolateY(layerToCheck, width, height, j);
+        const double refValue = data[layerSize * layerNumToCheck].y;
         const double error = std::abs(interLayerInterpolant / refValue - 1);
         if(error > maxError) maxError = error;
     }
     return maxError;
 }
 
-double/*error*/ generateConnectionsBetweenLayers(const vec4*const data, const ssize_t width, const ssize_t height,
-                                                 const int currentLayerNum, const int targetLayerNum,
-                                                 const double errorTolerance)
+double/*error*/ findMaxErrorBetweenLayers(const vec4*const data, const ssize_t width, const ssize_t height,
+                                                 const int currentLayerNum, const int targetLayerNum)
 {
-    const auto layerLineLength = height;
-    std::vector<std::vector<int>> currentLayerPositions;
-    std::vector<std::vector<int>> targetLayerPositions;
-
+    const auto layerSize = width * height;
     double maxError = -INFINITY;
-    std::vector<int> currentLayerLinePositions;
-    std::vector<int> targetLayerLinePositions;
-    std::vector<double> inLayerErrors;
-    for(ssize_t i = 0; i < width; ++i)
+    for(ssize_t j = 0; j < height; ++j)
     {
-        currentLayerLinePositions.clear();
-        targetLayerLinePositions.clear();
-
-        currentLayerLinePositions.push_back(0);
-        targetLayerLinePositions.push_back(0);
-        while(currentLayerLinePositions.back() < layerLineLength-1 || targetLayerLinePositions.back() < layerLineLength-1)
+        for(ssize_t i = 0; i < width; ++i)
         {
-            const auto currLayerPos = currentLayerLinePositions.back();
-            const auto targLayerPos = targetLayerLinePositions.back();
-            if(currLayerPos == layerLineLength-1)
-            {
-                currentLayerLinePositions.push_back(currLayerPos);
-                targetLayerLinePositions.push_back(targLayerPos+1);
-                continue;
-            }
-            else if(targLayerPos == layerLineLength-1)
-            {
-                currentLayerLinePositions.push_back(currLayerPos+1);
-                targetLayerLinePositions.push_back(targLayerPos);
-                continue;
-            }
-            const int posParams[][2] =
-            {
-                {currLayerPos+1, targLayerPos+1},
-                {currLayerPos  , targLayerPos+1},
-                {currLayerPos+1, targLayerPos  },
-            };
-            inLayerErrors.clear();
-            for(const auto& p : posParams)
-                inLayerErrors.push_back(calcInterLayerError(data + i, width, height, p[0], p[1], currentLayerNum, targetLayerNum));
-            int minErrorPos;
-            if(inLayerErrors[0] < errorTolerance)
-                minErrorPos = 0;
-            else
-                minErrorPos = std::min_element(inLayerErrors.begin(), inLayerErrors.end()) - inLayerErrors.begin();
-            currentLayerLinePositions.push_back(posParams[minErrorPos][0]);
-            targetLayerLinePositions.push_back(posParams[minErrorPos][1]);
-            const auto error = inLayerErrors[minErrorPos];
-            if(error > maxError)
-                maxError = error;
+            const auto error = calcInterLayerError(data + i + width * j, layerSize, currentLayerNum, targetLayerNum);
+            if(error > maxError) maxError = error;
         }
-
-        currentLayerPositions.emplace_back(std::move(currentLayerLinePositions));
-        targetLayerPositions.emplace_back(std::move(targetLayerLinePositions));
     }
+
     return maxError;
 }
 }
@@ -1082,7 +1016,7 @@ void GLWidget::saveMesh()
 
         if(currentLayer == targetLayer) continue;
 
-        const auto maxError = generateConnectionsBetweenLayers(data.data(), width, height, 0, targetLayerDataIndex, errorTolerance);
+        const auto maxError = findMaxErrorBetweenLayers(data.data(), width, height, 0, targetLayerDataIndex);
         qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
         if(maxError > errorTolerance)
         {
