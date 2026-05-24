@@ -986,18 +986,18 @@ void GLWidget::saveMesh()
 
     const double errorTolerance = 0.01;
     const size_t layerSize = size_t(width)*height;
-    std::vector<glm::vec4> dataToWrite(layerSize);
     const char filePath[] = "/home/ruslan/Downloads/calcmysky-layers.bin";
     QFile file(filePath);
     if(!file.open(QFile::ReadWrite))
         throw std::runtime_error("Failed to open data file for reading and writing");
-    if(file.size() != ssize_t(layerSize * numLayers))
+    if(file.size() != ssize_t(layerSize * numLayers * sizeof(glm::vec4)))
     {
         // Generate the file. For this, first reopen it to truncate.
         file.close();
         if(!file.open(QFile::ReadWrite | QFile::Truncate))
             throw std::runtime_error("Failed to open data file for reading and writing");
 
+        std::vector<glm::vec4> dataToWrite(layerSize);
         std::vector<double> norms;
         for(int currentLayer = 0; currentLayer < numLayers; ++currentLayer)
         {
@@ -1031,12 +1031,13 @@ void GLWidget::saveMesh()
         std::cerr << "\n";
     }
 
-    const auto data = reinterpret_cast<const glm::vec4*>(file.map(0, numLayers * layerSize));
+    const auto data = reinterpret_cast<const glm::vec4*>(file.map(0, numLayers * layerSize * sizeof(glm::vec4)));
+    if(!data) throw std::runtime_error("Failed to map file to memory");
 
     std::vector<double> elevationsToUse{elevMin};
     for(int currentLayer = 0; currentLayer < numLayers; )
     {
-        int targetLayerMin = currentLayer, targetLayerMax = numLayerSteps + 1;
+        int targetLayerMin = currentLayer + 1, targetLayerMax = numLayerSteps + 1;
         int finalTargetLayer = -1;
         while(targetLayerMax != targetLayerMin)
         {
@@ -1081,6 +1082,7 @@ void GLWidget::saveMesh()
         }
 
         const auto elevation = elevMin + double(finalTargetLayer) / numLayerSteps * (elevMax - elevMin);
+        qDebug() << "Saving elevation" << elevation;
         elevationsToUse.push_back(elevation);
 
         currentLayer = finalTargetLayer;
