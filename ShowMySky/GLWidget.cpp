@@ -19,6 +19,7 @@
 
 #include "GLWidget.hpp"
 #include <chrono>
+#include <QFile>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QFileDialog>
@@ -43,7 +44,7 @@ double calcInterLayerError(const vec4*const data, const ssize_t layerSize,
     const vec4& currentLayer = data[layerSize * currentLayerNum];
     const vec4& targetLayer = data[layerSize * targetLayerNum];
 
-    double maxError = -INFINITY;
+    double maxError = 0;
     for(int layerNumToCheck = currentLayerNum + 1; layerNumToCheck <= targetLayerNum; ++layerNumToCheck)
     {
         const auto alpha = double(layerNumToCheck - currentLayerNum) / (targetLayerNum - currentLayerNum);
@@ -58,10 +59,10 @@ double calcInterLayerError(const vec4*const data, const ssize_t layerSize,
 }
 
 double/*error*/ findMaxErrorBetweenLayers(const vec4*const data, const ssize_t width, const ssize_t height,
-                                                 const int currentLayerNum, const int targetLayerNum)
+                                          const int currentLayerNum, const int targetLayerNum)
 {
     const auto layerSize = width * height;
-    double maxError = -INFINITY;
+    double maxError = 0;
     for(ssize_t j = 0; j < height; ++j)
     {
         for(ssize_t i = 0; i < width; ++i)
@@ -93,6 +94,7 @@ GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* paren
     installEventFilter(this);
     setFocusPolicy(Qt::StrongFocus);
     setUpdateBehavior(QOpenGLWidget::PartialUpdate);
+    setFixedSize(1000, 500);
 }
 
 GLWidget::~GLWidget()
@@ -978,72 +980,121 @@ void GLWidget::saveMesh()
     const double elevMax = 90 *M_PI/180;
     const double elevStep = 0.02 *M_PI/180;
     const int numLayerSteps = std::lround((elevMax - elevMin) / elevStep);
+    const int numLayers = numLayerSteps + 1;
     const int width=this->width(), height=this->height();
     qDebug() << "Processing layers; width:" << width << ", height:" << height;
 
     const double errorTolerance = 0.01;
-    const size_t frameSize = size_t(width)*height;
-    std::vector<glm::vec4> data(frameSize * 2);
+    const size_t layerSize = size_t(width)*height;
+    std::vector<glm::vec4> dataToWrite(layerSize);
+    const char filePath[] = "/home/ruslan/Downloads/calcmysky-layers.bin";
+    QFile file(filePath);
+    if(!file.open(QFile::ReadWrite))
+        throw std::runtime_error("Failed to open data file for reading and writing");
+    if(file.size() != ssize_t(layerSize * numLayers))
+    {
+        // Generate the file. For this, first reopen it to truncate.
+        file.close();
+        if(!file.open(QFile::ReadWrite | QFile::Truncate))
+            throw std::runtime_error("Failed to open data file for reading and writing");
+
+        std::vector<double> norms;
+        for(int currentLayer = 0; currentLayer < numLayers; ++currentLayer)
+        {
+            const auto elevation = elevMin + double(currentLayer) / numLayerSteps * (elevMax - elevMin);
+            tools->setSunZenithAngle(M_PI/2 - elevation);
+            renderer->draw(1, true);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, dataToWrite.data());
+            qDebug() << "Got frame for sun elevation" << 180/M_PI * elevation << "°";
+
+            const auto sum = std::accumulate(dataToWrite.begin(), dataToWrite.end(), glm::vec4(0));
+            const auto avg = sum.y / layerSize;
+            const auto max = std::max_element(dataToWrite.begin(), dataToWrite.end(), [](auto& a, auto& b){ return a.y < b.y; })->y;
+            qDebug() << "Average for layer" << currentLayer << ":" << avg << ", max:" << max;
+            const auto norm = avg;
+            norms.push_back(norm);
+            for(auto& d : dataToWrite)
+                d /= norm;
+
+            const ssize_t numBytesToWrite = sizeof dataToWrite[0] * dataToWrite.size();
+            if(file.write(reinterpret_cast<const char*>(dataToWrite.data()), numBytesToWrite) != numBytesToWrite)
+                throw std::runtime_error(("Failed to write data: "+file.errorString()).toStdString());
+            qDebug() << "Wrote layer" << currentLayer;
+        }
+        file.flush();
+
+        std::cerr << "Layer norms:\n";
+        for(unsigned n = 0; n < norms.size(); ++n)
+            std::cerr << (n==0 ? "" : ", ") << norms[n];
+        std::cerr << "\n";
+    }
+
+    const auto data = reinterpret_cast<const glm::vec4*>(file.map(0, numLayers * layerSize));
 
     std::vector<double> elevationsToUse{elevMin};
-    double prevConnectedLayerElevation = elevMin;
-    double prevElev = elevMin;
-    for(int currentLayer = 0, targetLayer = 0; targetLayer <= numLayerSteps; ++targetLayer)
+    for(int currentLayer = 0; currentLayer < numLayers; )
     {
-        qDebug() << "Processing layers: current" << currentLayer << ", target" << targetLayer;
-        const auto targetLayerDataIndex = targetLayer - currentLayer;
-        const auto numLayersStored = targetLayerDataIndex + 1;
-        data.resize(numLayersStored * frameSize);
-        const auto prevIterElev = prevElev;
-        const auto elevation = elevMin + double(targetLayer) / numLayerSteps * (elevMax - elevMin);
-        prevElev = elevation;
-        tools->setSunZenithAngle(M_PI/2 - elevation);
-        renderer->draw(1, true);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, &data[targetLayerDataIndex * frameSize]);
-        qDebug() << "Got frame for sun elevation" << 180/M_PI * elevation << "°";
-
-        const auto layerDataBegin = data.data() + frameSize * targetLayerDataIndex;
-        const auto layerDataEnd = data.data() + frameSize * (targetLayerDataIndex+1);
-        const auto sum = std::accumulate(layerDataBegin, layerDataEnd, glm::vec4(0));
-        const auto avg = sum.y / frameSize;
-        const auto max = std::max_element(layerDataBegin, layerDataEnd, [](auto& a, auto& b){ return a.y < b.y; })->y;
-        qDebug() << "Average for layer" << targetLayer << ":" << avg << ", max:" << max;
-        const auto norm = avg;
-        for(auto p = layerDataBegin; p != layerDataEnd; ++p)
-            *p /= norm;
-
-        if(currentLayer == targetLayer) continue;
-
-        const auto maxError = findMaxErrorBetweenLayers(data.data(), width, height, 0, targetLayerDataIndex);
-        qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
-        if(maxError > errorTolerance)
+        int targetLayerMin = currentLayer, targetLayerMax = numLayerSteps + 1;
+        int finalTargetLayer = -1;
+        while(targetLayerMax != targetLayerMin)
         {
-            if(targetLayer-1 > currentLayer)
+            const int targetLayer = (targetLayerMin + targetLayerMax) / 2;
+            if(targetLayer == numLayerSteps + 1)
             {
-                qDebug() << "Good connections between elevations" << prevConnectedLayerElevation*180/M_PI << "° and" << prevIterElev*180/M_PI << "°";
-                elevationsToUse.push_back(prevIterElev);
-                currentLayer = targetLayer-1; // restart from the previous layer
-                targetLayer = currentLayer-1; // will be incremented
-                prevConnectedLayerElevation = prevIterElev;
+                finalTargetLayer = numLayerSteps;
+                break;
+            }
+
+            const auto maxError = findMaxErrorBetweenLayers(data, width, height, currentLayer, targetLayer);
+            qDebug() << "maxError between layers" << currentLayer << "and" << targetLayer << ":" << maxError;
+            if(maxError > errorTolerance)
+            {
+                if(targetLayer == targetLayerMax)
+                {
+                    // Last average of min and max gave max due to rounding, and it doesn't satisfy error tolerance.
+                    finalTargetLayer = targetLayerMin;
+                    break;
+                }
+                targetLayerMax = targetLayer;
             }
             else
             {
-                qDebug() << "Failed to find a good target layer. May need to split layers more";
-                break;
+                if(targetLayer == targetLayerMin)
+                {
+                    // Last average of min and max gave min due to rounding, and we know that max doesn't fit a priori,
+                    // since we only update it when tolerance is not satisfied, and initialize by an out of range value.
+                    finalTargetLayer = targetLayerMin;
+                    break;
+                }
+                targetLayerMin = targetLayer;
             }
         }
+        if(finalTargetLayer < 0)
+            finalTargetLayer = targetLayerMin;
+
+        if(finalTargetLayer == currentLayer)
+        {
+            std::cerr << "ERROR: Failed to find a layer following layer " << currentLayer << " within error tolerance\n";
+            return;
+        }
+
+        const auto elevation = elevMin + double(finalTargetLayer) / numLayerSteps * (elevMax - elevMin);
+        elevationsToUse.push_back(elevation);
+
+        currentLayer = finalTargetLayer;
     }
     {
-        auto dbg = qDebug();
-        dbg << "Final elevations to connect:";
-        for(const auto elev : elevationsToUse)
-            dbg << 180/M_PI*elev;
+        std::cerr << "Final elevations to connect:";
+        for(unsigned n = 0; n < elevationsToUse.size(); ++n)
+            std::cerr << (n==0?"":", ") << 180/M_PI*elevationsToUse[n];
+        std::cerr << "\n";
     }
 
     tools->setSunZenithAngle(origZenithAngle);
 }
+
 int GLWidget::width() const
 {
     return QWidget::width() * devicePixelRatioF();
