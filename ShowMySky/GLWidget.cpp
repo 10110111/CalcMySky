@@ -1035,9 +1035,9 @@ void GLWidget::saveMesh()
     if(!data) throw std::runtime_error("Failed to map file to memory");
 
     std::vector<double> elevationsToUse{elevMin};
-    for(int currentLayer = 0; currentLayer < numLayers; )
+    for(int currentLayer = 0; currentLayer < numLayers - 1; )
     {
-        int targetLayerMin = currentLayer + 1, targetLayerMax = numLayerSteps + 1;
+        int targetLayerMin = currentLayer + 1, targetLayerMax = std::min(currentLayer + numLayers / 10, numLayerSteps + 1);
         int finalTargetLayer = -1;
         while(targetLayerMax != targetLayerMin)
         {
@@ -1076,19 +1076,16 @@ void GLWidget::saveMesh()
             finalTargetLayer = targetLayerMin;
 
         if(finalTargetLayer == currentLayer)
-        {
-            std::cerr << "ERROR: Failed to find a layer following layer " << currentLayer << " within error tolerance\n";
-            return;
-        }
+            throw std::runtime_error("ERROR: Failed to find a layer following layer "+std::to_string(currentLayer)+" within error tolerance");
 
         const auto elevation = elevMin + double(finalTargetLayer) / numLayerSteps * (elevMax - elevMin);
-        qDebug() << "Saving elevation" << elevation;
+        qDebug() << "Saving elevation" << 180/M_PI*elevation;
         elevationsToUse.push_back(elevation);
 
         currentLayer = finalTargetLayer;
     }
     {
-        std::cerr << "Final elevations to connect:";
+        std::cerr << "Final elevations to connect:\n";
         for(unsigned n = 0; n < elevationsToUse.size(); ++n)
             std::cerr << (n==0?"":", ") << 180/M_PI*elevationsToUse[n];
         std::cerr << "\n";
