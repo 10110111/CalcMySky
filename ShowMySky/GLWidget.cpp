@@ -74,6 +74,17 @@ double/*error*/ findMaxErrorBetweenLayers(const vec4*const data, const ssize_t w
 
     return maxError;
 }
+
+void fillImage(uint16_t* imgData, const ssize_t width, const ssize_t height, const ssize_t stride, const vec4*const inData, const double max)
+{
+    for(ssize_t j = 0; j < height; ++j)
+    {
+        const auto*const inLine = inData + width * j;
+        auto*const outLine = imgData + stride * j;
+        for(ssize_t i = 0; i < width; ++i)
+            outLine[i] = inLine[i].y / max * uint16_t(-1);
+    }
+}
 }
 
 static QPointF position(QMouseEvent* event, double scale)
@@ -1035,6 +1046,7 @@ void GLWidget::saveMesh()
     if(!data) throw std::runtime_error("Failed to map file to memory");
 
     std::vector<double> elevationsToUse{elevMin};
+    std::vector<int> layersToUse{0};
     for(int currentLayer = 0; currentLayer < numLayers - 1; )
     {
         int targetLayerMin = currentLayer + 1, targetLayerMax = std::min(currentLayer + numLayers / 10, numLayerSteps + 1);
@@ -1081,6 +1093,7 @@ void GLWidget::saveMesh()
         const auto elevation = elevMin + double(finalTargetLayer) / numLayerSteps * (elevMax - elevMin);
         qDebug() << "Saving elevation" << 180/M_PI*elevation;
         elevationsToUse.push_back(elevation);
+        layersToUse.push_back(finalTargetLayer);
 
         currentLayer = finalTargetLayer;
     }
@@ -1089,6 +1102,30 @@ void GLWidget::saveMesh()
         for(unsigned n = 0; n < elevationsToUse.size(); ++n)
             std::cerr << (n==0?"":", ") << 180/M_PI*elevationsToUse[n];
         std::cerr << "\n";
+    }
+
+    double maxInLayersToUse = 0;
+    for(const auto layer : layersToUse)
+    {
+        const auto dataBegin = data + layerSize * layer;
+        const auto dataEnd = data + layerSize * (layer+1);
+        const auto max = std::max_element(dataBegin, dataEnd, [](auto& a, auto& b){ return a.y < b.y; })->y;
+        if(max > maxInLayersToUse)
+            maxInLayersToUse = max;
+    }
+    std::cerr << "Global max: " << maxInLayersToUse << "\n";
+    for(const auto layer : layersToUse)
+    {
+        QImage img(width, height, QImage::Format_Grayscale16);
+        fillImage(reinterpret_cast<uint16_t*>(img.bits()), width, height, img.bytesPerLine() / 2, data + layer * layerSize, maxInLayersToUse);
+
+        const auto path = QString("/home/ruslan/Downloads/atmo-layer-%1.tiff").arg(layer);
+        QImageWriter writer(path, "TIFF");
+        if(!writer.write(img.mirrored()))
+        {
+            std::cerr << "Failed to save image: " << writer.errorString().toStdString() << "\n";
+            return;
+        }
     }
 
     tools->setSunZenithAngle(origZenithAngle);
