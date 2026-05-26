@@ -75,14 +75,19 @@ double/*error*/ findMaxErrorBetweenLayers(const vec4*const data, const ssize_t w
     return maxError;
 }
 
-void fillImage(uint16_t* imgData, const ssize_t width, const ssize_t height, const ssize_t stride, const vec4*const inData, const double max)
+void fillImage(glm::vec4* imgData, const ssize_t width, const ssize_t height, const ssize_t stride, const vec4*const inData)
 {
     for(ssize_t j = 0; j < height; ++j)
     {
         const auto*const inLine = inData + width * j;
         auto*const outLine = imgData + stride * j;
         for(ssize_t i = 0; i < width; ++i)
-            outLine[i] = inLine[i].y / max * uint16_t(-1);
+        {
+            outLine[i].r = inLine[i].y;
+            // Generally we want a grayscale image, but QImage doesn't support GrayscaleFP32, only RGB*32FPx4...
+            outLine[i].b = outLine[i].g = outLine[i].r;
+            outLine[i].a = 1;
+        }
     }
 }
 }
@@ -1104,20 +1109,11 @@ void GLWidget::saveMesh()
         std::cerr << "\n";
     }
 
-    double maxInLayersToUse = 0;
     for(const auto layer : layersToUse)
     {
-        const auto dataBegin = data + layerSize * layer;
-        const auto dataEnd = data + layerSize * (layer+1);
-        const auto max = std::max_element(dataBegin, dataEnd, [](auto& a, auto& b){ return a.y < b.y; })->y;
-        if(max > maxInLayersToUse)
-            maxInLayersToUse = max;
-    }
-    std::cerr << "Global max: " << maxInLayersToUse << "\n";
-    for(const auto layer : layersToUse)
-    {
-        QImage img(width, height, QImage::Format_Grayscale16);
-        fillImage(reinterpret_cast<uint16_t*>(img.bits()), width, height, img.bytesPerLine() / 2, data + layer * layerSize, maxInLayersToUse);
+        QImage img(width, height, QImage::Format_RGBX32FPx4);
+        const auto imgData = reinterpret_cast<glm::vec4*>(img.bits());
+        fillImage(imgData, width, height, img.bytesPerLine() / sizeof imgData[0], data + layer * layerSize);
 
         const auto path = QString("/home/ruslan/Downloads/atmo-layer-%1.tiff").arg(layer);
         QImageWriter writer(path, "TIFF");
