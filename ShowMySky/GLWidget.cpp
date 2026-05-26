@@ -1017,7 +1017,7 @@ void GLWidget::saveMesh()
         std::vector<double> norms;
         for(int currentLayer = 0; currentLayer < numLayers; ++currentLayer)
         {
-            const auto elevation = elevMin + double(currentLayer) / numLayerSteps * (elevMax - elevMin);
+            const auto elevation = elevMin + (1 - double(currentLayer) / numLayerSteps) * (elevMax - elevMin);
             tools->setSunZenithAngle(M_PI/2 - elevation);
             renderer->draw(1, true);
             glActiveTexture(GL_TEXTURE0);
@@ -1050,7 +1050,7 @@ void GLWidget::saveMesh()
     const auto data = reinterpret_cast<const glm::vec4*>(file.map(0, numLayers * layerSize * sizeof(glm::vec4)));
     if(!data) throw std::runtime_error("Failed to map file to memory");
 
-    std::vector<double> elevationsToUse{elevMin};
+    std::vector<double> elevationsToUse{elevMax};
     std::vector<int> layersToUse{0};
     for(int currentLayer = 0; currentLayer < numLayers - 1; )
     {
@@ -1095,7 +1095,7 @@ void GLWidget::saveMesh()
         if(finalTargetLayer == currentLayer)
             throw std::runtime_error("ERROR: Failed to find a layer following layer "+std::to_string(currentLayer)+" within error tolerance");
 
-        const auto elevation = elevMin + double(finalTargetLayer) / numLayerSteps * (elevMax - elevMin);
+        const auto elevation = elevMin + (1 - double(finalTargetLayer) / numLayerSteps) * (elevMax - elevMin);
         qDebug() << "Saving elevation" << 180/M_PI*elevation;
         elevationsToUse.push_back(elevation);
         layersToUse.push_back(finalTargetLayer);
