@@ -1095,7 +1095,9 @@ void GLWidget::saveMesh()
         throw std::runtime_error("Failed to open data file for reading and writing");
     std::vector<float> norms;
     double maxForAllLayers = 0;
-    if(file.size() != ssize_t(layerSize * numLayers * sizeof(glm::vec4)))
+
+    const ssize_t expectedFileSize = numLayers * (layerSize * sizeof(glm::vec4) + sizeof norms[0]) + sizeof maxForAllLayers;
+    if(file.size() != expectedFileSize)
     {
         // Generate the file. For this, first reopen it to truncate.
         file.close();
@@ -1141,7 +1143,7 @@ void GLWidget::saveMesh()
         std::cerr << "\n";
     }
 
-    const void* mapped = file.map(0, numLayers * (layerSize * sizeof(glm::vec4) + sizeof norms[0]) + sizeof maxForAllLayers);
+    const void* mapped = file.map(0, expectedFileSize);
     const auto data = static_cast<const glm::vec4*>(mapped);
     if(!data) throw std::runtime_error("Failed to map file to memory");
 
