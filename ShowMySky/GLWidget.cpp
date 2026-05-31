@@ -150,7 +150,6 @@ void createAndSimplifyMesh(const vec4*const inData, const ssize_t width, const s
 
     const int target_count = 1000; // TODO: make it configurable
 
-    std::cerr << "Simplifying the mesh...\n";
     Simplify::simplify_mesh(target_count, 5, false, false, 0);
 
     for(auto& v : vertices)
@@ -1263,6 +1262,7 @@ void GLWidget::saveMesh()
     Simplify::allocate(1);
     for(const auto layer : layersToUse)
     {
+        std::cerr << "Creating mesh for layer " << layer << "\n";
         createAndSimplifyMesh(data + layer * layerSize, width, height);
         const auto& vertices = *Simplify::vertices[0];
         const auto& triangles = *Simplify::triangles[0];
@@ -1289,6 +1289,7 @@ void GLWidget::saveMesh()
             out.write(reinterpret_cast<const char*>(&Y), sizeof Y);
         }
     }
+    std::cerr << "All done\n";
 
     tools->setSunZenithAngle(origZenithAngle);
 }
