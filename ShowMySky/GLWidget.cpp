@@ -1157,6 +1157,7 @@ void GLWidget::saveMesh()
 
     std::vector<float> elevationsToUse{float(elevMax)};
     std::vector<int> layersToUse{0};
+    std::vector<float> normsToUse{norms[0]};
     for(int currentLayer = 0; currentLayer < numLayers - 1; )
     {
         int targetLayerMin = currentLayer + 1, targetLayerMax = std::min(currentLayer + numLayers / 10, numLayerSteps + 1);
@@ -1204,6 +1205,7 @@ void GLWidget::saveMesh()
         qDebug() << "Saving elevation" << 180/M_PI*elevation;
         elevationsToUse.push_back(elevation);
         layersToUse.push_back(finalTargetLayer);
+        normsToUse.push_back(norms[finalTargetLayer]);
 
         currentLayer = finalTargetLayer;
     }
@@ -1251,12 +1253,12 @@ void GLWidget::saveMesh()
     out.write(reinterpret_cast<const char*>(&numLayersToWrite), sizeof numLayersToWrite);
     if(elevationsToUse.size() != numLayersToWrite)
         throw std::logic_error("Number of elevations differs from the number of layers");
-    if(norms.size() != numLayersToWrite)
+    if(normsToUse.size() != numLayersToWrite)
         throw std::logic_error("Number of layer norms differs from the number of layers");
     static_assert(sizeof elevationsToUse[0] == sizeof(float));
     out.write(reinterpret_cast<const char*>(elevationsToUse.data()), elevationsToUse.size() * sizeof elevationsToUse[0]);
-    static_assert(sizeof norms[0] == sizeof(float));
-    out.write(reinterpret_cast<const char*>(norms.data()), norms.size() * sizeof norms[0]);
+    static_assert(sizeof normsToUse[0] == sizeof(float));
+    out.write(reinterpret_cast<const char*>(normsToUse.data()), normsToUse.size() * sizeof normsToUse[0]);
 
     Simplify::allocate(1);
     for(const auto layer : layersToUse)
