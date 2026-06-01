@@ -1239,8 +1239,8 @@ void GLWidget::saveMesh()
      *   Vertex[nVERT]:    VERTS
      *    uint16                    Azimuth from the Sun, 0 = 0°, max = 180°
      *    uint16                    Elevation, 0 = 0°, max = 90°
-     *    uint8                     Color x component
-     *    uint8                     Color y component
+     *    uint8                     Color x component, 0 = 0.0, max = 1.0
+     *    uint8                     Color y component, 0 = 0.0, max = 1.0
      *    uint16                    Color Y component divided by layer norm
      *   Index[nTRI*3]:
      *    uint16                    Index in the VERTS array
@@ -1274,6 +1274,8 @@ void GLWidget::saveMesh()
 
         const uint16_t numVertices = vertices.size();
         out.write(reinterpret_cast<const char*>(&numVertices), sizeof numVertices);
+        const uint16_t numTriangles = triangles.size();
+        out.write(reinterpret_cast<const char*>(&numTriangles), sizeof numTriangles);
         for(const auto& v : vertices)
         {
             const uint16_t azim = std::lround(std::clamp(v.p.x / width, 0., 1.) * uint16_t(-1));
@@ -1287,6 +1289,14 @@ void GLWidget::saveMesh()
             out.write(reinterpret_cast<const char*>(&y), sizeof y);
             const uint16_t Y = std::lround(v.p.z / maxForAllLayers * uint16_t(-1));
             out.write(reinterpret_cast<const char*>(&Y), sizeof Y);
+        }
+        for(const auto& t : triangles)
+        {
+            for(int i = 0; i < 3; ++i)
+            {
+                uint16_t idx = t.v[i];
+                out.write(reinterpret_cast<const char*>(&idx), sizeof idx);
+            }
         }
     }
     std::cerr << "All done\n";
