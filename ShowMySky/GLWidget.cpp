@@ -1278,9 +1278,9 @@ void GLWidget::saveMesh()
         out.write(reinterpret_cast<const char*>(&numTriangles), sizeof numTriangles);
         for(const auto& v : vertices)
         {
-            const uint16_t azim = std::lround(std::clamp(v.p.x / width, 0., 1.) * uint16_t(-1));
+            const uint16_t azim = std::lround(std::clamp(v.p.x / (width - 1), 0., 1.) * uint16_t(-1));
             out.write(reinterpret_cast<const char*>(&azim), sizeof azim);
-            const uint16_t elev = std::lround(std::clamp(v.p.y / height, 0., 1.) * uint16_t(-1));
+            const uint16_t elev = std::lround(std::clamp(v.p.y / (height - 1), 0., 1.) * uint16_t(-1));
             out.write(reinterpret_cast<const char*>(&elev), sizeof elev);
             const glm::vec3 xyY = XYZ2xyY(sampleLayer(data + layer * layerSize, width, height, v.p.x, v.p.y));
             const uint8_t x = std::lround(xyY.x * uint8_t(-1));
