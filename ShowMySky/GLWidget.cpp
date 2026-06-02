@@ -19,6 +19,8 @@
 
 #include "GLWidget.hpp"
 #include <chrono>
+#include <cstring>
+#include <type_traits>
 #include <QFile>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -38,6 +40,9 @@
 namespace
 {
 using glm::vec4;
+#ifdef Q_OS_WIN
+using ssize_t = std::make_signed_t<std::size_t>;
+#endif
 
 double calcInterLayerError(const vec4*const data, const ssize_t layerSize,
                            const int currentLayerNum, const int targetLayerNum)
