@@ -103,26 +103,26 @@ void createAndSimplifyMesh(const vec4*const inData, const ssize_t width, const s
             v.p.y = y;
             v.p.z = inLine[x].y;
 
-                if (x == 0 && y == 0)
-                {
-                    corner1val = v.p.z;
-                    v.p.z = corner1marker;
-                }
-                else if (x == 0 && y == height - 1)
-                {
-                    corner2val = v.p.z;
-                    v.p.z = corner2marker;
-                }
-                else if (x == width - 1 && y == 0)
-                {
-                    corner3val = v.p.z;
-                    v.p.z = corner3marker;
-                }
-                else if (x == width - 1 && y == height - 1)
-                {
-                    corner4val = v.p.z;
-                    v.p.z = corner4marker;
-                }
+            if (x == 0 && y == 0)
+            {
+                corner1val = v.p.z;
+                v.p.z = corner1marker;
+            }
+            else if (x == 0 && y == height - 1)
+            {
+                corner2val = v.p.z;
+                v.p.z = corner2marker;
+            }
+            else if (x == width - 1 && y == 0)
+            {
+                corner3val = v.p.z;
+                v.p.z = corner3marker;
+            }
+            else if (x == width - 1 && y == height - 1)
+            {
+                corner4val = v.p.z;
+                v.p.z = corner4marker;
+            }
 
             vertices.push_back(v);
         }
