@@ -176,7 +176,7 @@ glm::vec3 XYZ2xyY(glm::vec3 const& c)
 glm::vec4 sampleLayer(const glm::vec4*const data, const ssize_t width, const ssize_t height, double x, double y)
 {
     x = std::clamp(x, 0., width - 1.);
-    y = std::clamp(x, 0., height - 1.);
+    y = std::clamp(y, 0., height - 1.);
     const ssize_t i = std::lround(x);
     const ssize_t j = std::lround(y);
     return data[j * width + i];
