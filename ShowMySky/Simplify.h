@@ -498,8 +498,8 @@ namespace Simplify
 
     double vertex_error(SymmetricMatrix q, double x, double y, double z)
     {
-         return   q[0]*x*x + 2*q[1]*x*y + 2*q[2]*x*z + 2*q[3]*x + q[4]*y*y
-              + 2*q[5]*y*z + 2*q[6]*y + q[7]*z*z + 2*q[8]*z + q[9];
+         return   (q[0]*x*x + 2*q[1]*x*y + 2*q[2]*x*z + 2*q[3]*x + q[4]*y*y
+              + 2*q[5]*y*z + 2*q[6]*y + q[7]*z*z + 2*q[8]*z + q[9]) / z;
     }
 
     // Error for one edge
