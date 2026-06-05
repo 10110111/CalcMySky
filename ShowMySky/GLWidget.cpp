@@ -155,7 +155,7 @@ void createAndSimplifyMesh(const vec4*const inData, const ssize_t width, const s
 
     const int target_count = 1000; // TODO: make it configurable
 
-    Simplify::simplify_mesh(target_count, 5, false, false, 0);
+    Simplify::simplify_mesh(target_count, 5, 0, width - 1, false, false, 0);
 
     for(auto& v : vertices)
     {
@@ -163,62 +163,6 @@ void createAndSimplifyMesh(const vec4*const inData, const ssize_t width, const s
         if (v.p.z == corner2marker) v.p.z = corner2val;
         if (v.p.z == corner3marker) v.p.z = corner3val;
         if (v.p.z == corner4marker) v.p.z = corner4val;
-    }
-
-    // Split border triangles on the left and right sides to better approximate the border and
-    // avoid artifacts at the solar and anti-solar azimuths when the image is reflected from them.
-    for(auto& t : triangles)
-        t.dirty = false;
-    for(unsigned n = 0; n < triangles.size(); ++n)
-    {
-        auto& t = triangles[n];
-        if(t.dirty) continue;
-        constexpr double borderThreshold = 0.2;
-        const auto isLeftBorder = [&](const int i)
-        {
-            return vertices[t.v[i]].p.x < borderThreshold;
-        };
-        const auto isRightBorder = [&](const int i)
-        {
-            return vertices[t.v[i]].p.x > width - 1 - borderThreshold;
-        };
-        // Looking for a triangle whose two vertices are on the border,
-        // we'll split the edge between these vertices.
-        const bool leftBorderFound  = isLeftBorder(0) + isLeftBorder(1) + isLeftBorder(2) == 2;
-        const bool rightBorderFound = isRightBorder(0) + isRightBorder(1) + isRightBorder(2) == 2;
-        if(!leftBorderFound && !rightBorderFound)
-            continue;
-        const bool useLeftBorder = leftBorderFound;
-
-        const int innerIdx = useLeftBorder ?
-                                   (!isLeftBorder(0) ? 0 :
-                                    !isLeftBorder(1) ? 1 :
-                                                       2 )
-                                           :
-                                   (!isRightBorder(0) ? 0 :
-                                    !isRightBorder(1) ? 1 :
-                                                        2 )
-                                           ;
-        const int borderIdx1 = (innerIdx + 1) % 3;
-        const int borderIdx2 = (innerIdx + 2) % 3;
-        const auto& innerV = vertices[t.v[innerIdx]];
-        const auto& borderV1 = vertices[t.v[borderIdx1]];
-        const auto& borderV2 = vertices[t.v[borderIdx2]];
-        if(std::abs(borderV1.p.x - borderV2.p.x) > std::abs(borderV1.p.y - borderV2.p.y))
-            continue; // The border is horizontal, don't change it
-        if((innerV.p.y >= borderV1.p.y && innerV.p.y >= borderV2.p.y) ||
-           (innerV.p.y <= borderV1.p.y && innerV.p.y <= borderV2.p.y))
-            continue; // No way to split nicely, ignore this triangle
-        auto newV = borderV1;
-        // Update the y coordinate; the z value will be updated by the caller
-        newV.p.y = innerV.p.y;
-        const int newIdx = vertices.size();
-        auto newT = t;
-        t.v[borderIdx1] = newIdx;
-        newT.v[borderIdx2] = newIdx;
-        newT.dirty = true;
-        vertices.push_back(newV);
-        triangles.push_back(newT);
     }
 }
 
