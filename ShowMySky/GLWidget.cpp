@@ -1206,7 +1206,7 @@ void GLWidget::saveMesh()
             throw std::runtime_error("ERROR: Failed to find a layer following layer "+std::to_string(currentLayer)+" within error tolerance");
 
         const auto elevation = elevMin + (1 - double(finalTargetLayer) / numLayerSteps) * (elevMax - elevMin);
-        qDebug() << "Saving elevation" << 180/M_PI*elevation;
+        qDebug() << "Keeping elevation" << 180/M_PI*elevation;
         elevationsToUse.push_back(elevation);
         layersToUse.push_back(finalTargetLayer);
         normsToUse.push_back(norms[finalTargetLayer]);
