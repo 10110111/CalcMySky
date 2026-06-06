@@ -159,10 +159,10 @@ void createAndSimplifyMesh(const vec4*const inData, const ssize_t width, const s
 
     for(auto& v : vertices)
     {
-        if (v.p.z == corner1marker) v.p.z = corner1val;
-        if (v.p.z == corner2marker) v.p.z = corner2val;
-        if (v.p.z == corner3marker) v.p.z = corner3val;
-        if (v.p.z == corner4marker) v.p.z = corner4val;
+        if(v.p.z == corner1marker) v.p.z = corner1val;
+        if(v.p.z == corner2marker) v.p.z = corner2val;
+        if(v.p.z == corner3marker) v.p.z = corner3val;
+        if(v.p.z == corner4marker) v.p.z = corner4val;
     }
 }
 
