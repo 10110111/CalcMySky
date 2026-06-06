@@ -164,6 +164,16 @@ void createAndSimplifyMesh(const vec4*const inData, const ssize_t width, const s
         if(v.p.z == corner3marker) v.p.z = corner3val;
         if(v.p.z == corner4marker) v.p.z = corner4val;
     }
+
+    // Snap near-border vertices to the borders
+    for(auto& v : vertices)
+    {
+        constexpr double borderThreshold = 1.5;
+        if(v.p.x < borderThreshold) v.p.x = 0;
+        if(v.p.y < borderThreshold) v.p.y = 0;
+        if(v.p.x > width - 1 - borderThreshold) v.p.x = width - 1;
+        if(v.p.y > height - 1 - borderThreshold) v.p.y = height - 1;
+    }
 }
 
 glm::vec3 XYZ2xyY(glm::vec3 const& c)
