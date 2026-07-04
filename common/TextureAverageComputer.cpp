@@ -21,11 +21,6 @@
 #include "util.hpp"
 #include <QOpenGLFunctions_3_3_Core>
 
-static bool isPOT(const int x)
-{
-    return roundDownToClosestPowerOfTwo(x) == x;
-}
-
 glm::vec4 TextureAverageComputer::getTextureAverageSimple(const GLuint texture, const int width, const int height,
                                                           const GLuint unusedTextureUnitNum)
 {
@@ -96,7 +91,7 @@ glm::vec4 TextureAverageComputer::getTextureAverageWithWorkaround(const GLuint t
 
 glm::vec4 TextureAverageComputer::getTextureAverage(const GLuint texture, const GLuint unusedTextureUnitNum)
 {
-    if(workaroundNeeded && !(isPOT(npotWidth) && isPOT(npotHeight)))
+    if(workaroundNeeded && !(isPowerOfTwo(npotWidth) && isPowerOfTwo(npotHeight)))
         return getTextureAverageWithWorkaround(texture, unusedTextureUnitNum);
     return getTextureAverageSimple(texture, npotWidth, npotHeight, unusedTextureUnitNum);
 }

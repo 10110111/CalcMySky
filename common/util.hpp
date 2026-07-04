@@ -168,4 +168,9 @@ inline unsigned roundDownToClosestPowerOfTwo(const unsigned x)
     return 1u << (shift-1);
 }
 
+inline bool isPowerOfTwo(const unsigned value)
+{
+    return (value & -value) == value;
+}
+
 #endif
