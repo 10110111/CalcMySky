@@ -80,7 +80,7 @@ endif()
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 if(WIN32 AND (NOT MINGW))
-    set(shadersDestPath "${CMAKE_PROJECT_NAME}")
+    set(dataDestPath "${CMAKE_PROJECT_NAME}")
     set(installBinDir "${CMAKE_PROJECT_NAME}")
     set(installLibDir "${installBinDir}")
     set(installRuntimeDir "${installBinDir}")
@@ -101,7 +101,7 @@ if(WIN32 AND (NOT MINGW))
 
 else()
     include(GNUInstallDirs)
-    set(shadersDestPath "${CMAKE_INSTALL_DATAROOTDIR}/${CMAKE_PROJECT_NAME}")
+    set(dataDestPath "${CMAKE_INSTALL_DATAROOTDIR}/${CMAKE_PROJECT_NAME}")
     set(installBinDir "${CMAKE_INSTALL_BINDIR}")
     set(installLibDir "${CMAKE_INSTALL_LIBDIR}")
     if (MINGW)
@@ -113,7 +113,7 @@ else()
     set(installIncDir "${CMAKE_INSTALL_INCLUDEDIR}")
 endif()
 
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/shaders" DESTINATION "${shadersDestPath}")
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/shaders" DESTINATION "${dataDestPath}")
 
 # The first command is a dummy, it doesn't actually create its output: it's
 # only needed to force re-running of gen_version.cmake for the case when we've changed

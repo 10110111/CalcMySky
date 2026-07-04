@@ -28,11 +28,14 @@
 #include "../common/util.hpp"
 #include "../common/const.hpp"
 #include "util.hpp"
+#include "config.h"
 #include "ToolsWidget.hpp"
 #include "AtmosphereRenderer.hpp"
 #include "GLSLCosineQualityChecker.hpp"
 #include "BlueNoiseTriangleRemapped.hpp"
 
+namespace
+{
 static QPointF position(QMouseEvent* event, double scale)
 {
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
@@ -40,6 +43,30 @@ static QPointF position(QMouseEvent* event, double scale)
 #else
     return event->position().toPoint() * scale;
 #endif
+}
+
+enum
+{
+    FFT_INPUT_TEX = 2,
+    // We use the values of these as indices in glareFBOs_ and glareRenderTextures_
+    FFT_PING_TEX = 0,
+    FFT_PONG_TEX = 1,
+};
+
+QString getDataDir()
+{
+    const auto appBinDir=QDir(qApp->applicationDirPath()+"/").canonicalPath();
+    QString path=appBinDir;
+    if(appBinDir == QDir(INSTALL_BINDIR).canonicalPath())
+    {
+        path = DATA_ROOT_DIR;
+    }
+    else if(appBinDir==QDir(BUILD_BINDIR "ShowMySky/").canonicalPath())
+    {
+        path = SOURCE_DIR;
+    }
+    return path;
+}
 }
 
 GLWidget::GLWidget(QString const& pathToData, ToolsWidget* tools, QWidget* parent)
@@ -69,15 +96,20 @@ GLWidget::~GLWidget()
         glDeleteVertexArrays(1, &vao_);
         vao_=0;
     }
-    if(glareTextures_[0])
+    if(glareRenderTextures_[0])
     {
-        glDeleteTextures(std::size(glareTextures_), glareTextures_);
-        std::fill_n(glareTextures_, std::size(glareTextures_), 0);
+        glDeleteTextures(std::size(glareRenderTextures_), glareRenderTextures_);
+        std::fill_n(glareRenderTextures_, std::size(glareRenderTextures_), 0);
     }
     if(glareFBOs_[0])
     {
         glDeleteFramebuffers(std::size(glareFBOs_), glareFBOs_);
         std::fill_n(glareFBOs_, std::size(glareFBOs_), 0);
+    }
+    if(glareTextureFBO_)
+    {
+        glDeleteFramebuffers(1, &glareTextureFBO_);
+        glareTextureFBO_ = 0;
     }
 }
 
@@ -122,29 +154,94 @@ void GLWidget::makeDitherPatternTexture()
     }
 }
 
-void GLWidget::makeGlareRenderTarget()
+void GLWidget::setupGlareFFT()
 {
-    if(!glareTextures_[0])
-        glGenTextures(std::size(glareTextures_), glareTextures_);
-    for(unsigned n=0; n<std::size(glareTextures_); ++n)
-    {
-        glBindTexture(GL_TEXTURE_2D, glareTextures_[n]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width(), height(), 0, GL_RGBA, GL_FLOAT, nullptr);
-        // This is needed to avoid aliasing when sampling along skewed lines
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // We want our convolution filter to sample zeros outside the texture, so clamp to _border_
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    }
+    if(!glareRenderTextures_[0])
+        glGenTextures(std::size(glareRenderTextures_), glareRenderTextures_);
+    if(!glareTextureFFT_)
+        glGenTextures(1, &glareTextureFFT_);
     if(!glareFBOs_[0])
         glGenFramebuffers(std::size(glareFBOs_), glareFBOs_);
+    if(!glareTextureFBO_)
+        glGenFramebuffers(1, &glareTextureFBO_);
+
+    fftTexW_ = glareFFT_.roundSizeUpToSupported(width() + glareTexW_);
+    fftTexH_ = glareFFT_.roundSizeUpToSupported(height() + glareTexH_);
+
+    glarePassesForward_  = glareFFT_.generatePasses(fftTexW_, fftTexH_, true, FFT_INPUT_TEX, FFT_PING_TEX,
+                                                   FFT_PONG_TEX);
+    const auto lastForwardPassOutputTex = glarePassesForward_.back().outputTex;
+    glarePassesBackward_ = glareFFT_.generatePasses(fftTexW_, fftTexH_, false,
+                                                    // Between forward and backward pass there'll be a pass
+                                                    // where the scene FFT is multiplied by glare FFT, which
+                                                    // saves results into the next ping-pong texture.
+                                                    (lastForwardPassOutputTex+1)%2,
+                                                    lastForwardPassOutputTex, (lastForwardPassOutputTex+1)%2);
+    for(unsigned n=0; n<std::size(glareRenderTextures_); ++n)
+    {
+        glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[n]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, fftTexW_, fftTexH_, 0, GL_RGBA, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
     for(unsigned n=0; n<std::size(glareFBOs_); ++n)
     {
         glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[n]);
-        glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,glareTextures_[n],0);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,glareRenderTextures_[n],0);
     }
+
+    glBindTexture(GL_TEXTURE_2D, glareTextureFFT_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, fftTexW_, fftTexH_, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, glareTextureFBO_);
+    glFramebufferTexture(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,glareTextureFFT_,0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    computeGlareTextureFFT();
+}
+
+void GLWidget::computeGlareTextureFFT()
+{
+    GLint targetFBO=-1;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFBO);
+
+    auto& fftProg = glareFFT_.program();
+    fftProg.bind();
+    fftProg.setUniformValue("tex", 0);
+    glViewport(0, 0, fftTexW_, fftTexH_);
+    glBindVertexArray(vao_);
+    for(const auto& pass : glarePassesForward_)
+    {
+        if(pass.inputTex == FFT_INPUT_TEX)
+        {
+            glBindTexture(GL_TEXTURE_2D, glareTexture_);
+            // Apply ifftshift
+            const float shiftX = std::floor(glareTexW_ / 2.f) / glareTexW_;
+            const float shiftY = std::floor(glareTexH_ / 2.f) / glareTexH_;
+            fftProg.setUniformValue("inputShift", QVector2D(shiftX, shiftY));
+        }
+        else
+        {
+            glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[pass.inputTex]);
+            fftProg.setUniformValue("inputShift", QVector2D(0, 0));
+        }
+        fftProg.setUniformValue("fftSize", QVector2D(fftTexW_, fftTexH_));
+        fftProg.setUniformValue("resolution", QVector2D(pass.resolution[0], pass.resolution[1]));
+        fftProg.setUniformValue("subtransformSize", pass.subtransformSize);
+        fftProg.setUniformValue("horizontal", pass.horizontal);
+        fftProg.setUniformValue("forward", pass.forward);
+        // We shouldn't apply normalization here, because otherwise the
+        // product of scene FFT and glare FFT will have it applied twice.
+        fftProg.setUniformValue("normalization", 1.f);
+        const bool lastPass = &pass == &glarePassesForward_.back();
+        glBindFramebuffer(GL_FRAMEBUFFER, lastPass ? glareTextureFBO_ : glareFBOs_[pass.outputTex]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+    glBindVertexArray(0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
+    glViewport(0, 0, width(), height());
 }
 
 QVector3D GLWidget::rgbMaxValue() const
@@ -224,7 +321,9 @@ void GLWidget::initializeGL()
         connect(tools, &ToolsWidget::setBlackBodySolarSpectrum, this, &GLWidget::setBlackBodySolarSpectrum);
 
         makeDitherPatternTexture();
-        makeGlareRenderTarget();
+        loadGlareTexture();
+        glareFFT_.init();
+        setupGlareFFT();
         setupBuffers();
 
         GLSLCosineQualityChecker cosineChecker(*this);
@@ -384,67 +483,46 @@ void main()
 #version 330
 in vec3 vertex;
 out vec2 texCoord;
+uniform vec2 texCoordScaling;
+void main()
+{
+    texCoord=(vertex.xy+vec2(1))/2 * texCoordScaling;
+    gl_Position=vec4(vertex,1);
+}
+)");
+        link(*luminanceToScreenRGB_, tr("luminanceToScreenRGB shader program"));
+
+        multiplierByGlareFFT_=std::make_unique<QOpenGLShaderProgram>();
+        addShaderCode(*multiplierByGlareFFT_, QOpenGLShader::Fragment, tr("multiplierByGlareFFT fragment shader"), 1+R"(
+#version 330
+in vec2 texCoord;
+uniform sampler2D scene;
+uniform sampler2D kernel;
+out vec4 color;
+
+void main()
+{
+    vec4 s = texture(scene, texCoord);
+    vec4 k = texture(kernel, texCoord);
+    // {(s.r + i*s.g)(k.r + i*k.g),
+    //  (s.b + i*s.a)(k.b + i*k.a)}
+    color = vec4(s.r*k.r-s.g*k.g,
+                 s.r*k.g+s.g*k.r,
+                 s.b*k.b-s.a*k.a,
+                 s.b*k.a+s.a*k.b);
+}
+)");
+        addShaderCode(*multiplierByGlareFFT_, QOpenGLShader::Vertex, tr("multiplierByGlareFFT vertex shader"), 1+R"(
+#version 330
+in vec3 vertex;
+out vec2 texCoord;
 void main()
 {
     texCoord=(vertex.xy+vec2(1))/2;
     gl_Position=vec4(vertex,1);
 }
 )");
-        link(*luminanceToScreenRGB_, tr("luminanceToScreenRGB shader program"));
-
-        glareProgram_=std::make_unique<QOpenGLShaderProgram>();
-        addShaderCode(*glareProgram_, QOpenGLShader::Fragment, tr("glare fragment shader"), 1+R"(
-#version 330
-uniform sampler2D luminanceXYZW;
-uniform vec2 stepDir;
-out vec4 XYZW;
-
-float weight(const float x)
-{
-    const float a=0.955491103831962;
-    const float b=0.0111272240420095;
-    return abs(x)<0.5 ? a : b/(x*x);
-}
-
-void main()
-{
-    vec2 size = textureSize(luminanceXYZW, 0);
-    vec2 pos = gl_FragCoord.st-vec2(0.5);
-    if(stepDir.x*stepDir.y >= 0)
-    {
-        vec2 dir = stepDir.x<0 || stepDir.y<0 ? -stepDir : stepDir;
-        float stepCountBottomLeft = 1+ceil(min(pos.x/dir.x, pos.y/dir.y));
-        float stepCountTopRight = 1+ceil(min((size.x-pos.x-1)/dir.x, (size.y-pos.y-1)/dir.y));
-
-        XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
-        for(float dist=1; dist<stepCountBottomLeft; ++dist)
-            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st-dir*dist)/size);
-        for(float dist=1; dist<stepCountTopRight; ++dist)
-            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st+dir*dist)/size);
-    }
-    else
-    {
-        vec2 dir = stepDir.x<0 ? -stepDir : stepDir;
-        float stepCountTopLeft = 1+ceil(min(pos.x/dir.x, (size.y-pos.y-1)/-dir.y));
-        float stepCountBottomRight = 1+ceil(min((size.x-pos.x-1)/dir.x, pos.y/-dir.y));
-
-        XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
-        for(float dist=1; dist<stepCountTopLeft; ++dist)
-            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st-dir*dist)/size);
-        for(float dist=1; dist<stepCountBottomRight; ++dist)
-            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st+dir*dist)/size);
-    }
-}
-)");
-        addShaderCode(*glareProgram_, QOpenGLShader::Vertex, tr("glare vertex shader"), 1+R"(
-#version 330
-in vec3 vertex;
-void main()
-{
-    gl_Position=vec4(vertex,1);
-}
-)");
-        link(*glareProgram_, tr("glare shader program"));
+        link(*multiplierByGlareFFT_, tr("multiplierByGlareFFT shader program"));
 
         static constexpr const char* viewDirVertShaderSrc=1+R"(
 #version 330
@@ -532,6 +610,54 @@ vec3 calcViewDir()
     }
 }
 
+void GLWidget::loadGlareTexture()
+{
+    const auto img = QImage(getDataDir() + "/glare.png").convertToFormat(QImage::Format_Grayscale8);
+    glareTexW_ = img.width();
+    glareTexH_ = img.height();
+    if(glareTexW_ <= 0 || glareTexH_ <= 0)
+    {
+        qWarning() << "Failed to load glare texture!";
+        return;
+    }
+
+    std::vector<glm::vec4> data(glareTexW_ * glareTexH_);
+    const uchar*const bits = img.bits();
+    const auto stride = img.bytesPerLine();
+    for(int j = 0; j < glareTexH_; ++j)
+    {
+        for(int i = 0; i < stride; ++i)
+        {
+            constexpr double max = 23.0258509300405;
+            constexpr double min = -2.04796267956848e-22;
+            const float val = std::exp(bits[j * stride + i] / 255. * max + std::log(1e-10)) - 1e-10 + min;
+            auto& out = data[j * glareTexW_ + i];
+            // We make two copies of the convolution kernel: R+iG, B+iA, where G=A=0. They will be used
+            // by our FFT code to apply the real-valued kernel to the XYZW data: R*(X+iY), B*(Z+iW).
+            out.r = val;
+            out.g = 0;
+            out.b = val;
+            out.a = 0;
+        }
+    }
+    const auto sum = std::accumulate(data.begin(), data.end(), glm::vec4(0));
+    for(auto& v : data)
+    {
+        v.r /= sum.r;
+        v.b /= sum.b;
+    }
+
+    if(!glareTexture_)
+        glGenTextures(1, &glareTexture_);
+    glBindTexture(GL_TEXTURE_2D, glareTexture_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, glareTexW_, glareTexH_, 0, GL_RGBA, GL_FLOAT, data.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // We want our FFT to sample zeros outside the texture, so clamp to _border_
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+}
+
 void GLWidget::stepDataLoading()
 {
     try
@@ -606,42 +732,74 @@ void GLWidget::paintGL()
     glBindVertexArray(vao_);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+    QVector2D texCoordScaling(1,1);
     if(tools->glareEnabled())
     {
-        // We want our convolution filter to sample zeros outside the texture, so clamp to _border_
-        // Subsequent code doesn't depend on this
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // We want our FFT to sample zeros outside the texture, so clamp to _border_
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
         GLint targetFBO=-1;
         glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFBO);
 
-        constexpr double degree=M_PI/180;
-        constexpr double angleMin=5*degree;
-        constexpr int numAngleSteps=3;
-        constexpr double angleStep=360*degree/numAngleSteps;
-
-        glareProgram_->bind();
-        glareProgram_->setUniformValue("luminanceXYZW", 0);
-        for(int angleStepNum=0; angleStepNum<numAngleSteps; ++angleStepNum)
+        auto& fftProg = glareFFT_.program();
+        fftProg.bind();
+        fftProg.setUniformValue("tex", 0);
+        glViewport(0, 0, fftTexW_, fftTexH_);
+        for(const auto& pass : glarePassesForward_)
         {
-            // This is needed to avoid aliasing when sampling along skewed lines
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            const auto angle = angleMin + angleStep*angleStepNum;
-            glareProgram_->setUniformValue("stepDir", QVector2D(std::cos(angle),std::sin(angle)));
-            glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[angleStepNum%2]);
+            if(pass.inputTex == FFT_INPUT_TEX)
+                glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+            else
+                glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[pass.inputTex]);
+            fftProg.setUniformValue("inputShift", QVector2D(0, 0));
+            fftProg.setUniformValue("fftSize", QVector2D(fftTexW_, fftTexH_));
+            fftProg.setUniformValue("resolution", QVector2D(pass.resolution[0], pass.resolution[1]));
+            fftProg.setUniformValue("subtransformSize", pass.subtransformSize);
+            fftProg.setUniformValue("horizontal", pass.horizontal);
+            fftProg.setUniformValue("forward", pass.forward);
+            fftProg.setUniformValue("normalization", pass.normalization);
+            glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[pass.outputTex]);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            // Now use the result of this stage to feed the next stage
-            glBindTexture(GL_TEXTURE_2D, glareTextures_[angleStepNum%2]);
         }
 
+        multiplierByGlareFFT_->bind();
+        multiplierByGlareFFT_->setUniformValue("scene", 0);
+        glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[glarePassesForward_.back().outputTex]);
+        multiplierByGlareFFT_->setUniformValue("kernel", 1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, glareTextureFFT_);
+        glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[glarePassesBackward_[0].inputTex]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        fftProg.bind();
+        glActiveTexture(GL_TEXTURE0);
+        for(const auto& pass : glarePassesBackward_)
+        {
+            glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[pass.inputTex]);
+            fftProg.setUniformValue("inputShift", QVector2D(0, 0));
+            fftProg.setUniformValue("fftSize", QVector2D(fftTexW_, fftTexH_));
+            fftProg.setUniformValue("resolution", QVector2D(pass.resolution[0], pass.resolution[1]));
+            fftProg.setUniformValue("subtransformSize", pass.subtransformSize);
+            fftProg.setUniformValue("horizontal", pass.horizontal);
+            fftProg.setUniformValue("forward", pass.forward);
+            fftProg.setUniformValue("normalization", pass.normalization);
+            glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[pass.outputTex]);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
         glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
+        glViewport(0, 0, width(), height());
+
+        // Now we use the output texture instead of renderer->getLuminanceTexture()
+        glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[glarePassesBackward_.back().outputTex]);
+        texCoordScaling = {float(width()) / fftTexW_, float(height()) / fftTexH_};
     }
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     luminanceToScreenRGB_->bind();
+    luminanceToScreenRGB_->setUniformValue("texCoordScaling", texCoordScaling);
     luminanceToScreenRGB_->setUniformValue("luminanceXYZW", 0);
     ditherPatternTexture_.bind(1);
     luminanceToScreenRGB_->setUniformValue("ditherPattern", 1);
@@ -664,8 +822,9 @@ void GLWidget::paintGL()
 void GLWidget::resizeGL(int, int)
 {
     if(!renderer) return;
+    if(!glareFFT_.initialized()) return;
     renderer->resizeEvent(width(),height());
-    makeGlareRenderTarget();
+    setupGlareFFT();
 }
 
 void GLWidget::updateSpectralRadiance(QPoint const& pixelPos)

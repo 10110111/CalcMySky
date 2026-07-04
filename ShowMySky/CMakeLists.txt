@@ -31,6 +31,7 @@ endif()
 add_executable(${showmyskyTarget}
                ${RES_SOURCES}
                ${extraSrc}
+                FFT.cpp
                 main.cpp
                 util.cpp
                 GLWidget.cpp
@@ -65,3 +66,4 @@ install(TARGETS ShowMySky
 export(TARGETS ShowMySky NAMESPACE ShowMySky:: FILE "${CMAKE_CURRENT_BINARY_DIR}/ShowMySky-Qt${QT_VERSION}Config.cmake")
 install(EXPORT ShowMySky-Qt${QT_VERSION}Config NAMESPACE ShowMySky:: DESTINATION "${installConfDir}/cmake/ShowMySky-Qt${QT_VERSION}")
 install(FILES api/ShowMySky/Exception.hpp api/ShowMySky/AtmosphereRenderer.hpp api/ShowMySky/Settings.hpp DESTINATION "${installIncDir}/ShowMySky")
+install(FILES glare.png DESTINATION "${dataDestPath}")

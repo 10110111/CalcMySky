@@ -21,11 +21,13 @@
 #define INCLUDE_ONCE_71D92E37_E297_472C_8495_1BF8EA61DC99
 
 #include <memory>
+#include <vector>
 #include <QOpenGLWidget>
 #include <QOpenGLTexture>
 #include <QOpenGLFunctions_3_3_Core>
 #include "AtmosphereRenderer.hpp"
 #include "../common/AtmosphereParameters.hpp"
+#include "FFT.hpp"
 
 class ToolsWidget;
 class GLWidget : public QOpenGLWidget, public QOpenGLFunctions_3_3_Core
@@ -55,10 +57,13 @@ public:
 private:
     std::unique_ptr<ShowMySky::AtmosphereRenderer> renderer;
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
-    std::unique_ptr<QOpenGLShaderProgram> glareProgram_;
+    std::unique_ptr<QOpenGLShaderProgram> multiplierByGlareFFT_;
     QOpenGLTexture ditherPatternTexture_;
-    GLuint glareTextures_[2] = {};
+    GLuint glareRenderTextures_[2] = {};
+    GLuint glareTextureFBO_=0;
+    GLuint glareTextureFFT_=0;
     GLuint glareFBOs_[2] = {};
+    GLuint glareTexture_=0;
     QString pathToData;
     ToolsWidget* tools;
     GLuint vao_=0, vbo_=0;
@@ -66,6 +71,10 @@ private:
     decltype(::ShowMySky_AtmosphereRenderer_create)* ShowMySky_AtmosphereRenderer_create=nullptr;
     Projection currentProjection_ = Projection::Equirectangular;
     ColorMode currentColorMode_ = ColorMode::sRGB;
+    unsigned fftTexW_ = 0, fftTexH_ = 0;
+    int glareTexW_ = 0, glareTexH_ = 0;
+    FFT glareFFT_;
+    std::vector<FFT::Pass> glarePassesForward_, glarePassesBackward_;
 
     enum class DragMode
     {
@@ -109,11 +118,13 @@ private:
     int height() const;
     void setupBuffers();
     void reloadShaders();
+    void setupGlareFFT();
+    void loadGlareTexture();
+    void computeGlareTextureFFT();
     void stepDataLoading();
     void stepShaderReloading();
     void stepPreparationToDraw(bool emitProgressStatus);
     QVector3D rgbMaxValue() const;
-    void makeGlareRenderTarget();
     void makeDitherPatternTexture();
     void updateSpectralRadiance(QPoint const& pixelPos);
     void setDragMode(DragMode mode, double x=0, double y=0) { dragMode_=mode; prevMouseX_=x; prevMouseY_=y; }
