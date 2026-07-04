@@ -169,8 +169,8 @@ TextureAverageComputer::TextureAverageComputer(QOpenGLFunctions_3_3_Core& gl, co
 {
     if(!inited) init(unusedTextureUnitNum);
     if(!workaroundNeeded) return;
-    const auto potWidth  = roundDownToClosestPowerOfTwo(npotWidth);
-    const auto potHeight = roundDownToClosestPowerOfTwo(npotHeight);
+    const int potWidth  = roundDownToClosestPowerOfTwo(npotWidth);
+    const int potHeight = roundDownToClosestPowerOfTwo(npotHeight);
     if(potWidth == npotWidth && potHeight == npotHeight)
         return;
 

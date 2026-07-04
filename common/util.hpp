@@ -159,13 +159,13 @@ glm::mat4 radianceToLuminance(unsigned texIndex, std::vector<glm::vec4> const& a
 // Rounds each float to \p precision bits.
 void roundTexData(GLfloat* data, size_t size, int precision);
 
-inline int roundDownToClosestPowerOfTwo(const int x)
+inline unsigned roundDownToClosestPowerOfTwo(const unsigned x)
 {
     if(x==0) return 1;
     int shift=0;
     for(auto v=x;v;v>>=1)
         ++shift;
-    return 1<<(shift-1);
+    return 1u << (shift-1);
 }
 
 #endif
