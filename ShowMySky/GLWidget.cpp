@@ -810,6 +810,7 @@ void GLWidget::paintGL()
     luminanceToScreenRGB_->setUniformValue("colorMode", static_cast<int>(currentColorMode()));
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
+    glActiveTexture(GL_TEXTURE0);
 
     glFinish();
     const auto t1=std::chrono::steady_clock::now();
