@@ -47,6 +47,7 @@ public:
         bool horizontal;
         bool forward;
         float resolution[2];
+        float fftSize[2];
         float normalization;
         float subtransformSize;
     };

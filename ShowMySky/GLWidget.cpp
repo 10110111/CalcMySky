@@ -226,7 +226,7 @@ void GLWidget::computeGlareTextureFFT()
             glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[pass.inputTex]);
             fftProg.setUniformValue("inputShift", QVector2D(0, 0));
         }
-        fftProg.setUniformValue("fftSize", QVector2D(fftTexW_, fftTexH_));
+        fftProg.setUniformValue("fftSize", QVector2D(pass.fftSize[0], pass.fftSize[1]));
         fftProg.setUniformValue("resolution", QVector2D(pass.resolution[0], pass.resolution[1]));
         fftProg.setUniformValue("subtransformSize", pass.subtransformSize);
         fftProg.setUniformValue("horizontal", pass.horizontal);
@@ -755,7 +755,7 @@ void GLWidget::paintGL()
             else
                 glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[pass.inputTex]);
             fftProg.setUniformValue("inputShift", QVector2D(0, 0));
-            fftProg.setUniformValue("fftSize", QVector2D(fftTexW_, fftTexH_));
+            fftProg.setUniformValue("fftSize", QVector2D(pass.fftSize[0], pass.fftSize[1]));
             fftProg.setUniformValue("resolution", QVector2D(pass.resolution[0], pass.resolution[1]));
             fftProg.setUniformValue("subtransformSize", pass.subtransformSize);
             fftProg.setUniformValue("horizontal", pass.horizontal);
@@ -780,7 +780,7 @@ void GLWidget::paintGL()
         {
             glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[pass.inputTex]);
             fftProg.setUniformValue("inputShift", QVector2D(0, 0));
-            fftProg.setUniformValue("fftSize", QVector2D(fftTexW_, fftTexH_));
+            fftProg.setUniformValue("fftSize", QVector2D(pass.fftSize[0], pass.fftSize[1]));
             fftProg.setUniformValue("resolution", QVector2D(pass.resolution[0], pass.resolution[1]));
             fftProg.setUniformValue("subtransformSize", pass.subtransformSize);
             fftProg.setUniformValue("horizontal", pass.horizontal);

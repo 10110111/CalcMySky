@@ -62,6 +62,8 @@ auto FFT::generatePasses(const unsigned fftWidth, const unsigned fftHeight, cons
         pass.forward = forward;
         pass.resolution[0] = 1.0f / fftWidth;
         pass.resolution[1] = 1.0f / fftHeight;
+        pass.fftSize[0] = fftWidth;
+        pass.fftSize[1] = fftHeight;
         pass.normalization = normalization;
         pass.subtransformSize = subtransformSize;
         passes.push_back(pass);
