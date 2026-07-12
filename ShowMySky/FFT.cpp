@@ -55,15 +55,16 @@ auto FFT::generatePasses(const unsigned fftWidth, const unsigned fftHeight, cons
         const bool horizontal = i < xIterations;
         const float subtransformSize = 2 << (horizontal ? i : i - xIterations);
         const float normalization = i == 0 ? 1 / std::sqrt(float(fftWidth * fftHeight)) : 1;
-        passes.push_back({
-            .inputTex = i == 0 ? inputTex : pingTex,
-            .outputTex = pongTex,
-            .horizontal = horizontal,
-            .forward = forward,
-            .resolution = {1.0f / fftWidth, 1.0f / fftHeight},
-            .normalization = normalization,
-            .subtransformSize = subtransformSize,
-        });
+        Pass pass;
+        pass.inputTex = i == 0 ? inputTex : pingTex;
+        pass.outputTex = pongTex;
+        pass.horizontal = horizontal;
+        pass.forward = forward;
+        pass.resolution[0] = 1.0f / fftWidth;
+        pass.resolution[1] = 1.0f / fftHeight;
+        pass.normalization = normalization;
+        pass.subtransformSize = subtransformSize;
+        passes.push_back(pass);
 
         std::swap(pingTex, pongTex);
     }
