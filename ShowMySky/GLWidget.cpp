@@ -334,6 +334,9 @@ void GLWidget::initializeGL()
 #version 330
 uniform float exposure;
 uniform sampler2D luminanceXYZW;
+uniform sampler2D glareXYZW;
+uniform bool haveGlare;
+uniform float luminanceWeight;
 
 uniform int colorMode;
 #define COLMOD_SRGB 0
@@ -347,6 +350,7 @@ uniform int colorMode;
 #define COLMOD_SRGB_GREEN 8
 #define COLMOD_SRGB_BLUE 9
 
+in vec2 glareTexCoord;
 in vec2 texCoord;
 out vec4 color;
 
@@ -431,7 +435,9 @@ vec3 markOutOfRangeValues(const vec3 c)
 
 void main()
 {
-    vec4 tex=texture(luminanceXYZW, texCoord);
+    vec4 tex = luminanceWeight * texture(luminanceXYZW, texCoord);
+    if(haveGlare)
+        tex += texture(glareXYZW, glareTexCoord);
 
     vec3 smoothColorOutput;
     if(colorMode == COLMOD_SRGB)
@@ -483,10 +489,12 @@ void main()
 #version 330
 in vec3 vertex;
 out vec2 texCoord;
-uniform vec2 texCoordScaling;
+out vec2 glareTexCoord;
+uniform vec2 glareTexCoordScaling;
 void main()
 {
-    texCoord=(vertex.xy+vec2(1))/2 * texCoordScaling;
+    texCoord=(vertex.xy+vec2(1))/2;
+    glareTexCoord=(vertex.xy+vec2(1))/2 * glareTexCoordScaling;
     gl_Position=vec4(vertex,1);
 }
 )");
@@ -640,12 +648,17 @@ void GLWidget::loadGlareTexture()
             out.a = 0;
         }
     }
+    const auto centralPeakIndex = std::floor(glareTexW_ / 2.) + glareTexW_ * std::floor(glareTexH_ / 2.);
+    glareCentralPeakAmp_ = data[centralPeakIndex].r;
     const auto sum = std::accumulate(data.begin(), data.end(), glm::vec4(0));
     for(auto& v : data)
     {
         v.r /= sum.r;
         v.b /= sum.b;
     }
+    glareCentralPeakAmp_ /= sum.r;
+    // Zero out the central peak
+    data[centralPeakIndex] = glm::vec4(0);
 
     if(!glareTexture_)
         glGenTextures(1, &glareTexture_);
@@ -732,7 +745,7 @@ void GLWidget::paintGL()
     glBindVertexArray(vao_);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
-    QVector2D texCoordScaling(1,1);
+    QVector2D glareTexCoordScaling(1,1);
     if(tools->glareEnabled())
     {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -792,17 +805,31 @@ void GLWidget::paintGL()
         glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
         glViewport(0, 0, width(), height());
 
-        // Now we use the output texture instead of renderer->getLuminanceTexture()
-        glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[glarePassesBackward_.back().outputTex]);
-        texCoordScaling = {float(width()) / fftTexW_, float(height()) / fftTexH_};
+        glareTexCoordScaling = {float(width()) / fftTexW_, float(height()) / fftTexH_};
     }
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     luminanceToScreenRGB_->bind();
-    luminanceToScreenRGB_->setUniformValue("texCoordScaling", texCoordScaling);
     luminanceToScreenRGB_->setUniformValue("luminanceXYZW", 0);
-    ditherPatternTexture_.bind(1);
-    luminanceToScreenRGB_->setUniformValue("ditherPattern", 1);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+    if(tools->glareEnabled())
+    {
+        luminanceToScreenRGB_->setUniformValue("luminanceWeight", glareCentralPeakAmp_);
+        luminanceToScreenRGB_->setUniformValue("haveGlare", true);
+        luminanceToScreenRGB_->setUniformValue("glareXYZW", 1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, glareRenderTextures_[glarePassesBackward_.back().outputTex]);
+        luminanceToScreenRGB_->setUniformValue("glareTexCoordScaling", glareTexCoordScaling);
+    }
+    else
+    {
+        luminanceToScreenRGB_->setUniformValue("luminanceWeight", 1.f);
+        luminanceToScreenRGB_->setUniformValue("haveGlare", false);
+        luminanceToScreenRGB_->setUniformValue("glareTexCoordScaling", glareTexCoordScaling);
+    }
+    ditherPatternTexture_.bind(2);
+    luminanceToScreenRGB_->setUniformValue("ditherPattern", 2);
     luminanceToScreenRGB_->setUniformValue("rgbMaxValue", rgbMaxValue());
     luminanceToScreenRGB_->setUniformValue("ditheringMethod", static_cast<int>(tools->ditheringMethod()));
     luminanceToScreenRGB_->setUniformValue("gradualClipping", tools->gradualClippingEnabled());

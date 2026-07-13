@@ -73,6 +73,7 @@ private:
     ColorMode currentColorMode_ = ColorMode::sRGB;
     unsigned fftTexW_ = 0, fftTexH_ = 0;
     int glareTexW_ = 0, glareTexH_ = 0;
+    float glareCentralPeakAmp_ = 0;
     FFT glareFFT_;
     std::vector<FFT::Pass> glarePassesForward_, glarePassesBackward_;
 
