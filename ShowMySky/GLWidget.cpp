@@ -419,36 +419,41 @@ void main()
 {
     vec2 texSize = textureSize(luminanceXYZW, 0);
 
+    bool xMajor = tanAngle < 1;
+    float fragPosA = xMajor ? gl_FragCoord.x : gl_FragCoord.y;
+    float fragPosB = xMajor ? gl_FragCoord.y : gl_FragCoord.x;
+    float aSize    = xMajor ?      texSize.x :      texSize.y;
+    float tanAngleFinal = xMajor ? tanAngle : 1 / tanAngle;
+
     XYZW = vec4(0);
     if(stage == 0)
     {
-        float xMin = gl_FragCoord.x-round(gl_FragCoord.x / stepSize) * stepSize;
-        for(float x = xMin; x <= texSize.x; x += stepSize)
+        float aMin = fragPosA - round(fragPosA / stepSize) * stepSize;
+        for(float a = aMin; a <= aSize; a += stepSize)
         {
-            float y = tanAngle * (x - gl_FragCoord.x) + gl_FragCoord.y;
-            vec2 currPos = vec2(x, y);
-            float dist = length(gl_FragCoord.st - currPos);
+            float b = tanAngleFinal * (a - fragPosA) + fragPosB;
+            vec2 currPos = xMajor ? vec2(a, b) : vec2(b, a);
+            float dist = length(gl_FragCoord.xy - currPos);
             XYZW += weightForOuterRays(dist) * texture(luminanceXYZW, currPos/texSize);
         }
     }
     else if(stage == 1)
     {
-        for(float dx = -stepSize; dx <= stepSize; dx += 1)
+        for(float da = -stepSize; da <= stepSize; da += 1)
         {
-            float y = tanAngle * dx + gl_FragCoord.y;
-            vec2 currPos = vec2(gl_FragCoord.x + dx, y);
-            float dist = abs(gl_FragCoord.x - currPos.x);
-            float alpha = 1 - dist / stepSize;
+            float b = tanAngleFinal * da + fragPosB;
+            vec2 currPos = xMajor ? vec2(fragPosA + da, b) : vec2(b, fragPosA + da);
+            float alpha = 1 - abs(da) / stepSize;
             XYZW += alpha * texture(luminanceXYZW, currPos/texSize);
         }
     }
     else if(stage == 2)
     {
-        for(float dx = -stepSize; dx <= stepSize; dx += 1)
+        for(float da = -stepSize; da <= stepSize; da += 1)
         {
-            float y = tanAngle * dx + gl_FragCoord.y;
-            vec2 currPos = vec2(gl_FragCoord.x + dx, y);
-            float dist = abs(gl_FragCoord.x - currPos.x);
+            float b = tanAngleFinal * da + fragPosB;
+            vec2 currPos = xMajor ? vec2(fragPosA + da, b) : vec2(b, fragPosA + da);
+            float dist = abs(da);
             float alpha = weightForInnerRays(dist) - weightForOuterRays(dist) * dist / stepSize;
             XYZW += alpha * texture(luminanceXYZW, currPos/texSize);
         }
