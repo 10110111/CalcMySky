@@ -396,43 +396,62 @@ void main()
         addShaderCode(*glareProgram_, QOpenGLShader::Fragment, tr("glare fragment shader"), 1+R"(
 #version 330
 uniform sampler2D luminanceXYZW;
-uniform vec2 stepDir;
+uniform float stepSize;
+uniform float tanAngle;
+uniform int stage;
 out vec4 XYZW;
 
-float weight(const float x)
+float weightForInnerRays(const float x)
 {
     const float a=0.955491103831962;
     const float b=0.0111272240420095;
     return abs(x)<0.5 ? a : b/(x*x);
 }
 
+float weightForOuterRays(const float x)
+{
+    const float a=0;
+    const float b=0.0111272240420095;
+    return abs(x)<0.5 ? a : b/(x*x);
+}
+
 void main()
 {
-    vec2 size = textureSize(luminanceXYZW, 0);
-    vec2 pos = gl_FragCoord.st-vec2(0.5);
-    if(stepDir.x*stepDir.y >= 0)
-    {
-        vec2 dir = stepDir.x<0 || stepDir.y<0 ? -stepDir : stepDir;
-        float stepCountBottomLeft = 1+ceil(min(pos.x/dir.x, pos.y/dir.y));
-        float stepCountTopRight = 1+ceil(min((size.x-pos.x-1)/dir.x, (size.y-pos.y-1)/dir.y));
+    vec2 texSize = textureSize(luminanceXYZW, 0);
 
-        XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
-        for(float dist=1; dist<stepCountBottomLeft; ++dist)
-            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st-dir*dist)/size);
-        for(float dist=1; dist<stepCountTopRight; ++dist)
-            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st+dir*dist)/size);
+    XYZW = vec4(0);
+    if(stage == 0)
+    {
+        float xMin = gl_FragCoord.x-round(gl_FragCoord.x / stepSize) * stepSize;
+        for(float x = xMin; x <= texSize.x; x += stepSize)
+        {
+            float y = tanAngle * (x - gl_FragCoord.x) + gl_FragCoord.y;
+            vec2 currPos = vec2(x, y);
+            float dist = length(gl_FragCoord.st - currPos);
+            XYZW += weightForOuterRays(dist) * texture(luminanceXYZW, currPos/texSize);
+        }
     }
-    else
+    else if(stage == 1)
     {
-        vec2 dir = stepDir.x<0 ? -stepDir : stepDir;
-        float stepCountTopLeft = 1+ceil(min(pos.x/dir.x, (size.y-pos.y-1)/-dir.y));
-        float stepCountBottomRight = 1+ceil(min((size.x-pos.x-1)/dir.x, pos.y/-dir.y));
-
-        XYZW = weight(0) * texture(luminanceXYZW, gl_FragCoord.st/size);
-        for(float dist=1; dist<stepCountTopLeft; ++dist)
-            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st-dir*dist)/size);
-        for(float dist=1; dist<stepCountBottomRight; ++dist)
-            XYZW += weight(dist) * texture(luminanceXYZW, (gl_FragCoord.st+dir*dist)/size);
+        for(float dx = -stepSize; dx <= stepSize; dx += 1)
+        {
+            float y = tanAngle * dx + gl_FragCoord.y;
+            vec2 currPos = vec2(gl_FragCoord.x + dx, y);
+            float dist = abs(gl_FragCoord.x - currPos.x);
+            float alpha = 1 - dist / stepSize;
+            XYZW += alpha * texture(luminanceXYZW, currPos/texSize);
+        }
+    }
+    else if(stage == 2)
+    {
+        for(float dx = -stepSize; dx <= stepSize; dx += 1)
+        {
+            float y = tanAngle * dx + gl_FragCoord.y;
+            vec2 currPos = vec2(gl_FragCoord.x + dx, y);
+            float dist = abs(gl_FragCoord.x - currPos.x);
+            float alpha = weightForInnerRays(dist) - weightForOuterRays(dist) * dist / stepSize;
+            XYZW += alpha * texture(luminanceXYZW, currPos/texSize);
+        }
     }
 }
 )");
@@ -613,6 +632,10 @@ void GLWidget::paintGL()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
+        // This is needed to avoid aliasing when sampling along skewed lines
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
         GLint targetFBO=-1;
         glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFBO);
 
@@ -623,18 +646,52 @@ void GLWidget::paintGL()
 
         glareProgram_->bind();
         glareProgram_->setUniformValue("luminanceXYZW", 0);
+        int fboCounter=-1;
         for(int angleStepNum=0; angleStepNum<numAngleSteps; ++angleStepNum)
         {
-            // This is needed to avoid aliasing when sampling along skewed lines
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            const auto angle = angleMin + angleStep*angleStepNum;
-            glareProgram_->setUniformValue("stepDir", QVector2D(std::cos(angle),std::sin(angle)));
-            glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[angleStepNum%2]);
+            const float angle = angleMin + angleStep * angleStepNum;
+            glareProgram_->setUniformValue("tanAngle", std::tan(angle));
+            // Draw the outer side of the rays:
+            //  step 0: sparse grid
+            //  step 1: interpolate the grid with local bumps
+            const float distBetweenPoints = std::ceil(std::sqrt(width()));
+            glareProgram_->setUniformValue("stepSize", distBetweenPoints);
+            int stage;
+            constexpr int numStages = 2;
+            for(stage=0; stage<numStages; ++stage)
+            {
+                glareProgram_->setUniformValue("stage", stage);
+                ++fboCounter;
+                glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[fboCounter%2]);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                // Now use the result of this stage to feed the next stage
+                glBindTexture(GL_TEXTURE_2D, glareTextures_[fboCounter%2]);
+            }
+            // Draw the rays closest to their origin, blending the results
+            // into the same FBO as at the previous stage
+            if(angleStepNum == 0)
+            {
+                glBindTexture(GL_TEXTURE_2D, renderer->getLuminanceTexture());
+            }
+            else
+            {
+                glBindTexture(GL_TEXTURE_2D, glareTextures_[2]);
+            }
+            glareProgram_->setUniformValue("stage", stage);
+            glBlendFunc(GL_ONE, GL_ONE);
+            glEnable(GL_BLEND);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            glDisable(GL_BLEND);
+
+            if(angleStepNum+1 != numAngleSteps)
+            {
+                // Save the texture for the last stage of the next angle iteration
+                glBindTexture(GL_TEXTURE_2D, glareTextures_[2]);
+                glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width(), height());
+            }
+
             // Now use the result of this stage to feed the next stage
-            glBindTexture(GL_TEXTURE_2D, glareTextures_[angleStepNum%2]);
+            glBindTexture(GL_TEXTURE_2D, glareTextures_[fboCounter%2]);
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);

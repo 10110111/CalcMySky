@@ -57,8 +57,8 @@ private:
     std::unique_ptr<QOpenGLShaderProgram> luminanceToScreenRGB_;
     std::unique_ptr<QOpenGLShaderProgram> glareProgram_;
     QOpenGLTexture ditherPatternTexture_;
-    GLuint glareTextures_[2] = {};
-    GLuint glareFBOs_[2] = {};
+    GLuint glareTextures_[3] = {};
+    GLuint glareFBOs_[3] = {};
     QString pathToData;
     ToolsWidget* tools;
     GLuint vao_=0, vbo_=0;
