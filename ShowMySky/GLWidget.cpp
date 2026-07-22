@@ -652,6 +652,7 @@ void GLWidget::paintGL()
         glareProgram_->bind();
         glareProgram_->setUniformValue("luminanceXYZW", 0);
         int fboCounter=-1;
+        constexpr int fbosToDraw[] = {0, 1, 0, 2, 0, 1};
         for(int angleStepNum=0; angleStepNum<numAngleSteps; ++angleStepNum)
         {
             const float angle = angleMin + angleStep * angleStepNum;
@@ -667,10 +668,11 @@ void GLWidget::paintGL()
             {
                 glareProgram_->setUniformValue("stage", stage);
                 ++fboCounter;
-                glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[fboCounter%2]);
+                assert(unsigned(fboCounter) < std::size(fbosToDraw));
+                glBindFramebuffer(GL_FRAMEBUFFER, glareFBOs_[fbosToDraw[fboCounter]]);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
                 // Now use the result of this stage to feed the next stage
-                glBindTexture(GL_TEXTURE_2D, glareTextures_[fboCounter%2]);
+                glBindTexture(GL_TEXTURE_2D, glareTextures_[fbosToDraw[fboCounter]]);
             }
             // Draw the rays closest to their origin, blending the results
             // into the same FBO as at the previous stage
@@ -680,7 +682,10 @@ void GLWidget::paintGL()
             }
             else
             {
-                glBindTexture(GL_TEXTURE_2D, glareTextures_[2]);
+                const int idx = fbosToDraw[angleStepNum*numStages-1];
+                assert(idx >= 0);
+                assert(unsigned(idx) < std::size(glareTextures_));
+                glBindTexture(GL_TEXTURE_2D, glareTextures_[idx]);
             }
             glareProgram_->setUniformValue("stage", stage);
             glBlendFunc(GL_ONE, GL_ONE);
@@ -688,15 +693,8 @@ void GLWidget::paintGL()
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             glDisable(GL_BLEND);
 
-            if(angleStepNum+1 != numAngleSteps)
-            {
-                // Save the texture for the last stage of the next angle iteration
-                glBindTexture(GL_TEXTURE_2D, glareTextures_[2]);
-                glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width(), height());
-            }
-
             // Now use the result of this stage to feed the next stage
-            glBindTexture(GL_TEXTURE_2D, glareTextures_[fboCounter%2]);
+            glBindTexture(GL_TEXTURE_2D, glareTextures_[fbosToDraw[fboCounter]]);
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER,targetFBO);
