@@ -419,7 +419,7 @@ void main()
 {
     vec2 texSize = textureSize(luminanceXYZW, 0);
 
-    bool xMajor = tanAngle < 1;
+    bool xMajor = abs(tanAngle) < 1;
     float fragPosA = xMajor ? gl_FragCoord.x : gl_FragCoord.y;
     float fragPosB = xMajor ? gl_FragCoord.y : gl_FragCoord.x;
     float aSize    = xMajor ?      texSize.x :      texSize.y;
