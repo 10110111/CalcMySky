@@ -206,6 +206,20 @@ void main()
         else
             radiance=solarRadiance();
     }
+    else if(dotViewSun > 0 && dotViewMoon > 0 && sinViewMoonAngle > sin(moonAngularRadius(cameraPosition,moonPosition)))
+    {
+        if(lookingIntoAtmosphere)
+            radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
+        else
+            radiance=solarRadiance();
+
+        CONST float R = asin(sinViewSunAngle) / sunAngularRadius;
+        // This model is taken from
+        // November, L. and Koutchmy, S. White-light Coronal Dark Threads and Density Fine Structure.
+        // Astrophys. J. 466, 512 (1996);
+        const float profile = 1e-6 * (0.0551 * pow(R, -2.5) + 1.939 * pow(R, -7.8) + 3.670 * pow(R, -18));
+        radiance *= profile;
+    }
     else
     {
         discard;
